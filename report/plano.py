@@ -62,7 +62,7 @@ snapshot — nunca uma fórmula nova (mesma Lei nº 3 de T-60):
   (`RF-16`), é iterar `snapshot.estado_inputs.dividas` por campo `is
   DESCONHECIDO` (`Divida.SALDO_DEVEDOR_ATUAL`, `VALOR_QUITACAO_HOJE`,
   `TAXA_EFETIVA_MENSAL_NORMALIZADA`, `CET`, `PARCELA_CONTRATUAL`,
-  `PAGAMENTO_MENSAL_EFETIVO`, `CUSTO_SEGURO`) mais a leitura direta de
+  `PAGAMENTO_MENSAL_EFETIVO`) mais a leitura direta de
   `snapshot.estado_inputs.INVENTARIO_COMPLETO` (`B5.FIM02`, `AC-09`/`AC-07`)
   — `motivos_rebaixamento` (`engine/ordem.py::ResultadoConsolidacaoOrdemStatus`)
   não é campo de `SnapshotOrdem` (só `ORDEM_STATUS` chega ao snapshot,
@@ -185,9 +185,6 @@ class TextosCanonicosPlano:
     #: `titulo`/`explicacao` da seção do cenário adicional — `RF-98`,
     #: `T-276`; aplicada, pendente de validação do especialista (`T-289`).
     cenario_adicional: Mapping[str, str] = field(default_factory=dict)
-    #: `RF-82` (`T-245`) — orientação por dívida com seguro prestamista;
-    #: aplicada, pendente de validação do especialista (`T-289`).
-    orientacao_seguro_prestamista: str = ""
     #: `RF-111` (`T-326`) — "{tipo} — {credor}": como a dívida é chamada no
     #: plano e na conferência, no lugar do `DIVIDA_ID`.
     nome_da_divida: str = ""
@@ -329,7 +326,6 @@ def carregar_textos_canonicos(
         rotulos_de_pendencia=_mapa("rotulos_de_pendencia"),
         rotulos_de_comprovacao=_mapa("rotulos_de_comprovacao"),
         cenario_adicional=_mapa("cenario_adicional"),
-        orientacao_seguro_prestamista=str(bruto.get("orientacao_seguro_prestamista") or ""),
         nome_da_divida=str(bruto.get("nome_da_divida") or ""),
         nome_com_parcela=str(bruto.get("nome_com_parcela") or ""),
         nome_com_ordinal=str(bruto.get("nome_com_ordinal") or ""),
@@ -510,6 +506,9 @@ _ESCALAS: Final[frozenset[str]] = frozenset(
 #: `T-326` — identificadores dos itens: vão ao revisor como detalhe
 #: (`DIVIDA_ID` no cabeçalho da dívida), nunca como dado de entrada.
 _CAMPOS_IDENTIFICADORES: Final[frozenset[str]] = frozenset({"DIVIDA_ID", "ITEM_ID"})
+# `T-391` (`RF-410`): o seguro saiu do questionário; os dois campos seguem em
+# `Divida` (motor intocado), com valor neutro fixo, e não são mostrados.
+_CAMPOS_DO_SEGURO: Final[frozenset[str]] = frozenset({"SEGURO_INCLUIDO_PARCELA", "CUSTO_SEGURO"})
 
 
 def _rotulo_de_opcao(
@@ -614,6 +613,7 @@ def _campos_de_apoio(
         )
         for campo in fields(instancia)  # type: ignore[arg-type]
         if campo.name not in _CAMPOS_IDENTIFICADORES
+        and campo.name not in _CAMPOS_DO_SEGURO
         and campo.name not in _CAMPOS_ESTADO_COM_SECAO_PROPRIA
     )
 
@@ -857,7 +857,6 @@ _CAMPOS_MATERIAIS_DA_DIVIDA: Final[tuple[str, ...]] = (
     "CET",
     "PARCELA_CONTRATUAL",
     "PAGAMENTO_MENSAL_EFETIVO",
-    "CUSTO_SEGURO",
 )
 
 

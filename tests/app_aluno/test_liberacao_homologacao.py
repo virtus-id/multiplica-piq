@@ -7,11 +7,10 @@
 arranjo de `test_rotas_revisao_decisao.py`. As pendências são derivadas das
 respostas gravadas, nunca fabricadas.
 
-`T-266`: o contexto de `GET .../decisao` (fontes, seguro "não informado",
-divergências, rateios e pendências), pela mesma rota.
+`T-266`: o contexto de `GET .../decisao` (fontes, divergências e
+pendências), pela mesma rota.
 
-REGRAS: `RF-92`, `RF-93`, `RF-97`, `AC-141`, `AC-142`, `AC-149`, `EC-40`,
-`AC-124`, `AC-155`, `AC-156`, `EC-39`
+REGRAS: `RF-92`, `RF-93`, `RF-97`, `AC-141`, `AC-142`, `AC-149`, `EC-40`
 """
 
 from __future__ import annotations
@@ -262,16 +261,7 @@ def test_t266_contexto_do_revisor_fontes_avisos_e_pendencias(
 ) -> None:
     ambiente.responder_divida(
         FONTE_DADO="ATENDIMENTO_CREDOR",
-        SEGURO_PRESTAMISTA="SIM",
-        SITUACAO_SEGURO=NAO_SEI,
-        **{
-            "CUSTO_SEGURO (+ base MENSAL/TOTAL)": "TOTAL",
-            "CUSTO_SEGURO_VALOR": Decimal("1200"),
-            "CUSTO_SEGURO_MESES": 24,
-        },
     )
-    for vinculo, liquida in (("V001", "4000"), ("V002", "2500")):
-        ambiente.responder("RENDA_LIQUIDA_VINCULO", Decimal(liquida), vinculo)
     textos = carregar_textos_canonicos().rotulos_de_comprovacao
 
     corpo = ambiente.cliente(monkeypatch).get(f"/revisao/caso/{_CASO}/decisao").json()
@@ -287,14 +277,12 @@ def test_t266_contexto_do_revisor_fontes_avisos_e_pendencias(
             "rotulo": textos["PENDENTE_DE_CONFIRMACAO"],
         }
     ]
-    # AC-155/EC-39: seguro "não sei" é "não informado", nunca nível 3.
-    assert corpo["seguros_nao_informados"] == [
-        {"item_id": ambiente.divida, "nome": ambiente.divida}
-    ]
-    assert corpo["rotulo_nao_informado"] == textos["NAO_INFORMADO"]
-    assert {"tipo": "RENDA_VINCULOS"}.items() <= corpo["divergencias"][0].items()
-    # AC-124: R$ 1.200 no total em 24 meses → R$ 50,00 rotulado rateio.
-    assert [r["valor_mensal"] for r in corpo["rateios"]] == ["R$ 50,00"]
+    # `T-391` (RF-410): o seguro saiu da conferência do revisor.
+    assert "seguros_nao_informados" not in corpo
+    assert "rotulo_nao_informado" not in corpo
+    # `T-389`: a divergência da renda dos vínculos saiu com `B3.S04L`.
+    assert corpo["divergencias"] == []
+    assert "rateios" not in corpo
     assert {p["ID_PERGUNTA"] for p in corpo["pendencias_homologacao"]} == {
         "B5.B03",
         "B5.C02",

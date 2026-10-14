@@ -110,7 +110,7 @@ explicacao_da_posicao:
 # O que falta para o plano deixar de ser provisório — T-177.
 #
 # O aviso de plano provisório listava o nome do campo do motor: "D001: falta
-# VALOR_QUITACAO_HOJE, CET, PARCELA_CONTRATUAL, CUSTO_SEGURO". O aluno
+# VALOR_QUITACAO_HOJE, CET, PARCELA_CONTRATUAL". O aluno
 # precisa saber o que buscar no extrato, não como o campo se chama no código.
 #
 # As chaves são os campos que `report/plano.py::_campos_desconhecidos_da_
@@ -122,13 +122,12 @@ rotulos_de_pendencia:
   CET: "o custo efetivo total (CET)"
   PARCELA_CONTRATUAL: "o valor da parcela do contrato"
   PAGAMENTO_MENSAL_EFETIVO: "quanto você paga por mês"
-  CUSTO_SEGURO: "o custo do seguro"
 
 # ---------------------------------------------------------------------------
 # Fonte de comprovação — RF-91, RF-92 (T-267, T-266, DE-06).
 #
 # Os três níveis são a redação de `DE-06` (`q6_1`). "Não informado" é a
-# fonte ainda sem resposta e o seguro "não sei" (`EC-39`) — redação
+# fonte ainda sem resposta — redação
 # aprovada pelo produto (`T-289`, 2026-09-30). As chaves são
 # `collection.registro.NIVEL_COMPROVACAO`.
 rotulos_de_comprovacao:
@@ -150,21 +149,6 @@ cenario_adicional:
     Esta projeção inclui os valores extraordinários que você marcou como
     prováveis ou possíveis. Eles não fazem parte do seu plano: só passam a
     contar quando forem efetivamente recebidos.
-
-# ---------------------------------------------------------------------------
-# Seguro prestamista — RF-82 (T-245, DE-03, `E-11`: "orientar o aluno sobre
-# apólice e cancelamento").
-#
-# Exibida no plano em cada dívida com `SEGURO_PRESTAMISTA = SIM`. Aplicada,
-# pendente de validação do especialista (`T-289`): restituição proporcional
-# nunca é prometida.
-orientacao_seguro_prestamista: >-
-  Esta dívida tem seguro prestamista. Confira na apólice ou no certificado:
-  o valor total do prêmio, a forma de cobrança (junto da parcela ou à parte)
-  e se a contratação era facultativa. Se não quiser mais o seguro e o
-  contrato permitir, peça o cancelamento das cobranças futuras e pergunte
-  sobre a restituição proporcional do período não usado. Essa restituição
-  depende das condições da apólice e não é garantida.
 
 # ---------------------------------------------------------------------------
 # Plano e conferência em linguagem humana — RF-111, AC-174 (T-326).
@@ -267,8 +251,6 @@ rotulos_de_dados:
   CET: "Custo efetivo total (CET)"
   PARCELA_CONTRATUAL: "Parcela do contrato"
   PAGAMENTO_MENSAL_EFETIVO: "Pagamento mensal efetivo"
-  SEGURO_INCLUIDO_PARCELA: "Seguro incluído na parcela"
-  CUSTO_SEGURO: "Custo do seguro"
   PESO_EMOCIONAL: "Peso emocional"
   RENEGOCIACAO_PENDENTE: "Renegociação pendente"
   TROCA_PENDENTE: "Troca de dívida pendente"
@@ -578,7 +560,6 @@ onde_achar:
   CET: "No contrato, procure por \"CET\" ou \"custo efetivo total\"."
   PARCELA_CONTRATUAL: "No contrato ou no aplicativo do credor, procure o valor da parcela combinada."
   PAGAMENTO_MENSAL_EFETIVO: "No seu extrato bancário, veja quanto realmente saiu por mês para esta dívida."
-  CUSTO_SEGURO: "No contrato ou na fatura, procure por \"seguro prestamista\" ou \"seguro do contrato\"."
 
 pergunta_do_campo:
   SALDO_DEVEDOR_ATUAL: "B5.B03"
@@ -587,7 +568,6 @@ pergunta_do_campo:
   PAGAMENTO_MENSAL_EFETIVO: "B5.C06"
   TAXA_EFETIVA_MENSAL_NORMALIZADA: "B5.D01A"
   CET: "B5.D03A"
-  CUSTO_SEGURO: "B5.D05A"
 
 # Perguntas frequentes, sempre abertas no documento impresso. Só perguntas com
 # resposta FECHADA, que diz ao aluno o que fazer, sem mandar "avisar a equipe".

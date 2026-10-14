@@ -95,10 +95,9 @@ inventa um `Parametros` default para seguir adiante — registra o evento
 (sem nenhum dado monetário) e RELANÇA a exceção original: o chamador (rota
 HTTP) é quem decide como reportar ao operador. "Estado anterior preservado"
 é uma propriedade automática desta transição: `ERRO_DE_CALCULO` não é
-`COLETA_INICIAL`/`COLETA_DIRIGIDA`/`CONFIRMACAO_ATAQUE`/`ACOMPANHAMENTO`, e a
-retomada (`operador_retoma_apos_erro`, já declarada em `app/casos/
-maquina.py`) devolve exatamente a um desses quatro — o mesmo de onde
-`CALCULANDO` partiu — nunca um estado novo inventado por este módulo.
+`COLETA_INICIAL`, e a retomada (`operador_retoma_apos_erro`, já declarada em
+`app/casos/maquina.py`) devolve a ela — o estado de onde `CALCULANDO` partiu
+— nunca um estado novo inventado por este módulo.
 
 **`EC-03` — `ErroInvariante`.** Levantado por `engine.ciclo_mensal.
 executar_mes` (dentro de `calcular_plano`, PASSO 3) quando a conservação do
@@ -171,7 +170,7 @@ seguida de `ERRO_DE_CALCULO → estado_anterior_do_caso`) persistiam o novo
 de `_registrar_evento` (`logging`, não a trilha persistida). `RF-31`/`AC-40`
 exigem que TODA transição da máquina grave um evento na trilha, não só as
 que passam por `app/casos/progresso.py::transicionar_e_registrar` em
-`app/http/`/`app/revisao/`/`app/casos/acompanhamento.py` — por isso este
+`app/http/`/`app/revisao/` — por isso este
 módulo, embora fora da lista nominal de arquivos de `T-91`, foi estendido
 para usar o MESMO wrapper (extensão de escopo estritamente necessária ao
 critério de aceite, mesmo precedente de `T-30`/`T-87`).

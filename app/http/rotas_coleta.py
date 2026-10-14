@@ -697,21 +697,6 @@ def responder_pergunta(
     except (ErroGravacaoItem, ErroGravacaoItemArquivo):
         return _resposta_de_erro(request, _MENSAGEM_FALHA_SALVAR, 503)
 
-    # `T-274` (RF-81, AC-123, DE-03): restituição de seguro confirmada vira
-    # ficha de recurso extraordinário. Mesma disciplina do `T-217`: a
-    # resposta já está gravada; reenviar completa o que faltou.
-    try:
-        _sincronizar_restituicao_de_seguro(
-            registro, item_id, valor, repositorio, repositorio_itens, CASO_ID, colecao
-        )
-    except (
-        ErroGravacaoItem,
-        ErroGravacaoItemArquivo,
-        ErroGravacaoResposta,
-        ErroCasoInexistenteParaResposta,
-    ):
-        return _resposta_de_erro(request, _MENSAGEM_FALHA_SALVAR, 503)
-
     # Neste ponto a resposta JÁ ESTÁ commitada no banco
     # (`RepositorioRespostasSupabase.gravar` só retorna sem exceção após
     # `conexao.commit()` de `_conectar`) — encerrar o processo agora não
@@ -774,8 +759,8 @@ def responder_pergunta(
     elif sem_nome:
         abrir_fichas = (*abrir_fichas, EscopoRepeticao.ITEM_DESPESA)
     # `T-291` (RF-87, DE-04): a cabeça de `DIVIDA_ID` não tem condição, então
-    # `escopos_abertos_pela_resposta` nunca a aponta. Com `B5.00` e `B5.00A`
-    # respondidas e a pendência de dívidas pedindo fichas, a lista abre.
+    # `escopos_abertos_pela_resposta` nunca a aponta. Com `B5.00`
+    # respondida e a pendência de dívidas pedindo fichas, a lista abre.
     if _abre_fichas_de_divida(
         colecao, registro.VARIAVEL_GRAVADA, respostas_apos_gravar, itens_por_escopo
     ):
@@ -930,11 +915,9 @@ def _em_branco_antes_de(
     )
 
 
-# `T-291` — as variáveis de `B5.00` e `B5.00A`: a declaração das dívidas.
-_DECLARACAO_DE_DIVIDAS: Final[tuple[str, ...]] = (
-    "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL",
-    "TIPOS_DIVIDA_DECLARADOS",
-)
+# `T-291` — a variável de `B5.00`: a declaração das dívidas (`T-389`: `B5.00A`,
+# dos tipos declarados, saiu do questionário).
+_DECLARACAO_DE_DIVIDAS: Final[tuple[str, ...]] = ("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL",)
 
 
 def _abre_fichas_de_divida(
@@ -943,7 +926,7 @@ def _abre_fichas_de_divida(
     respostas: RespostasCaso,
     itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]],
 ) -> bool:
-    """A resposta fecha a declaração (as duas variáveis respondidas), não há
+    """A resposta fecha a declaração (a variável respondida), não há
     ficha de dívida e `pendencias_de_inventario` pede fichas de `DIVIDA_ID`
     — quantidade numérica acima de zero ou "não sei" (`AC-153`). Quem decide
     se faltam fichas é a pendência de `RF-87`, não uma regra nova aqui."""
@@ -968,7 +951,7 @@ def faltam_fichas_de_divida(
 
 
 def posterior_a_declaracao_de_dividas(colecao: ColecaoDeRegistros, ID_PERGUNTA: str) -> bool:
-    """`T-301`: a pergunta vem depois de `B5.00`/`B5.00A` na ordem da coleta."""
+    """`T-301`: a pergunta vem depois de `B5.00` na ordem da coleta."""
     ids = [r.ID for r in colecao.registros]
     declaracao = [
         i for i, r in enumerate(colecao.registros) if r.VARIAVEL_GRAVADA in _DECLARACAO_DE_DIVIDAS
@@ -1024,64 +1007,6 @@ def _sincronizar_itens_de_despesa(
         for origem in sincronizacao.criar
     }
     return tuple(item_id for origem, item_id in criados.items() if pede_nome(origem))
-
-
-# `T-274` — a variável de `B5.D05R` e o que ela escreve no item `EXT`. Chaves
-# técnicas (`VARIAVEL_GRAVADA`/`valor_interno`), não conteúdo ao aluno.
-_VARIAVEL_RESTITUICAO_SEGURO: Final[str] = "RESTITUICAO_SEGURO_CONFIRMADA"
-_CERTEZA_CONFIRMADO: Final[str] = "CONFIRMADO"
-# `T-286` (`DE-03`): marca o item com a pergunta de origem (`registro.ID`) —
-# a condição de `B3.05A`–`D` no YAML abre a ficha dele mesmo com `B3.05 = Não`.
-_VARIAVEL_ORIGEM_RECURSO: Final[str] = "ORIGEM_RECURSO_EXTRAORDINARIO"
-
-
-def _sincronizar_restituicao_de_seguro(
-    registro: RegistroPergunta,
-    item_id: str | None,
-    valor: ValorResposta,
-    repositorio: RepositorioRespostas,
-    repositorio_itens: RepositorioItens,
-    CASO_ID: str,
-    colecao: ColecaoDeRegistros,
-) -> None:
-    """`T-274` (RF-81, AC-123, DE-03) — valor confirmado em `B5.D05R` cria
-    UM item `EXT` por dívida, `origem = "B5.D05R:<DIVIDA_ID>"`, com valor e
-    certeza `CONFIRMADO`; reconfirmar atualiza o mesmo item. A janela (e o
-    tipo) ficam para o aluno — nunca presumidos (`R9-10`). "Ainda não
-    confirmada" → nenhum item: o que havia sai (remoção lógica, `AC-04`)."""
-    if registro.VARIAVEL_GRAVADA != _VARIAVEL_RESTITUICAO_SEGURO or not item_id:
-        return
-    origem = f"{registro.ID}:{item_id}"
-    existente = next(
-        (
-            item.item_id
-            for item in repositorio_itens.listar_do_caso(CASO_ID, incluir_removidos=False)
-            if item.escopo is EscopoRepeticao.RECURSO_EXTRAORDINARIO_ID and item.origem == origem
-        ),
-        None,
-    )
-    if not isinstance(valor, Decimal):
-        if existente is not None:
-            repositorio_itens.remover(CASO_ID, existente)
-        return
-    recurso = existente or repositorio_itens.proximo_identificador(
-        CASO_ID, EscopoRepeticao.RECURSO_EXTRAORDINARIO_ID, origem
-    )
-    for variavel, valor_do_item in (
-        ("VALOR_RECURSO_EXTRAORDINARIO", valor),
-        ("CERTEZA_RECURSO_EXTRAORDINARIO", _CERTEZA_CONFIRMADO),
-        (_VARIAVEL_ORIGEM_RECURSO, registro.ID),
-    ):
-        repositorio.gravar(
-            Resposta(
-                CASO_ID=CASO_ID,
-                ID_PERGUNTA=variavel,
-                item_id=recurso,
-                valor=valor_do_item,
-                QUESTIONARIO_VERSION=colecao.QUESTIONARIO_VERSION,
-                respondida_em=_agora(),
-            )
-        )
 
 
 def _primeira_exibivel(
@@ -1236,7 +1161,7 @@ def perguntas_da_ficha_inicial(
     colecao: ColecaoDeRegistros, escopo: EscopoRepeticao
 ) -> tuple[RegistroPergunta, ...]:
     """As perguntas da ficha do escopo na coleta inicial (`T-200`); escopo
-    todo pós-plano (o do Bloco 11) fica com as suas (`T-211`)."""
+    todo pós-plano (o do Bloco 11, `B11.01`) fica com as suas (`T-211`)."""
     da_ficha = perguntas_da_ficha(colecao.registros, escopo)
     return da_coleta_inicial(da_ficha) or da_ficha
 

@@ -12,13 +12,11 @@
 import type {
   ConfirmacaoDeResposta,
   EscoposDoCaso,
-  Etapas,
   Ficha,
   FormularioDoItem,
   Inicio,
   ItemDaFila,
   ListaDeFichas,
-  Pergunta,
   Plano,
   RespostaPergunta,
   RespostaPlano,
@@ -174,15 +172,6 @@ export function retomarEdicao(casoId: string): Promise<{ estado: string }> {
   return pedir<{ estado: string }>(`/caso/${casoId}/retomar-edicao`, { method: 'POST' })
 }
 
-/**
- * O aluno pede um plano novo depois da liberação — `RF-118`, `T-342`. O plano
- * atual segue valendo; o servidor devolve o caso à coleta (`409` antes da
- * liberação) e o cálculo é disparado pela tela seguinte.
- */
-export function refazerPlano(casoId: string): Promise<{ estado: string }> {
-  return pedir<{ estado: string }>(`/caso/${casoId}/refazer-plano`, { method: 'POST' })
-}
-
 export function listarEscopos(casoId: string): Promise<EscoposDoCaso> {
   return pedir<EscoposDoCaso>(`/caso/${casoId}/escopos`)
 }
@@ -267,11 +256,10 @@ export interface PendenciaDeInventario extends PendenciaDoCalculo {
   escopo: string | null
   mensagem: string
   /**
-   * `T-324`: só em dívidas faltando — rótulos dos tipos declarados sem
-   * ficha, as fichas já cadastradas e a ficha criada e ainda vazia.
+   * `T-324`: só em dívidas faltando — as fichas já cadastradas e a ficha
+   * criada e ainda vazia.
    */
   dividas?: {
-    tipos_sem_ficha: string[]
     fichas: { item_id: string; credor: string | null; tipo: string | null }[]
     ficha_vazia: string | null
   } | null
@@ -384,19 +372,6 @@ export function obterPlano(casoId: string): Promise<RespostaPlano> {
   return pedir<RespostaPlano>(`/caso/${casoId}/api/plano`)
 }
 
-export function obterEtapas(casoId: string): Promise<Etapas> {
-  return pedir<Etapas>(`/caso/${casoId}/etapas`)
-}
-
-/** Abre uma etapa pós-plano. `409` quando a guarda do servidor a fecha —
- *  o cliente nunca decide se pode abrir. */
-export function abrirEtapa(
-  casoId: string,
-  etapa: 'blocos-7-8' | 'bloco-10' | 'bloco-11',
-): Promise<{ CASO_ID: string; estado: string }> {
-  return pedir(`/caso/${casoId}/etapas/${etapa}`, { method: 'POST' })
-}
-
 export function obterFilaDeRevisao(): Promise<{ itens: ItemDaFila[] }> {
   return pedir<{ itens: ItemDaFila[] }>('/api/revisao/fila')
 }
@@ -492,16 +467,11 @@ export interface OpcoesDeDecisao {
   classificacoes_erro: string[]
   // `T-266` — derivados das respostas atuais, a cada leitura.
   fontes?: FonteDaFicha[]
-  seguros_nao_informados?: { item_id: string; nome: string }[]
-  rotulo_nao_informado?: string | null
   divergencias?: {
-    tipo: 'DESCONTO' | 'RENDA_VINCULOS'
+    tipo: 'DESCONTO'
     item_id: string | null
     nome?: string
-    soma_liquidas?: string
-    renda_bloco_3?: string
   }[]
-  rateios?: { item_id: string; nome: string; variavel: string; valor_mensal: string }[]
   pendencias_homologacao?: PendenciaDeHomologacao[]
   homologacao?: RegistroDeHomologacao
 }
@@ -609,98 +579,4 @@ export interface LinhaDoPainel {
 
 export function obterPainelDoOperador(): Promise<{ linhas: LinhaDoPainel[] }> {
   return pedir<{ linhas: LinhaDoPainel[] }>('/api/operador/painel')
-}
-
-// ---------------------------------------------------------------------------
-// Coleta dirigida (Blocos 7 e 8) e Bloco 10 (T-142)
-// ---------------------------------------------------------------------------
-
-export interface FichaDirigida {
-  item_id: string
-  campos: Pergunta[]
-}
-
-export interface ColetaDirigida {
-  CASO_ID: string
-  dividas: string[]
-  perguntas: string[]
-  fichas: FichaDirigida[]
-}
-
-export function obterColetaDirigida(
-  casoId: string,
-  bloco: 7 | 8,
-): Promise<ColetaDirigida> {
-  return pedir<ColetaDirigida>(`/caso/${casoId}/coleta-dirigida/bloco-${bloco}`)
-}
-
-export interface Bloco10 {
-  CASO_ID: string
-  ATAQUE_IMEDIATO_RECOMENDADO: string
-  campos: Pergunta[]
-}
-
-export function obterBloco10(casoId: string): Promise<Bloco10> {
-  return pedir<Bloco10>(`/caso/${casoId}/bloco-10`)
-}
-
-/** O Bloco 10 grava pela rota própria, que valida `0 ≤ APROVADO ≤
- *  RECOMENDADO` no servidor — o cliente nunca decide esse limite. */
-export function responderBloco10(
-  casoId: string,
-  idPergunta: string,
-  valor: string,
-): Promise<unknown> {
-  const corpo = new URLSearchParams({ ID_PERGUNTA: idPergunta, valor })
-  return pedir(`/caso/${casoId}/bloco-10/resposta`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: corpo.toString(),
-  })
-}
-
-// ---------------------------------------------------------------------------
-// Bloco 11 — ações e seu andamento (T-143)
-// ---------------------------------------------------------------------------
-
-export interface Acao {
-  ACAO_ID: string
-  TIPO_ACAO: string
-  /** `AC-50`: ação de economia não tem dívida — por isso pode ser `null`. */
-  DIVIDA_ID: string | null
-  descricao: string
-  prioridade_excepcional: boolean
-  CAMPO_PENDENTE: string | null
-  /** String ou `null` — nunca `number`: `RF-13` proíbe dinheiro em float, e
-   *  desconhecido nunca vira zero. */
-  VALOR_ACAO_FINANCEIRA_IMEDIATA: string | null
-  campos: Pergunta[]
-}
-
-export function obterAcoes(casoId: string): Promise<{ CASO_ID: string; acoes: Acao[] }> {
-  return pedir<{ CASO_ID: string; acoes: Acao[] }>(`/caso/${casoId}/acoes`)
-}
-
-export function responderAcao(
-  casoId: string,
-  entrada: {
-    idPergunta: string
-    itemId: string
-    valor?: string | string[]
-    naoSei?: boolean
-  },
-): Promise<unknown> {
-  const corpo = new URLSearchParams()
-  corpo.append('ID_PERGUNTA', entrada.idPergunta)
-  corpo.append('item_id', entrada.itemId)
-  if (entrada.naoSei) {
-    corpo.append('nao_sei', 'on')
-  } else if (typeof entrada.valor === 'string') {
-    corpo.append('valor', entrada.valor)
-  }
-  return pedir(`/caso/${casoId}/acoes/resposta`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: corpo.toString(),
-  })
 }

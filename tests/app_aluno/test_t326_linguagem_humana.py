@@ -57,6 +57,7 @@ from engine.snapshot import SnapshotOrdem
 from engine.tipos import DESCONHECIDO, EVENTO_RECALCULO, METODO, ORDEM_STATUS, STATUS_METODO
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from report.plano import (
+    _CAMPOS_DO_SEGURO,
     CENARIO_APRESENTACAO,
     VocabularioDoCaso,
     carregar_textos_canonicos,
@@ -452,6 +453,8 @@ def test_t326_todo_dado_de_entrada_tem_rotulo() -> None:
             "perfil_comportamental",
             "sinais_comportamentais",
         }
+        # `T-391` (`RF-410`): campos do seguro não são mostrados.
+        and campo.name not in _CAMPOS_DO_SEGURO
         and campo.name not in rotulos
     ]
 

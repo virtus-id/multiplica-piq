@@ -115,10 +115,6 @@ describe("AlertaInventario", () => {
         ...FALTANDO,
         mensagem,
         dividas: {
-          tipos_sem_ficha: [
-            "Empréstimo consignado",
-            "Cartão com saldo rotativo",
-          ],
           fichas: [
             { item_id: "D001", credor: "Banco X", tipo: "Empréstimo pessoal" },
             { item_id: "D002", credor: null, tipo: null },
@@ -132,9 +128,6 @@ describe("AlertaInventario", () => {
     // A mensagem de `RF-87` continua literal, antes do detalhe.
     expect(alerta.querySelector("li")?.firstElementChild).toHaveTextContent(
       mensagem,
-    );
-    expect(alerta).toHaveTextContent(
-      "Tipos que você marcou e ainda não têm ficha: Empréstimo consignado, Cartão com saldo rotativo.",
     );
     expect(alerta).toHaveTextContent("Banco X — Empréstimo pessoal");
     expect(alerta).toHaveTextContent("Ficha sem credor e tipo informados");
@@ -163,7 +156,7 @@ describe("AlertaInventario", () => {
     const { irPara } = montar([
       {
         ...FALTANDO,
-        dividas: { tipos_sem_ficha: [], fichas: [], ficha_vazia: "D006" },
+        dividas: { fichas: [], ficha_vazia: "D006" },
       },
     ]);
 

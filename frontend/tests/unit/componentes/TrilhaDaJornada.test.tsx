@@ -7,8 +7,8 @@
  * Node 22.9 (`ERR_REQUIRE_ESM` em `@csstools/css-calc`).
  *
  * Os testes de navegador (`tests/e2e/navegacao.spec.ts`) já cobrem `AC-93`/
- * `AC-94` nas cinco fases conhecidas. O que falta — e o que este arquivo
- * acrescenta — é a SEXTA: a fase que o servidor pode passar a emitir e que
+ * `AC-94` nas quatro fases conhecidas. O que falta — e o que este arquivo
+ * acrescenta — é a QUINTA: a fase que o servidor pode passar a emitir e que
  * este cliente ainda não conhece, situação normal durante um deploy.
  */
 import { render, screen } from "@testing-library/react";
@@ -38,14 +38,8 @@ function etapaEmCurso(): string {
 }
 
 describe("TrilhaDaJornada", () => {
-  it("AC-94: exatamente uma etapa em curso, nas cinco fases conhecidas", () => {
-    for (const fase of [
-      "coleta",
-      "revisao",
-      "reprovado",
-      "plano",
-      "acompanhamento",
-    ]) {
+  it("AC-94: exatamente uma etapa em curso, nas quatro fases conhecidas", () => {
+    for (const fase of ["coleta", "revisao", "reprovado", "plano"]) {
       const { unmount } = render(
         <TrilhaDaJornada inicio={fabricarInicio(fase)} />,
       );
@@ -81,6 +75,15 @@ describe("TrilhaDaJornada", () => {
     // manda executar um plano que talvez não exista.
     expect(screen.queryByText(/Faça a próxima ação/i)).toBeNull();
     expect(screen.getByText(/está com a equipe/i)).toBeInTheDocument();
+  });
+
+  it("RF-409: quatro etapas, a última é o plano; não há etapa de acompanhamento", () => {
+    render(<TrilhaDaJornada inicio={fabricarInicio("plano")} />);
+
+    expect(document.querySelectorAll("ol.trilha > li")).toHaveLength(4);
+    expect(etapaEmCurso()).toBe("Seu plano");
+    expect(screen.queryByText(/acompanhamento/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/decisão sua/i)).not.toBeInTheDocument();
   });
 
   it("AC-96: na coleta, o que falta vem COM unidade", () => {

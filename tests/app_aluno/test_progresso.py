@@ -139,21 +139,18 @@ def test_ac11_campo_obr_que_admite_nao_sei_respondido_com_nao_sei_nao_e_pendenci
 
 
 def test_campo_opt_em_branco_nao_gera_pendencia() -> None:
-    """`B1.03A` real: `obrigatoriedade=[OPT]`, condicionada a
-    `FINALIDADE_NOVA_DIVIDA=OUTRA`. Mesmo com a condição satisfeita e nenhuma
-    resposta gravada, `OPT` nunca entra na varredura de pendência."""
+    """`B3.C01A` real: `obrigatoriedade=[OPT]`. Sem nenhuma resposta gravada,
+    `OPT` nunca entra na varredura de pendência. (`T-389`: era `B1.03A`.)"""
     registros = _colecao_real()
-    registro_b1_03a = next(r for r in registros if r.ID == "B1.03A")
-    assert registro_b1_03a.obrigatoriedade == frozenset({Obrigatoriedade.OPT})
+    registro_opt = next(r for r in registros if r.ID == "B3.C01A")
+    assert registro_opt.obrigatoriedade == frozenset({Obrigatoriedade.OPT})
 
-    respostas = RespostasCaso(
-        respostas=(_resposta("FINALIDADE_NOVA_DIVIDA", "OUTRA"),)
-    )
+    respostas = RespostasCaso(respostas=())
 
-    pendencias = pendencias_obrigatorias((registro_b1_03a,), respostas)
+    pendencias = pendencias_obrigatorias((registro_opt,), respostas)
 
     assert pendencias == ()
-    assert coleta_pode_avancar((registro_b1_03a,), respostas) is True
+    assert coleta_pode_avancar((registro_opt,), respostas) is True
 
 
 # ---------------------------------------------------------------------------
@@ -162,17 +159,17 @@ def test_campo_opt_em_branco_nao_gera_pendencia() -> None:
 
 
 def test_campo_cond_puro_sem_obr_nunca_gera_pendencia_mesmo_com_condicao_verdadeira() -> None:
-    """`B1.03` real: `obrigatoriedade=[COND]` (sem `OBR`) — condicionalmente
+    """`B2.10` real: `obrigatoriedade=[COND]` (sem `OBR`) — condicionalmente
     EXIBIDA, mas não obrigatória por si só. Mesmo com a condição de exibição
     satisfeita e a pergunta em branco, ela não é uma pendência: só `OBR`
     torna um registro exigível (`_e_exigivel_agora`)."""
     registros = _colecao_real()
-    registro_b1_03 = next(r for r in registros if r.ID == "B1.03")
-    assert registro_b1_03.obrigatoriedade == frozenset({Obrigatoriedade.COND})
+    registro_b2_10 = next(r for r in registros if r.ID == "B2.10")
+    assert registro_b2_10.obrigatoriedade == frozenset({Obrigatoriedade.COND})
 
-    respostas = RespostasCaso(respostas=(_resposta("NOVA_DIVIDA_PREVISTA", "SIM"),))
+    respostas = RespostasCaso(respostas=(_resposta("GASTOS_FANTASMAS", "SIM"),))
 
-    pendencias = pendencias_obrigatorias((registro_b1_03,), respostas)
+    pendencias = pendencias_obrigatorias((registro_b2_10,), respostas)
 
     assert pendencias == ()
 
@@ -406,13 +403,12 @@ def test_t200_contar_coleta_nao_conta_blocos_pos_plano() -> None:
 
 def test_t202_ficha_percorrida_item_a_item_e_o_resto_na_ordem_do_registro() -> None:
     """Reproduz C6: a ordem era `A01/D001, A01/D002, A02/D001…`."""
-    registros = _reais_por_id("B5.00", "B5.00A", "B5.A01", "B5.A02", "B5.FIM02")
+    registros = _reais_por_id("B5.00", "B5.A01", "B5.A02", "B5.FIM02")
 
     percurso = _percurso(registros, {EscopoRepeticao.DIVIDA_ID: ("D001", "D002")})
 
     assert percurso == [
         ("B5.00", None),
-        ("B5.00A", None),
         ("B5.A01", "D001"),
         ("B5.A02", "D001"),
         ("B5.A01", "D002"),

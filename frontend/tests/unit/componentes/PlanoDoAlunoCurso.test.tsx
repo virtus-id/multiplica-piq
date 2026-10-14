@@ -44,7 +44,6 @@ function plano(extra: Partial<Plano> = {}, incomodo = '', aviso = ''): Plano {
         JUSTIFICATIVA_POSICAO: '',
         explicacao: 'Critério do método.',
         fonte: null,
-        orientacao_seguro: null,
         valores_de_apoio: [],
         incomodo,
         aviso_incomodo: aviso,

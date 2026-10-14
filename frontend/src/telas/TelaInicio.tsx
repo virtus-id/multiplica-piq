@@ -15,12 +15,11 @@
  * o TEXTO e o enquadramento visual de cada fase, que é trabalho de interface.
  */
 import Botao from '../componentes/Botao'
-import { CartaoPlanoNovo, CartaoRetirarDaConferencia } from '../componentes/CartoesDoPlano'
+import { CartaoRetirarDaConferencia } from '../componentes/CartoesDoPlano'
 import Esqueleto from '../componentes/Esqueleto'
 import Icone from '../componentes/Icone'
 import Tela from '../componentes/Tela'
 import TrilhaDaJornada from '../componentes/TrilhaDaJornada'
-import { formatarDecimalDoServidor } from '../mascaras'
 import { type Rota } from '../navegacao'
 import type { DestinoDaEtapa, Inicio } from '../tipos'
 
@@ -30,8 +29,8 @@ interface TelaInicioProps {
    * tela (`T-190`).
    *
    * **Até `T-190`, esta tela buscava por conta própria** — a mesma
-   * requisição que `App.tsx` já eleva para `TelaProgresso`/`TelaAguardando`/
-   * `TelaRecalculo` consumirem, duplicada aqui. Todo "voltar" (que sempre
+   * requisição que `App.tsx` já eleva para `TelaProgresso`/`TelaAguardando`
+   * consumirem, duplicada aqui. Todo "voltar" (que sempre
    * cai no Início — `voltarAoInicio`) disparava as DUAS buscas em paralelo,
    * dobrando o número de conexões tiradas do pool compartilhado (`T-187`)
    * por um único clique, para jogar fora o resultado de uma delas. `null`
@@ -96,10 +95,6 @@ function rotaDoDestino(inicio: Inicio): Rota {
       return { tela: 'calculando' }
     case 'aguardando':
       return { tela: 'aguardando' }
-    case 'bloco10':
-      return { tela: 'bloco10' }
-    case 'acoes':
-      return { tela: 'acoes' }
     case 'progresso':
       return { tela: 'progresso' }
     case 'plano':
@@ -171,32 +166,10 @@ const TEXTO_DA_ETAPA: Readonly<
     rotulo: 'Ver as suas respostas',
     detalhe: 'Nada do que você respondeu foi perdido.',
   },
-  bloco10: {
-    rotulo: 'Decidir sobre o dinheiro que você tem disponível',
-    detalhe: 'Seu plano está pronto e conferido.',
-  },
-  acoes: {
-    rotulo: 'Ver o que fazer agora',
-    detalhe: 'Faça a próxima ação e conte como foi.',
-  },
   plano: {
     rotulo: 'Ver o seu plano',
     detalhe: 'Seu caso foi encerrado.',
   },
-}
-
-/**
- * O valor em destaque, pronto para entrar na frase — `AC-88`.
- *
- * A conversão em si vive em `mascaras.ts` (`formatarDecimalDoServidor`), com
- * a mesma máscara da digitação — dinheiro não pode ter duas formatações no
- * mesmo app. Aqui fica só o enquadramento: o travessão e o `R$` que compõem
- * a frase do protótipo, e a composição é do CLIENTE porque o servidor manda
- * o valor separado do destino (`RF-13` + Lei nº 3).
- */
-function formatarDestaque(valor: string | null): string {
-  const texto = formatarDecimalDoServidor(valor)
-  return texto ? ` — R$ ${texto}` : ''
 }
 
 /** A chamada da fase — o `eyebrow` do cartão de destaque, do protótipo. */
@@ -205,7 +178,6 @@ const CHAMADA_DA_FASE: Readonly<Record<Inicio['fase'], string>> = {
   revisao: 'Agora é com a gente',
   reprovado: 'Um instante a mais',
   plano: 'Sua próxima etapa',
-  acompanhamento: 'Sua próxima ação',
 }
 
 export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaInicioProps) {
@@ -233,15 +205,9 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
         ? TEXTO_DO_REENVIO
         : (TEXTO_DA_ETAPA[etapa.destino] ?? TEXTO_DA_ETAPA.plano)
 
-  // O valor vem SEPARADO do rótulo (`AC-88`) e é composto AQUI. O servidor
-  // manda "Decidir sobre o dinheiro que você tem disponível" + "3000.00";
-  // é esta linha que produz a frase do protótipo. Fazer isso no servidor
-  // significaria montar dinheiro dentro de texto, que `RF-13` proíbe.
-  //
-  // `formatarMoeda` consome dígitos crus (é a máscara de digitação), então a
-  // string decimal do servidor é normalizada para centavos antes — nunca por
-  // `Number()`, que é exatamente o ponto flutuante que `RF-13` proíbe.
-  const destaque = texto.rotulo + formatarDestaque(inicio.valor_em_destaque)
+  // `RF-401`: o `valor_em_destaque` só servia ao "Decidir sobre R$ ..." do
+  // Bloco 10, que não existe mais. O destaque é só o rótulo da etapa.
+  const destaque = texto.rotulo
 
   return (
     <Tela
@@ -275,9 +241,9 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
               {fase === 'revisao' ? 'Ver minhas respostas' : 'Ver e editar minhas respostas'}
             </Botao>
           )}
-          {/* `RF-118`: em coleta COM plano liberado o aluno pediu um plano novo —
-              o atual segue valendo e continua à vista. */}
-          {inicio.plano_liberado && (
+          {/* `RF-118`: em coleta COM plano liberado (caso antigo) o plano atual
+              continua à vista. Na fase do plano o botão principal já o abre. */}
+          {fase === 'coleta' && inicio.plano_liberado && (
             <Botao variante="discreto" onClick={() => irPara({ tela: 'plano' })}>
               Ver meu plano
             </Botao>
@@ -350,16 +316,6 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
         </div>
       )}
 
-      {/* `RF-120` (T-344): as respostas mudaram depois do plano — o aviso vem ANTES
-          da próxima etapa, porque é o que o aluno precisa saber ao chegar. */}
-      {inicio.pode_refazer_plano && inicio.respostas_atualizadas === true && (
-        <CartaoPlanoNovo
-          casoId={inicio.CASO_ID}
-          atualizado
-          aoPedir={() => irPara({ tela: 'calculando' })}
-        />
-      )}
-
       <div className="cartao-proximo">
         <div className="flex items-start gap-3">
           <span className="selo">
@@ -390,15 +346,8 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
         </div>
       )}
 
-      {/* `RF-120`: a ação neutra — sem afirmar que algo mudou — e a retirada da
-          conferência. Quem decide quando cada uma existe é o servidor. */}
-      {inicio.pode_refazer_plano && inicio.respostas_atualizadas !== true && (
-        <CartaoPlanoNovo
-          casoId={inicio.CASO_ID}
-          atualizado={inicio.respostas_atualizadas ?? null}
-          aoPedir={() => irPara({ tela: 'calculando' })}
-        />
-      )}
+      {/* `RF-120`: a retirada da conferência. Quem decide quando ela existe é o
+          servidor. Plano novo depois da entrega não existe (`RF-409`). */}
       {inicio.pode_retomar_edicao && (
         <CartaoRetirarDaConferencia
           casoId={inicio.CASO_ID}

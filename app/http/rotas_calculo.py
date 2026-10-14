@@ -155,7 +155,6 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 
-from app.casos.acompanhamento import _snapshot_corrente
 from app.casos.inventario import (
     ErroInventarioIncompleto,
     PendenciaInventario,
@@ -233,9 +232,8 @@ _ERROS_DE_MONTAGEM: Final[tuple[type[Exception], ...]] = (
     ErroDinheiroDisponivelIndeterminado,
     ErroConversaoInvalida,
     ValueError,
-    # `estado.py` confere com `assert` o tipo de um valor monetário. O caso
-    # de `B5.D05A` (`MENSAL`/`TOTAL` lidos como dinheiro, `T-213`) foi
-    # corrigido em `T-231`; a captura fica como rede — 422, nunca 500.
+    # `estado.py` confere com `assert` o tipo de um valor monetário;
+    # a captura fica como rede — 422, nunca 500.
     AssertionError,
 )
 
@@ -440,7 +438,6 @@ def formatar_pendencia_inventario(pendencia: PendenciaInventario) -> dict[str, o
         "dividas": None
         if detalhe is None
         else {
-            "tipos_sem_ficha": list(detalhe.tipos_sem_ficha),
             "fichas": [
                 {"item_id": f.item_id, "credor": f.credor, "tipo": f.tipo}
                 for f in detalhe.fichas
@@ -733,7 +730,7 @@ def _preparar_calculo(
     # `T-333` (RF-113): caso devolvido pela conferência já tem snapshot — o
     # reenvio é uma NOVA VERSÃO encadeada a ele (`V-01`), nunca uma segunda
     # raiz. O evento é o fato: o aluno conferiu e corrigiu os dados.
-    anterior = _snapshot_corrente(caso, repositorio_snapshots)
+    anterior = snapshot_corrente(caso, repositorio_snapshots)
     insumos = ParametrosDoCalculo(
         fonte_parametros=fonte_parametros,
         repositorio_snapshots=repositorio_snapshots,
@@ -749,6 +746,19 @@ def _preparar_calculo(
     )
 
     return estado_financeiro, insumos
+
+
+def snapshot_corrente(
+    caso: Caso, repositorio_snapshots: RepositorioSnapshots
+) -> SnapshotOrdem | None:
+    """`AC-30` — o `anterior` da cadeia: o último elemento do histórico do
+    caso (mesma leitura de `app/revisao/fila.py::listar_fila_de_revisao`,
+    nunca uma consulta paralela). `None` quando o caso ainda não tem nenhum
+    snapshot (`snapshot_raiz_id` ausente ou histórico vazio)."""
+    if caso.snapshot_raiz_id is None:
+        return None
+    historico = repositorio_snapshots.historico(caso.snapshot_raiz_id)
+    return historico[-1] if historico else None
 
 
 async def _executar_e_avancar(

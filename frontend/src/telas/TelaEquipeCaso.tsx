@@ -157,9 +157,7 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
   const { plano, estado_inputs: entradas, fila } = dados
   const pendencias = conferencia?.pendencias_homologacao ?? []
   const fontes = conferencia?.fontes ?? []
-  const segurosNaoInformados = conferencia?.seguros_nao_informados ?? []
   const divergencias = conferencia?.divergencias ?? []
-  const rateios = conferencia?.rateios ?? []
   const homologacao = conferencia?.homologacao
 
   return (
@@ -259,10 +257,7 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
         </div>
       )}
 
-      {(fontes.length > 0 ||
-        segurosNaoInformados.length > 0 ||
-        divergencias.length > 0 ||
-        rateios.length > 0) && (
+      {(fontes.length > 0 || divergencias.length > 0) && (
         <div className="cartao">
           <span className="eyebrow">Fonte de comprovação e avisos</span>
           <ul>
@@ -271,21 +266,9 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
                 {f.nome} · {f.dado}: {f.rotulo}
               </li>
             ))}
-            {segurosNaoInformados.map((divida) => (
-              <li key={`seguro-${divida.item_id}`}>
-                {divida.nome} · seguro: {conferencia?.rotulo_nao_informado ?? 'não informado'}
-              </li>
-            ))}
             {divergencias.map((d, i) => (
               <li key={`divergencia-${i}`}>
-                {d.tipo === 'DESCONTO'
-                  ? `${d.nome} · desconto: valor em R$ e percentual não conferem`
-                  : `Renda dos vínculos (${d.soma_liquidas}) difere da renda total (${d.renda_bloco_3})`}
-              </li>
-            ))}
-            {rateios.map((r) => (
-              <li key={`rateio-${r.item_id}-${r.variavel}`}>
-                {r.nome} · rateio mensal (só análise): {r.valor_mensal}
+                {`${d.nome} · desconto: valor em R$ e percentual não conferem`}
               </li>
             ))}
           </ul>

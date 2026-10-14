@@ -1,20 +1,21 @@
-"""Vínculos e margem por vínculo — `RF-89`, `RF-90` (`T-255`, `T-258`,
-`T-260`, `T-282`).
+"""Vínculos e margem por vínculo — `RF-89`, `RF-90` (`T-255`, `T-260`,
+`T-282`, `T-389`).
 
-`AC-136`–`AC-139`, `AC-156`, `EC-35`, `EC-41`, `DE-05`, sobre os registros
+`AC-136`, `AC-139`, `EC-35`, `DE-05`, sobre os registros
 REAIS e a aplicação real com repositórios de arquivo (mesmos auxiliares de
 `test_ficha_repetivel.py`). `T-282` (`DE-04`): sem vínculo cadastrado, a
 dívida consignada não trava a coleta — a pendência vai para o inventário e
 só o cálculo final bloqueia.
 
-REGRAS: `RF-89`, `RF-90`, `AC-136`, `AC-137`, `AC-139`, `AC-156`, `EC-35`,
-`EC-41`
+`T-389`: a conferência da renda dos vínculos (`T-258`, `AC-156`, `EC-41`)
+saiu junto com `B3.S04L`.
+
+REGRAS: `RF-89`, `RF-90`, `AC-136`, `AC-139`, `EC-35`
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from decimal import Decimal
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -32,10 +33,9 @@ from app.http.rotas_inventario import (
     obter_repositorio_itens_do_inventario,
     obter_repositorio_respostas_do_inventario,
 )
-from app.montagem.entrada import avisos_da_gravacao, conferir_renda_dos_vinculos
 from collection.carga import carregar_registros
-from collection.registro import EscopoRepeticao, RegistroPergunta, TipoResposta
-from collection.respostas import NAO_SEI, Resposta, RespostasCaso
+from collection.registro import EscopoRepeticao, RegistroPergunta
+from collection.respostas import Resposta, RespostasCaso
 from persistencia.app_aluno.arquivo import RepositorioItensArquivo, RepositorioRespostasArquivo
 from tests.app_aluno.test_ficha_repetivel import (
     _CASO_ID,
@@ -94,39 +94,20 @@ def _campos(cliente: TestClient, escopo: str, item_id: str) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# T-255 — `B3.S04L` e `B3.S05C` no registro real.
+# T-389 — as perguntas de renda e consignação por vínculo saíram (RF-402).
 # ---------------------------------------------------------------------------
 
 
-def test_t255_registros_novos_do_vinculo_na_carga_real() -> None:
-    liquida = _registro("B3.S04L")
-    assert liquida.VARIAVEL_GRAVADA == "RENDA_LIQUIDA_VINCULO"
-    assert liquida.tipo is TipoResposta.MOEDA
-    assert liquida.admite_nao_sei
-    assert liquida.escopo_repeticao is EscopoRepeticao.VINCULO_ID
-
-    consignacao = _registro("B3.S05C")
-    assert consignacao.VARIAVEL_GRAVADA == "CONSIGNACAO_EXISTE_VINCULO"
-    assert consignacao.escopo_repeticao is EscopoRepeticao.VINCULO_ID
-    assert {o.valor_interno for o in consignacao.opcoes} == {"SIM", "NAO", "NAO_SEI"}
-
-
-def test_t255_visiveis_na_ficha_do_vinculo_e_fechadas_sem_vinculo_consignavel(
+def test_t389_so_o_nome_do_vinculo_fica_na_ficha(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    ids = {r.ID for r in _registros()}
+    assert not {"B3.S04", "B3.S04L", "B3.S05", "B3.S05C"} & ids
+
     cliente = _cliente_real(monkeypatch, tmp_path)
     _responder(cliente, "B3.S01", "SIM")
     vinculo = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-
-    assert {"B3.S04L", "B3.S05C"} <= set(_campos(cliente, "VINCULO_ID", vinculo))
-    assert _responder(cliente, "B3.S04L", "NAO_SEI", vinculo).status_code == 200
-    assert _responder(cliente, "B3.S05C", "NAO_SEI", vinculo).status_code == 200
-
-    _responder(cliente, "B3.S01", "NAO")
-    fechada = cliente.get(
-        f"/caso/{_CASO_ID}/pergunta/B3.S04L", params={"item_id": vinculo}
-    )
-    assert fechada.status_code == 404
+    assert _campos(cliente, "VINCULO_ID", vinculo) == ["B3.S03"]
 
 
 # ---------------------------------------------------------------------------
@@ -142,48 +123,28 @@ def test_ac136_dois_vinculos_independentes(
     v1 = _fichas(cliente, "VINCULO_ID")[0]["item_id"]  # `T-311`: nasce com o "Sim"
     v2 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
     assert v1 != v2
-    for ID, valor in (("B3.S03", "Prefeitura"), ("B3.S04", "5000"), ("B3.S04L", "4000")):
+    for ID, valor in (("B3.S03", "Prefeitura"),):
         assert _responder(cliente, ID, valor, v1).status_code == 200
     gravadas = RepositorioRespostasArquivo(tmp_path / "respostas.jsonl")
     antes = {r for r in gravadas.listar_do_caso(_CASO_ID) if r.item_id == v1}
 
-    for ID, valor in (("B3.S03", "Estado"), ("B3.S04", "3000"), ("B3.S04L", "2500")):
+    for ID, valor in (("B3.S03", "Estado"),):
         assert _responder(cliente, ID, valor, v2).status_code == 200
 
     assert {r for r in gravadas.listar_do_caso(_CASO_ID) if r.item_id == v1} == antes
     assert [f["item_id"] for f in _fichas(cliente, "VINCULO_ID")] == [v1, v2]
 
 
-def test_ac137_margem_sem_pai_recusada_e_toda_margem_tem_um_pai_do_caso(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    cliente = _cliente_real(monkeypatch, tmp_path)
-    _responder(cliente, "B3.S01", "SIM")
-    v1 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    v2 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    assert _criar_em(cliente, "MARGEM_ID").status_code == 422
-    for pai in (v1, v2, v2):
-        assert _criar_em(cliente, "MARGEM_ID", item_pai_id=pai).status_code in (200, 201)
-
-    itens = RepositorioItensArquivo(tmp_path / "itens.jsonl").listar_do_caso(
-        _CASO_ID, incluir_removidos=False
-    )
-    vinculos = {i.item_id for i in itens if i.escopo is EscopoRepeticao.VINCULO_ID}
-    margens = [i for i in itens if i.escopo is EscopoRepeticao.MARGEM_ID]
-    assert len(margens) == 3
-    assert all(m.item_pai_id in vinculos for m in margens)
-
-
-def test_ec35_remover_vinculo_deixa_margem_e_consignado_em_aberto(
+def test_ec35_remover_vinculo_deixa_consignado_em_aberto(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Com outro vínculo ainda ativo, a dívida que apontava o removido volta
-    a pedir o vínculo (`AC-139`); a margem do removido fica em aberto."""
+    a pedir o vínculo (`AC-139`). `T-389`: a margem por vínculo (`AC-137`,
+    `B3.S06*`) saiu do questionário."""
     cliente = _cliente_real(monkeypatch, tmp_path)
     _responder(cliente, "B3.S01", "SIM")
     removido = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
     _criar_em(cliente, "VINCULO_ID")
-    margem = _criar_em(cliente, "MARGEM_ID", item_pai_id=removido).json()["ficha"]["item_id"]
     divida = _criar_em(cliente, "DIVIDA_ID").json()["ficha"]["item_id"]
     _responder(cliente, "B5.A01", "Banco", divida)
     _responder(cliente, "B5.A02", "CONSIGNADO", divida)
@@ -193,68 +154,6 @@ def test_ec35_remover_vinculo_deixa_margem_e_consignado_em_aberto(
     cliente.delete(f"/caso/{_CASO_ID}/fichas/VINCULO_ID/{removido}")
 
     assert _proxima_do_item(cliente, divida) == "B5.A02V"
-    assert {f["item_id"]: f["completa"] for f in _fichas(cliente, "MARGEM_ID")}[margem] is False
-
-
-# ---------------------------------------------------------------------------
-# T-258 — conferência da renda dos vínculos (AC-156, EC-41).
-# ---------------------------------------------------------------------------
-
-
-def _caso_de_renda(principal: str, *liquidas: object) -> RespostasCaso:
-    return RespostasCaso(
-        respostas=(
-            _resposta("RENDA_PRINCIPAL", Decimal(principal)),
-            *(
-                _resposta("RENDA_LIQUIDA_VINCULO", liquida, item_id=f"V{i:03d}")
-                for i, liquida in enumerate(liquidas, start=1)
-            ),
-        )
-    )
-
-
-def test_ac156_soma_igual_a_renda_do_bloco_3_nao_diverge() -> None:
-    conferencia = conferir_renda_dos_vinculos(
-        _caso_de_renda("6500", Decimal("4000"), Decimal("2500"))
-    )
-    assert conferencia is not None
-    assert conferencia.SOMA_LIQUIDAS == Decimal("6500")
-    assert conferencia.divergente is False
-
-
-def test_ac156_ec41_soma_diferente_diverge_e_nada_e_somado_a_renda() -> None:
-    respostas = _caso_de_renda("6000", Decimal("4000"), Decimal("2500"))
-    conferencia = conferir_renda_dos_vinculos(respostas)
-    assert conferencia is not None
-    assert conferencia.RENDA_BLOCO_3 == Decimal("6000")
-    assert conferencia.divergente is True
-    (aviso,) = avisos_da_gravacao("RENDA_LIQUIDA_VINCULO", "V002", respostas)
-    assert aviso.codigo == "DIVERGENCIA_RENDA_VINCULOS"
-    assert avisos_da_gravacao("RENDA_PRINCIPAL", None, respostas) == (aviso,)
-
-
-def test_t258_sem_liquida_informada_nao_ha_conferencia() -> None:
-    assert conferir_renda_dos_vinculos(_caso_de_renda("6000")) is None
-    assert conferir_renda_dos_vinculos(_caso_de_renda("6000", NAO_SEI)) is None
-    assert avisos_da_gravacao("RENDA_PRINCIPAL", None, _caso_de_renda("6000", NAO_SEI)) == ()
-
-
-def test_ac156_aviso_no_post_nao_bloqueia_a_gravacao(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    cliente = _cliente_real(monkeypatch, tmp_path)
-    _responder(cliente, "B3.01", "6500")
-    _responder(cliente, "B3.S01", "SIM")
-    v1 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    v2 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    _responder(cliente, "B3.S04L", "4000", v1)
-    igual = _responder(cliente, "B3.S04L", "2500", v2)
-    assert igual.status_code == 200
-    assert igual.json()["avisos"] == []
-
-    divergente = _responder(cliente, "B3.01", "6000")
-    assert divergente.status_code == 200
-    assert [a["codigo"] for a in divergente.json()["avisos"]] == ["DIVERGENCIA_RENDA_VINCULOS"]
 
 
 # ---------------------------------------------------------------------------

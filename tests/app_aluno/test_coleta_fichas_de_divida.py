@@ -5,11 +5,13 @@ Aplicação real, registros REAIS, repositórios em memória por
 `app.dependency_overrides` (sem banco) — mesmo arranjo de
 `test_rotas_coleta_fotografia.py`.
 
-- `T-291`: `B5.00 = 2` e `B5.00A` respondidas sem ficha → `abrir_fichas`
-  aponta `DIVIDA_ID` (antes vinha vazio e a próxima já era `B5.FIM02`).
-- `T-292`: "Sim, salvar dívida." em `B5.CHECK` com `B5.D02` aberta (por
-  `B5.I01 = CONTRATO`) e em branco no item é recusado com `400` que lista o
-  que falta; nada é gravado.
+- `T-291`: `B5.00 = 2` respondida sem ficha → `abrir_fichas` aponta
+  `DIVIDA_ID` (antes vinha vazio e a próxima já era `B5.FIM02`). `T-389`:
+  `B5.00A` saiu do questionário; a declaração é só a `B5.00`.
+- `T-292`: "Sim, salvar dívida." em `B5.CHECK` com `B5.F02` aberta (por
+  `B5.F01` = garantia "Sim") e em branco no item é recusado com
+  `400` que lista o que falta; nada é gravado. (`T-389`: era `B5.D02`;
+  `T-391`: era `B5.D05S`.)
 """
 
 from __future__ import annotations
@@ -158,40 +160,24 @@ def _cliente(
     return cliente, repositorio
 
 
-def test_t291_b5_00a_com_duas_dividas_declaradas_abre_a_lista_de_dividas(
+def test_t291_b5_00_com_duas_dividas_declaradas_abre_a_primeira_ficha(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """`T-311` (decisão do produto, 2026-10-01): em vez da lista, a primeira
     ficha nasce e a próxima pergunta é a dela."""
-    cliente, _ = _cliente(monkeypatch, (_resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 2),))
-
-    gravada = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B5.00A", "valor": "PESSOAL"}
-    )
-
-    assert gravada.status_code == 200, gravada.text
-    assert "DIVIDA_ID" not in gravada.json()["abrir_fichas"]
-    assert gravada.json()["proxima"]["pergunta"]["item_id"] == "D001"
-
-
-def test_t291_b5_00_sozinha_nao_pula_a_b5_00a(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Com `B5.00A` ainda em branco a lista não abre: a próxima é ela."""
     cliente, _ = _cliente(monkeypatch, ())
 
     gravada = cliente.post(f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B5.00", "valor": "2"})
 
     assert gravada.status_code == 200, gravada.text
     assert "DIVIDA_ID" not in gravada.json()["abrir_fichas"]
+    assert gravada.json()["proxima"]["pergunta"]["item_id"] == "D001"
 
 
 def test_t291_com_ficha_ja_criada_nao_reabre_a_lista(monkeypatch: pytest.MonkeyPatch) -> None:
-    cliente, _ = _cliente(
-        monkeypatch, (_resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 2),), ("D001",)
-    )
+    cliente, _ = _cliente(monkeypatch, (), ("D001",))
 
-    gravada = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B5.00A", "valor": "PESSOAL"}
-    )
+    gravada = cliente.post(f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B5.00", "valor": "2"})
 
     assert gravada.status_code == 200, gravada.text
     assert "DIVIDA_ID" not in gravada.json()["abrir_fichas"]
@@ -200,9 +186,9 @@ def test_t291_com_ficha_ja_criada_nao_reabre_a_lista(monkeypatch: pytest.MonkeyP
 def test_t292_salvar_divida_com_b5_d02_aberta_e_em_branco_e_recusado(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    trecho = _trecho("B5.D02", "B5.I01", "B5.CHECK")
-    contrato = _resposta("DOCUMENTACAO_DISPONIVEL", frozenset({"CONTRATO"}), "D002")
-    cliente, repositorio = _cliente(monkeypatch, (contrato,), ("D002",), trecho)
+    trecho = _trecho("B5.F02", "B5.CHECK")
+    garantia = _resposta("POSSUI_GARANTIA", "SIM", "D002")
+    cliente, repositorio = _cliente(monkeypatch, (garantia,), ("D002",), trecho)
 
     recusada = cliente.post(
         f"/caso/{_CASO}/resposta",
@@ -212,8 +198,8 @@ def test_t292_salvar_divida_com_b5_d02_aberta_e_em_branco_e_recusado(
     assert recusada.status_code == 400
     erro = recusada.json()["erro"]
     assert erro.startswith("Antes de salvar, responda nesta ficha:")
-    assert "efetiva ou nominal" in erro
-    assert [r.ID_PERGUNTA for r in repositorio.respostas] == ["DOCUMENTACAO_DISPONIVEL"]
+    assert "Qual é a garantia?" in erro
+    assert [r.ID_PERGUNTA for r in repositorio.respostas] == ["POSSUI_GARANTIA"]
 
     corrigir = cliente.post(
         f"/caso/{_CASO}/resposta",
@@ -228,7 +214,7 @@ def test_t292_salvar_divida_com_b5_d02_aberta_e_em_branco_e_recusado(
     assert (
         cliente.post(
             f"/caso/{_CASO}/resposta",
-            data={"ID_PERGUNTA": "B5.D02", "item_id": "D002", "valor": "EFETIVA"},
+            data={"ID_PERGUNTA": "B5.F02", "item_id": "D002", "valor": "IMOVEL"},
         ).status_code
         == 200
     )

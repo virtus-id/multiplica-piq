@@ -588,32 +588,30 @@ def test_rf13_nenhuma_folha_do_payload_e_float(
     assert floats == []
 
 
-def test_plano_liberado_sem_ataque_recomendado_cai_em_acompanhamento(
+def test_plano_liberado_sem_ataque_recomendado_fica_na_fase_plano(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`RF-61` — `PLANO_LIBERADO` com `ATAQUE_IMEDIATO_RECOMENDADO = 0` é
-    fase `acompanhamento`, **não** `plano`: sem ataque a decidir não há
-    decisão nenhuma, e "Decidir agora" mandaria o aluno a uma tela que o
-    servidor fecha com `409`.
-
-    A guarda é `bloco_10_alcancavel`, a mesma de `rotas_etapas.py` — nenhum
-    limiar reescrito aqui."""
+    """`RF-401`, `RF-409` (T-387) — `PLANO_LIBERADO` é sempre fase `plano`, também
+    com `ATAQUE_IMEDIATO_RECOMENDADO = 0`: o plano entregue é definitivo, não
+    há acompanhamento para onde cair. (Antes, `RF-61`: caía em
+    `acompanhamento` por não haver ataque a decidir.) A próxima etapa é o
+    plano, nunca o Bloco 10, que a rota fecha com `409`."""
     payload = _payload_da_fase(
         monkeypatch, ESTADO_CASO.PLANO_LIBERADO, ataque_recomendado="0"
     )
 
     assert payload["estado"] == ESTADO_CASO.PLANO_LIBERADO.value
-    assert payload["fase"] == FASE_INICIO.ACOMPANHAMENTO.value
-    assert payload["valor_em_destaque"] is None
-    assert payload["proxima_etapa"]["destino"] != "bloco10"
+    assert payload["fase"] == FASE_INICIO.PLANO.value
+    assert payload["proxima_etapa"]["destino"] == "plano"
+    assert payload["pode_refazer_plano"] is False
 
 
-def test_plano_liberado_sem_snapshot_encontrado_cai_em_acompanhamento(
+def test_plano_liberado_sem_snapshot_encontrado_fica_na_fase_plano(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Tolerância declarada: `snapshot_liberado_id` que o repositório não
-    encontra não derruba a tela. A ausência de snapshot é estado legítimo do
-    caso, não falha — e sem snapshot não há o que decidir."""
+    encontra não derruba a tela. `RF-409` (T-387): a fase não depende mais do
+    snapshot, `PLANO_LIBERADO` é `plano` (antes caía em `acompanhamento`)."""
     caso = _caso(
         ESTADO_CASO.PLANO_LIBERADO, snapshot_liberado_id=_SNAPSHOT_ID_INEXISTENTE
     )
@@ -623,7 +621,7 @@ def test_plano_liberado_sem_snapshot_encontrado_cai_em_acompanhamento(
 
     assert resposta.status_code == 200
     payload = resposta.json()
-    assert payload["fase"] == FASE_INICIO.ACOMPANHAMENTO.value
+    assert payload["fase"] == FASE_INICIO.PLANO.value
     assert payload["versao_do_plano"] is None
 
 
@@ -941,7 +939,7 @@ def _inicio_com_declaracao_de_dividas(
     reais = {r.ID: r for r in _colecao_real().registros}
     trecho = ColecaoDeRegistros(
         QUESTIONARIO_VERSION="1.0.0",
-        registros=tuple(reais[i] for i in ("B5.00", "B5.00A", "B5.A01", "B5.FIM02")),
+        registros=tuple(reais[i] for i in ("B5.00", "B5.A01", "B5.FIM02")),
     )
     respostas = tuple(
         Resposta(
@@ -954,7 +952,6 @@ def _inicio_com_declaracao_de_dividas(
         )
         for variavel, valor in (
             ("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 2),
-            ("TIPOS_DIVIDA_DECLARADOS", "PESSOAL"),
         )
     )
     cliente = _montar_cliente(

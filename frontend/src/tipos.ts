@@ -287,11 +287,6 @@ export interface PosicaoDaOrdem {
    * `null` quando a dívida não tem ficha ativa.
    */
   fonte?: string | null
-  /**
-   * Orientação sobre o seguro prestamista — `RF-82`, `T-245`. Texto pronto
-   * do servidor (`textos-canonicos.yaml`); `null` na dívida sem seguro.
-   */
-  orientacao_seguro?: string | null
   valores_de_apoio: ValorDeApoio[]
   /**
    * Revisão de design (2026-10-03) — os números fixos de toda dívida,
@@ -586,20 +581,15 @@ export interface ItemDaFila {
   PARAMETROS_VERSION: string
 }
 
-export interface Etapas {
-  CASO_ID: string
-  blocos_7_8: boolean
-  bloco_10: boolean
-  bloco_11: boolean
-  ATAQUE_IMEDIATO_RECOMENDADO?: string
-}
-
 // ---------------------------------------------------------------------------
 // A tela Início — espelho de `app/http/rotas_inicio.py` (T-147)
 // ---------------------------------------------------------------------------
 
-/** As cinco fases de `app/casos/fases.py::FASE_INICIO`. */
-export type Fase = 'coleta' | 'revisao' | 'reprovado' | 'plano' | 'acompanhamento'
+/**
+ * As fases que o aluno vê, de `app/casos/fases.py::FASE_INICIO`. `acompanhamento`
+ * existe no servidor mas é inalcançável (`RF-409`); não tem tela aqui.
+ */
+export type Fase = 'coleta' | 'revisao' | 'reprovado' | 'plano'
 
 /**
  * Para onde a próxima etapa leva — espelho de
@@ -618,8 +608,6 @@ export type DestinoDaEtapa =
   | 'calculando'
   | 'aguardando'
   | 'progresso'
-  | 'bloco10'
-  | 'acoes'
   | 'plano'
 
 /**
@@ -690,8 +678,6 @@ export interface RespostasDoCaso {
   editavel?: boolean
   /** `RF-115`: só a conferência permite retirar o plano para editar. */
   pode_retomar_edicao?: boolean
-  /** `RF-118`: depois da liberação o aluno pode pedir um plano novo. */
-  pode_refazer_plano?: boolean
   partes: ParteDasRespostas[]
 }
 
@@ -718,15 +704,8 @@ export interface Inicio {
    * interna do revisor nunca vem para cá.
    */
   correcao_pedida?: CorrecaoPedida | null
-  /** `RF-120`: plano liberado — o aluno pode pedir um plano novo. */
-  pode_refazer_plano?: boolean
   /** `RF-120`: em conferência — o aluno pode retirar o plano para editar. */
   pode_retomar_edicao?: boolean
-  /**
-   * `RF-120`: as respostas mudaram desde o plano? `null` = o servidor não soube
-   * comparar (não se afirma nada); ausente = servidor antigo.
-   */
-  respostas_atualizadas?: boolean | null
 }
 
 /** Um dado a conferir — pendência de homologação (`RF-93`), por nome. */

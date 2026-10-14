@@ -89,10 +89,7 @@ _D001_CHEQUE_SEM_TAXA: dict[str, object] = {
 
 def _respostas() -> list[Resposta]:
     base = caso_completo(
-        valores_caso={
-            **_T02_CASO,
-            "TIPOS_DIVIDA_DECLARADOS": frozenset({"CHEQUE_ESPECIAL", "PESSOAL"}),
-        },
+        valores_caso=_T02_CASO,
         valores_divida=_D001_CHEQUE_SEM_TAXA,
         valores_item_despesa={"VALOR_DESPESA": converter_para_dinheiro("3.500,00")},
         valores_despesa_nao_mensal={

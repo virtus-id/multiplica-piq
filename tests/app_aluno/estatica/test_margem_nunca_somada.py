@@ -8,8 +8,8 @@ nome: quem os lesse seria quem os somasse. Docstrings e comentários não
 contam. E `EstadoFinanceiro` (o estado entregue ao motor) não tem campo de
 margem.
 
-**`AC-156`.** `RENDA_LIQUIDA_VINCULO` só existe para a conferência
-(`app/montagem/entrada.py`); a montagem do estado nunca a lê.
+**`AC-156`.** A montagem do estado nunca lê `RENDA_LIQUIDA_VINCULO`. (`T-389`:
+a pergunta `B3.S04L` e a conferência de `app/montagem/entrada.py` saíram.)
 
 REGRAS: `AC-138`, `AC-156`
 """
@@ -77,6 +77,7 @@ def test_ac138_estado_entregue_ao_motor_sem_campo_de_margem() -> None:
 def test_ac156_montagem_do_estado_nunca_le_a_renda_liquida_do_vinculo() -> None:
     estado = _RAIZ / "app" / "montagem" / "estado.py"
     assert "RENDA_LIQUIDA_VINCULO" not in _constantes_de_codigo(estado)
-    assert "RENDA_LIQUIDA_VINCULO" in _constantes_de_codigo(
+    # `T-389`: `B3.S04L` saiu e com ela a conferência; nenhum código lê a variável.
+    assert "RENDA_LIQUIDA_VINCULO" not in _constantes_de_codigo(
         _RAIZ / "app" / "montagem" / "entrada.py"
     )

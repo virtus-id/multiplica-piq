@@ -93,7 +93,6 @@ def vocabulario_do_caso(
 def serializar_plano(
     contexto: ContextoPlano,
     fontes: Mapping[str, str] | None = None,
-    orientacoes_seguro: Mapping[str, str] | None = None,
     textos: TextosCanonicosPlano | None = None,
     *,
     para_revisor: bool = False,
@@ -113,9 +112,6 @@ def serializar_plano(
     comprovação, derivado das respostas (não do snapshot); `None` quando a
     dívida não tem ficha ativa.
 
-    `orientacoes_seguro` (`T-245`, `RF-82`): `DIVIDA_ID` → orientação sobre
-    o seguro prestamista, só para dívida com seguro; `None` nas demais.
-
     `para_revisor` (`T-305`): só o revisor recebe `JUSTIFICATIVA_POSICAO`
     e (`T-326`) o motivo técnico de cada ação.
 
@@ -128,7 +124,6 @@ def serializar_plano(
     dependem do snapshot. `None` omite essas chaves do payload (compatível
     com chamadores que ainda não as usam, como a tela do revisor)."""
     fontes = fontes or {}
-    orientacoes_seguro = orientacoes_seguro or {}
     fatos_de_risco = fatos_de_risco or {}
     return {
         "titulo": contexto.titulo,
@@ -173,7 +168,6 @@ def serializar_plano(
                 # (deve hoje, parcela, juros), lidos e formatados.
                 "fatos": [{"rotulo": rotulo, "valor": valor} for rotulo, valor in posicao.fatos],
                 "fonte": fontes.get(posicao.DIVIDA_ID),
-                "orientacao_seguro": orientacoes_seguro.get(posicao.DIVIDA_ID),
                 "valores_de_apoio": [
                     {"rotulo": rotulo, "valor": valor}
                     for rotulo, valor in posicao.valores_de_apoio

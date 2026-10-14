@@ -290,14 +290,13 @@ def test_plano_exibido_e_o_mesmo_html_de_montar_contexto_plano(
     )
     # `RF-121`/`AC-189` (T-345): o revisor recebe o plano DO ALUNO (textos fixos,
     # fonte por dívida) mais os extras dele (`para_revisor=True`). Caso sem
-    # respostas e sem nome de compra: sem fontes, sem orientação de seguro.
+    # respostas e sem nome de compra: sem fontes.
     esperado = serializar_plano(
         contexto_plano,
         fontes_por_divida(
             niveis_por_ficha(carregar_registros().registros, RespostasCaso(respostas=()), {}),
             textos,
         ),
-        {},
         textos,
         para_revisor=True,
     )

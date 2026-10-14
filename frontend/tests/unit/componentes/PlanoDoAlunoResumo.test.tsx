@@ -37,7 +37,6 @@ const POSICAO = {
   JUSTIFICATIVA_POSICAO: '',
   explicacao: '',
   fonte: null,
-  orientacao_seguro: null,
   valores_de_apoio: [],
   incomodo: '',
   aviso_incomodo: '',

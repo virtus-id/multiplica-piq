@@ -1,14 +1,14 @@
 """Agregações de entrada da Rodada 9 — `RF-79`, `RF-80` (`T-225`), `OQ-53`.
 
 `plans/app-aluno.plan.md` §R9.5, lei nº 1 da Rodada 9: sobra, desconto,
-rateio e conferências são AGREGAÇÃO DE ENTRADA, feita aqui — nunca cálculo
+conferências são AGREGAÇÃO DE ENTRADA, feita aqui — nunca cálculo
 do motor refeito. Cada função é pura, lê `RespostasCaso` e reutiliza as
 MESMAS funções de `app/montagem/estado.py` que alimentam o motor (um lugar
 só, como `OQ-16`). `Decimal` só nasce em `app/montagem/conversao.py`
 (`RF-13`).
 
-**Fotografia do mês (`B3.C00`).** Só Bloco 3: nunca lê ficha de dívida nem
-seguro (`AC-118`, `AC-122`). Decisão do produto `R9-2` (2026-09-30): um
+**Fotografia do mês (`B3.C00`).** Só Bloco 3: nunca lê ficha de dívida
+(`AC-118`, `AC-122`). Decisão do produto `R9-2` (2026-09-30): um
 total com algum item "não sei" é exibido com o valor dos informados e
 marcado `parcial` — o motor segue somando os informados (`OQ-16`). Renda
 principal "não sei" (ou não respondida) deixa a renda "não informado"
@@ -16,10 +16,7 @@ principal "não sei" (ou não respondida) deixa a renda "não informado"
 decisão do produto de 2026-09-30 — mesmo tratamento dos totais, o valor com
 a marca "parcial" (`parcial_sobra`).
 
-**Renda dos vínculos (`T-258`).** Soma das líquidas × renda do Bloco 3,
-só conferência — aviso ao aluno, nunca entrada do motor (`RF-89`, `EC-41`).
-
-REGRAS: `RF-79`, `RF-80`, `EC-28`, `EC-29`, `OQ-16`, `OQ-53`, `RF-89`
+REGRAS: `RF-79`, `RF-80`, `EC-28`, `EC-29`, `OQ-16`, `OQ-53`
 """
 
 from __future__ import annotations
@@ -43,9 +40,9 @@ from app.montagem.estado import (
 from collection.registro import EscopoRepeticao
 from collection.respostas import RespostasCaso
 from engine.precisao import quantizar_exibicao
-from engine.tipos import DESCONHECIDO, Desconhecido, Dinheiro, DinheiroTalvez
+from engine.tipos import DESCONHECIDO, Dinheiro, DinheiroTalvez
 
-REGRAS: Final[tuple[str, ...]] = ("RF-79", "RF-80", "EC-28", "EC-29", "OQ-16", "OQ-53", "RF-89")
+REGRAS: Final[tuple[str, ...]] = ("RF-79", "RF-80", "EC-28", "EC-29", "OQ-16", "OQ-53")
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,20 +121,6 @@ def fotografia_do_mes(respostas: RespostasCaso) -> FotografiaDoMes:
     )
 
 
-def rateio_mensal(valor_total: DinheiroTalvez, meses: int | Desconhecido | None) -> Dinheiro | None:
-    """RF-82/RF-85 (`T-233`) — equivalente mensal **analítico** de um custo
-    total: `valor_total / meses`, só com prazo informado (positivo). Sem
-    prazo (ou valor desconhecido), `None` — nenhum valor mensal inventado
-    (`AC-124`, `AC-130`). Nunca entra em estado, despesa nem desembolso: é
-    exibido ao revisor rotulado "rateio" (`T-266`) e nenhuma função de
-    `estado.py` o chama (teste estático)."""
-    if not isinstance(valor_total, Decimal):
-        return None
-    if not isinstance(meses, int) or isinstance(meses, bool) or meses <= 0:
-        return None
-    return valor_total / meses
-
-
 # ---------------------------------------------------------------------------
 # Conferência do desconto — RF-83, RF-84 (`T-239`, `OQ-55`).
 # ---------------------------------------------------------------------------
@@ -199,49 +182,6 @@ def conferir_desconto(respostas: RespostasCaso, DIVIDA_ID: str) -> ConferenciaDe
 
 
 # ---------------------------------------------------------------------------
-# Conferência da renda dos vínculos — RF-89 (`T-258`, `OQ-58`, `R9-5`).
-# ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True, slots=True)
-class ConferenciaRendaVinculos:
-    """RF-89/AC-156/EC-41 — a soma das rendas líquidas dos vínculos contra
-    a renda do Bloco 3 (`RENDA_TOTAL_RECORRENTE`, a "Renda total" da
-    `B3.C00`, `R9-5`). Só conferência: nunca somada de novo à renda nem
-    entregue ao motor."""
-
-    SOMA_LIQUIDAS: Dinheiro
-    RENDA_BLOCO_3: Dinheiro
-    divergente: bool
-
-
-def conferir_renda_dos_vinculos(respostas: RespostasCaso) -> ConferenciaRendaVinculos | None:
-    """RF-89 — igualdade ao centavo. `None` sem nenhum vínculo com renda
-    líquida informada ("não sei" não conta), ou com a renda do Bloco 3
-    desconhecida: não há o que conferir. Nunca chega ao `EstadoFinanceiro`
-    (teste estático, `AC-156`)."""
-    liquidas = [
-        valor
-        for valor in respostas.valores_do_escopo(
-            EscopoRepeticao.VINCULO_ID, "RENDA_LIQUIDA_VINCULO"
-        )
-        if isinstance(valor, Decimal)
-    ]
-    if not liquidas:
-        return None
-    try:
-        RENDA_BLOCO_3 = _renda_total_recorrente(respostas)
-    except ErroCampoAgregadoDesconhecido:
-        return None
-    SOMA_LIQUIDAS = sum(liquidas[1:], start=liquidas[0])
-    return ConferenciaRendaVinculos(
-        SOMA_LIQUIDAS=SOMA_LIQUIDAS,
-        RENDA_BLOCO_3=RENDA_BLOCO_3,
-        divergente=quantizar_exibicao(SOMA_LIQUIDAS) != quantizar_exibicao(RENDA_BLOCO_3),
-    )
-
-
-# ---------------------------------------------------------------------------
 # Avisos da gravação — RF-84 (`T-240`). Aviso não recusa: sinaliza.
 # ---------------------------------------------------------------------------
 
@@ -257,12 +197,6 @@ VARIAVEIS_DO_DESCONTO: Final[frozenset[str]] = frozenset(
         "PROPOSTA_DESCONTO_PERCENTUAL",
         "PROPOSTA_VALOR_FINAL_QUITACAO",
     }
-)
-
-
-#: `T-258` — as variáveis que alimentam `conferir_renda_dos_vinculos`.
-VARIAVEIS_DA_RENDA_DOS_VINCULOS: Final[frozenset[str]] = frozenset(
-    {"RENDA_LIQUIDA_VINCULO", "RENDA_PRINCIPAL", "RENDA_RECORRENTE_ADICIONAL"}
 )
 
 
@@ -282,10 +216,7 @@ def avisos_da_gravacao(
     VARIAVEL_GRAVADA: str, item_id: str | None, respostas: RespostasCaso
 ) -> tuple[Aviso, ...]:
     """RF-84 (`AC-129`) — os avisos que a resposta recém-gravada levanta,
-    sobre as respostas JÁ com ela: divergência R$ × % do desconto e, `T-258`
-    (`EC-41`), da renda dos vínculos com a do Bloco 3. `T-288` (decisão do
-    produto): restituição de seguro confirmada com `B3.05 = Não` explica
-    por que a ficha do recurso extraordinário apareceu (`T-286`)."""
+    sobre as respostas JÁ com ela: divergência R$ × % do desconto."""
     codigos: list[str] = []
     if (
         VARIAVEL_GRAVADA in VARIAVEIS_DO_DESCONTO
@@ -293,15 +224,4 @@ def avisos_da_gravacao(
         and conferir_desconto(respostas, item_id).divergencia_rs_pct
     ):
         codigos.append("DIVERGENCIA_DESCONTO")
-    if VARIAVEL_GRAVADA in VARIAVEIS_DA_RENDA_DOS_VINCULOS:
-        conferencia = conferir_renda_dos_vinculos(respostas)
-        if conferencia is not None and conferencia.divergente:
-            codigos.append("DIVERGENCIA_RENDA_VINCULOS")
-    if (
-        VARIAVEL_GRAVADA == "RESTITUICAO_SEGURO_CONFIRMADA"
-        and item_id
-        and isinstance(respostas.valor_no_item(item_id, VARIAVEL_GRAVADA), Decimal)
-        and respostas.valor("RECURSOS_EXTRAORDINARIOS_EXISTE") == "NAO"
-    ):
-        codigos.append("RESTITUICAO_SEGURO_EXTRAORDINARIO")
     return tuple(Aviso(codigo=c, mensagem=_textos_de_aviso()[c]) for c in codigos)

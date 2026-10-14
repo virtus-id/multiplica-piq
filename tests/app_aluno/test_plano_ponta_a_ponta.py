@@ -61,7 +61,6 @@ _T02_CASO: dict[str, object] = {
     "RESERVA_TOTAL": converter_para_dinheiro("1.000,00"),
     "VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO": converter_para_dinheiro("500,00"),
     "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 2,
-    "TIPOS_DIVIDA_DECLARADOS": frozenset({"CARTAO_ROTATIVO", "PESSOAL"}),
 }
 _T02_D001: dict[str, object] = {
     "TIPO_DIVIDA": "CARTAO_ROTATIVO",

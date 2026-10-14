@@ -466,13 +466,10 @@ def test_t294_variavel_do_campo_so_com_abre_campo_moeda(
         carregar_registros(diretorio, _ESQUEMA_PADRAO)
 
 
-_IDS_COM_OPCAO_DE_DATA = ("B5.B04", "B5.B05B", "B7.15", "B8.14")
-# Questão do especialista (T-213, Open Questions): valor e base/unidade numa
-# só variável — nenhum campo até ser decidida.
-_IDS_SEM_CAMPO_ATE_DECISAO = ("B5.D05A", "B7.13A", "B8.12A")
+_IDS_COM_OPCAO_DE_DATA = ("B5.B05B",)
 
 
-def test_t213_registro_real_marca_so_as_opcoes_de_data_e_b5b01() -> None:
+def test_t213_registro_real_marca_so_as_opcoes_de_data() -> None:
     registros = {r.ID: r for r in carregar_registros().registros}
 
     marcadas = {
@@ -481,14 +478,10 @@ def test_t213_registro_real_marca_so_as_opcoes_de_data_e_b5b01() -> None:
         if any(o.abre_campo is not None for o in r.opcoes)
     }
 
-    # `T-294`: `B5.B01` "Sim."/"Aproximadamente." → campo R$ → `VALOR_ORIGINAL`.
-    assert marcadas == {
-        **{ID: [TipoResposta.DATA] for ID in _IDS_COM_OPCAO_DE_DATA},
-        "B5.B01": [TipoResposta.MOEDA, TipoResposta.MOEDA],
-    }
-    assert {o.variavel_do_campo for o in registros["B5.B01"].opcoes} == {"VALOR_ORIGINAL", None}
-    for ID in _IDS_SEM_CAMPO_ATE_DECISAO:
-        assert all(o.abre_campo is None for o in registros[ID].opcoes), ID
+    # `T-389`: `B5.B01` (campo R$ → `VALOR_ORIGINAL`, `T-294`) e `B5.B04` saíram
+    # do questionário por decisão do especialista (RF-402); `T-390`: `B7.15` e
+    # `B8.14` saíram com os Blocos 7 e 8.
+    assert marcadas == {ID: [TipoResposta.DATA] for ID in _IDS_COM_OPCAO_DE_DATA}
 
 
 # ---------------------------------------------------------------------------
@@ -630,13 +623,14 @@ def test_t223_faixa_nao_numerica_e_recusada(tmp_path: Path) -> None:
     assert "B1.01" in _recusa(tmp_path, pergunta)
 
 
-def test_t224_questionario_na_versao_1_0_3_e_b3_c00_com_painel() -> None:
-    """RF-03/AC-38 (T-224, `OQ-52`): a canônica v1.0.3 é a versão única de
-    todos os registros; `B3.C00` declara o painel da fotografia do mês e é o
-    único registro que o faz."""
+def test_t224_questionario_na_versao_1_1_0_e_b3_c00_com_painel() -> None:
+    """RF-03/AC-38 (T-224, `OQ-52`): a versão única de todos os registros é a
+    1.1.0 (`T-389`: a 1.0.3 da canônica menos as 87 perguntas retiradas, RF-402).
+    `B3.C00` declara o painel da fotografia do mês e é o único registro que
+    o faz."""
     colecao = carregar_registros(incluir_casos_de_prova=True)
 
-    assert colecao.QUESTIONARIO_VERSION == "1.0.3"
+    assert colecao.QUESTIONARIO_VERSION == "1.1.0"
     assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00"]
     assert next(r for r in colecao.registros if r.ID == "B3.C00").painel == "FOTOGRAFIA_DO_MES"
 

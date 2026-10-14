@@ -26,18 +26,18 @@ guarda opcional), ou `transicionar` recusa com `ErroTransicaoNaoDeclarada`
 nomeando origem e destino. Nunca há undefined behavior: não existe "par não
 coberto" silenciosamente tolerado.
 
-**`ERRO_DE_CALCULO` retorna a um dos quatro estados de origem de `CALCULANDO`
-(`EC-06`), nunca a um destino fixo único.** O plano §7.1 desenha a seta de
-retorno como "volta ao estado anterior" — e `CALCULANDO` é alcançável a
-partir de `COLETA_INICIAL`, `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e
-`ACOMPANHAMENTO` (as quatro origens do recálculo). Modelar isso como uma
-única transição fixa inventaria um destino que o plano não fixa; em vez
-disso, a tabela declara as QUATRO transições possíveis de `ERRO_DE_CALCULO`
-(uma para cada estado de origem de `CALCULANDO`), todas com o mesmo gatilho
-nomeado (`operador_retoma_apos_erro`) e a mesma guarda textual (`EC-06`) —
-o chamador (fora desta tarefa) escolhe qual delas invocar, mas TODAS e
-SOMENTE essas quatro são declaradas; qualquer outro destino a partir de
-`ERRO_DE_CALCULO` é recusado.
+**`PLANO_LIBERADO` é terminal (`RF-401`, `RF-409`, T-387, T-390).** O plano
+entregue é definitivo: a tabela não declara saída de `PLANO_LIBERADO`.
+`COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` ficam como
+membros do enum **sem nenhuma transição**: a coluna `casos.estado` é texto e
+`persistencia/app_aluno/` reconstrói o membro por `ESTADO_CASO(valor)`, então
+remover o membro quebraria a leitura de qualquer caso que já tenha gravado
+esse valor. Retirá-los exige antes uma migração dos dados.
+
+**`ERRO_DE_CALCULO` retorna a `COLETA_INICIAL` (`EC-06`).** É a única origem
+de `CALCULANDO` que sobrou (o recálculo a partir dos estados pós-plano saiu
+junto), e o gatilho é `operador_retoma_apos_erro`. Qualquer outro destino a
+partir de `ERRO_DE_CALCULO` é recusado.
 
 **`REPROVADO_EM_REVISAO` devolve o caso ao aluno (`RF-113`, `T-333`,
 revisa `EC-12`).** Até `T-333` o estado não tinha saída — "tratamento do
@@ -177,30 +177,11 @@ TABELA_TRANSICOES: Final[tuple[Transicao, ...]] = (
         gatilho="snapshot_anexado",
         guarda="AC-12: snapshot anexado",
     ),
-    # ERRO_DE_CALCULO retorna a um dos quatro estados de origem de
-    # CALCULANDO (EC-06) — ver a nota do módulo sobre por que são quatro
-    # transições, não uma única com destino fixo inventado.
+    # ERRO_DE_CALCULO retorna à origem de CALCULANDO (EC-06) — ver a nota do
+    # módulo.
     Transicao(
         de=ESTADO_CASO.ERRO_DE_CALCULO,
         para=ESTADO_CASO.COLETA_INICIAL,
-        gatilho="operador_retoma_apos_erro",
-        guarda="EC-06: volta ao estado anterior",
-    ),
-    Transicao(
-        de=ESTADO_CASO.ERRO_DE_CALCULO,
-        para=ESTADO_CASO.COLETA_DIRIGIDA,
-        gatilho="operador_retoma_apos_erro",
-        guarda="EC-06: volta ao estado anterior",
-    ),
-    Transicao(
-        de=ESTADO_CASO.ERRO_DE_CALCULO,
-        para=ESTADO_CASO.CONFIRMACAO_ATAQUE,
-        gatilho="operador_retoma_apos_erro",
-        guarda="EC-06: volta ao estado anterior",
-    ),
-    Transicao(
-        de=ESTADO_CASO.ERRO_DE_CALCULO,
-        para=ESTADO_CASO.ACOMPANHAMENTO,
         gatilho="operador_retoma_apos_erro",
         guarda="EC-06: volta ao estado anterior",
     ),
@@ -225,63 +206,15 @@ TABELA_TRANSICOES: Final[tuple[Transicao, ...]] = (
         gatilho="aluno_retoma_edicao",
         guarda="RF-115: aluno retira o plano",
     ),
-    # RF-118 (T-341): depois da liberação o aluno pede um plano novo. O plano
-    # liberado e a cadeia de snapshots não são tocados; o reenvio é o cálculo
-    # de sempre, que gera a versão seguinte encadeada.
-    Transicao(
-        de=ESTADO_CASO.PLANO_LIBERADO,
-        para=ESTADO_CASO.COLETA_INICIAL,
-        gatilho="aluno_refaz_plano",
-        guarda="RF-118: aluno pede plano novo",
-    ),
-    Transicao(
-        de=ESTADO_CASO.ACOMPANHAMENTO,
-        para=ESTADO_CASO.COLETA_INICIAL,
-        gatilho="aluno_refaz_plano",
-        guarda="RF-118: aluno pede plano novo",
-    ),
     Transicao(
         de=ESTADO_CASO.AGUARDANDO_REVISAO,
         para=ESTADO_CASO.PLANO_LIBERADO,
         gatilho="libera",
         guarda="RF-24: decisão = LIBERADO",
     ),
-    Transicao(
-        de=ESTADO_CASO.PLANO_LIBERADO,
-        para=ESTADO_CASO.COLETA_DIRIGIDA,
-        gatilho="abre_blocos_7_8",
-        guarda="AC-19: ORDEM_ACOES tem ação",
-    ),
-    Transicao(
-        de=ESTADO_CASO.PLANO_LIBERADO,
-        para=ESTADO_CASO.CONFIRMACAO_ATAQUE,
-        gatilho="abre_bloco_10",
-        guarda="AC-22: ataque recomendado > 0",
-    ),
-    Transicao(
-        de=ESTADO_CASO.PLANO_LIBERADO,
-        para=ESTADO_CASO.ACOMPANHAMENTO,
-        gatilho="abre_bloco_11",
-        guarda="ação reportada, meses depois",
-    ),
-    Transicao(
-        de=ESTADO_CASO.COLETA_DIRIGIDA,
-        para=ESTADO_CASO.CALCULANDO,
-        gatilho="recalcula",
-        guarda="AC-26: entra na fila de novo",
-    ),
-    Transicao(
-        de=ESTADO_CASO.CONFIRMACAO_ATAQUE,
-        para=ESTADO_CASO.CALCULANDO,
-        gatilho="recalcula",
-        guarda="AC-26: entra na fila de novo",
-    ),
-    Transicao(
-        de=ESTADO_CASO.ACOMPANHAMENTO,
-        para=ESTADO_CASO.CALCULANDO,
-        gatilho="recalcula",
-        guarda="AC-30/RF-28: quitação ou evento",
-    ),
+    # RF-401 · RF-409 (T-387, T-390): o plano entregue é definitivo. De
+    # `PLANO_LIBERADO` não sai transição nenhuma, e `COLETA_DIRIGIDA`,
+    # `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` não têm entrada nem saída.
 )
 
 # Índice (de, para) -> Transicao, montado uma vez a partir da tabela acima.
@@ -318,15 +251,14 @@ def transicoes_a_partir_de(de: ESTADO_CASO) -> tuple[Transicao, ...]:
 # seja verificável sem subir a aplicação HTTP e sem depender de nenhuma rota,
 # é EM QUAIS ESTADOS gravar uma resposta é uma operação válida — porque a
 # máquina não é linear a partir de `COLETA_INICIAL` (o caso volta a receber
-# respostas em `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE`, `ACOMPANHAMENTO` etc.,
+# respostas depois de reprovado e ao retirar o plano da conferência,
 # nunca só "estado >= COLETA_INICIAL" por uma ordem que a máquina não define).
 #
 # Por isso o conjunto é ENUMERADO explicitamente — nunca um cálculo de
 # "distância" a partir de CADASTRADO — e é justamente TODOS os estados MENOS
 # os dois anteriores ao consentimento (`CADASTRADO`,
 # `CONSENTIMENTO_REGISTRADO`): a partir de `COLETA_INICIAL` em diante, sempre
-# existe alguma pergunta pendente de algum bloco (coleta inicial, dirigida,
-# confirmação de ataque ou acompanhamento). `CALCULANDO` está incluído porque
+# existe alguma pergunta pendente da coleta inicial. `CALCULANDO` está incluído porque
 # uma resposta em trânsito no momento em que o Bloco 6 dispara não deveria ser
 # perdida; nenhuma rota desta feature grava fora desses estados hoje.
 ESTADOS_QUE_PERMITEM_RESPOSTA: Final[frozenset[ESTADO_CASO]] = frozenset(ESTADO_CASO) - {

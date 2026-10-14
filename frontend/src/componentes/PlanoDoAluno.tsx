@@ -170,10 +170,6 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
                   {posicao.fonte && (
                     <p className="text-muted m-0 text-sm">Fonte das informações: {posicao.fonte}</p>
                   )}
-                  {/* `RF-82` (T-245): só na dívida com seguro prestamista. */}
-                  {posicao.orientacao_seguro && (
-                    <p className="text-muted m-0 text-sm">{posicao.orientacao_seguro}</p>
-                  )}
                   {/* Na tela, os demais números ficam a um toque; no PDF
                       eles aparecem abertos. */}
                   {outrosValores.length > 0 && (

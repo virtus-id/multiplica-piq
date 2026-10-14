@@ -1,5 +1,5 @@
 /**
- * A jornada do caso em cinco etapas — `RF-64`, `AC-93`, `AC-94` (T-158).
+ * A jornada do caso em quatro etapas — `RF-64`, `AC-93`, `AC-94` (T-158).
  *
  * **Por que existe.** A tela Início respondia *"o que eu faço agora?"* com uma
  * etapa só (`RF-58`) e deixava intacta a pergunta anterior: *"onde eu estou, e
@@ -37,7 +37,7 @@ interface EtapaDaJornada {
 }
 
 /**
- * As cinco etapas — espelho das cinco superfícies de interação da §1 da spec.
+ * As quatro etapas. O acompanhamento saiu: o plano entregue é definitivo (`RF-409`).
  *
  * `reprovado` entra em "conferência" de propósito: do ponto de vista do aluno
  * o plano continua com a equipe, e criar uma sexta etapa chamada "reprovado"
@@ -64,20 +64,13 @@ const ETAPAS: readonly EtapaDaJornada[] = [
     rotulo: 'Seu plano',
     resumo: 'A ordem projetada de quitação, e o que ela custa.',
   },
-  {
-    fases: ['acompanhamento'],
-    rotulo: 'Acompanhamento',
-    resumo: 'Você executa e conta como foi, mês a mês.',
-  },
 ]
 
 /**
  * O índice da etapa em curso — `AC-94`: exatamente uma, sempre.
  *
- * A fase `coleta` cobre tanto o início quanto a coleta dirigida (Blocos 7/8),
- * que é pós-plano. Nos dois casos o aluno está respondendo perguntas, e é isso
- * que a trilha comunica; qual bloco ele responde é assunto da tela de
- * pergunta, não do mapa.
+ * A fase `coleta` é a etapa das respostas; qual pergunta ele responde é
+ * assunto da tela de pergunta, não do mapa.
  *
  * O "cálculo" (índice 1) nunca é fase própria — `CALCULANDO` é `revisao` em
  * `fases.py`, porque para o aluno as duas são "é com a gente". A trilha o
@@ -137,8 +130,7 @@ function oQueFalta(inicio: Inicio): string | null {
 
   if (fase === 'revisao') return 'A espera é com a equipe. Avisamos por e-mail.'
   if (fase === 'reprovado') return 'A equipe pediu um ajuste. Alguém entra em contato.'
-  if (fase === 'plano') return 'Há uma decisão sua para tomar.'
-  if (fase === 'acompanhamento') return 'Faça a próxima ação e conte como foi.'
+  if (fase === 'plano') return 'O seu plano está pronto.'
 
   // `T-171`: fase que este cliente não conhece. Antes caía em "faça a
   // próxima ação" — uma ORDEM, para alguém de cuja situação não sabemos
@@ -159,7 +151,7 @@ export default function TrilhaDaJornada({ inicio }: TrilhaDaJornadaProps) {
       {/*
         `trilha` (T-166) substitui `lista` como classe do `<ol>`: é ela que
         desenha o trilho contínuo ligando os degraus (`RF-77`). A estrutura
-        interna NÃO muda — cinco `<li>`, `.linha span` com o rótulo,
+        interna NÃO muda — quatro `<li>`, `.linha span` com o rótulo,
         `aria-current="step"` na etapa em curso —, porque `navegacao.spec.ts`
         usa os três como seletor (`:796`, `:801`, `:860`).
       */}

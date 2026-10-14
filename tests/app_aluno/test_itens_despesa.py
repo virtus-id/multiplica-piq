@@ -289,7 +289,7 @@ def test_despesa_nao_listada_sim_abre_uma_ficha_que_pede_nome(
     [ficha] = _fichas(cliente)
     assert confirmacao["proxima"]["pergunta"]["item_id"] == ficha["item_id"]
     assert ficha["pede_nome"] is True
-    assert [c["ID"] for c in ficha["campos"]] == ["B3.DF01", "B3.DF02", "B3.DF03", "B3.DF04"]
+    assert [c["ID"] for c in ficha["campos"]] == ["B3.DF01", "B3.DF02"]
     _nomear(cliente, ficha["item_id"], "Pet")
     assert _rotulos(cliente) == ["Pet"]
 

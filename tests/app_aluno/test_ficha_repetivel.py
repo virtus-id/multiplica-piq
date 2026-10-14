@@ -517,7 +517,6 @@ def _responder(
 _GATILHOS_QUE_ABREM: Final = [
     ("B3.03", "SIM", ["RENDA_ADICIONAL_ID"]),
     ("B3.NM01", "SIM", ["DESPESA_NAO_MENSAL_ID"]),
-    # `T-254` (`AC-137`): a margem nasce dentro do vínculo, não sozinha.
     ("B3.S01", "SIM", ["VINCULO_ID"]),
     ("B3.S01", "NAO_SEI", ["VINCULO_ID"]),
 ]
@@ -602,29 +601,6 @@ def test_t212_escopos_informa_se_cada_um_esta_aberto(
     assert depois["RENDA_ADICIONAL_ID"] is True
     assert depois["DESPESA_NAO_MENSAL_ID"] is False
     assert depois["VINCULO_ID"] is False
-    assert depois["MARGEM_ID"] is False
-
-
-def test_t212_validacao_cruzada_na_ficha_de_margem_criada_pela_tela(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """`AC-06` — `VALOR_UTILIZADO_MARGEM` (1200) acima de `VALOR_TOTAL_MARGEM`
-    (1000) é recusado, e nada é gravado."""
-    cliente = _cliente_real(monkeypatch, tmp_path)
-    _responder(cliente, "B3.S01", "SIM")
-    vinculo = cliente.post(f"/caso/{_CASO_ID}/fichas/VINCULO_ID").json()["ficha"]["item_id"]
-    item_id = cliente.post(
-        f"/caso/{_CASO_ID}/fichas/MARGEM_ID", data={"item_pai_id": vinculo}
-    ).json()["ficha"]["item_id"]
-
-    assert _responder(cliente, "B3.S06B", "1000", item_id).status_code == 200
-    recusa = _responder(cliente, "B3.S06C", "1200", item_id)
-
-    assert recusa.status_code == 400
-    assert "margem" in recusa.json()["erro"]
-    ficha = cliente.get(f"/caso/{_CASO_ID}/fichas/MARGEM_ID").json()["fichas"][0]
-    valores = {campo["ID"]: campo["valor_atual"] for campo in ficha["campos"]}
-    assert valores["B3.S06C"] is None
 
 
 def test_t212_fichas_de_um_escopo_nao_alteram_as_de_outro(
@@ -649,7 +625,7 @@ def test_t212_fichas_de_um_escopo_nao_alteram_as_de_outro(
 
 
 # ---------------------------------------------------------------------------
-# T-254/T-256/T-257 — margem dentro do vínculo; consignado aponta vínculo
+# T-254/T-256/T-257 — consignado aponta vínculo (`T-389`: sem margem por vínculo)
 # (RF-90, AC-137, AC-139, EC-35, DE-05).
 # ---------------------------------------------------------------------------
 
@@ -664,48 +640,15 @@ def _fichas(cliente: TestClient, escopo: str) -> list[dict[str, Any]]:
     return fichas
 
 
-def test_t254_margem_sem_pai_valido_e_recusada_e_nada_e_criado(
+def test_t254_vinculo_lista_os_dependentes(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """`AC-137`: sem `item_pai_id`, com pai inexistente, removido ou de outro
-    escopo → `422`; nenhuma margem nasce."""
-    cliente = _cliente_real(monkeypatch, tmp_path)
-    _responder(cliente, "B3.S01", "SIM")
-    removido = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    cliente.delete(f"/caso/{_CASO_ID}/fichas/VINCULO_ID/{removido}")
-    divida = _criar_em(cliente, "DIVIDA_ID").json()["ficha"]["item_id"]
-
-    for dados in ({}, {"item_pai_id": "V999"}, {"item_pai_id": removido}, {"item_pai_id": divida}):
-        assert _criar_em(cliente, "MARGEM_ID", **dados).status_code == 422
-
-    assert _fichas(cliente, "MARGEM_ID") == []
-
-
-def test_t254_margem_de_outro_caso_nao_serve_de_pai(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """`AC-137`: o vínculo `V001` de outro caso não é pai de margem neste."""
-    cliente = _cliente_real(monkeypatch, tmp_path)
-    RepositorioItensArquivo(tmp_path / "itens.jsonl").proximo_identificador(
-        "OUTRO-CASO", EscopoRepeticao.VINCULO_ID
-    )
-
-    assert _criar_em(cliente, "MARGEM_ID", item_pai_id="V001").status_code == 422
-
-
-def test_t254_vinculo_lista_as_suas_margens_e_os_dependentes(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """`AC-137`/`AC-138`/`EC-35`: cada margem sob o seu vínculo, nunca
-    somada; a dívida consignada que aponta o vínculo é dependente dele."""
+    """`EC-35`: a dívida consignada que aponta o vínculo é dependente dele.
+    `T-389`: sem margens (`B3.S06*` saíram), a lista de margens é vazia."""
     cliente = _cliente_real(monkeypatch, tmp_path)
     _responder(cliente, "B3.S01", "SIM")
     v1 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
     v2 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    m1 = _criar_em(cliente, "MARGEM_ID", item_pai_id=v1).json()["ficha"]["item_id"]
-    m2 = _criar_em(cliente, "MARGEM_ID", item_pai_id=v2).json()["ficha"]["item_id"]
-    assert _responder(cliente, "B3.S06D", "500", m1).status_code == 200
-    assert _responder(cliente, "B3.S06D", "300", m2).status_code == 200
     divida = _criar_em(cliente, "DIVIDA_ID").json()["ficha"]["item_id"]
     _responder(cliente, "B5.A02", "CONSIGNADO", divida)
     assert _responder(cliente, "B5.A02V", v2, divida).status_code == 200
@@ -713,15 +656,9 @@ def test_t254_vinculo_lista_as_suas_margens_e_os_dependentes(
     corpo = cliente.get(f"/caso/{_CASO_ID}/fichas/VINCULO_ID").json()
     por_id = {ficha["item_id"]: ficha for ficha in corpo["fichas"]}
 
-    assert [m["item_id"] for m in por_id[v1]["margens"]] == [m1]
-    assert [m["item_id"] for m in por_id[v2]["margens"]] == [m2]
-    assert por_id[v1]["dependentes"] == {"margens": [m1], "dividas": []}
-    assert por_id[v2]["dependentes"] == {"margens": [m2], "dividas": [divida]}
-    assert "800" not in str(corpo)
+    assert por_id[v1]["dependentes"] == {"margens": [], "dividas": []}
+    assert por_id[v2]["dependentes"] == {"margens": [], "dividas": [divida]}
     assert corpo["escopo_pai"] is None
-    margens = cliente.get(f"/caso/{_CASO_ID}/fichas/MARGEM_ID").json()
-    assert margens["escopo_pai"] == "VINCULO_ID"
-    assert {m["item_id"]: m["item_pai_id"] for m in margens["fichas"]} == {m1: v1, m2: v2}
 
 
 def test_t256_vinculo_da_divida_so_para_consignado_com_os_vinculos_do_caso(
@@ -761,47 +698,27 @@ def test_t256_vinculo_da_divida_so_para_consignado_com_os_vinculos_do_caso(
 def test_t257_referencia_a_vinculo_removido_volta_a_ficar_em_aberto(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """`EC-35`: removido o vínculo, a margem dele e a dívida que o apontava
-    ficam em aberto; as respostas continuam gravadas (auditoria). `T-282`:
-    resta outro vínculo — sem nenhum, a dívida não trava (pendência de
-    inventário, `test_vinculos.py`)."""
+    """`EC-35`: removido o vínculo, a dívida que o apontava fica em aberto;
+    as respostas continuam gravadas (auditoria). `T-282`: resta outro
+    vínculo — sem nenhum, a dívida não trava (pendência de inventário,
+    `test_vinculos.py`)."""
     cliente = _cliente_real(monkeypatch, tmp_path)
     _responder(cliente, "B3.S01", "SIM")
     vinculo = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
     _criar_em(cliente, "VINCULO_ID")
-    margem = _criar_em(cliente, "MARGEM_ID", item_pai_id=vinculo).json()["ficha"]["item_id"]
-    for ID, valor in (
-        ("B3.S06A", "EMPRESTIMO"),
-        ("B3.S06B", "1000"),
-        ("B3.S06C", "400"),
-        ("B3.S06D", "600"),
-        ("B3.S06E", "2026-03-01"),
-    ):
-        assert _responder(cliente, ID, valor, margem).status_code == 200, ID
     divida = _criar_em(cliente, "DIVIDA_ID").json()["ficha"]["item_id"]
     _responder(cliente, "B5.A01", "Banco", divida)
     _responder(cliente, "B5.A02", "CONSIGNADO", divida)
     _responder(cliente, "B5.A02V", vinculo, divida)
-
-    def completas() -> dict[str, bool]:
-        return {
-            f["item_id"]: f["completa"]
-            for escopo in ("MARGEM_ID", "DIVIDA_ID")
-            for f in _fichas(cliente, escopo)
-        }
 
     def proxima_da_divida() -> str:
         corpo = cliente.get(f"/caso/{_CASO_ID}/pergunta", params={"item_id": divida}).json()
         ID: str = corpo["pergunta"]["ID"]
         return ID
 
-    antes = completas()
     assert proxima_da_divida() != "B5.A02V"
     cliente.delete(f"/caso/{_CASO_ID}/fichas/VINCULO_ID/{vinculo}")
-    depois = completas()
 
-    assert antes[margem] is True
-    assert depois[margem] is False
     assert proxima_da_divida() == "B5.A02V"
     gravadas = RepositorioRespostasArquivo(tmp_path / "respostas.jsonl").listar_do_caso(_CASO_ID)
     assert any(

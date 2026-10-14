@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 import pytest
 from fastapi import Request
@@ -62,7 +63,7 @@ from collection.registro import (
     RegistroPergunta,
     TipoResposta,
 )
-from collection.respostas import Resposta, RespostasCaso
+from collection.respostas import Resposta, RespostasCaso, ValorResposta
 from engine.snapshot import SnapshotOrdem
 from persistencia.app_aluno.eventos import EventoCaso
 from persistencia.app_aluno.itens import ItemRepetido
@@ -554,7 +555,7 @@ def _erros_de_montagem() -> list[Exception]:
         ErroDinheiroDisponivelIndeterminado("VARIAVEL_TESTE_T197", "motivo"),
         ErroConversaoInvalida("abc", "motivo"),
         ErroRespostaAusente("DIV-1", "B5.99", "VARIAVEL_TESTE_T197"),
-        # `B5.D05A` com `MENSAL`/`TOTAL` cai no `assert` de `estado.py:502`.
+        # Valor de tipo inesperado cai no `assert` de `estado.py`.
         AssertionError(),
     ]
 
@@ -727,7 +728,7 @@ def test_t210_erro_sem_pergunta_conhecida_devolve_lista_vazia(
 # ---------------------------------------------------------------------------
 
 
-def _resposta_t217(ID_PERGUNTA: str, valor: str, item_id: str | None = None) -> Resposta:
+def _resposta_t217(ID_PERGUNTA: str, valor: ValorResposta, item_id: str | None = None) -> Resposta:
     return Resposta(
         CASO_ID="CASO-CALCULO-1",
         ID_PERGUNTA=ID_PERGUNTA,
@@ -770,34 +771,39 @@ def _respostas_vistas_pela_montagem(
 def test_t217_resposta_de_pergunta_fechada_nao_chega_a_montagem(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """B1.02=SIM → B1.03 respondida → corrige B1.02=NAO: B1.03 segue no
-    repositório, mas a montagem não a vê."""
+    """B2.09=SIM → B2.10 respondida → corrige B2.09=NAO: B2.10 segue no
+    repositório, mas a montagem não a vê. (`T-389`: era `B1.02`/`B1.03`.)"""
     respostas = (
-        _resposta_t217("NOVA_DIVIDA_PREVISTA", "NAO"),
-        _resposta_t217("FINALIDADE_NOVA_DIVIDA", "CONSUMO"),
+        _resposta_t217("GASTOS_FANTASMAS", "NAO"),
+        _resposta_t217("VALOR_GASTOS_FANTASMAS", Decimal("100")),
     )
 
-    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B1.02", "B1.03"), respostas)
+    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B2.09", "B2.10"), respostas)
 
-    assert [r.ID_PERGUNTA for r in vistas] == ["NOVA_DIVIDA_PREVISTA"]
+    assert [r.ID_PERGUNTA for r in vistas] == ["GASTOS_FANTASMAS"]
 
 
 def test_t217_pergunta_aberta_continua_no_calculo(monkeypatch: pytest.MonkeyPatch) -> None:
     respostas = (
-        _resposta_t217("NOVA_DIVIDA_PREVISTA", "SIM"),
-        _resposta_t217("FINALIDADE_NOVA_DIVIDA", "CONSUMO"),
+        _resposta_t217("GASTOS_FANTASMAS", "SIM"),
+        _resposta_t217("VALOR_GASTOS_FANTASMAS", Decimal("100")),
     )
 
-    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B1.02", "B1.03"), respostas)
+    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B2.09", "B2.10"), respostas)
 
     assert vistas == respostas
+
+
+_MINIMO = "PAGAMENTO_MINIMO_INFORMADO (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
 
 
 def test_t217_ficha_de_divida_filtra_por_item_e_em_cadeia(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`D002` deixou de ser cartão: `B5.C07` fecha no item e `B5.C07A`, que
-    dependia dela, cai junto (ponto fixo). `D001` segue cartão, intacta."""
+    """`D002` passou a ter parcela definida: `B5.C05` fecha no item e
+    `B5.C05A`, que dependia dela, cai junto (ponto fixo). `D001` segue sem
+    parcela definida, intacta. (`T-389`: era `B5.C07`/`B5.C07A`; `T-391`: era
+    `B5.D05`/`B5.D05A`/`B5.D05V`.)"""
     itens = tuple(
         ItemRepetido(
             item_id=item_id,
@@ -809,16 +815,16 @@ def test_t217_ficha_de_divida_filtra_por_item_e_em_cadeia(
         for item_id in ("D001", "D002")
     )
     respostas = (
-        _resposta_t217("TIPO_DIVIDA", "CARTAO_ROTATIVO", "D001"),
-        _resposta_t217("LINHA_CONTINUA_SENDO_UTILIZADA", "SIM", "D001"),
-        _resposta_t217("NOVO_USO", "SIM", "D001"),
-        _resposta_t217("TIPO_DIVIDA", "CONSIGNADO", "D002"),
-        _resposta_t217("LINHA_CONTINUA_SENDO_UTILIZADA", "SIM", "D002"),
-        _resposta_t217("NOVO_USO", "SIM", "D002"),
+        _resposta_t217("POSSUI_PARCELA_DEFINIDA", "NAO", "D001"),
+        _resposta_t217("POSSUI_PAGAMENTO_MINIMO", "SIM", "D001"),
+        _resposta_t217(_MINIMO, Decimal("100"), "D001"),
+        _resposta_t217("POSSUI_PARCELA_DEFINIDA", "SIM", "D002"),
+        _resposta_t217("POSSUI_PAGAMENTO_MINIMO", "SIM", "D002"),
+        _resposta_t217(_MINIMO, Decimal("100"), "D002"),
     )
 
     vistas = _respostas_vistas_pela_montagem(
-        monkeypatch, ("B5.A02", "B5.C07", "B5.C07A"), respostas, itens
+        monkeypatch, ("B5.C01", "B5.C05", "B5.C05A"), respostas, itens
     )
 
     assert vistas == respostas[:4]

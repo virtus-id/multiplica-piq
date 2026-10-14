@@ -93,11 +93,9 @@ MESMA `exigir_papel_revisor` de `T-100` — mesma nota de `/revisao/*` acima:
 não recebe `CASO_ID` e fica fora da auditoria de isolamento por caso do
 aluno, porque o operador vê todos os casos por definição de papel.
 
-**Edição de T-121.** `criar_aplicacao()` também registra
-`app.http.rotas_bloco10.roteador` (`POST /caso/{CASO_ID}/bloco-10/resposta`
-— `RF-18`), a confirmação do Ataque Imediato criada por `T-77`. Recebe
-`CASO_ID` na URL e usa `exigir_caso_da_sessao`, mesmo mecanismo de
-`rotas_coleta.py` — entra na auditoria de isolamento por caso sem exceção.
+**Edição de T-390.** Os roteadores dos Blocos 7, 8, 10 e 11 (coleta dirigida,
+confirmação do ataque, ações e etapas pós-plano) saíram: o plano entregue é
+definitivo (`RF-401`, `RF-409`).
 
 REGRAS: `RF-02`, `RF-30`
 """
@@ -110,17 +108,12 @@ from typing import Final
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.http.rotas_acoes import roteador as roteador_acoes
 from app.http.rotas_api_conta import roteador as roteador_api_conta
 from app.http.rotas_api_plano import roteador as roteador_api_plano
-from app.http.rotas_bloco10 import roteador as roteador_bloco10
-from app.http.rotas_bloco11 import roteador as roteador_bloco11
 from app.http.rotas_calculo import roteador as roteador_calculo
 from app.http.rotas_coleta import roteador as roteador_coleta
-from app.http.rotas_coleta_dirigida import roteador as roteador_coleta_dirigida
 from app.http.rotas_consentimento import roteador as roteador_consentimento
 from app.http.rotas_conta import roteador as roteador_conta
-from app.http.rotas_etapas import roteador as roteador_etapas
 from app.http.rotas_fichas import roteador as roteador_fichas
 from app.http.rotas_inicio import roteador as roteador_inicio
 from app.http.rotas_inventario import roteador as roteador_inventario
@@ -185,15 +178,8 @@ def criar_aplicacao() -> FastAPI:
     aplicacao.include_router(roteador_consentimento)
     aplicacao.include_router(roteador_coleta)
     aplicacao.include_router(roteador_pergunta)
-    # T-134/T-135: fichas repetíveis (108 perguntas dependiam disto) e os
-    # dois roteadores que existiam desde T-75/T-82 sem nunca serem
-    # registrados — código testado e inalcançável por `uvicorn` até aqui.
+    # T-134: fichas repetíveis (108 perguntas dependiam disto).
     aplicacao.include_router(roteador_fichas)
-    aplicacao.include_router(roteador_coleta_dirigida)
-    aplicacao.include_router(roteador_bloco11)
-    # T-139: as três saídas de PLANO_LIBERADO. Sem elas, o caso chegava ao
-    # plano liberado e morria ali — Blocos 7, 8, 10 e 11 eram inalcançáveis.
-    aplicacao.include_router(roteador_etapas)
     # T-147: a tela Início — a fase do caso e a ÚNICA próxima etapa. É o
     # ponto de entrada do aluno (`RF-58`); sem ela, a interface voltaria a
     # oferecer todas as telas de uma vez e a deixar a escolha com quem não
@@ -210,10 +196,7 @@ def criar_aplicacao() -> FastAPI:
     # `T-179`: a porta de entrada do webhook de compra. Protegida por
     # segredo próprio, nunca por sessão — quem chama é máquina.
     aplicacao.include_router(roteador_provisionamento)
-    # T-143: Bloco 11 — ações e seu andamento, por ACAO_ID.
-    aplicacao.include_router(roteador_acoes)
     aplicacao.include_router(roteador_calculo)
-    aplicacao.include_router(roteador_bloco10)
     aplicacao.include_router(roteador_plano)
     aplicacao.include_router(roteador_revisao)
     aplicacao.include_router(roteador_operador)

@@ -87,12 +87,6 @@ export default function AlertaInventario() {
           return (
             <li key={pendencia.codigo} className="flex flex-col gap-2">
               <span id={idMensagem}>{pendencia.mensagem}</span>
-              {dividas && dividas.tipos_sem_ficha.length > 0 && (
-                <span>
-                  Tipos que você marcou e ainda não têm ficha:{' '}
-                  {dividas.tipos_sem_ficha.join(', ')}.
-                </span>
-              )}
               {dividas && dividas.fichas.length > 0 && (
                 <div>
                   Fichas já cadastradas:

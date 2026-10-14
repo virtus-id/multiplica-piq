@@ -187,6 +187,8 @@ _VALORES_CASO: Final[dict[str, object]] = {
     "DISPOSICAO_USO_RESERVA": "PARTE",
     "VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO": converter_para_dinheiro("3.000,00"),
     # ---------------------------------------------------------------------
+    # `T-389`: as respostas das perguntas retiradas (RF-402) saíram daqui; as
+    # que o motor nunca lia estão em `tests/app_aluno/test_remocao_sem_efeito.py`.
     # T-214 (`AC-11`, `AC-12`) — as 30 perguntas `OBR` não repetíveis que o
     # registro atual exige e que a fixture não respondia (`pendencias_
     # obrigatorias` sobre a coleção real devolvia 30). Todos os valores são
@@ -195,14 +197,10 @@ _VALORES_CASO: Final[dict[str, object]] = {
     # fixture já tem a ficha (`DESPESAS_NAO_MENSAIS_EXISTE=SIM`, dívida de
     # cartão rotativo). Categorias de despesa: um item por categoria, só
     # como resposta de seleção — o total segue vindo da ficha `ITEM_DESPESA`.
-    "OBRIGACAO_FUTURA_INEVITAVEL": "NAO",  # B1.06
-    "USO_CREDITO_PREVISTO": frozenset({"NAO_PRETENDE"}),  # B1.08
-    "PARTICIPACAO_FAMILIAR": "NAO_APLICAVEL",  # B1.12
     "GASTOS_FANTASMAS": "NAO",  # B2.09
     "RENDA_RECORRENTE_ADICIONAL_EXISTE": "NAO",  # B3.03
     "CONTRIBUICAO_FAMILIAR_EXISTE": "NAO",  # B3.04
     "RECURSOS_EXTRAORDINARIOS_EXISTE": "NAO",  # B3.05
-    "RENDA_EXTRA_RECORRENTE_POTENCIAL_EXISTE": "NAO",  # B3.06
     "ITENS_DESPESA_MORADIA": frozenset({"ALUGUEL"}),  # B3.D01
     "ITENS_DESPESA_ALIMENTACAO": frozenset({"SUPERMERCADO"}),  # B3.D02
     "ITENS_DESPESA_TRANSPORTE": frozenset({"TRANSPORTE_PUBLICO"}),  # B3.D03
@@ -221,10 +219,7 @@ _VALORES_CASO: Final[dict[str, object]] = {
     "INVESTIMENTOS_EXISTE": "NAO",  # B4.04
     "IMOVEL_EXISTE": "NAO",  # B4.I01
     "VEICULO_EXISTE": "NAO",  # B4.V01
-    "OUTRO_ATIVO_EXISTE": "NAO",  # B4.O01
-    "CONFIRMACAO_MAPEAMENTO_PATRIMONIAL": "COMPLETO",  # B4.F01
     "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1,  # B5.00 — NUMERO grava int
-    "TIPOS_DIVIDA_DECLARADOS": frozenset({"CARTAO_ROTATIVO"}),  # B5.00A
 }
 
 # ---------------------------------------------------------------------------

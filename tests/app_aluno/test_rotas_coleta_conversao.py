@@ -8,7 +8,7 @@ gravavam a string bruta do formulário, inutilizável por `app/montagem/
 estado.py` (`_mecanismo_deficit` exige `frozenset[str]`; os campos
 `ESCALA_0_10` exigem `int`).
 
-Mesmo padrão de `tests/app_aluno/test_rotas_coleta_dirigida.py`: aplicação
+Mesmo padrão dos testes de rota da coleta: aplicação
 FastAPI real, `dependency_overrides` de repositório substituídos por dublês
 em memória (sem Postgres, sem `DATABASE_URL`), sessão aberta por uma rota de
 teste (`iniciar_sessao_conta`), caso fabricado diretamente. Registros de
@@ -90,8 +90,7 @@ class _RepositorioItensVazio:
 
 
 class _RepositorioCasosDublê:
-    """Mesmo padrão de `tests/app_aluno/test_rotas_coleta_dirigida.py::
-    _RepositorioCasosDublê` — só os métodos que `exigir_caso_da_sessao`
+    """Dublê em memória — só os métodos que `exigir_caso_da_sessao`
     (isolamento, T-31) usa."""
 
     def __init__(self, caso: Caso, conta_id_da_sessao: str) -> None:

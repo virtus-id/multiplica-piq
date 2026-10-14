@@ -30,7 +30,7 @@ from typing import Final
 
 import pytest
 
-from app.casos.fases import FASE_INICIO, fase_do_estado, fase_do_plano_liberado
+from app.casos.fases import FASE_INICIO, fase_do_estado
 from app.casos.maquina import ESTADO_CASO
 
 RAIZ_PROJETO: Final[Path] = Path(__file__).resolve().parent.parent.parent
@@ -168,38 +168,6 @@ def test_ec25_encerrado_compartilha_a_fase_de_acompanhamento() -> None:
     assert fase_do_estado(ESTADO_CASO.ENCERRADO) is fase_do_estado(
         ESTADO_CASO.ACOMPANHAMENTO
     )
-
-
-# ---------------------------------------------------------------------------
-# `RF-61` — a exceção declarada: `PLANO_LIBERADO` depende do snapshot.
-# ---------------------------------------------------------------------------
-
-
-def test_rf61_plano_liberado_com_ataque_a_decidir_e_fase_plano() -> None:
-    """`RF-61` — havendo ataque imediato a decidir, a próxima etapa é o
-    Bloco 10: fase `plano`."""
-    assert fase_do_plano_liberado(tem_ataque_a_decidir=True) is FASE_INICIO.PLANO
-
-
-def test_rf61_plano_liberado_sem_ataque_a_decidir_e_fase_acompanhamento() -> None:
-    """`RF-61` — sem ataque imediato recomendado não há decisão nenhuma a
-    tomar. Oferecer "Decidir agora" mandaria o aluno a uma tela que o
-    servidor fecha com `409`; a próxima etapa é *"ver o que fazer agora"*."""
-    assert (
-        fase_do_plano_liberado(tem_ataque_a_decidir=False)
-        is FASE_INICIO.ACOMPANHAMENTO
-    )
-
-
-def test_rf61_fase_do_plano_liberado_devolve_sempre_uma_das_cinco_fases() -> None:
-    """`RF-61` — a exceção do `PLANO_LIBERADO` não abre uma sexta fase: as
-    duas saídas possíveis já existem em `FASE_INICIO`."""
-    saidas = {
-        fase_do_plano_liberado(tem_ataque_a_decidir=True),
-        fase_do_plano_liberado(tem_ataque_a_decidir=False),
-    }
-
-    assert saidas <= set(FASE_INICIO)
 
 
 # ---------------------------------------------------------------------------

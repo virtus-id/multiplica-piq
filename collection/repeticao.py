@@ -32,11 +32,11 @@ plano não especifica o mecanismo exato): sequência crescente por
 `proximo_identificador` avança um contador que só cresce, mesmo quando um
 item anterior é removido. Um identificador de item é sempre
 `f"{prefixo_do_escopo}{numero:03d}"` (ex.: `D001`, `D002`, `M001`),
-formando o `[Dxxx]` referenciado por `collection/interpolacao.py::Marcador`
-em `B11.Q01`. UUID foi descartado: o plano usa literalmente `[Dxxx]`/`Dxxx`
-como formato de exemplo (§4.1, comentário de `Marcador`) e uma sequência
-curta e legível é o que um revisor humano (Entrega 1, `sdd.config.md` §6)
-consegue ler em uma tela de revisão sem truncar.
+formando o `[Dxxx]` referenciado por `collection/interpolacao.py::Marcador`.
+UUID foi descartado: o plano usa literalmente `[Dxxx]`/`Dxxx` como formato de
+exemplo (§4.1, comentário de `Marcador`) e uma sequência curta e legível é o
+que um revisor humano (Entrega 1, `sdd.config.md` §6) consegue ler em uma tela
+de revisão sem truncar.
 
 REGRAS: `RF-04`, `AC-04`
 """

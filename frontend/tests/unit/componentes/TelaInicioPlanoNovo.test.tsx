@@ -37,14 +37,6 @@ const renderizar = (i: Inicio, irPara = vi.fn()) => {
   return irPara;
 };
 
-const LIBERADO = {
-  estado: "PLANO_LIBERADO",
-  fase: "acompanhamento",
-  mensagem: "Seu plano está liberado.",
-  proxima_etapa: { destino: "acoes", ID_PERGUNTA: null, item_id: null },
-  pode_refazer_plano: true,
-} as const;
-
 describe("Início — plano novo depois da liberação", () => {
   it('em coleta COM plano liberado: "Ver meu plano" continua e a nota explica', () => {
     renderizar(inicio({}));
@@ -69,80 +61,51 @@ describe("Início — plano novo depois da liberação", () => {
   });
 });
 
-describe('Início — "Gerar um novo plano" (RF-120, AC-186)', () => {
-  it("respostas atualizadas: o aviso diz o que aconteceu e oferece o plano novo", () => {
-    renderizar(inicio({ ...LIBERADO, respostas_atualizadas: true }));
+describe("Início — plano entregue é definitivo (RF-401, RF-409, T-388)", () => {
+  // O que o servidor devolve hoje para PLANO_LIBERADO: fase "plano", destino
+  // "plano", sem refazer. `valor_em_destaque` ainda vem preenchido.
+  const ENTREGUE = {
+    estado: "PLANO_LIBERADO",
+    fase: "plano",
+    mensagem: "Seu plano está liberado.",
+    proxima_etapa: { destino: "plano", ID_PERGUNTA: null, item_id: null },
+    valor_em_destaque: "3000.00",
+    pode_refazer_plano: false,
+  } as const;
 
-    expect(
-      screen.getByText("Você atualizou suas respostas depois do seu plano."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Quer enviá-las para gerar um novo plano?"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "Gerar um novo plano com as minhas respostas",
-      }),
-    ).toBeInTheDocument();
+  it("com a fase plano: só o plano, sem acompanhamento, refazer ou decisão do ataque", () => {
+    const irPara = renderizar(inicio(ENTREGUE));
+
+    const botao = screen.getByRole("button", { name: "Ver o seu plano" });
+    expect(botao).toBeInTheDocument();
+    fireEvent.click(botao);
+    expect(irPara).toHaveBeenCalledWith({ tela: "plano" });
+
+    // Nada de plano novo, de decisão sobre o ataque, de valor em destaque nem
+    // de acompanhamento (nem como botão, nem como etapa da trilha).
+    expect(screen.queryByText(/novo plano|plano novo/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Decidir sobre/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/R\$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/acompanhamento/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ver o que fazer agora/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/conte como foi/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Sair",
+      "Ver o seu plano",
+      "Ver e editar minhas respostas",
+    ]);
   });
 
-  it.each([false, null])(
-    "respostas_atualizadas = %s: a ação existe, sem afirmar mudança",
-    (v) => {
-      renderizar(inicio({ ...LIBERADO, respostas_atualizadas: v }));
-
-      expect(
-        screen.getByText("Mudou algo? Você pode pedir um plano novo."),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByText(
-          "Você atualizou suas respostas depois do seu plano.",
-        ),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.getByRole("button", {
-          name: "Gerar um novo plano com as minhas respostas",
-        }),
-      ).toBeInTheDocument();
-    },
-  );
-
-  it("confirmar pede o plano ao servidor e vai ao cálculo", async () => {
-    const refazer = vi
-      .spyOn(api, "refazerPlano")
-      .mockResolvedValue({ estado: "COLETA_INICIAL" });
+  it("um destino pós-plano que o servidor ainda mandasse cai no plano", () => {
     const irPara = renderizar(
-      inicio({ ...LIBERADO, respostas_atualizadas: true }),
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Gerar um novo plano com as minhas respostas",
+      inicio({
+        ...ENTREGUE,
+        proxima_etapa: { destino: "bloco10" as never, ID_PERGUNTA: null, item_id: null },
       }),
     );
-    const texto =
-      screen.getByRole("group", { name: "Confirmar o plano novo" })
-        .textContent ?? "";
-    expect(texto).toContain("conferido de novo pela equipe");
-    expect(texto).toContain("tempo da fila");
-    expect(refazer).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Pedir o plano novo" }));
-
-    await vi.waitFor(() =>
-      expect(irPara).toHaveBeenCalledWith({ tela: "calculando" }),
-    );
-    expect(refazer).toHaveBeenCalledWith("CASO-1");
-  });
-
-  it("sem o campo do servidor (plano ainda não liberado) nada disso aparece", () => {
-    renderizar(inicio({ plano_liberado: false, versao_do_plano: null }));
-
-    expect(
-      screen.queryByRole("button", {
-        name: "Gerar um novo plano com as minhas respostas",
-      }),
-    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ver o seu plano" }));
+    expect(irPara).toHaveBeenCalledWith({ tela: "plano" });
   });
 });
 

@@ -28,14 +28,12 @@ _QUESTIONARIO_VERSION = "1.0.0"
 _AGORA = datetime(2026, 1, 1, tzinfo=UTC)
 
 # Mesmas duas strings COMPOSTAS de `VARIAVEL_GRAVADA` do registro real do
-# Bloco 5 (`collection/registros/bloco-05.yaml`, B5.C02 e B5.D05A) — ver
-# `app/montagem/estado.py::_VARIAVEL_PARCELA_CONTRATUAL`/
-# `_VARIAVEL_CUSTO_SEGURO`. Repetidas aqui (não importadas do módulo privado)
-# porque o teste precisa gravar a `Resposta` sob a MESMA chave que
+# Bloco 5 (`collection/registros/bloco-05.yaml`, B5.C02 e B5.D03A) — ver
+# `app/montagem/estado.py::_VARIAVEL_PARCELA_CONTRATUAL`. Repetidas aqui (não importadas do módulo
+# privado) porque o teste precisa gravar a `Resposta` sob a MESMA chave que
 # `RespostasCaso.valor_no_item` vai indexar — provando que o mapeamento bate
 # com o dado real, não com uma constante interna do próprio módulo testado.
 _VARIAVEL_PARCELA_CONTRATUAL = "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
-_VARIAVEL_CUSTO_SEGURO = "CUSTO_SEGURO (+ base MENSAL/TOTAL)"
 _VARIAVEL_CET_COMPOSTA = "CET (+ PERIODICIDADE_CET)"
 
 
@@ -99,6 +97,7 @@ class TestCriterio1NenhumDefaultSilencioso:
         assert divida.VALOR_QUITACAO_HOJE is DESCONHECIDO
         assert divida.PARCELA_CONTRATUAL is DESCONHECIDO
         assert divida.CUSTO_SEGURO is DESCONHECIDO
+        assert divida.SEGURO_INCLUIDO_PARCELA is False
         assert divida.TAXA_EFETIVA_MENSAL_NORMALIZADA is DESCONHECIDO
         assert divida.CET is DESCONHECIDO
 
@@ -274,8 +273,6 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_5() -> None:
         _VARIAVEL_PARCELA_CONTRATUAL,
         "PAGAMENTO_MENSAL_EFETIVO",
         "PAGAMENTO_MENSAL_EFETIVO (média 3 meses)",
-        "SEGURO_INCLUIDO_PARCELA",
-        _VARIAVEL_CUSTO_SEGURO,
         "PESO_EMOCIONAL",
         "TAXA_INFORMADA",
         "PERIODICIDADE_TAXA",

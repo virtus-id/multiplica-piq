@@ -3,10 +3,9 @@
 `plans/app-aluno.plan.md` §4.1. `Marcador` declara, por pergunta, um texto
 literal do enunciado (`marcador`) a substituir e de onde vem o valor
 (`origem`): o identificador do item corrente da ficha repetida
-(`ID_DO_ITEM`, ex.: `[Dxxx]` em `B11.Q01`), uma variável já coletada
+(`ID_DO_ITEM`, ex.: `[Dxxx]`), uma variável já coletada
 (`VARIAVEL_COLETADA`) ou um campo do `SnapshotOrdem` que o motor já
-calculou (`CAMPO_DO_SNAPSHOT`, ex.: `PAGAMENTO_MENSAL_EFETIVO` em
-`B11.Q06`).
+calculou (`CAMPO_DO_SNAPSHOT`).
 
 `interpolar` é o interpretador genérico: percorre `marcadores` e substitui
 cada `marcador.marcador` no enunciado. Não existe `if pergunta.ID == "..."`
@@ -75,9 +74,8 @@ class ContextoItem:
 
 @dataclass(frozen=True, slots=True)
 class Marcador:
-    """`[Dxxx]` em `B11.Q01` → o `DIVIDA_ID` da ficha corrente
-    (`ID_DO_ITEM`). `PAGAMENTO_MENSAL_EFETIVO` em `B11.Q06` → o campo já
-    calculado pelo motor (`CAMPO_DO_SNAPSHOT`)."""
+    """`[Dxxx]` → o `DIVIDA_ID` da ficha corrente (`ID_DO_ITEM`); um campo já
+    calculado pelo motor → `CAMPO_DO_SNAPSHOT`."""
 
     marcador: str  # texto literal do enunciado a substituir
     origem: Literal["ID_DO_ITEM", "VARIAVEL_COLETADA", "CAMPO_DO_SNAPSHOT"]

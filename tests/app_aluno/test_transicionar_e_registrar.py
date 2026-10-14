@@ -7,8 +7,7 @@ Cobre os quatro critérios de aceite da tarefa:
    data — provado aqui sobre o wrapper `transicionar_e_registrar` em si (o
    ÚNICO caminho de produção que transiciona `Caso` real desta feature,
    consumido por `app/http/rotas_consentimento.py`, `app/http/
-   rotas_calculo.py`, `app/revisao/fila.py`, `app/casos/acompanhamento.py` e
-   `app/motor/executor.py`).
+   rotas_calculo.py`, `app/revisao/fila.py` e `app/motor/executor.py`).
 2. `ultima_interacao_em` do caso é atualizada a cada resposta gravada —
    provado sobre `persistencia/app_aluno/respostas.py::
    RepositorioRespostasSupabase.gravar` (mypy/assinatura) e sobre o
@@ -316,9 +315,9 @@ def test_transicionar_e_registrar_nao_grava_dado_do_aluno_no_detalhe(
     repositorio_eventos: RepositorioEventosCasoArquivo,
 ) -> None:
     """Os chamadores de produção desta tarefa (`app/http/rotas_consentimento.
-    py`, `app/http/rotas_calculo.py`, `app/revisao/fila.py`, `app/casos/
-    acompanhamento.py`, `app/motor/executor.py`) nunca passam `detalhe` com
-    um valor de resposta do aluno — só motivos técnicos curtos ou `None`.
+    py`, `app/http/rotas_calculo.py`, `app/revisao/fila.py`,
+    `app/motor/executor.py`) nunca passam `detalhe` com um valor de resposta
+    do aluno — só motivos técnicos curtos ou `None`.
     Verificado aqui pelo caminho mais comum: nenhuma chamada de produção
     passa um `Decimal`/valor monetário como `detalhe` (o parâmetro é
     tipado `str | None`, o que já impede um `Decimal` bruto)."""
@@ -343,7 +342,7 @@ def test_transicionar_e_registrar_nao_grava_dado_do_aluno_no_detalhe(
 
 
 def test_nenhum_chamador_de_producao_passa_valor_de_resposta_como_detalhe() -> None:
-    """Auditoria por AST sobre os cinco módulos que chamam
+    """Auditoria por AST sobre os quatro módulos que chamam
     `transicionar_e_registrar`: nenhuma chamada usa `detalhe=` com um valor
     que não seja um literal de string curto ou uma variável de mensagem
     técnica já auditada por `tests/app_aluno/estatica/
@@ -358,7 +357,6 @@ def test_nenhum_chamador_de_producao_passa_valor_de_resposta_como_detalhe() -> N
         raiz_projeto / "app" / "http" / "rotas_consentimento.py",
         raiz_projeto / "app" / "http" / "rotas_calculo.py",
         raiz_projeto / "app" / "revisao" / "fila.py",
-        raiz_projeto / "app" / "casos" / "acompanhamento.py",
         raiz_projeto / "app" / "motor" / "executor.py",
     )
     nomes_proibidos = {"valor", "resposta", "renda", "saldo", "divida"}

@@ -82,9 +82,9 @@ const PLANO_LIBERADO = {
  */
 const INICIO_COM_PLANO = {
   estado: 'PLANO_LIBERADO',
-  fase: 'acompanhamento' as const,
+  fase: 'plano' as const,
   mensagem: 'Seu plano está liberado.',
-  proxima_etapa: { destino: 'acoes' as const, ID_PERGUNTA: null, item_id: null },
+  proxima_etapa: { destino: 'plano' as const, ID_PERGUNTA: null, item_id: null },
   plano_liberado: true,
   versao_do_plano: 1,
 }

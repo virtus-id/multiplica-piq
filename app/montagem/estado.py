@@ -318,8 +318,8 @@ type ValorTraduzido = str | int | Decimal | date | frozenset[str] | Desconhecido
 # estimativa. Público para que T-50/T-51/T-52 (mesmo arquivo) e os testes
 # saibam exatamente quais campos são provisórios por decisão registrada.
 _CAMPOS_DE_GATE_FORA_DE_ESCOPO: Final[tuple[str, ...]] = (
-    "RENEGOCIACAO_PENDENTE",  # Gate 3 — depende do Bloco 7, fora do escopo de T-49
-    "TROCA_PENDENTE",  # Gate 3 — depende do Bloco 8, fora do escopo de T-49
+    "RENEGOCIACAO_PENDENTE",  # Gate 3 — Bloco 7 removido (T-390); fica no neutro
+    "TROCA_PENDENTE",  # Gate 3 — Bloco 8 removido (T-390); fica no neutro
     "RISCO_MATERIAL_IMINENTE",  # Gate 2 — regra de gate, proibida nesta camada (Lei nº 3)
     "OPORTUNIDADE_VIGENTE",  # Gate 4 — regra de gate, proibida nesta camada (Lei nº 3)
 )
@@ -342,7 +342,6 @@ _CAMPOS_DE_GATE_FORA_DE_ESCOPO: Final[tuple[str, ...]] = (
 _VARIAVEL_PARCELA_CONTRATUAL: Final[str] = (
     "PARCELA_CONTRATUAL" + " (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
 )
-_VARIAVEL_CUSTO_SEGURO: Final[str] = "CUSTO_SEGURO" + " (+ base MENSAL/TOTAL)"
 
 
 class ErroRespostaAusente(Exception):
@@ -448,7 +447,7 @@ def _dinheiro_obrigatorio(
 
 # `VARIAVEL_GRAVADA` de B5.C06A ("Nos últimos 3 meses, qual foi
 # aproximadamente a média mensal paga?") — string composta, mesmo padrão de
-# `_VARIAVEL_PARCELA_CONTRATUAL`/`_VARIAVEL_CUSTO_SEGURO`.
+# `_VARIAVEL_PARCELA_CONTRATUAL`.
 _VARIAVEL_PAGAMENTO_MEDIA_TRES_MESES: Final[str] = (
     "PAGAMENTO_MENSAL_EFETIVO" + " (média 3 meses)"
 )
@@ -504,44 +503,6 @@ def _dinheiro_estrutural_ou_desconhecido(
     traduzido = _ou_desconhecido(valor)
     assert isinstance(traduzido, Decimal) or traduzido is DESCONHECIDO
     return traduzido
-
-
-_SITUACAO_COBRADO_MENSAL_A_PARTE: Final[str] = "COBRADO_MENSAL_A_PARTE"
-_BASE_MENSAL: Final[str] = "MENSAL"
-
-
-def _custo_seguro_cobrado_a_parte(respostas: RespostasCaso, DIVIDA_ID: str) -> DinheiroTalvez:
-    """`T-231` (RF-81, RF-85, `AC-121`, `AC-155`, `EC-39`) — `CUSTO_SEGURO`
-    da dívida: `CUSTO_SEGURO_VALOR` (B5.D05V) só quando a situação
-    (`SITUACAO_SEGURO`, B5.D05S) é "cobrado mensalmente à parte" **e** a
-    base (B5.D05A) é `MENSAL`. Prêmio único, cancelado, "não sei", sem
-    seguro ou base `TOTAL` (nunca mensalizada, `RF-82`) → `DESCONHECIDO`.
-
-    Corrige o defeito de `R9.5`: `B5.D05A` grava a BASE (`MENSAL`/`TOTAL`)
-    na variável `_VARIAVEL_CUSTO_SEGURO`, e ler essa string como dinheiro
-    estourava o `assert` de `_dinheiro_estrutural_ou_desconhecido`."""
-    situacao = respostas.valor_no_item(DIVIDA_ID, "SITUACAO_SEGURO")
-    base = respostas.valor_no_item(DIVIDA_ID, _VARIAVEL_CUSTO_SEGURO)
-    if situacao != _SITUACAO_COBRADO_MENSAL_A_PARTE or base != _BASE_MENSAL:
-        return DESCONHECIDO
-    return _dinheiro_estrutural_ou_desconhecido(respostas, DIVIDA_ID, "CUSTO_SEGURO_VALOR")
-
-
-def _seguros_mensais_a_parte(dividas: tuple[Divida, ...]) -> Dinheiro:
-    """`T-232` — decisão do produto `R9-1` (2026-09-30): o seguro cobrado
-    mensalmente à parte compõe as despesas mensais operacionais entregues
-    ao motor, **uma vez por dívida** — nunca a `PARCELA_CONTRATUAL`, nunca
-    a `B3.C00` (a fotografia só lê o Bloco 3). Já incluído na parcela
-    (`B5.D05B = Sim`, `AC-132`) não soma de novo. `CUSTO_SEGURO` só é
-    dinheiro na situação/base que o permite (`_custo_seguro_cobrado_a_
-    parte`). Meses restantes (`B5.D05P`) ficam registrados: o motor não
-    modela término de despesa — o valor sai no recálculo em que a situação
-    deixar de ser "cobrado à parte"."""
-    total = _ZERO
-    for divida in dividas:
-        if not divida.SEGURO_INCLUIDO_PARCELA and isinstance(divida.CUSTO_SEGURO, Decimal):
-            total += divida.CUSTO_SEGURO
-    return total
 
 
 def _taxa_periodicidade_mensal_ou_desconhecido(
@@ -645,8 +606,6 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         raise ErroRespostaAusente(DIVIDA_ID, "B5.H01", "PESO_EMOCIONAL")
     assert isinstance(peso_emocional_bruto, int) and not isinstance(peso_emocional_bruto, bool)
 
-    seguro_incluido_bruto = respostas.valor_no_item(DIVIDA_ID, "SEGURO_INCLUIDO_PARCELA")
-
     return Divida(
         DIVIDA_ID=DIVIDA_ID,
         TIPO_DIVIDA=TIPO_DIVIDA(tipo_divida_bruto),
@@ -693,11 +652,11 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         # (terceiro critério de aceite de T-49); "O valor varia muito." lê
         # B5.C06A (média de 3 meses) — ver `_pagamento_mensal_efetivo`.
         PAGAMENTO_MENSAL_EFETIVO=_pagamento_mensal_efetivo(respostas, DIVIDA_ID),
-        SEGURO_INCLUIDO_PARCELA=bool(seguro_incluido_bruto == "SIM"),
-        # `T-231` (RF-81, RF-85): só o seguro cobrado mensalmente à parte tem
-        # custo mensal; qualquer outra situação é DESCONHECIDO. GAB-01: o
-        # motor nunca soma este campo à parcela nem o estima.
-        CUSTO_SEGURO=_custo_seguro_cobrado_a_parte(respostas, DIVIDA_ID),
+        # `T-391` (`RF-410`): o seguro saiu do questionário e do cálculo. Os
+        # dois campos seguem declarados no motor (GAB-01: informativos), com
+        # o valor neutro fixo.
+        SEGURO_INCLUIDO_PARCELA=False,
+        CUSTO_SEGURO=DESCONHECIDO,
         PESO_EMOCIONAL=peso_emocional_bruto,
         # Ver docstring do módulo — campos de GATE fora do escopo de T-49,
         # fixados no valor neutro documentado, nunca inventados por fórmula.
@@ -1207,14 +1166,13 @@ def _despesas_nao_mensais_normalizadas(respostas: RespostasCaso) -> Dinheiro:
     excluir a ficha errada. Por isso esta função descobre os `item_id` do
     escopo diretamente do snapshot em memória (`respostas.respostas`, campo
     público de `RespostasCaso` — mesmo padrão já usado por `app/http/
-    rotas_coleta.py`/`rotas_bloco11.py` para reconstruir uma `RespostasCaso`)
+    rotas_coleta.py` para reconstruir uma `RespostasCaso`)
     e, para cada item, lê as DUAS variáveis pelo mesmo mecanismo de
     `collection/validacao.py::validar_cruzada` — `respostas.valor_no_item
     (item_id, variavel)` — que já resolve exatamente este problema de "duas
     variáveis do mesmo item". `DESPESA_NAO_MENSAL_JA_CONTABILIZADA` é
-    `SIM_NAO_TALVEZ` com `valor_interno: null` no registro (mesmo padrão de
-    `SEGURO_INCLUIDO_PARCELA`/B5.D05B, já lido acima por comparação direta
-    com a string `"SIM"`): o valor gravado é a string crua do formulário
+    `SIM_NAO_TALVEZ` com `valor_interno: null` no registro: o valor
+    gravado é a string crua do formulário
     (`app/http/rotas_coleta.py::_resolver_valor`, que devolve `str` direto
     para `SIM_NAO_TALVEZ`), por isso a comparação é contra `_VALOR_JA_
     CONTABILIZADA_SIM = "SIM"`, nunca contra o rótulo em português. `Decimal`
@@ -1739,9 +1697,7 @@ def montar_estado_financeiro(
         DATA_REFERENCIA=DATA_REFERENCIA,
         RENDA_TOTAL_RECORRENTE=_renda_total_recorrente(respostas),
         TIPO_RENDA=_tipo_renda(respostas),
-        DESPESAS_OPERACIONAIS_ATUAIS=(
-            _despesas_operacionais_atuais(respostas) + _seguros_mensais_a_parte(dividas)
-        ),
+        DESPESAS_OPERACIONAIS_ATUAIS=_despesas_operacionais_atuais(respostas),
         DESPESAS_NAO_MENSAIS_NORMALIZADAS=_despesas_nao_mensais_normalizadas(respostas),
         CAPACIDADE_ATAQUE_DECLARADA=_capacidade_ataque_declarada(respostas),
         CONTRIBUICAO_EXTRA_MENSAL=_contribuicao_extra_mensal(respostas),

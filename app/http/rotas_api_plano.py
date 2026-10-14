@@ -167,9 +167,9 @@ def plano_do_aluno(
 
     O ponto de injeção é `rotas_plano.obter_repositorio_snapshots` — o
     mesmo da rota de PDF, porque é a mesma tela do aluno vista de dois
-    jeitos. Usar o de `rotas_coleta_dirigida` aqui faria o plano e o PDF
-    lerem de repositórios distintos num teste que sobrescreve só um dos
-    dois, e o aluno veria um plano que o PDF não confirma.
+    jeitos. Dois pontos de injeção distintos fariam o plano e o PDF lerem de
+    repositórios distintos num teste que sobrescreve só um dos dois, e o
+    aluno veria um plano que o PDF não confirma.
 
     Sem plano liberado, devolve o ESTADO do caso, `plano: null` e a
     mensagem correspondente àquele estado — nunca uma tela de plano vazia
@@ -231,19 +231,11 @@ def plano_do_aluno(
         nome_do_dono_do_caso(contas, CASO_ID),
     )
     niveis = niveis_por_ficha(colecao.registros, respostas_do_caso, itens_por_escopo)
-    # `T-245` (`RF-82`): orientação só na dívida com seguro prestamista.
-    orientacoes_seguro = {
-        posicao.DIVIDA_ID: textos.orientacao_seguro_prestamista
-        for posicao in contexto.ordem
-        if respostas_do_caso.valor_no_item(posicao.DIVIDA_ID, "SEGURO_PRESTAMISTA") == "SIM"
-    }
     return JSONResponse(
         {
             "CASO_ID": CASO_ID,
             "estado": caso.estado.value,
-            "plano": serializar_plano(
-                contexto, fontes_por_divida(niveis, textos), orientacoes_seguro, textos
-            ),
+            "plano": serializar_plano(contexto, fontes_por_divida(niveis, textos), textos),
         }
     )
 
@@ -299,7 +291,7 @@ def caso_para_revisao(
     do revisor (`AC-29`).
 
     **O `plano` é o do aluno (`RF-121`, `AC-189`).** Mesmos `textos` fixos, mesma
-    `fonte` e orientação de seguro por dívida, mesmo nome — os campos comuns
+    `fonte` por dívida, mesmo nome — os campos comuns
     saem idênticos aos de `plano_do_aluno`, para a tela do revisor reaproveitar
     o desenho do aluno sem uma segunda redação. Só o revisor recebe, além
     disso, `JUSTIFICATIVA_POSICAO`, o `motivo` das ações e o `ITEM_ID`
@@ -356,11 +348,6 @@ def caso_para_revisao(
     nome_do_aluno = _nome_do_aluno(emails, CASO_ID_REVISAO)
     contexto = montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno)
     niveis = niveis_por_ficha(colecao.registros, respostas_do_caso, itens_por_escopo)
-    orientacoes_seguro = {
-        posicao.DIVIDA_ID: textos.orientacao_seguro_prestamista
-        for posicao in contexto.ordem
-        if respostas_do_caso.valor_no_item(posicao.DIVIDA_ID, "SEGURO_PRESTAMISTA") == "SIM"
-    }
     item = montar_item_da_fila(CASO_ID_REVISAO, snapshot)
     # `AC-29`: plano e `estado_inputs` na MESMA resposta. O revisor compara
     # os dois lado a lado; se viessem de requisições diferentes, poderiam
@@ -380,7 +367,6 @@ def caso_para_revisao(
             "plano": serializar_plano(
                 contexto,
                 fontes_por_divida(niveis, textos),
-                orientacoes_seguro,
                 textos,
                 para_revisor=True,
                 fatos_de_risco=fatos_de_risco_por_divida(

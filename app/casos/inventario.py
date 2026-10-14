@@ -53,9 +53,7 @@ _QUANTIDADE_DECLARADA: Final[str] = "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL"
 _FIM_DO_CADASTRO: Final[str] = "SYS (loop)"
 _ESTA_FOI_A_ULTIMA: Final[str] = "NAO_ESTA_FOI_A_ULTIMA"
 _SIM: Final[str] = "SIM"
-# T-324: os tipos declarados e o tipo/credor de cada ficha. Os `valor_interno`
-# da declaração e da ficha são os mesmos códigos (`T-208`).
-_TIPOS_DECLARADOS: Final[str] = "TIPOS_DIVIDA_DECLARADOS"
+# T-324: o tipo/credor de cada ficha.
 _TIPO_DA_FICHA: Final[str] = "TIPO_DIVIDA"
 _CREDOR: Final[str] = "CREDOR"
 
@@ -121,11 +119,10 @@ class FichaDeDivida:
 
 @dataclass(frozen=True, slots=True)
 class DetalheDasDividas:
-    """T-324 — o que acompanha `DIVIDAS_FALTANDO`: rótulos dos tipos
-    declarados ainda sem ficha, as fichas cadastradas e a ficha criada e
-    ainda vazia (a reabrir antes de criar outra), se houver."""
+    """T-324 — o que acompanha `DIVIDAS_FALTANDO`: as fichas cadastradas e a
+    ficha criada e ainda vazia (a reabrir antes de criar outra), se houver.
+    `T-389`: `B5.00A` (tipos declarados) saiu; não há mais tipo sem ficha."""
 
-    tipos_sem_ficha: tuple[str, ...]
     fichas: tuple[FichaDeDivida, ...]
     ficha_vazia: str | None
 
@@ -225,14 +222,9 @@ def _detalhe_das_dividas(
     cadastradas: tuple[str, ...],
     todas: tuple[str, ...],
 ) -> DetalheDasDividas:
-    """T-324 — relaciona os tipos declarados com os tipos das fichas. Rótulos
-    vêm das opções do registro de cada variável; código sem opção (ou o
-    "não tenho certeza", que não é tipo) não aparece."""
-    rotulos_declarados = _rotulos(registros, _TIPOS_DECLARADOS)
+    """T-324 — as fichas cadastradas, com o tipo pelo rótulo das opções do
+    registro; código sem opção (ou o "não tenho certeza") não aparece."""
     rotulos_da_ficha = _rotulos(registros, _TIPO_DA_FICHA)
-    declarados = respostas.valor(_TIPOS_DECLARADOS)
-    marcados = declarados if isinstance(declarados, frozenset) else frozenset()
-    tipos_com_ficha = {respostas.valor_no_item(i, _TIPO_DA_FICHA) for i in cadastradas}
     fichas = []
     for item_id in cadastradas:
         tipo = respostas.valor_no_item(item_id, _TIPO_DA_FICHA)
@@ -244,11 +236,6 @@ def _detalhe_das_dividas(
             )
         )
     return DetalheDasDividas(
-        tipos_sem_ficha=tuple(
-            rotulo
-            for codigo, rotulo in rotulos_declarados.items()
-            if codigo in marcados and codigo not in tipos_com_ficha
-        ),
         fichas=tuple(fichas),
         ficha_vazia=next((i for i in todas if i not in cadastradas), None),
     )
@@ -328,7 +315,7 @@ def exigir_inventario_completo(
     agora: datetime | None = None,
 ) -> None:
     """RF-86 (`T-248`) — a guarda ÚNICA das duas portas do cálculo
-    (`rotas_calculo._preparar_calculo` e `acompanhamento.disparar_recalculo`),
+    (hoje só `rotas_calculo._preparar_calculo`),
     chamada ANTES de qualquer transição: o caso nunca fica em `CALCULANDO`.
     Com pendência, registra o motivo na trilha (sem valor) e levanta
     `ErroInventarioIncompleto`; sem pendência, não faz nada."""

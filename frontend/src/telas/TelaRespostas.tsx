@@ -32,7 +32,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import Botao from '../componentes/Botao'
-import { CartaoPlanoNovo, CartaoRetirarDaConferencia } from '../componentes/CartoesDoPlano'
+import { CartaoRetirarDaConferencia } from '../componentes/CartoesDoPlano'
 import Esqueleto from '../componentes/Esqueleto'
 import Tela from '../componentes/Tela'
 import { obterRespostasDoCaso } from '../services/api'
@@ -47,8 +47,6 @@ interface TelaRespostasProps {
   escolherBloco: (bloco: number) => void
   /** Abre a pergunta para correção — `RF-69`, `AC-102`. */
   editar: (idPergunta: string, itemId: string | null, bloco: number) => void
-  /** `RF-118`: o plano novo foi pedido — a casca leva à tela que o calcula. */
-  aoPedirPlanoNovo?: () => void
 }
 
 /**
@@ -299,7 +297,6 @@ export default function TelaRespostas({
   bloco,
   escolherBloco,
   editar,
-  aoPedirPlanoNovo,
 }: TelaRespostasProps) {
   const [respostas, setRespostas] = useState<RespostasDoCaso | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -389,10 +386,6 @@ export default function TelaRespostas({
             ficam só para leitura.
           </p>
         </section>
-      )}
-
-      {respostas.pode_refazer_plano && (
-        <CartaoPlanoNovo casoId={casoId} aoPedir={() => aoPedirPlanoNovo?.()} />
       )}
 
       <PainelDaParte

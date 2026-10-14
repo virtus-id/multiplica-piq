@@ -180,7 +180,6 @@ from __future__ import annotations
 import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from decimal import Decimal
 from typing import Annotated, Final
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -195,7 +194,7 @@ from app.http.isolamento import (
 )
 from app.http.rotas_coleta import _itens_por_escopo
 from app.http.serializacao_plano import rotulo_do_nivel, vocabulario_do_caso
-from app.montagem.entrada import conferir_desconto, conferir_renda_dos_vinculos, rateio_mensal
+from app.montagem.entrada import conferir_desconto
 from app.notificacao.email import (
     EnviadorDeEmail,
     obter_enviador,
@@ -219,10 +218,9 @@ from app.revisao.fila import (
 from app.revisao.homologacao import registrar_homologacao, serializar_registro
 from collection.carga import ColecaoDeRegistros, carregar_registros
 from collection.registro import EscopoRepeticao
-from collection.respostas import NAO_SEI, RespostasCaso
+from collection.respostas import RespostasCaso
 from engine.portas import RepositorioSnapshots
 from engine.snapshot import SnapshotOrdem
-from engine.tipos import DESCONHECIDO
 from persistencia.app_aluno.casos import RepositorioCasos, RepositorioCasosSupabase
 from persistencia.app_aluno.contas import RepositorioContas
 from persistencia.app_aluno.eventos import (
@@ -235,7 +233,6 @@ from persistencia.app_aluno.revisoes import RepositorioRevisoesSupabase
 from persistencia.supabase.repositorio_snapshots import RepositorioSnapshotsSupabase
 from report.plano import (
     carregar_textos_canonicos,
-    formatar_dinheiro_br,
     nomear_dividas,
     rotulo_de_codigo,
 )
@@ -381,18 +378,6 @@ def pendencias_homologacao_do_caso(
     return pendencias_de_homologacao(colecao.registros, respostas, itens_por_escopo)
 
 
-# Variáveis lidas para o contexto do revisor (`T-266`) — nomes de
-# `VARIAVEL_GRAVADA`, como em `app/montagem/entrada.py`; nenhum `ID`.
-_SEGURO_PRESTAMISTA: Final[str] = "SEGURO_PRESTAMISTA"
-_SITUACAO_SEGURO: Final[str] = "SITUACAO_SEGURO"
-_TOTAL: Final[str] = "TOTAL"
-# (base, valor, meses) de cada custo informado "no total" (`RF-82`, `RF-85`).
-_CUSTOS_COM_RATEIO: Final[tuple[tuple[str, str, str], ...]] = (
-    ("CUSTO_SEGURO (+ base MENSAL/TOTAL)", "CUSTO_SEGURO_VALOR", "CUSTO_SEGURO_MESES"),
-    ("NOVO_SEGURO", "NOVO_SEGURO_VALOR", "NOVO_SEGURO_MESES"),
-)
-
-
 def _contexto_de_conferencia(
     colecao: ColecaoDeRegistros,
     respostas: RespostasCaso,
@@ -401,11 +386,8 @@ def _contexto_de_conferencia(
     nomes: Mapping[str, str],
 ) -> dict[str, object]:
     """`T-266` — o que o revisor confere antes de decidir: a fonte de cada
-    ficha (`RF-92`), os seguros "não informado" (`AC-155`, `EC-39` — nunca
-    nível 3), as divergências de desconto (`AC-129`) e de renda dos vínculos
-    (`AC-156`), os rateios analíticos (`AC-124`) e as pendências de
-    homologação (`AC-142`). Só leitura e agregação de entrada — nada chega
-    ao motor.
+    ficha (`RF-92`), as divergências de desconto (`AC-129`) e as pendências
+    de homologação (`AC-142`). Só leitura e agregação de entrada — nada chega ao motor.
 
     `T-328` (`RF-111`): cada linha leva o `nome` da dívida (`nomes`, o mesmo
     `nomear_dividas` do plano) e, nas fontes, o `dado` pelo rótulo — o
@@ -425,37 +407,6 @@ def _contexto_de_conferencia(
         for item_id in dividas
         if conferir_desconto(respostas, item_id).divergencia_rs_pct
     ]
-    renda = conferir_renda_dos_vinculos(respostas)
-    if renda is not None and renda.divergente:
-        divergencias.append(
-            {
-                "tipo": "RENDA_VINCULOS",
-                "item_id": None,
-                "soma_liquidas": formatar_dinheiro_br(renda.SOMA_LIQUIDAS),
-                "renda_bloco_3": formatar_dinheiro_br(renda.RENDA_BLOCO_3),
-            }
-        )
-
-    rateios: list[dict[str, str]] = []
-    for item_id in dividas:
-        for base, variavel_valor, variavel_meses in _CUSTOS_COM_RATEIO:
-            if no_item(item_id, base) != _TOTAL:
-                continue
-            valor = no_item(item_id, variavel_valor)
-            meses = no_item(item_id, variavel_meses)
-            mensal = rateio_mensal(
-                valor if isinstance(valor, Decimal) else DESCONHECIDO,
-                meses if isinstance(meses, int) else None,
-            )
-            if mensal is not None:
-                rateios.append(
-                    {
-                        "item_id": item_id,
-                        "nome": nome(item_id),
-                        "variavel": variavel_valor,
-                        "valor_mensal": formatar_dinheiro_br(mensal),
-                    }
-                )
 
     return {
         "fontes": [
@@ -472,15 +423,7 @@ def _contexto_de_conferencia(
             }
             for nivel in niveis_por_ficha(colecao.registros, respostas, itens_por_escopo)
         ],
-        "seguros_nao_informados": [
-            {"item_id": item_id, "nome": nome(item_id)}
-            for item_id in dividas
-            if no_item(item_id, _SEGURO_PRESTAMISTA) == "SIM"
-            and no_item(item_id, _SITUACAO_SEGURO) in (NAO_SEI, NAO_SEI.value)
-        ],
-        "rotulo_nao_informado": textos.rotulos_de_comprovacao.get("NAO_INFORMADO"),
         "divergencias": divergencias,
-        "rateios": rateios,
         "pendencias_homologacao": [
             formatar_pendencia_homologacao(colecao, p, nomes) for p in pendencias
         ],

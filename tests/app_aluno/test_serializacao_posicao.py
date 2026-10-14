@@ -5,19 +5,16 @@ validado. Estes testes provam os dois campos que o sustentam — `posicao` e
 `total_na_ficha` — e, principalmente, **provam o denominador**, que foi onde a
 primeira implementação errou.
 
-**O defeito que estes testes existem para impedir.** `posicao_na_ficha` filtrava
-só por `escopo_repeticao`, e `DIVIDA_ID` tem 88 registros espalhados por três
-blocos: 55 no Bloco 5 (inventário de dívidas), 13 no Bloco 7 (renegociação) e 20
-no Bloco 8 (troca). O resultado era *"pergunta 4 de 37"* para quem estava
-cadastrando a primeira dívida — somando ao denominador a coleta dirigida
-pós-plano, que o aluno só vê meses depois, e só para as dívidas que o motor
-sinalizar. O critério `AC-92` foi marcado concluído sem nenhum teste, e foi
-assim que passou.
+**O defeito que estes testes existiam para impedir.** `posicao_na_ficha`
+filtrava só por `escopo_repeticao`, e `DIVIDA_ID` tinha registros espalhados por
+três blocos (5, 7 e 8): o resultado era *"pergunta 4 de 37"* para quem estava
+cadastrando a primeira dívida. Os Blocos 7 e 8 saíram em `T-390`; a função
+continua filtrando por bloco, e o que resta aqui prova o denominador sobre o
+Bloco 5.
 """
 
 from __future__ import annotations
 
-from collections import Counter
 from datetime import UTC, datetime
 from functools import cache
 
@@ -55,44 +52,11 @@ def _registros_do_escopo(
 
 # ---------------------------------------------------------------------------
 # `AC-92` — o denominador é por escopo E por bloco.
+#
+# Os testes que mediam o risco de somar blocos (`DIVIDA_ID` nos Blocos 5, 7 e
+# 8) saíram em `T-390`: sem os Blocos 7 e 8, `DIVIDA_ID` só existe no Bloco 5
+# e a premissa deixou de ser mensurável na coleção real.
 # ---------------------------------------------------------------------------
-
-
-def test_ac92_o_escopo_divida_id_atravessa_tres_blocos() -> None:
-    """A premissa do teste seguinte, medida na coleção REAL.
-
-    Se um dia os Blocos 7 e 8 deixarem de compartilhar `DIVIDA_ID` com o
-    Bloco 5, este teste falha e avisa que o risco desapareceu — em vez de
-    deixar os testes abaixo passando por vacuidade."""
-    por_bloco = Counter(r.bloco for r in _registros_do_escopo(EscopoRepeticao.DIVIDA_ID))
-
-    assert por_bloco[5] > 0, "Bloco 5 deveria ter perguntas por DIVIDA_ID"
-    assert por_bloco[7] > 0, "Bloco 7 deveria ter perguntas por DIVIDA_ID"
-    assert len(por_bloco) >= 3, (
-        f"o escopo DIVIDA_ID deveria atravessar ao menos 3 blocos, tem {dict(por_bloco)}"
-    )
-
-
-def test_ac92_o_denominador_nao_soma_blocos_diferentes() -> None:
-    """`AC-92` — o total da ficha é do BLOCO, nunca a soma dos três.
-
-    É a asserção central: o Bloco 7 é coleta dirigida pós-plano, e contar suas
-    perguntas contra quem está no inventário mentiria sobre o trabalho
-    restante."""
-    do_bloco_5 = _registros_do_escopo(EscopoRepeticao.DIVIDA_ID, bloco=5)
-    de_todos_os_blocos = _registros_do_escopo(EscopoRepeticao.DIVIDA_ID)
-
-    posicao = posicao_na_ficha(do_bloco_5[0], _colecao().registros, _sem_respostas())
-
-    assert posicao is not None
-    assert posicao.total_na_ficha <= len(do_bloco_5), (
-        f"total_na_ficha={posicao.total_na_ficha} passou das "
-        f"{len(do_bloco_5)} perguntas do Bloco 5 — está somando outro bloco"
-    )
-    assert posicao.total_na_ficha < len(de_todos_os_blocos), (
-        "total_na_ficha alcançou o total dos três blocos: o filtro por bloco "
-        "não está sendo aplicado (era o defeito de T-148)"
-    )
 
 
 def test_ac92_a_posicao_acompanha_a_ordem_das_perguntas_abertas() -> None:
@@ -111,7 +75,7 @@ def test_ac92_a_posicao_acompanha_a_ordem_das_perguntas_abertas() -> None:
     assert quarta.posicao == 4
 
 
-@pytest.mark.parametrize("indice", [0, 3, 10])
+@pytest.mark.parametrize("indice", [0, 3, 8])
 def test_ac92_o_denominador_e_o_mesmo_para_toda_a_ficha(indice: int) -> None:
     """O total não pode variar entre perguntas da MESMA ficha — senão a barra
     de progresso do `.top` andaria para trás sozinha."""

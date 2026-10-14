@@ -23,7 +23,7 @@ import { expect, type Page } from '@playwright/test'
 export interface InicioDeTeste {
   CASO_ID: string
   estado: string
-  fase: 'coleta' | 'revisao' | 'reprovado' | 'plano' | 'acompanhamento'
+  fase: 'coleta' | 'revisao' | 'reprovado' | 'plano'
   mensagem: string
   proxima_etapa: {
     destino:
@@ -33,8 +33,6 @@ export interface InicioDeTeste {
       | 'calculando'
       | 'aguardando'
       | 'progresso'
-      | 'bloco10'
-      | 'acoes'
       | 'plano'
     ID_PERGUNTA: string | null
     item_id: string | null
