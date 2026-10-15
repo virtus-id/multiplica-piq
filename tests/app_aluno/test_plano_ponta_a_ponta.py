@@ -68,9 +68,8 @@ _T02_D001: dict[str, object] = {
     "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("1.800,00"),
     "POSSUI_PARCELA_DEFINIDA": "NAO",
     "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("200,00"),
-    "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-    "TAXA_INFORMADA": converter_para_taxa("10"),
-    "PERIODICIDADE_TAXA": "MENSAL",
+    "TAXA_DIVIDA": converter_para_taxa("10"),
+    "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
     "PESO_EMOCIONAL": 5,
 }
 _T02_D002: dict[str, object] = {
@@ -80,9 +79,8 @@ _T02_D002: dict[str, object] = {
     "POSSUI_PARCELA_DEFINIDA": "SIM",
     _PARCELA_CONTRATUAL: converter_para_dinheiro("400,21"),
     "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("400,21"),
-    "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-    "TAXA_INFORMADA": converter_para_taxa("2"),
-    "PERIODICIDADE_TAXA": "MENSAL",
+    "TAXA_DIVIDA": converter_para_taxa("2"),
+    "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
     "PESO_EMOCIONAL": 5,
 }
 

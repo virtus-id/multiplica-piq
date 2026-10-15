@@ -3,13 +3,12 @@
 # (RF-03, RF-04, RF-09, AC-04, AC-36). 55 das 58 perguntas são REP por
 # DIVIDA_ID (cada dívida é uma ficha) — só B5.00, B5.00A e B5.FIM02 não são
 # repetíveis (são perguntas de caso, não de ficha de dívida).
-QUESTIONARIO_VERSION: "1.1.0"
+QUESTIONARIO_VERSION: "1.2.0"
 perguntas:
   - ID: B5.00
     bloco: 5
     enunciado: >-
-      Quantas dívidas ou operações financeiras diferentes você acredita ter
-      hoje?
+      Quantas dívidas ou operações financeiras diferentes você tem hoje?
     tipo: NUMERO
     obrigatoriedade: [OBR]
     escopo_repeticao: NENHUM
@@ -363,103 +362,28 @@ perguntas:
     salto_consequencia: "SIM/AS_VEZES → B5.C07A."
 
   # Grupo D — Custo
-  - ID: B5.D01
+  # `T-393` (RF-407): um só valor de custo da dívida, CET ou taxa de juros,
+  # sem marca de qual foi informado. Substitui `B5.D01`, `B5.D01A`, `B5.D01B`,
+  # `B5.D03` e `B5.D03A`. Valor e periodicidade na mesma resposta: o código da
+  # opção (ao mês / ao ano) vai em `PERIODICIDADE_TAXA_DIVIDA` e o percentual
+  # digitado, em `TAXA_DIVIDA` (mecanismo `abre_campo` + `variavel_do_campo`).
+  # `OBR` + `REP`: sem o valor, o cálculo não libera (`pendencias_obrigatorias`).
+  - ID: B5.D06
     bloco: 5
-    enunciado: Você sabe qual é a taxa de juros desta operação?
+    enunciado: >-
+      Qual é o Custo Efetivo Total (CET) desta operação? Se não souber, informe
+      a taxa de juros. (No seu contrato, extrato ou aplicativo do banco, esse
+      número pode aparecer escrito como CET ou como taxa de juros. Informe o
+      que encontrar e diga se é ao mês ou ao ano.)
     tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
+    obrigatoriedade: [OBR, REP]
     escopo_repeticao: DIVIDA_ID
     opcoes:
-      - {rotulo: "Sim.", valor_interno: CONFIRMADA}
-      - {rotulo: "Tenho uma taxa, mas não sei exatamente o que ela representa.", valor_interno: ESTIMADA}
-      - {rotulo: "Não.", valor_interno: DESCONHECIDA, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: QUALIDADE_TAXA_INFORMADA
-    # RF-93/DE-06 (`T-283`): "Não." fecha `B5.D01A`, mas a taxa segue
-    # indispensável — a opção "não sei" pende como AUSENTE.
+      - {rotulo: ao mês, valor_interno: MENSAL, abre_campo: TAXA, variavel_do_campo: TAXA_DIVIDA}
+      - {rotulo: ao ano, valor_interno: ANUAL, abre_campo: TAXA, variavel_do_campo: TAXA_DIVIDA}
+    VARIAVEL_GRAVADA: PERIODICIDADE_TAXA_DIVIDA
     indispensavel: true
     condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Sim/Tenho → B5.D01A e B5.D01B. Não → PRIORIDADE DE INFORMAÇÃO se
-      material; taxa de referência só em cenário estimado.
-
-  - ID: B5.D01A
-    bloco: 5
-    enunciado: Qual é a taxa informada?
-    tipo: TAXA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "____ %", valor_interno: null}
-    VARIAVEL_GRAVADA: TAXA_INFORMADA
-    indispensavel: true  # RF-93 (`T-261`, `R9-8`)
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: QUALIDADE_TAXA_INFORMADA, valor: DESCONHECIDA}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
-  - ID: B5.D01B
-    bloco: 5
-    enunciado: "Essa taxa é:"
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: ao mês, valor_interno: MENSAL}
-      - {rotulo: ao ano, valor_interno: ANUAL}
-      - {rotulo: outra periodicidade, valor_interno: OUTRA}
-      - {rotulo: não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: PERIODICIDADE_TAXA
-    # RF-93/DE-06 (`T-287`, Rodrigo, 2026-09-30): sem a periodicidade a taxa
-    # não se interpreta — "não sei" pende como AUSENTE e bloqueia a liberação.
-    indispensavel: true
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: QUALIDADE_TAXA_INFORMADA, valor: DESCONHECIDA}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B5.D03
-    bloco: 5
-    enunciado: Você possui o CET — Custo Efetivo Total — desta operação?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "Sim.", valor_interno: SIM}
-      - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: Não sei o que é., valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: POSSUI_CET
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Sim → B5.D03A. "Não sei o que é" → exibir explicação curta e tratar
-      como NAO.
-
-  - ID: B5.D03A
-    bloco: 5
-    enunciado: Qual é o CET informado?
-    tipo: TAXA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "____ %", valor_interno: null}
-      - {rotulo: "+ periodicidade: ao mês / ao ano", valor_interno: null}
-    VARIAVEL_GRAVADA: "CET (+ PERIODICIDADE_CET)"
-    condicao_exibicao: {tipo: IGUAL, variavel: POSSUI_CET, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
@@ -469,8 +393,8 @@ perguntas:
   - ID: B5.D04
     bloco: 5
     enunciado: >-
-      Além dos juros, existe alguma tarifa, encargo ou custo relevante que
-      você saiba estar sendo cobrado nessa operação?
+      Além dos juros, existe alguma tarifa, encargo ou custo sendo cobrado
+      nessa operação?
     tipo: SIM_NAO_TALVEZ
     obrigatoriedade: [REP]
     escopo_repeticao: DIVIDA_ID
@@ -488,7 +412,7 @@ perguntas:
 
   - ID: B5.D04A
     bloco: 5
-    enunciado: Quanto aproximadamente?
+    enunciado: Qual valor?
     tipo: MOEDA
     obrigatoriedade: [COND, REP]
     escopo_repeticao: DIVIDA_ID
@@ -589,22 +513,19 @@ perguntas:
 
   - ID: B5.E05
     bloco: 5
-    enunciado: >-
-      Você tem conhecimento de algum processo judicial ou cobrança judicial
-      relacionada a esta dívida?
-    tipo: SIM_NAO_TALVEZ
+    enunciado: Esta dívida tem processo ou cobrança judicial?
+    tipo: SELECAO_UNICA
     obrigatoriedade: [REP]
     escopo_repeticao: DIVIDA_ID
     opcoes:
       - {rotulo: Sim, valor_interno: SIM}
       - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: COBRANCA_JUDICIAL_INFORMADA
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: "Não inferir consequências jurídicas."
 
   # Grupo F — Garantia
@@ -700,21 +621,19 @@ perguntas:
   # Grupo G — Oportunidades
   - ID: B5.G01
     bloco: 5
-    enunciado: Existe alguma proposta atual do credor para esta dívida?
+    enunciado: O credor já fez uma proposta para esta dívida?
     tipo: SELECAO_UNICA
     obrigatoriedade: [REP]
     escopo_repeticao: DIVIDA_ID
     opcoes:
       - {rotulo: "Sim.", valor_interno: SIM}
       - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: "Recebi uma proposta, mas ela já venceu.", valor_interno: EXPIRADA}
-      - {rotulo: Não sei., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: PROPOSTA_ATUAL
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: "Gatilho B7 (detalhes coletados no Bloco 7)."
 
   # Grupo H — Dimensão humana

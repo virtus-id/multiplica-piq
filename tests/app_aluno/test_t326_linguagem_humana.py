@@ -67,6 +67,7 @@ from tests.app_aluno.fixtures.caso_completo import (
     DATA_REFERENCIA,
     caso_completo,
     caso_completo_com_divida_gab03,
+    sem_o_custo_da_divida,
 )
 
 _CHAVE_TESTE = "chave-de-teste-para-assinatura-de-sessao-nao-usar-em-producao"
@@ -154,17 +155,20 @@ def _respostas_e_estado() -> tuple[RespostasCaso, EstadoFinanceiro]:
             "TIPO_DIVIDA": "CHEQUE_ESPECIAL",
             "CREDOR": _CAIXA,
             # Fração, como `converter_para_taxa` grava: 1,47% a.m.
-            "TAXA_INFORMADA": Decimal("0.0147"),
-            "PERIODICIDADE_TAXA": "MENSAL",
+            "TAXA_DIVIDA": Decimal("0.0147"),
+            "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
         },
     )
     consignado = caso_completo(
         DIVIDA_ID="D001",
         valores_divida={"TIPO_DIVIDA": "CONSIGNADO", "CREDOR": "BANCO DO BRASIL"},
     )
-    respostas = RespostasCaso(
-        respostas=cheque.respostas.respostas
-        + tuple(r for r in consignado.respostas.respostas if r.item_id == "D001")
+    respostas = sem_o_custo_da_divida(
+        RespostasCaso(
+            respostas=cheque.respostas.respostas
+            + tuple(r for r in consignado.respostas.respostas if r.item_id == "D001")
+        ),
+        "D001",  # `T-393`: só o consignado fica sem custo — é ele que torna o plano provisório
     )
     estado = montar_estado_financeiro(
         respostas,
@@ -402,7 +406,7 @@ def test_t306_acao_ao_aluno_vem_do_yaml_por_tipo_acao(monkeypatch: pytest.Monkey
 def test_ac174_pendencias_nomeiam_a_divida(monkeypatch: pytest.MonkeyPatch) -> None:
     """O plano provisório diz QUAL dívida tem dado faltando pelo nome."""
     corpo, snapshot = _conferencia(monkeypatch)
-    assert snapshot.ORDEM_STATUS is ORDEM_STATUS.PROVISORIA  # premissa: CET desconhecido
+    assert snapshot.ORDEM_STATUS is ORDEM_STATUS.PROVISORIA  # premissa: sem o custo (B5.D06)
 
     nomes = {
         p["DIVIDA_ID"]: p["nome"]

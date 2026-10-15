@@ -408,7 +408,8 @@ def _resolver_campo(
 ) -> tuple[str, ValorResposta] | None:
     """`T-294` — a opção escolhida declara `variavel_do_campo` (ex.: `B5.B01`
     "Sim." → `VALOR_ORIGINAL`): o segundo `valor` do corpo é o R$ digitado,
-    convertido pela mesma fronteira de `MOEDA` (`RF-13`). Vazio ou inválido
+    convertido pela mesma fronteira de `MOEDA` — ou de `TAXA`, na opção com
+    `abre_campo: TAXA` (`T-393`) (`RF-13`). Vazio ou inválido
     recusa a resposta inteira (`EC-01`) — nada é gravado."""
     opcao = next(
         (o for o in registro.opcoes if o.variavel_do_campo and o.valor_interno == valor),
@@ -417,6 +418,12 @@ def _resolver_campo(
     if opcao is None or opcao.variavel_do_campo is None:
         return None
     digitado = valores_brutos[1] if len(valores_brutos) > 1 else ""
+    if opcao.abre_campo is TipoResposta.TAXA:
+        # `T-393`: percentual digitado -> fração; taxa negativa não existe (`§16.1`).
+        taxa = converter_para_taxa(digitado)
+        if taxa < 0:
+            raise ErroValorInvalido(digitado, "a taxa não pode ser negativa")
+        return opcao.variavel_do_campo, taxa
     return opcao.variavel_do_campo, converter_para_dinheiro(digitado)
 
 

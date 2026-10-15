@@ -110,7 +110,7 @@ explicacao_da_posicao:
 # O que falta para o plano deixar de ser provisório — T-177.
 #
 # O aviso de plano provisório listava o nome do campo do motor: "D001: falta
-# VALOR_QUITACAO_HOJE, CET, PARCELA_CONTRATUAL". O aluno
+# VALOR_QUITACAO_HOJE, TAXA_EFETIVA_MENSAL_NORMALIZADA, PARCELA_CONTRATUAL". O aluno
 # precisa saber o que buscar no extrato, não como o campo se chama no código.
 #
 # As chaves são os campos que `report/plano.py::_campos_desconhecidos_da_
@@ -118,8 +118,7 @@ explicacao_da_posicao:
 rotulos_de_pendencia:
   SALDO_DEVEDOR_ATUAL: "quanto você ainda deve"
   VALOR_QUITACAO_HOJE: "quanto precisaria pagar para quitar hoje"
-  TAXA_EFETIVA_MENSAL_NORMALIZADA: "a taxa de juros"
-  CET: "o custo efetivo total (CET)"
+  TAXA_EFETIVA_MENSAL_NORMALIZADA: "o CET ou a taxa de juros"
   PARCELA_CONTRATUAL: "o valor da parcela do contrato"
   PAGAMENTO_MENSAL_EFETIVO: "quanto você paga por mês"
 
@@ -556,8 +555,7 @@ reserva_explicacao: >-
 onde_achar:
   SALDO_DEVEDOR_ATUAL: "No aplicativo ou no extrato do credor, procure por \"saldo devedor\" ou \"saldo a pagar\"."
   VALOR_QUITACAO_HOJE: "No aplicativo do credor, procure a opção \"quitação antecipada\" ou \"liquidação\"."
-  TAXA_EFETIVA_MENSAL_NORMALIZADA: "No contrato ou no aplicativo do credor, procure por \"taxa de juros mensal\"."
-  CET: "No contrato, procure por \"CET\" ou \"custo efetivo total\"."
+  TAXA_EFETIVA_MENSAL_NORMALIZADA: "No contrato, extrato ou aplicativo do banco, procure por \"CET\" ou \"taxa de juros\"."
   PARCELA_CONTRATUAL: "No contrato ou no aplicativo do credor, procure o valor da parcela combinada."
   PAGAMENTO_MENSAL_EFETIVO: "No seu extrato bancário, veja quanto realmente saiu por mês para esta dívida."
 
@@ -566,8 +564,7 @@ pergunta_do_campo:
   VALOR_QUITACAO_HOJE: "B5.B05A"
   PARCELA_CONTRATUAL: "B5.C02"
   PAGAMENTO_MENSAL_EFETIVO: "B5.C06"
-  TAXA_EFETIVA_MENSAL_NORMALIZADA: "B5.D01A"
-  CET: "B5.D03A"
+  TAXA_EFETIVA_MENSAL_NORMALIZADA: "B5.D06"
 
 # Perguntas frequentes, sempre abertas no documento impresso. Só perguntas com
 # resposta FECHADA, que diz ao aluno o que fazer, sem mandar "avisar a equipe".

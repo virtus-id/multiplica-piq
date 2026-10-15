@@ -104,7 +104,9 @@ class TestAC08ReproducaoDeGab03PelaViaDaColeta:
                 VALOR_QUITACAO_HOJE=DESCONHECIDO,
                 QUITACAO_CONSULTADA=SimNaoTalvez.NAO,
                 STATUS_VALIDADE_PROPOSTA=STATUS_VALIDADE_PROPOSTA.VALIDADE_DESCONHECIDA,
-                TAXA_EFETIVA_MENSAL_NORMALIZADA=DESCONHECIDO,
+                # `T-393`: pela coleta a taxa é obrigatória (B5.D06, 2% a.m. na
+                # ficha-padrão); `GAB-03` no motor segue com ela desconhecida.
+                TAXA_EFETIVA_MENSAL_NORMALIZADA=Decimal("0.02"),
                 CET=DESCONHECIDO,
                 PARCELA_CONTRATUAL=DESCONHECIDO,
                 PAGAMENTO_MENSAL_EFETIVO=DESCONHECIDO,

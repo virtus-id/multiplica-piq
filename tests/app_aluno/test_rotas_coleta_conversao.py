@@ -210,6 +210,26 @@ _REGISTRO_SELECAO_COM_MOEDA = _registro(
         OpcaoRegistro(rotulo="Não.", valor_interno="DESCONHECIDA", admite_nao_sei=True),
     ),
 )
+# `T-393`: como `B5.D06` — "ao ano" grava o código e o percentual vai a outra variável.
+_REGISTRO_SELECAO_COM_TAXA = _registro(
+    "T393.SEL_TAXA",
+    TipoResposta.SELECAO_UNICA,
+    "PERIODICIDADE_TESTE",
+    opcoes=(
+        OpcaoRegistro(
+            rotulo="ao mês",
+            valor_interno="MENSAL",
+            abre_campo=TipoResposta.TAXA,
+            variavel_do_campo="TAXA_DO_CAMPO_TESTE",
+        ),
+        OpcaoRegistro(
+            rotulo="ao ano",
+            valor_interno="ANUAL",
+            abre_campo=TipoResposta.TAXA,
+            variavel_do_campo="TAXA_DO_CAMPO_TESTE",
+        ),
+    ),
+)
 # `T-209`: a validação cruzada normativa de `B3.S06B`/`B3.S06C` (`AC-06`).
 _MARGEM = ValidacaoCruzada(
     variavel_esquerda="VALOR_UTILIZADO_MARGEM",
@@ -239,6 +259,7 @@ _COLECAO_DE_TESTE = ColecaoDeRegistros(
         _REGISTRO_MOEDA_COM_OPCOES,
         _REGISTRO_NUMERO_COM_OPCOES,
         _REGISTRO_SELECAO_COM_MOEDA,
+        _REGISTRO_SELECAO_COM_TAXA,
         _REGISTRO_MARGEM_TOTAL,
         _REGISTRO_MARGEM_UTILIZADO,
     ),
@@ -656,6 +677,37 @@ def test_t294_opcao_com_campo_grava_codigo_e_valor(monkeypatch: pytest.MonkeyPat
     assert resposta.status_code == 200, resposta.text
     assert _valor_gravado(repositorio_respostas, "QUALIDADE_TESTE") == "CONFIRMADA"
     assert _valor_gravado(repositorio_respostas, "VALOR_DO_CAMPO_TESTE") == Decimal("1500.00")
+
+
+def test_t393_opcao_com_campo_de_taxa_grava_periodicidade_e_fracao(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`T-393`: "ao ano" + "26,82" grava `ANUAL` e a fração `0.2682`."""
+    cliente, repositorio_respostas = _montar_cliente(monkeypatch)
+
+    resposta = cliente.post(
+        f"/caso/{_CASO_ID}/resposta",
+        data={"ID_PERGUNTA": "T393.SEL_TAXA", "valor": ["ANUAL", "26,82"]},
+    )
+
+    assert resposta.status_code == 200, resposta.text
+    assert _valor_gravado(repositorio_respostas, "PERIODICIDADE_TESTE") == "ANUAL"
+    assert _valor_gravado(repositorio_respostas, "TAXA_DO_CAMPO_TESTE") == Decimal("0.2682")
+
+
+@pytest.mark.parametrize("valores", [["ANUAL"], ["ANUAL", ""], ["MENSAL", "abc"], ["MENSAL", "-5"]])
+def test_t393_taxa_vazia_invalida_ou_negativa_recusa_sem_gravar(
+    monkeypatch: pytest.MonkeyPatch, valores: list[str]
+) -> None:
+    """`T-393`, `EC-01`: sem valor válido nem a periodicidade é gravada."""
+    cliente, repositorio_respostas = _montar_cliente(monkeypatch)
+
+    resposta = cliente.post(
+        f"/caso/{_CASO_ID}/resposta", data={"ID_PERGUNTA": "T393.SEL_TAXA", "valor": valores}
+    )
+
+    assert resposta.status_code == 400
+    assert repositorio_respostas.listar_do_caso(_CASO_ID) == ()
 
 
 def test_t294_opcao_sem_campo_grava_so_o_codigo(monkeypatch: pytest.MonkeyPatch) -> None:

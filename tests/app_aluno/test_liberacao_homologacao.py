@@ -62,9 +62,8 @@ _DIVIDA_COMPLETA: dict[str, object] = {
     "SALDO_DEVEDOR_ATUAL": "5000",
     "POSSUI_PARCELA_DEFINIDA": "SIM",
     "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)": "300",
-    "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-    "TAXA_INFORMADA": "2",
-    "PERIODICIDADE_TAXA": "MENSAL",
+    "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
+    "TAXA_DIVIDA": "0.02",
     "FONTE_DADO": "DOCUMENTO_CONTRATO",
 }
 
@@ -96,7 +95,8 @@ class _Ambiente:
 
     def responder_divida(self, **mudancas: object) -> None:
         for variavel, valor in {**_DIVIDA_COMPLETA, **mudancas}.items():
-            self.responder(variavel, valor, self.divida)
+            if valor is not None:  # `None` em `mudancas`: a resposta não é dada
+                self.responder(variavel, valor, self.divida)
 
     def cliente(self, monkeypatch: pytest.MonkeyPatch) -> TestClient:
         monkeypatch.setenv("CHAVE_ASSINATURA_SESSAO", "chave-de-teste-t265-nao-usar-em-producao")
@@ -159,7 +159,6 @@ def test_ac142_ec40_indispensavel_em_nivel_3_recusa_pela_rota_e_nada_grava(
     assert {(p["item_id"], p["ID_PERGUNTA"], p["motivo"]) for p in pendencias} == {
         (ambiente.divida, "B5.B03", "PENDENTE_DE_CONFIRMACAO"),
         (ambiente.divida, "B5.C02", "PENDENTE_DE_CONFIRMACAO"),
-        (ambiente.divida, "B5.D01A", "PENDENTE_DE_CONFIRMACAO"),
     }
     _assert_nada_gravado(ambiente, eventos_antes)
 
@@ -286,63 +285,31 @@ def test_t266_contexto_do_revisor_fontes_avisos_e_pendencias(
     assert {p["ID_PERGUNTA"] for p in corpo["pendencias_homologacao"]} == {
         "B5.B03",
         "B5.C02",
-        "B5.D01A",
     }
 
 
-def test_t283_taxa_nao_sei_calculo_roda_liberacao_recusada_ate_corrigir(
+def test_t393_sem_o_custo_da_divida_o_calculo_bloqueia_e_a_liberacao_tambem(
     ambiente: _Ambiente, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """`T-283`/`DE-06`: "Não sei a taxa" não barra o cálculo, mas bloqueia a
-    liberação até a taxa ser informada."""
-    ambiente.responder_divida(QUALIDADE_TAXA_INFORMADA="DESCONHECIDA")
+    """`T-393`: `B5.D06` é `OBR` + `REP` e indispensável. Sem resposta, a
+    varredura do Bloco 6 (`pendencias_obrigatorias`) a lista, impedindo o
+    cálculo; a liberação também recusa (`AUSENTE`). Respondida, libera."""
+    ambiente.responder_divida(PERIODICIDADE_TAXA_DIVIDA=None)
     registros = carregar_registros().registros
     respostas = RespostasCaso(respostas=ambiente.respostas.listar_do_caso(_CASO))
     itens = {EscopoRepeticao.DIVIDA_ID: (ambiente.divida,)}
 
-    assert not any(
-        p.ID in {"B5.D01", "B5.D01A"} for p in pendencias_obrigatorias(registros, respostas, itens)
-    )
+    assert [
+        (p.ID, p.item_id)
+        for p in pendencias_obrigatorias(registros, respostas, itens)
+        if p.ID == "B5.D06"
+    ] == [("B5.D06", ambiente.divida)]
     status, corpo = ambiente.liberar_pela_rota(monkeypatch)
     assert status == 409
     assert [(p["ID_PERGUNTA"], p["motivo"]) for p in corpo["pendencias_homologacao"]] == [  # type: ignore[attr-defined]
-        ("B5.D01", "AUSENTE")
+        ("B5.D06", "AUSENTE")
     ]
 
-    ambiente.responder("QUALIDADE_TAXA_INFORMADA", "CONFIRMADA", ambiente.divida)
-
-    assert ambiente.liberar_pela_rota(monkeypatch)[0] == 200
-
-
-def test_t287_periodicidade_nao_sei_recusa_liberacao_ate_confirmar(
-    ambiente: _Ambiente, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """`T-287`/`DE-06` (Rodrigo, 2026-09-30): periodicidade "não sei" em
-    `B5.D01B` pende como `AUSENTE` — sem ela a taxa não se interpreta. Não
-    barra o cálculo."""
-    ambiente.responder_divida(PERIODICIDADE_TAXA="NAO_SEI")
-    registros = carregar_registros().registros
-    respostas = RespostasCaso(respostas=ambiente.respostas.listar_do_caso(_CASO))
-    itens = {EscopoRepeticao.DIVIDA_ID: (ambiente.divida,)}
-
-    assert not any(
-        p.ID == "B5.D01B" for p in pendencias_obrigatorias(registros, respostas, itens)
-    )
-    status, corpo = ambiente.liberar_pela_rota(monkeypatch)
-    assert status == 409
-    assert [(p["ID_PERGUNTA"], p["motivo"]) for p in corpo["pendencias_homologacao"]] == [  # type: ignore[attr-defined]
-        ("B5.D01B", "AUSENTE")
-    ]
-
-    ambiente.responder("PERIODICIDADE_TAXA", "MENSAL", ambiente.divida)
-
-    assert ambiente.liberar_pela_rota(monkeypatch)[0] == 200
-
-
-def test_t287_taxa_estimada_com_periodicidade_informada_libera(
-    ambiente: _Ambiente, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """`T-287`/`DE-06`: taxa `ESTIMADA` só reduz a confiança — não pende."""
-    ambiente.responder_divida(QUALIDADE_TAXA_INFORMADA="ESTIMADA")
+    ambiente.responder("PERIODICIDADE_TAXA_DIVIDA", "MENSAL", ambiente.divida)
 
     assert ambiente.liberar_pela_rota(monkeypatch)[0] == 200

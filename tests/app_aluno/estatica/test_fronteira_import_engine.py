@@ -211,6 +211,12 @@ NOMES_PERMITIDOS_DE_ENGINE: Final[frozenset[str]] = frozenset(
         # financeiras e o ciclo mensal continuam inalcançáveis de `app/`.
         "engine.comportamento.derivar_NIVEL_CONTROLE",
         "engine.comportamento.derivar_CONFIABILIDADE_DADOS",
+        # `T-393` (regra `§16.1`, `specs/motor-calculo.spec.md` §16): a
+        # montagem chama a função pura do motor que converte a taxa ao ano
+        # para ao mês. Mesmo precedente das duas derivações acima: `app/` não
+        # reimplementa a fórmula financeira (Lei nº 3), só a invoca. Nenhum
+        # outro nome de `engine.taxa` entra.
+        "engine.taxa.derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA",
         # engine.precisao — módulo inteiro
         "engine.precisao",
         "engine.precisao.dinheiro",

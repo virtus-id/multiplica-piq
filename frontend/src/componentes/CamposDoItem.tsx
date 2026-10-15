@@ -28,7 +28,14 @@ export function valorInicial(pergunta: Pergunta): string | string[] {
   if (pergunta.tipo === 'TAXA' && !Array.isArray(atual)) return formatarTaxaDoServidor(String(atual))
   // `T-294`: opção com campo R$ em outra variável reabre com os dois.
   if (pergunta.valor_do_campo != null && !Array.isArray(atual)) {
-    return [String(atual), pergunta.valor_do_campo]
+    // `T-393`: o campo `TAXA` guarda a fração; reabre como percentual.
+    const taxa = pergunta.opcoes.some(
+      (opcao) => opcao.abre_campo === 'TAXA' && opcao.valor_interno === String(atual),
+    )
+    return [
+      String(atual),
+      taxa ? formatarTaxaDoServidor(pergunta.valor_do_campo) : pergunta.valor_do_campo,
+    ]
   }
   return Array.isArray(atual) ? atual : String(atual)
 }

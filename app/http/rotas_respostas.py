@@ -55,7 +55,7 @@ from persistencia.app_aluno.casos import RepositorioCasos
 from persistencia.app_aluno.eventos import RepositorioEventosCaso, RepositorioEventosCasoSupabase
 from persistencia.app_aluno.itens import RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
-from report.plano import formatar_dinheiro_br
+from report.plano import formatar_dinheiro_br, formatar_taxa_br
 
 REGRAS: Final[tuple[str, ...]] = ("RF-68", "RF-10", "AC-100", "AC-101")
 
@@ -151,7 +151,7 @@ def _valor_do_campo(
 ) -> str | None:
     """`T-303`: opção que abre campo (`abre_campo`) — a revisão mostra o
     rótulo E o valor digitado ("Sim. — R$ 8.000,00"). `DATA` (`T-213`) grava
-    a data na própria variável; `MOEDA` (`T-294`), em `variavel_do_campo`."""
+    a data na própria variável; `MOEDA` (`T-294`) e `TAXA` (`T-393`), em `variavel_do_campo`."""
     for opcao in registro.opcoes:
         if opcao.abre_campo is TipoResposta.DATA and isinstance(valor_atual, date):
             return f"{opcao.rotulo} — {valor_atual:%d/%m/%Y}"
@@ -162,6 +162,8 @@ def _valor_do_campo(
                 else respostas.valor(opcao.variavel_do_campo)
             )
             if isinstance(digitado, Decimal):
+                if opcao.abre_campo is TipoResposta.TAXA:  # `T-393`: "ao ano — 26,82%"
+                    return f"{opcao.rotulo} — {formatar_taxa_br(digitado).removesuffix(' a.m.')}"
                 return f"{opcao.rotulo} — {formatar_dinheiro_br(digitado)}"
     return None
 

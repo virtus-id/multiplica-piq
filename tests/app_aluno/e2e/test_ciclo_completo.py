@@ -551,11 +551,16 @@ def test_ciclo_completo_us01_us04_cadastro_a_plano_liberado_ac14_ac15_ac16_ac17_
         *,
         item_id: str | None,
         cliente_http: TestClient,
+        valor_formulario: str | list[str] | None = None,
     ) -> None:
         registro = registros_por_variavel[variavel]
         dados: dict[str, str | list[str]] = {
             "ID_PERGUNTA": registro.ID,
-            "valor": _valor_para_formulario(resposta.valor),
+            "valor": (
+                valor_formulario
+                if valor_formulario is not None
+                else _valor_para_formulario(resposta.valor)
+            ),
         }
         if item_id is not None:
             dados["item_id"] = item_id
@@ -603,7 +608,20 @@ def test_ciclo_completo_us01_us04_cadastro_a_plano_liberado_ac14_ac15_ac16_ac17_
             )
 
         for variavel, resposta in respostas_da_divida.items():
-            _responder(variavel, resposta, item_id=divida_id, cliente_http=segunda_sessao)
+            if variavel == "TAXA_DIVIDA":
+                continue  # `T-393`: vai junto da periodicidade, na mesma resposta
+            composta: list[str] | None = None
+            if variavel == "PERIODICIDADE_TAXA_DIVIDA":
+                taxa = respostas_da_divida["TAXA_DIVIDA"].valor
+                assert isinstance(taxa, Decimal)
+                composta = [str(resposta.valor), f"{taxa.scaleb(2):f}"]  # fração -> "10"
+            _responder(
+                variavel,
+                resposta,
+                item_id=divida_id,
+                cliente_http=segunda_sessao,
+                valor_formulario=composta,
+            )
 
         # `T-249` (RF-88): o caso declara despesa não mensal (`B3.NM01 =
         # SIM`) — sem a ficha, o cálculo é recusado por inventário. A ficha

@@ -113,12 +113,13 @@ class OpcaoRegistro:
 
     `abre_campo` (`T-213`): a opção pede um valor digitado (ex.: "Data" de
     `B5.B05B`), gravado na `VARIAVEL_GRAVADA` da pergunta no lugar do
-    `valor_interno`. Só `DATA` e `MOEDA` — o esquema recusa qualquer outro.
+    `valor_interno`. Só `DATA`, `MOEDA` e `TAXA` (`T-393`) — o esquema recusa qualquer outro.
 
     `variavel_do_campo` (`T-294`): com ela, o valor digitado vai para ESTA
     variável, no mesmo item, e a opção grava seu `valor_interno` na
     `VARIAVEL_GRAVADA` como sempre (ex.: `B5.B01` "Sim." → `CONFIRMADA` +
-    `VALOR_ORIGINAL`). O esquema a exige com `abre_campo: MOEDA`."""
+    `VALOR_ORIGINAL`; `B5.D06` "ao ano" → `ANUAL` + `TAXA_DIVIDA`). O esquema a
+    exige com `abre_campo: MOEDA` ou `TAXA`."""
 
     rotulo: str
     valor_interno: str | None

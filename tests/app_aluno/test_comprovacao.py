@@ -87,11 +87,11 @@ def test_t261_classificacao_de_t218_segue_igual_nas_seis_opcoes() -> None:
 
 
 def test_t261_indispensaveis_sao_os_que_o_motor_le() -> None:
-    """`R9-8`: saldo, parcela, taxa (e sua periodicidade, `T-287`) e renda —
-    o motor não lê prazo."""
+    """`R9-8`: saldo, parcela, taxa (valor e periodicidade na mesma pergunta,
+    `B5.D06`, `T-393`) e renda — o motor não lê prazo."""
     indispensaveis = {r.ID for r in _registros() if r.indispensavel}
 
-    assert indispensaveis == {"B3.01", "B5.B03", "B5.C02", "B5.D01", "B5.D01A", "B5.D01B"}
+    assert indispensaveis == {"B3.01", "B5.B03", "B5.C02", "B5.D06"}
 
 
 # ---------------------------------------------------------------------------
@@ -111,9 +111,8 @@ _DIVIDA_COMPLETA: dict[str, object] = {
     "SALDO_DEVEDOR_ATUAL": "1000",
     "POSSUI_PARCELA_DEFINIDA": "SIM",
     "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)": "100",
-    "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-    "TAXA_INFORMADA": "2",
-    "PERIODICIDADE_TAXA": "MENSAL",
+    "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
+    "TAXA_DIVIDA": "0.02",
 }
 
 
@@ -200,12 +199,12 @@ def test_rf93_dados_completos_e_fonte_comprovada_nenhuma_pendencia() -> None:
 
 def test_rf93_indispensavel_em_branco_ou_nao_sei_e_ausente() -> None:
     no_item = {**_DIVIDA_COMPLETA, "SALDO_DEVEDOR_ATUAL": NAO_SEI}
-    del no_item["TAXA_INFORMADA"]
+    del no_item["PERIODICIDADE_TAXA_DIVIDA"]
 
     assert _pendencias(no_item, renda=None) == {
         ("B3.01", "AUSENTE"),
         ("B5.B03", "AUSENTE"),
-        ("B5.D01A", "AUSENTE"),
+        ("B5.D06", "AUSENTE"),
     }
 
 
@@ -215,7 +214,6 @@ def test_rf93_fonte_em_nivel_3_pende_todo_indispensavel_da_ficha() -> None:
     assert pendencias_de_homologacao(_registros(), _caso(no_item), _ITENS) == (
         PendenciaHomologacao(_D, "B5.B03", "PENDENTE_DE_CONFIRMACAO"),
         PendenciaHomologacao(_D, "B5.C02", "PENDENTE_DE_CONFIRMACAO"),
-        PendenciaHomologacao(_D, "B5.D01A", "PENDENTE_DE_CONFIRMACAO"),
     )
 
 
@@ -227,30 +225,15 @@ def test_gab03_parcela_fechada_pela_condicao_rotativo_nunca_pende() -> None:
 
 
 def test_r9_9_taxa_anual_respondida_nao_pende() -> None:
-    assert _pendencias({**_DIVIDA_COMPLETA, "PERIODICIDADE_TAXA": "ANUAL"}) == set()
+    assert _pendencias({**_DIVIDA_COMPLETA, "PERIODICIDADE_TAXA_DIVIDA": "ANUAL"}) == set()
 
 
-def test_t283_taxa_nao_sei_em_b5_d01_e_ausente() -> None:
-    """`T-283`/`DE-06`: "Não." em `B5.D01` fecha `B5.D01A`, mas a taxa segue
-    indispensável — o próprio `B5.D01` pende como `AUSENTE`."""
-    no_item = {**_DIVIDA_COMPLETA, "QUALIDADE_TAXA_INFORMADA": "DESCONHECIDA"}
-    del no_item["TAXA_INFORMADA"]
-
-    assert _pendencias(no_item) == {("B5.D01", "AUSENTE")}
-
-
-def test_t283_b5_d01_em_branco_e_ausente_e_nao_duplica_confirmacao() -> None:
-    sem_qualidade = {**_DIVIDA_COMPLETA}
-    del sem_qualidade["QUALIDADE_TAXA_INFORMADA"]
+def test_t393_b5_d06_em_branco_e_ausente_e_nao_duplica_confirmacao() -> None:
+    """`T-393`: a pergunta única de custo, em branco, pende como `AUSENTE`; em
+    nível 3 de fonte ela (seleção) não vira `PENDENTE_DE_CONFIRMACAO`."""
+    sem_custo = {**_DIVIDA_COMPLETA}
+    del sem_custo["PERIODICIDADE_TAXA_DIVIDA"]
     nivel_3 = {**_DIVIDA_COMPLETA, "FONTE_DADO": "ATENDIMENTO_CREDOR"}
 
-    assert _pendencias(sem_qualidade) == {("B5.D01", "AUSENTE")}
-    assert ("B5.D01", "PENDENTE_DE_CONFIRMACAO") not in _pendencias(nivel_3)
-
-
-def test_t287_periodicidade_nao_sei_e_ausente_e_taxa_estimada_nao_pende() -> None:
-    """`T-287`/`DE-06` (Rodrigo, 2026-09-30)."""
-    assert _pendencias({**_DIVIDA_COMPLETA, "PERIODICIDADE_TAXA": "NAO_SEI"}) == {
-        ("B5.D01B", "AUSENTE")
-    }
-    assert _pendencias({**_DIVIDA_COMPLETA, "QUALIDADE_TAXA_INFORMADA": "ESTIMADA"}) == set()
+    assert _pendencias(sem_custo) == {("B5.D06", "AUSENTE")}
+    assert ("B5.D06", "PENDENTE_DE_CONFIRMACAO") not in _pendencias(nivel_3)

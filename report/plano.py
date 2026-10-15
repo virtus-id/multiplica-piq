@@ -61,7 +61,7 @@ snapshot — nunca uma fórmula nova (mesma Lei nº 3 de T-60):
   A única fonte legítima de "o que falta", sem inventar/recalcular
   (`RF-16`), é iterar `snapshot.estado_inputs.dividas` por campo `is
   DESCONHECIDO` (`Divida.SALDO_DEVEDOR_ATUAL`, `VALOR_QUITACAO_HOJE`,
-  `TAXA_EFETIVA_MENSAL_NORMALIZADA`, `CET`, `PARCELA_CONTRATUAL`,
+  `TAXA_EFETIVA_MENSAL_NORMALIZADA`, `PARCELA_CONTRATUAL`,
   `PAGAMENTO_MENSAL_EFETIVO`) mais a leitura direta de
   `snapshot.estado_inputs.INVENTARIO_COMPLETO` (`B5.FIM02`, `AC-09`/`AC-07`)
   — `motivos_rebaixamento` (`engine/ordem.py::ResultadoConsolidacaoOrdemStatus`)
@@ -854,7 +854,6 @@ _CAMPOS_MATERIAIS_DA_DIVIDA: Final[tuple[str, ...]] = (
     "SALDO_DEVEDOR_ATUAL",
     "VALOR_QUITACAO_HOJE",
     "TAXA_EFETIVA_MENSAL_NORMALIZADA",
-    "CET",
     "PARCELA_CONTRATUAL",
     "PAGAMENTO_MENSAL_EFETIVO",
 )

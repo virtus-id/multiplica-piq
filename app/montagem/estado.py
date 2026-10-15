@@ -59,7 +59,7 @@ VALOR_GASTOS_FANTASMAS elegível à economia potencial" (`B2.10A`, canônica).
 Por isso ESTA função monta `ECONOMIA_POTENCIAL_IMEDIATA` de verdade —
 `_economia_potencial_imediata`, abaixo — em vez de recebê-la como parâmetro:
 `ACEITA_REDUCAO_GASTOS_FANTASMAS = SIM` repassa `VALOR_GASTOS_FANTASMAS`
-(identidade, mesmo padrão de `_taxa_periodicidade_mensal_ou_desconhecido`);
+(identidade, não cálculo);
 qualquer outro caso — sem gasto fantasma identificado, sem aceite, aceite
 `NAO`/`TALVEZ`, ou resposta ausente — não tem nenhum valor monetário real
 disponível para o campo (o contrato exige `Dinheiro`, não
@@ -178,30 +178,16 @@ valor neutro que não afirma nenhuma pendência não observada diretamente
 resolva a derivação real. Isso é registrado como próxima tarefa de backlog
 (ver nota em `_CAMPOS_DE_GATE_FORA_DE_ESCOPO` abaixo), não uma estimativa.
 
-**`TAXA_EFETIVA_MENSAL_NORMALIZADA` — por que só passa quando `MENSAL`.** A
-própria canônica lista `TAXA_EFETIVA_MENSAL_NORMALIZADA` entre as variáveis
-"derivadas pelo motor, nunca perguntadas" (`piq-app-spec.md`, nota de
-`B5.FIM02`). O Bloco 5 coleta a taxa informada (`TAXA_INFORMADA`, B5.D01A) MAIS
-a periodicidade declarada como pergunta SEPARADA (`PERIODICIDADE_TAXA`,
-B5.D01B) — a conversão de periodicidade (ex. taxa anual → mensal) é fórmula
-financeira (juros compostos), que esta camada não pode calcular (Lei nº 3).
-Quando a periodicidade informada já É mensal, repassar o valor é identidade,
-não cálculo, e por isso é aceito aqui; em qualquer outro caso (`ANUAL`,
-`OUTRA`, `NAO_SEI`, ou periodicidade não respondida) o valor vai para
-`DESCONHECIDO` — nunca uma conversão estimada.
-
-**`CET` — por que é sempre `DESCONHECIDO` nesta tarefa.** Diferente da taxa
-informada, `B5.D03A` grava o CET e sua periodicidade numa ÚNICA resposta
-composta (`VARIAVEL_GRAVADA: "CET (+ PERIODICIDADE_CET)"` no registro real) —
-não existe, no Bloco 5, uma segunda pergunta/variável separada de
-periodicidade do CET (diferente de `PERIODICIDADE_TAXA`, que é `B5.D01B`,
-pergunta própria). Sem uma variável de periodicidade isolada para confirmar
-"é mensal" com a mesma segurança usada para `TAXA_EFETIVA_MENSAL_
-NORMALIZADA`, ler `CET` aqui exigiria adivinhar a periodicidade da resposta
-composta — o que violaria "nenhuma estimativa silenciosa". Por isso `CET`
-é sempre `DESCONHECIDO` nesta tarefa; decompor `B5.D03A` em percentual e
-periodicidade como duas variáveis próprias é decisão de formulário
-(`T-42`/`T-43`), fora do escopo de `T-49`.
+**`TAXA_EFETIVA_MENSAL_NORMALIZADA` e `CET` (`T-393`).** O Bloco 5 coleta UM
+valor de custo por dívida (`B5.D06`: o CET ou, se o aluno não souber, a taxa de
+juros) com a periodicidade, ao mês ou ao ano, na mesma resposta
+(`TAXA_DIVIDA` + `PERIODICIDADE_TAXA_DIVIDA`). A conversão ao ano para o mês é
+fórmula financeira e vive no motor (`engine/taxa.py`, regra `§16.1`): esta
+camada só a chama, nunca a calcula (Lei nº 3). Resposta ausente, periodicidade
+fora de `MENSAL`/`ANUAL` ou taxa negativa vão para `DESCONHECIDO` — nunca uma
+conversão estimada. `CET` fica sempre `DESCONHECIDO`: não se registra qual dos
+dois foi informado. As respostas das perguntas antigas (`B5.D01*`, `B5.D03*`)
+seguem no banco e não são lidas.
 
 REGRAS: `RF-12`, `RF-14`, `RF-15`, `AC-07`, `AC-08`, `AC-18`
 """
@@ -238,6 +224,7 @@ from engine.estado import (
     RecursoExtraordinario,
     SinaisComportamentais,
 )
+from engine.taxa import derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA
 from engine.tipos import (
     CONFIABILIDADE_DADOS,
     DESCONHECIDO,
@@ -251,6 +238,7 @@ from engine.tipos import (
 )
 
 REGRAS: Final[tuple[str, ...]] = (
+    "§16.1",
     "RF-12",
     "RF-14",
     "RF-15",
@@ -505,32 +493,20 @@ def _dinheiro_estrutural_ou_desconhecido(
     return traduzido
 
 
-def _taxa_periodicidade_mensal_ou_desconhecido(
-    respostas: RespostasCaso,
-    DIVIDA_ID: str,
-    variavel_taxa: str,
-    variavel_periodicidade: str,
-) -> TaxaTalvez:
-    """`TAXA_EFETIVA_MENSAL_NORMALIZADA` — ver docstring do módulo: esta
-    camada NUNCA converte periodicidade (isso é fórmula do motor,
-    "derivada", nunca perguntada). Só repassa o valor coletado quando a
-    periodicidade declarada já é `MENSAL` (identidade, não cálculo); em
-    qualquer outro caso — periodicidade `ANUAL`/`OUTRA`/`NAO_SEI`, não
-    respondida, ou a própria taxa desconhecida/ausente — o campo vai para
-    `DESCONHECIDO`, nunca uma conversão estimada."""
-    valor_taxa = respostas.valor_no_item(DIVIDA_ID, variavel_taxa)
-    if valor_taxa is None:
+def _taxa_mensal_normalizada(respostas: RespostasCaso, DIVIDA_ID: str) -> TaxaTalvez:
+    """`TAXA_EFETIVA_MENSAL_NORMALIZADA` — `B5.D06` (`T-393`): lê o valor e a
+    periodicidade da resposta composta e chama a regra `§16.1` do motor. Esta
+    camada não converte nada. Sem os dois, ou com periodicidade fora do
+    domínio, ou taxa negativa: `DESCONHECIDO`."""
+    taxa = respostas.valor_no_item(DIVIDA_ID, "TAXA_DIVIDA")
+    periodicidade = respostas.valor_no_item(DIVIDA_ID, "PERIODICIDADE_TAXA_DIVIDA")
+    if not isinstance(taxa, Decimal) or taxa < 0:
         return DESCONHECIDO
-    valor_taxa_traduzido = _ou_desconhecido(valor_taxa)
-    if valor_taxa_traduzido is DESCONHECIDO:
-        return DESCONHECIDO
-
-    periodicidade = respostas.valor_no_item(DIVIDA_ID, variavel_periodicidade)
-    if periodicidade != "MENSAL":
-        return DESCONHECIDO
-
-    assert isinstance(valor_taxa_traduzido, Decimal)
-    return valor_taxa_traduzido
+    if periodicidade == "MENSAL":
+        return derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA(taxa, "MENSAL")
+    if periodicidade == "ANUAL":
+        return derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA(taxa, "ANUAL")
+    return DESCONHECIDO
 
 
 def _quitacao_consultada(valor: ValorResposta | None) -> SimNaoTalvez:
@@ -628,18 +604,10 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
             respostas.valor_no_item(DIVIDA_ID, "QUITACAO_CONSULTADA"),
             respostas.valor_no_item(DIVIDA_ID, "DATA_VALIDADE_PROPOSTA"),
         ),
-        TAXA_EFETIVA_MENSAL_NORMALIZADA=_taxa_periodicidade_mensal_ou_desconhecido(
-            respostas, DIVIDA_ID, "TAXA_INFORMADA", "PERIODICIDADE_TAXA"
-        ),
-        # B5.D03A grava CET e periodicidade numa ÚNICA resposta composta
-        # (VARIAVEL_GRAVADA = "CET (+ PERIODICIDADE_CET)" no registro real,
-        # sem uma segunda pergunta/variável separada de periodicidade como
-        # B5.D01B faz para TAXA_INFORMADA). Sem uma variável própria de
-        # periodicidade para confirmar "é mensal", esta camada não tem como
-        # aplicar a mesma regra de identidade sem adivinhar — por isso CET
-        # é sempre DESCONHECIDO nesta tarefa, nunca uma leitura arriscada da
-        # resposta composta. Decompor B5.D03A em percentual + periodicidade
-        # é decisão de formulário (T-42/T-43), fora do escopo de T-49.
+        # B5.D06 — valor e periodicidade na mesma resposta; a conversão ao
+        # ano é do motor (`§16.1`). O CET não é lido: não há marca de qual dos
+        # dois o aluno informou (`T-393`).
+        TAXA_EFETIVA_MENSAL_NORMALIZADA=_taxa_mensal_normalizada(respostas, DIVIDA_ID),
         CET=DESCONHECIDO,
         # B5.C02 — COND (só quando POSSUI_PARCELA_DEFINIDA = SIM): ausência
         # estrutural também admite DESCONHECIDO, mesma lógica de B5.B05A.
@@ -1559,9 +1527,8 @@ def _economia_potencial_imediata(
     """`B2.09`/`B2.10`/`B2.10A` — ver docstring do módulo. "Somente SIM
     torna `VALOR_GASTOS_FANTASMAS` elegível à economia potencial" (canônica,
     salto/consequência de `B2.10A`): quando `ACEITA_REDUCAO_GASTOS_
-    FANTASMAS = SIM`, repassa `VALOR_GASTOS_FANTASMAS` (identidade, mesmo
-    padrão de `_taxa_periodicidade_mensal_ou_desconhecido` para taxa
-    mensal) — e SÓ nesse ramo constrói `Dinheiro` a partir de uma resposta já
+    FANTASMAS = SIM`, repassa `VALOR_GASTOS_FANTASMAS` (identidade, não
+    cálculo) — e SÓ nesse ramo constrói `Dinheiro` a partir de uma resposta já
     convertida (RF-13: o valor já É `Decimal`, vindo da fronteira única). Em
     qualquer outro caso — sem gasto fantasma identificado (`GASTOS_
     FANTASMAS` ausente/`NAO`/`TALVEZ`), aceite `NAO`/`TALVEZ`/ausente, ou

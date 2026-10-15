@@ -136,9 +136,8 @@ def test_ac181_plano_entregue_e_definitivo_nao_se_pede_plano_novo(
         respostas.corrigir_no_item(
             "D001",
             {
-                "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-                "TAXA_INFORMADA": converter_para_taxa("8"),
-                "PERIODICIDADE_TAXA": "MENSAL",
+                "TAXA_DIVIDA": converter_para_taxa("8"),
+                "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
             },
         )
 
@@ -227,9 +226,8 @@ def test_ac185_plano_entregue_nao_afirma_mudanca_nem_oferece_plano_novo(
         respostas.corrigir_no_item(
             "D001",
             {
-                "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-                "TAXA_INFORMADA": converter_para_taxa("8"),
-                "PERIODICIDADE_TAXA": "MENSAL",
+                "TAXA_DIVIDA": converter_para_taxa("8"),
+                "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
             },
         )
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
@@ -336,9 +334,8 @@ def test_ac192_o_revisor_ve_o_que_mudou_desde_a_versao_anterior(
         respostas.corrigir_no_item(
             "D001",
             {
-                "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-                "TAXA_INFORMADA": converter_para_taxa("8"),
-                "PERIODICIDADE_TAXA": "MENSAL",
+                "TAXA_DIVIDA": converter_para_taxa("8"),
+                "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
             },
         )
         assert cliente.post(f"/caso/{CASO_ID}/retomar-edicao").status_code == 200

@@ -481,7 +481,12 @@ def test_t213_registro_real_marca_so_as_opcoes_de_data() -> None:
     # `T-389`: `B5.B01` (campo R$ → `VALOR_ORIGINAL`, `T-294`) e `B5.B04` saíram
     # do questionário por decisão do especialista (RF-402); `T-390`: `B7.15` e
     # `B8.14` saíram com os Blocos 7 e 8.
-    assert marcadas == {ID: [TipoResposta.DATA] for ID in _IDS_COM_OPCAO_DE_DATA}
+    # `T-393`: `B5.D06` ("ao mês" / "ao ano") abre o campo de taxa, `TAXA`.
+    esperadas: dict[str, list[TipoResposta]] = {
+        ID: [TipoResposta.DATA] for ID in _IDS_COM_OPCAO_DE_DATA
+    }
+    esperadas["B5.D06"] = [TipoResposta.TAXA, TipoResposta.TAXA]
+    assert marcadas == esperadas
 
 
 # ---------------------------------------------------------------------------
@@ -623,14 +628,15 @@ def test_t223_faixa_nao_numerica_e_recusada(tmp_path: Path) -> None:
     assert "B1.01" in _recusa(tmp_path, pergunta)
 
 
-def test_t224_questionario_na_versao_1_1_0_e_b3_c00_com_painel() -> None:
+def test_t224_questionario_na_versao_1_2_0_e_b3_c00_com_painel() -> None:
     """RF-03/AC-38 (T-224, `OQ-52`): a versão única de todos os registros é a
-    1.1.0 (`T-389`: a 1.0.3 da canônica menos as 87 perguntas retiradas, RF-402).
+    1.2.0 (1.0.3 da canônica; 1.1.0 em `T-389` com as 87 perguntas retiradas, RF-402;
+    1.2.0 na publicação do enxugamento, com as demais mudanças das tarefas T-390 a T-397).
     `B3.C00` declara o painel da fotografia do mês e é o único registro que
     o faz."""
     colecao = carregar_registros(incluir_casos_de_prova=True)
 
-    assert colecao.QUESTIONARIO_VERSION == "1.1.0"
+    assert colecao.QUESTIONARIO_VERSION == "1.2.0"
     assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00"]
     assert next(r for r in colecao.registros if r.ID == "B3.C00").painel == "FOTOGRAFIA_DO_MES"
 

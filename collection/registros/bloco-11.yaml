@@ -11,7 +11,7 @@
 # ação" nasce do próprio escopo (`collection/repeticao.py`), não de uma
 # Condicao adicional.
 
-QUESTIONARIO_VERSION: "1.1.0"
+QUESTIONARIO_VERSION: "1.2.0"
 
 perguntas:
   - ID: B11.01

@@ -1,7 +1,7 @@
 # Bloco 4 — Vínculos, margens e patrimônio. 49 perguntas, transcritas
 # caractere por caractere da §11 da canônica (specs/piq-app-spec.md, linhas
 # 1903-2614). T-17 (RF-03, RF-04, RF-09, AC-04, AC-36).
-QUESTIONARIO_VERSION: "1.1.0"
+QUESTIONARIO_VERSION: "1.2.0"
 perguntas:
   - ID: B4.01
     bloco: 4
@@ -157,7 +157,7 @@ perguntas:
 
   - ID: B4.04B
     bloco: 4
-    enunciado: Qual é aproximadamente o valor atual desse investimento?
+    enunciado: Qual o valor?
     tipo: MOEDA
     obrigatoriedade: [COND, REP]
     escopo_repeticao: NENHUM
@@ -308,21 +308,3 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: true
     salto_consequencia: "Não duplicar renda de aluguel já registrada em B3.03."
-
-  # Veículos — ficha REP
-  - ID: B4.V01
-    bloco: 4
-    enunciado: Você possui algum veículo?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [OBR]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-    VARIAVEL_GRAVADA: VEICULO_EXISTE
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "Sim → ficha REP B4.V02–V09."

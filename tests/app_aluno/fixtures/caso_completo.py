@@ -35,7 +35,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Final
 
-from app.montagem.conversao import converter_para_dinheiro
+from app.montagem.conversao import converter_para_dinheiro, converter_para_taxa
 from collection.respostas import NaoSei, Resposta, RespostasCaso
 from engine.tipos import CONFIABILIDADE_DADOS
 
@@ -218,7 +218,6 @@ _VALORES_CASO: Final[dict[str, object]] = {
     "VINCULO_CONSIGNAVEL": "NAO",  # B3.S01
     "INVESTIMENTOS_EXISTE": "NAO",  # B4.04
     "IMOVEL_EXISTE": "NAO",  # B4.I01
-    "VEICULO_EXISTE": "NAO",  # B4.V01
     "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1,  # B5.00 — NUMERO grava int
 }
 
@@ -247,6 +246,9 @@ _VALORES_DIVIDA_PADRAO: Final[dict[str, object]] = {
     "STATUS_DIVIDA": "ATIVA",
     "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("5.000,00"),
     "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("300,00"),
+    # `T-393`: B5.D06 é obrigatória (bloqueia o cálculo); 2% ao mês.
+    "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
+    "TAXA_DIVIDA": converter_para_taxa("2"),
     "PESO_EMOCIONAL": 5,
 }
 
@@ -356,4 +358,23 @@ def caso_completo_com_divida_gab03() -> CasoCompleto:
             "SALDO_DEVEDOR_ATUAL": NaoSei.NAO_SEI,
             "PAGAMENTO_MENSAL_EFETIVO": NaoSei.NAO_SEI,
         }
+    )
+
+
+def sem_o_custo_da_divida(
+    respostas: RespostasCaso, DIVIDA_ID: str | None = None
+) -> RespostasCaso:
+    """`T-393`: as respostas sem `B5.D06` (valor e periodicidade do custo) —
+    da dívida `DIVIDA_ID` ou de todas. A taxa fica `DESCONHECIDO` no estado
+    (o motor aceita; é a coleta que a exige, `OBR`), o que torna o plano
+    provisório: serve aos testes que precisam de informação pendente."""
+    return RespostasCaso(
+        respostas=tuple(
+            r
+            for r in respostas.respostas
+            if not (
+                r.ID_PERGUNTA in ("TAXA_DIVIDA", "PERIODICIDADE_TAXA_DIVIDA")
+                and (DIVIDA_ID is None or r.item_id == DIVIDA_ID)
+            )
+        )
     )

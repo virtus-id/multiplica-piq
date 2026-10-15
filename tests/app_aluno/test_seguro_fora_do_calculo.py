@@ -29,7 +29,11 @@ from report.plano import (
     montar_contexto_estado_inputs,
     montar_contexto_plano,
 )
-from tests.app_aluno.fixtures.caso_completo import DATA_REFERENCIA, caso_completo
+from tests.app_aluno.fixtures.caso_completo import (
+    DATA_REFERENCIA,
+    caso_completo,
+    sem_o_custo_da_divida,
+)
 
 _VERSAO_PARAMETROS_REAL = "1.0.1"
 # As variáveis que as perguntas removidas gravavam (ver `bloco-05.yaml` no
@@ -106,11 +110,12 @@ def test_estado_e_snapshot_sao_identicos_com_e_sem_as_respostas_do_seguro() -> N
 
 def test_plano_nao_menciona_seguro_nem_o_pede_como_pendencia() -> None:
     caso = caso_completo()
+    respostas = sem_o_custo_da_divida(caso.respostas)  # plano provisório (`T-393`)
     textos = carregar_textos_canonicos()
-    snapshot = _snapshot(_estado(caso.respostas, caso.DIVIDA_ID))
+    snapshot = _snapshot(_estado(respostas, caso.DIVIDA_ID))
     contexto = montar_contexto_plano(snapshot, textos)
     contexto_com = montar_contexto_plano(
-        _snapshot(_estado(_com_seguro(caso.respostas, caso.DIVIDA_ID), caso.DIVIDA_ID)), textos
+        _snapshot(_estado(_com_seguro(respostas, caso.DIVIDA_ID), caso.DIVIDA_ID)), textos
     )
 
     # O caso é PROVISORIA: a lista de pendências é de fato exercitada.

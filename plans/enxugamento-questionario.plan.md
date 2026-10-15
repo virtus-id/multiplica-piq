@@ -8,10 +8,10 @@ Derivado de `specs/enxugamento-questionario.spec.md`. Cada item rastreia para um
 |---|---|---|
 | 2. Fim da coleta dirigida e do acompanhamento | **Concluída.** Fluxo desligado, Blocos 7, 8 e 10 e 11 de 12 perguntas removidos, código e telas apagados. Ficou `B11.01` (dúvida) | T-387, T-388, T-390 |
 | 1. Remoção sem efeito (Blocos 1 a 5) | **Concluída em 87 de 89.** Faltam `B3.S03` e `B5.I01`, que perguntas que ficam usam | T-389 |
-| 3. Reduzir o motor | **Não iniciada.** Depende de aprovar as regras substitutas | a criar |
+| 3. Reduzir o motor | **Parcial.** Feita a pergunta única de custo da dívida (T-393) e a regra de normalização da taxa no motor. As 24 perguntas do motor seguem à espera da aprovação das regras substitutas | T-393 (feita), T-392 (pendente) |
 | 4. Ligar ao motor | **Não iniciada.** Depende das regras do especialista | a criar |
 
-Questionário: 267 perguntas, depois 180 (T-389), depois 125 (T-390). Versão `1.1.0`.
+Questionário: 267 perguntas, depois 180 (T-389), 125 (T-390), 118 (T-391), 117 (T-396) e **113** com a pergunta única de custo da dívida (T-393). Versão **`1.2.0`**.
 
 ## 1. Estratégia
 
@@ -142,7 +142,7 @@ Sem mudança: Python 3 com FastAPI, Postgres no Supabase, React com Vite no fron
 
 ## 11. Data Model
 
-Registros YAML em `collection/registros/` (versão `1.1.0`, 118 perguntas após a T-391). Respostas em `app_aluno.respostas` seguem a chave `(caso, variável, item)`; as de perguntas removidas ficam órfãs. A coluna `casos.estado` é texto sem restrição, por isso os três estados removidos do fluxo continuam no enum.
+Registros YAML em `collection/registros/` (versão `1.2.0`, 113 perguntas após a T-393). Respostas em `app_aluno.respostas` seguem a chave `(caso, variável, item)`; as de perguntas removidas ficam órfãs. A coluna `casos.estado` é texto sem restrição, por isso os três estados removidos do fluxo continuam no enum.
 
 ## 12. Data Flow
 

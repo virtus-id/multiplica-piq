@@ -11,7 +11,7 @@
 
 ## Progresso
 
-`5/9 tarefas concluídas`
+`8/11 tarefas concluídas`
 
 ### `T-387` — Plano entregue é definitivo: desligar acompanhamento e "refazer plano" (backend)
 
@@ -91,15 +91,24 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 ### `T-393` — Pergunta única de custo da dívida (CET ou taxa)
 
 - **Tipo:** `FEATURE` · **Dependências:** `T-389` · **Rastreia:** `RF-407`
-- [ ] Uma pergunta obrigatória, sem "não sei", com valor e periodicidade, e texto de ajuda dizendo que o número pode aparecer como CET ou taxa; substitui `B5.D01`, `B5.D01A`, `B5.D01B`, `B5.D03` e `B5.D03A`
-- [ ] A montagem lê a resposta composta, o motor converte ao mês, e dívida sem o valor bloqueia o cálculo
+- **Aprovada pelo responsável do produto em 2026-10-14.**
+- [x] **Spec primeiro.** Acrescentar à `specs/motor-calculo.spec.md` uma seção de definições incorporadas (no mesmo padrão das rodadas 2 e 3) com a regra de normalização da taxa: dado um valor e a periodicidade (`MENSAL` ou `ANUAL`), a taxa efetiva mensal é o próprio valor, ou `(1 + anual)^(1/12) - 1`. Escolher o ID normativo seguindo o padrão do projeto e registrar critérios de aceite. Não criar `RF-NN` novo sem a tarefa correspondente em `tasks/motor-calculo.tasks.md` (o CI exige)
+- [x] **Motor:** função pura nova em `engine/` que aplica essa regra com precisão decimal integral (`engine/precisao.py`), sem parâmetro `P_*` e sem mudar o contrato `Divida` (a montagem a chama, como já faz com `derivar_NIVEL_CONTROLE`; `engine/` não importa de `app/`)
+- [x] **Registro:** remover `B5.D01`, `B5.D01A`, `B5.D01B`, `B5.D03` e `B5.D03A` e criar uma pergunta nova (ID novo, nunca reaproveitado), obrigatória, sem "não sei", `escopo_repeticao: DIVIDA_ID`, `indispensavel: true`, tipo de campo com valor e periodicidade (ao mês ou ao ano, só essas duas) na mesma resposta. Enunciado: "Qual é o Custo Efetivo Total (CET) desta operação? Se não souber, informe a taxa de juros." Ajuda na tela: "No seu contrato, extrato ou aplicativo do banco, esse número pode aparecer escrito como CET ou como taxa de juros. Informe o que encontrar e diga se é ao mês ou ao ano." (se o esquema não tiver campo de ajuda, no enunciado entre parênteses, como em `B3.NM01`)
+- [x] **Montagem:** `montar_divida` lê a resposta composta e preenche `TAXA_EFETIVA_MENSAL_NORMALIZADA` chamando a função do motor; o `CET` do estado segue `DESCONHECIDO` (não há marca de qual foi informado)
+- [x] **Bloqueio:** dívida sem o valor impede o cálculo (a pergunta é obrigatória; confirmar que o bloqueio do Bloco 6 a enxerga)
+- [x] **PDF e tela:** como `CET` passa a ser sempre desconhecido, retirá-lo da lista de informações pendentes (`report/plano.py`, textos canônicos), como foi feito com o seguro na `T-391`; os textos que explicam onde achar a taxa dizem "CET ou taxa de juros"
+- [x] Testes: normalização (mensal passa direto; `26,82% a.a.` dá `2% a.m.`, precisão integral), montagem, bloqueio, ranking de juros com taxa vinda de CET anual, e plano sem a linha de CET como pendência; `GAB-A/B/C` e `GAB-01` a `GAB-05` seguem passando; respostas antigas (`B5.D01*`) não quebram a leitura
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída` — 2026-10-14
+
+**Notas da execução:** regra `§16.1` na spec do motor (seção 16, Rodada 6): ID pela seção, porque os IDs `LETRA-NN` são a lista fechada da canônica e `tests/estatica/test_toda_regra_citada.py` recusa qualquer outro. Função `engine/taxa.py::derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA` (módulo novo; nenhuma regra existente tocada). Pergunta nova `B5.D06` (`OBR` + `REP`, `indispensavel`, sem "não sei"): `SELECAO_UNICA` "ao mês / ao ano" com `abre_campo: TAXA`, que grava o código em `PERIODICIDADE_TAXA_DIVIDA` e o percentual (fração) em `TAXA_DIVIDA`; o mecanismo `variavel_do_campo` da `T-294` foi estendido de `MOEDA` para `TAXA` (esquema, rota de coleta, revisão de respostas e frontend). Registros 117 → 113. Bloqueio: `B5.D06` é `OBR`, então `pendencias_obrigatorias` a lista e o Bloco 6 recusa. Respostas antigas ficam no banco e não são lidas (variáveis novas). `CET` retirado das pendências do PDF (a tela do revisor segue mostrando `CET` como "Não informado"). Allowlist de `app/` e hash congelado de `engine/taxa.py` acrescentados (só entrada nova).
 
 ### `T-394` — Perguntas de valor pedem o valor exato
 
 - **Tipo:** `CHANGE` · **Dependências:** `T-389` · **Rastreia:** `RF-408`
 - [ ] Reescrever as perguntas que ficam e pedem valor, conforme a tabela da spec (seção 6); verificar o impacto nos testes que comparam textos com a spec canônica
+- [x] Aplicar as sugestões de texto já aprovadas (os quatro itens abaixo feitos; as demais perguntas de valor exato seguem pendentes): `B5.D04` ("Além dos juros, existe alguma tarifa, encargo ou custo sendo cobrado nessa operação?"), `B5.D04A` ("Qual valor?"), `B5.00` ("Quantas dívidas ou operações financeiras diferentes você tem hoje?") e `B4.04B` ("Qual o valor?"). `B3.NM01` entra na T-397
 
 **Status:** `[ ] pendente`
 
@@ -110,3 +119,21 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [ ] Pedidos novos: campo de resultado mensal e textos de orientação ao aluno
 
 **Status:** `[ ] pendente`
+
+### `T-396` — Remover a pergunta de veículo (`B4.V01`)
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-389` · **Rastreia:** `RF-402`
+- [x] Remover `B4.V01` de `collection/registros/bloco-04.yaml` (decisão do responsável do produto em 2026-10-14; todas as perguntas de detalhe do veículo já saíram na T-389), ajustar a contagem de registros nos testes e conferir que nenhuma pergunta que fica depende dela
+- [x] Teste de regressão: estado do motor e snapshot idênticos com e sem a resposta
+
+**Status:** `[x] concluída` — 2026-10-14
+
+### `T-397` — Perguntas de existência: Sim ou Não direto, sem "Não sei"
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-389` · **Rastreia:** `RF-411`
+- [x] `B5.E05`: texto "Esta dívida tem processo ou cobrança judicial?", só Sim e Não
+- [x] `B5.G01`: texto "O credor já fez uma proposta para esta dívida?", só Sim e Não (sai a opção "Recebi uma proposta, mas ela já venceu")
+- [x] `B3.NM01`: texto "Você tem Despesas Extraordinárias já previstas?", só Sim e Não, com a ajuda "São despesas que não acontecem todo mês." (se o registro não tiver campo de ajuda, a ajuda vai no próprio enunciado)
+- [x] Ajustar o código que tratava "Não sei" nessas três (montagem, telas, conferências) e os testes, sem mudar o motor; `B5.F04` e a extensão a outras perguntas ficam fora desta tarefa
+
+**Status:** `[x] concluída` — 2026-10-14

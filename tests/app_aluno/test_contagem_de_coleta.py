@@ -24,7 +24,7 @@ Este módulo cobre três frentes:
    vista pela retomada e não pela pendência bloqueante.
 
 > A contagem total da coleção tem uma âncora só, no fim deste módulo
-> (`test_a_colecao_real_tem_118_registros`); nenhuma outra asserção a repete.
+> (`test_a_colecao_real_tem_113_registros`); nenhuma outra asserção a repete.
 
 REGRAS: `RF-31`, `RF-62`, `AC-01`, `AC-11`, `AC-90`
 """
@@ -516,9 +516,9 @@ def test_rf62_contagem_e_retomada_nunca_divergem_sobre_os_registros_reais() -> N
     assert proxima_pergunta_nao_respondida((registro_respondido,), respostas) is None
 
 
-def test_a_colecao_real_tem_118_registros() -> None:
+def test_a_colecao_real_tem_113_registros() -> None:
     """Âncora explícita contra a contagem envelhecida: a coleção de COLETA
-    tem **118** registros.
+    tem **113** registros.
 
     Foram 247 até `T-172`, quando os três casos de prova do gerador
     (`B12.08`, `B12.15`, `B12.16`) saíram da coleção que a aplicação
@@ -542,8 +542,10 @@ def test_a_colecao_real_tem_118_registros() -> None:
     prognóstico (`T-371`). `T-389` (RF-402): `-87`, as perguntas retiradas por
     decisão do especialista (267 → 180). `T-390` (RF-401): `-55`, os Blocos 7, 8
     e 10 inteiros e 11 das 12 perguntas do Bloco 11 (180 → 125). `T-391` (RF-410): `-7`,
-    o seguro da dívida (125 → 118)."""
-    assert len(_registros_reais()) == 118
+    o seguro da dívida (125 → 118). `T-396` (RF-402): `-1`, a pergunta de veículo
+    `B4.V01` (118 → 117). `T-393` (RF-407): `-4`, cinco perguntas de taxa e CET
+    (`B5.D01`, `B5.D01A`, `B5.D01B`, `B5.D03`, `B5.D03A`) viram uma, `B5.D06` (117 → 113)."""
+    assert len(_registros_reais()) == 113
 
 
 def test_os_casos_de_prova_do_gerador_ficam_fora_da_coleta() -> None:

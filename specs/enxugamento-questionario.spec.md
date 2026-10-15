@@ -326,13 +326,13 @@ O aluno informa **um só valor** por dívida: o **CET** (preferência) ou, se n�
 - **Periodicidade continua obrigatória** porque "2" pode ser 2% ao mês ou ao ano. Ela faz parte da mesma resposta (campo de taxa com unidade), não é pergunta separada.
 - **Consequências de engenharia, a validar:**
   1. Hoje a montagem lê a taxa e a periodicidade como respostas separadas, só aceita a taxa quando a periodicidade é mensal e **ignora o CET** (fixo como desconhecido). Passa a ler uma resposta composta (valor e unidade), com o formato definido no registro da pergunta.
-  2. A conversão do ano para o mês é fórmula financeira e pertence ao motor, não à montagem (Lei nº 3). O motor passa a receber valor e periodicidade.
+  2. A conversão do ano para o mês é fórmula financeira e pertence ao motor, não à montagem (Lei nº 3). **Hoje o motor não tem essa conversão** (recebe a taxa mensal pronta): será criada uma função pura nova no motor, com regra na spec do motor, e a montagem a chama (T-393, aprovada em 2026-10-14).
   3. Dívida sem esse valor bloqueia o cálculo, como o inventário incompleto (regra do inventário incompleto do app-aluno).
   4. O ranking por juros continua usando a taxa efetiva mensal. O CET como segunda opção (regra de fallback do motor-calculo) deixa de existir como campo à parte.
 - **Risco aceito pelo responsável do produto (OQ-12, respondida):** CET e taxa de juros não são a mesma medida (o CET inclui tarifas e seguros). O ranking passa a comparar o CET de umas dívidas com a taxa de outras, sem marcação de qual foi informado.
 
 ### RF-407 (complemento). Nomes no sistema
-No sistema, a taxa é `B5.D01A` (valor) com `B5.D01B` (periodicidade), e o CET é `B5.D03A`, que já grava valor e periodicidade na mesma resposta. Nos documentos da spec canônica os nomes podem diferir. A pergunta única coleta **um valor com a periodicidade** (ao mês ou ao ano), seja CET ou taxa.
+Implementado na T-393: a pergunta única é `B5.D06`, que grava o percentual em `TAXA_DIVIDA` e a periodicidade (`MENSAL` ou `ANUAL`) em `PERIODICIDADE_TAXA_DIVIDA`. Ela substitui `B5.D01`, `B5.D01A`, `B5.D01B`, `B5.D03` e `B5.D03A`. Nos documentos da spec canônica os nomes antigos continuam sendo os de origem. A pergunta única coleta **um valor com a periodicidade** (ao mês ou ao ano), seja CET ou taxa.
 
 ### RF-408. Perguntas de valor devem pedir o valor exato (decisão de 2026-10-14)
 Regra: "por se tratar de programa de cálculo, o motor precisa dos valores exatos; nada subjetivo". Pergunta que pede valor não pode usar "aproximadamente", "estima", "em média" ou "acredita". Deve pedir o número exato e dizer **onde ele está** (contracheque, extrato, fatura, contrato).
@@ -358,6 +358,11 @@ No registro há 66 perguntas com linguagem aproximada ou subjetiva; 41 saem pela
 | B5.D04A | "Quanto **aproximadamente**?" | "Qual é o valor mensal exato dessas tarifas e encargos?" |
 | B3.02A | "…qual foi **aproximadamente** a sua renda líquida média mensal?" | Em suspenso: depende de `B3.02` (tipo de renda) ter saído |
 
+**Textos sugeridos pelo especialista nas observações (não são dúvidas).** Duas das observações que ele deixou em perguntas marcadas como dúvida eram sugestões de redação mais clara:
+- `B3.NM01`: de "Você tem despesas previsíveis que não acontecem todos os meses, mas que sabe que precisará pagar ao longo do ano?" para "Despesas Extraordinárias já previstas por mês." A pergunta é respondida com Sim, Não ou Não sei, então o texto precisa continuar sendo uma pergunta. Proposta que mantém as palavras dele: "Você tem Despesas Extraordinárias já previstas?", com a ajuda "São despesas que não acontecem todo mês." (a confirmar no formulário da segunda rodada). Com isso `B3.NM01` **sai da lista de dúvidas**.
+- `B5.D05A` ("Valor?") e `B5.D05S` ("Não entendi") eram avisos de texto confuso, e as duas perguntas já saíram junto com o seguro (RF-410).
+O mesmo estilo curto e direto aparece em outras observações dele: `B4.04B` ("Qual o valor?", confirmado), `B5.D04A` ("Qual valor?") e `B5.00` ("…você **tem** hoje?"). Entram na tarefa T-394.
+
 **Limite a registrar (OQ-11).** Mudar o texto não garante exatidão: o aluno pode inventar um número para seguir. O que protege o cálculo é (a) pedir a **fonte** do valor, (b) validações cruzadas (por exemplo, parcela maior que o saldo, como a `D008` do Guilherme) e (c) a opção "não sei", que hoje deixa o campo como desconhecido e o plano provisório, em vez de inventar um valor (`GAB-03`). Decidir quais perguntas **não** admitem "não sei" além da taxa/CET (RF-407): hoje 12 das 16 admitem.
 
 ### RF-410. Seguro da dívida sai do questionário e deixa de ser considerado (decisão de 2026-10-14)
@@ -377,7 +382,21 @@ Decisão do responsável do produto: "o seguro da dívida não precisamos consid
 | OQ-6 (parte) | `B4.04` **fica**; `B4.04B` passa a se chamar **"Qual o valor?"** | Resolve 3 dos 8 conflitos (`B4.04B`, `B4.05`, `B4.06`) |
 | OQ-1 | Sem acompanhamento: plano único | `B11.01` ("só faz sentido se formos acompanhar o plano") deixa de ter razão de existir; está em dúvida e **não foi alterada**. Confirmar com o especialista |
 | OQ-12 | CET ou taxa em um só valor, sem marca de qual foi informado | Ver RF-407 |
-| OQ-9 | Das 14 dúvidas, as 7 de **seguro da dívida** foram decididas (RF-410: saem). As outras 7 seguem como estão até o responsável confirmar com o especialista | 7 restantes: `B3.NM01`, `B5.E05`, `B5.F04`, `B5.G01`, `B4.I01`, `B4.V01`, `B11.01` |
+| OQ-9 | Das 14 dúvidas, as 7 de **seguro da dívida** foram decididas (RF-410: saem). As outras 7 seguem como estão até o responsável confirmar com o especialista | 6 restantes: `B5.E05`, `B5.F04`, `B5.G01`, `B4.I01`, `B4.V01`, `B11.01` (`B3.NM01` era sugestão de texto, não dúvida) |
+
+### Decisões do responsável do produto no primeiro formulário (2026-10-14)
+Lidas do banco do formulário de revisão, onde o responsável do produto alterou 8 registros:
+- `B4.V01` (veículo): dúvida → **sai**. A recomendação de aula que o especialista queria junto da pergunta fica sem lugar para aparecer; a tarefa T-396 remove a pergunta.
+- `B5.D05`, `B5.D05A`, `B5.D05B`, `B5.D05S` e `B5.D05V` (seguro): dúvida → sai, de acordo com RF-410.
+- `B5.D05P` e `B5.D05R` (seguro): dúvida → **fica**. Isso contradiz RF-410, que tira as 7 perguntas de seguro, e as duas já saíram do questionário (T-391). Registro tratado como engano até confirmação.
+
+**Dúvidas que seguem abertas (3):** `B5.F04` (proposta: sai, por ser subjetiva), `B4.I01` (imóvel, o especialista quer um texto de orientação) e `B11.01` (tudo indica sair, pela condição que ele mesmo escreveu). `B5.E05`, `B5.G01` e `B3.NM01` deixaram de ser dúvida com a regra RF-411.
+
+### RF-411. Pergunta de existência: Sim ou Não direto, sem "Não sei" (decisão de 2026-10-14)
+O responsável do produto explicou que as dúvidas do especialista vinham de a pergunta estar subjetiva. Regra: pergunta que apenas diz se a coisa existe ("tem" ou "não tem") tem **duas respostas, Sim e Não**. Não existem "Não sei", "Talvez" nem "Recebi, mas já venceu".
+- **Aplica já** (as dúvidas que dependem disso): `B5.E05` ("Esta dívida tem processo ou cobrança judicial?"), `B5.G01` ("O credor já fez uma proposta para esta dívida?") e `B3.NM01` ("Você tem Despesas Extraordinárias já previstas?", com a ajuda "São despesas que não acontecem todo mês"). As três ficam como pergunta, e com isso deixam de ser dúvida. `B4.I01` já é Sim ou Não; sua dúvida era o texto de orientação.
+- **`B5.F04`** (consequência do não pagamento) é uma lista de consequências e não tem como virar Sim ou Não sem perder o sentido. Proposta: sai (decisão do especialista).
+- **Extensão pendente (OQ-11):** hoje 64 das 118 perguntas aceitam "Não sei", e 13 são do tipo Sim, Não ou Talvez (`B3.03`, `B3.04`, `B3.D11`, `B3.NM02D`, `B4.I04`, `B4.I05`, `B5.C01`, `B5.C05`, `B5.D04`, `B5.E03`, `B5.F01`, `B5.H04`). Estender a regra a elas muda como o motor trata a resposta desconhecida (hoje vira `DESCONHECIDO`, sem estimar) e fica para uma segunda tarefa, depois da confirmação.
 
 ### Conflitos pai e filha ainda abertos
 - `B3.02` (sai) e `B3.02A` (liga): sem o tipo de renda, a renda variável nunca aparece.

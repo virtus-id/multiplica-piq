@@ -16,7 +16,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.montagem.conversao import converter_para_dinheiro
+from app.montagem.conversao import converter_para_dinheiro, converter_para_taxa
 from app.montagem.estado import ErroRespostaAusente, montar_divida
 from collection.carga import carregar_registros
 from collection.respostas import NAO_SEI, Resposta, RespostasCaso
@@ -261,6 +261,12 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_5() -> None:
         registro.VARIAVEL_GRAVADA
         for registro in colecao.registros
         if registro.bloco == 5 and registro.VARIAVEL_GRAVADA is not None
+    } | {  # `T-393`: o valor da taxa vai a `variavel_do_campo` da opção de B5.D06
+        opcao.variavel_do_campo
+        for registro in colecao.registros
+        if registro.bloco == 5
+        for opcao in registro.opcoes
+        if opcao.variavel_do_campo is not None
     }
 
     variaveis_usadas_por_montar_divida = {
@@ -274,8 +280,8 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_5() -> None:
         "PAGAMENTO_MENSAL_EFETIVO",
         "PAGAMENTO_MENSAL_EFETIVO (média 3 meses)",
         "PESO_EMOCIONAL",
-        "TAXA_INFORMADA",
-        "PERIODICIDADE_TAXA",
+        "TAXA_DIVIDA",
+        "PERIODICIDADE_TAXA_DIVIDA",
     }
     ausentes = variaveis_usadas_por_montar_divida - variaveis_do_bloco_5
     assert not ausentes, (
@@ -295,30 +301,67 @@ def test_quitacao_consultada_expirou_produz_sim_e_status_expirada() -> None:
     assert divida.STATUS_VALIDADE_PROPOSTA is STATUS_VALIDADE_PROPOSTA.EXPIRADA
 
 
-def test_taxa_so_passa_quando_periodicidade_e_mensal() -> None:
+def test_taxa_mensal_passa_direto() -> None:
+    """`T-393`, `§16.1-C1`: `B5.D06` ao mês é identidade."""
     respostas = _ficha_minima_completa(
-        "D008",
-        TAXA_INFORMADA=converter_para_dinheiro("4,5"),
-        PERIODICIDADE_TAXA="MENSAL",
+        "D008", TAXA_DIVIDA=converter_para_taxa("2"), PERIODICIDADE_TAXA_DIVIDA="MENSAL"
     )
 
-    divida = montar_divida(respostas, "D008")
-
-    assert divida.TAXA_EFETIVA_MENSAL_NORMALIZADA == Decimal("4.5")
+    assert montar_divida(respostas, "D008").TAXA_EFETIVA_MENSAL_NORMALIZADA == Decimal("0.02")
 
 
-def test_taxa_anual_nao_e_convertida_vira_desconhecido() -> None:
-    """A app nunca calcula a conversão de periodicidade (Lei nº 3) — taxa
-    anual permanece DESCONHECIDO em vez de uma conversão estimada."""
+def test_taxa_anual_vira_mensal_pelo_motor() -> None:
+    """`T-393`, `§16.1-C2`: 26,8241794562545318301696% a.a. dá 2% a.m."""
     respostas = _ficha_minima_completa(
         "D009",
-        TAXA_INFORMADA=converter_para_dinheiro("48"),
-        PERIODICIDADE_TAXA="ANUAL",
+        TAXA_DIVIDA=Decimal("0.268241794562545318301696"),
+        PERIODICIDADE_TAXA_DIVIDA="ANUAL",
     )
 
-    divida = montar_divida(respostas, "D009")
+    assert montar_divida(respostas, "D009").TAXA_EFETIVA_MENSAL_NORMALIZADA == Decimal("0.02")
 
+
+def test_cet_e_taxa_se_tratam_igual() -> None:
+    """`T-393`: o mesmo valor e periodicidade dão o mesmo estado; não há marca
+    de qual foi informado, e `CET` fica `DESCONHECIDO`."""
+    a = montar_divida(
+        _ficha_minima_completa(
+            "D011", TAXA_DIVIDA=Decimal("0.5"), PERIODICIDADE_TAXA_DIVIDA="ANUAL"
+        ),
+        "D011",
+    )
+    b = montar_divida(
+        _ficha_minima_completa(
+            "D012", TAXA_DIVIDA=Decimal("0.5"), PERIODICIDADE_TAXA_DIVIDA="ANUAL"
+        ),
+        "D012",
+    )
+    assert a.TAXA_EFETIVA_MENSAL_NORMALIZADA == b.TAXA_EFETIVA_MENSAL_NORMALIZADA
+    assert a.CET is DESCONHECIDO and b.CET is DESCONHECIDO
+
+
+def test_sem_taxa_ou_periodicidade_fora_do_dominio_e_desconhecido() -> None:
+    sem = montar_divida(_ficha_minima_completa("D013"), "D013")
+    assert sem.TAXA_EFETIVA_MENSAL_NORMALIZADA is DESCONHECIDO
+    respostas = _ficha_minima_completa(
+        "D014", TAXA_DIVIDA=Decimal("0.02"), PERIODICIDADE_TAXA_DIVIDA="OUTRA"
+    )
+    assert montar_divida(respostas, "D014").TAXA_EFETIVA_MENSAL_NORMALIZADA is DESCONHECIDO
+
+
+def test_respostas_antigas_de_taxa_e_cet_nao_quebram_nem_sao_lidas() -> None:
+    """`T-393`: `B5.D01*` e `B5.D03*` seguem no banco; a montagem as ignora."""
+    respostas = _ficha_minima_completa(
+        "D015",
+        QUALIDADE_TAXA_INFORMADA="CONFIRMADA",
+        TAXA_INFORMADA=Decimal("0.04"),
+        PERIODICIDADE_TAXA="MENSAL",
+        POSSUI_CET="SIM",
+        **{_VARIAVEL_CET_COMPOSTA: Decimal("0.03")},
+    )
+    divida = montar_divida(respostas, "D015")
     assert divida.TAXA_EFETIVA_MENSAL_NORMALIZADA is DESCONHECIDO
+    assert divida.CET is DESCONHECIDO
 
 
 def test_cet_e_sempre_desconhecido_nesta_tarefa() -> None:

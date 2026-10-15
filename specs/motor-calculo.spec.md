@@ -5,7 +5,7 @@
 | Slug     | `motor-calculo`                                             |
 | Status   | `em revisão`                                                |
 | Autor    | virtushold@gmail.com                                        |
-| Data     | 2026-09-30 (Rodada 5 — projeção de recursos extraordinários, `DE-02`, canônica v1.0.2 — **mudança de motor**, ver §15) · 2026-09-10 (Rodada 4, fatia 4C — ligação de `NECESSIDADE_FINANCEIRA_IMEDIATA_ELEGIVEL` (fatia 4B) e da classificação de ativos/investimentos (fatia 4A) em `calcular_diagnostico`, fazendo `ATAQUE_IMEDIATO_RECOMENDADO` sair do placeholder `dinheiro(0)` — **última fatia do documento do especialista**, fecha `OQ-29` por completo · fatia 4B (necessidade financeira imediata, `RF-61`–`RF-65`) concluída e verificada 2026-09-09 · fatia 4A (classificação de investimentos/ativos e valor líquido realizável, `RF-53`–`RF-60`) concluída e verificada 2026-09-09 · Rodada 3 em 2026-09-07 · Rodada 2 em 2026-09-04 · backlog original 78/78 concluído em 2026-09-01/02) |
+| Data     | 2026-10-14 (Rodada 6 — normalização da taxa da dívida, ver §16) · 2026-09-30 (Rodada 5 — projeção de recursos extraordinários, `DE-02`, canônica v1.0.2 — **mudança de motor**, ver §15) · 2026-09-10 (Rodada 4, fatia 4C — ligação de `NECESSIDADE_FINANCEIRA_IMEDIATA_ELEGIVEL` (fatia 4B) e da classificação de ativos/investimentos (fatia 4A) em `calcular_diagnostico`, fazendo `ATAQUE_IMEDIATO_RECOMENDADO` sair do placeholder `dinheiro(0)` — **última fatia do documento do especialista**, fecha `OQ-29` por completo · fatia 4B (necessidade financeira imediata, `RF-61`–`RF-65`) concluída e verificada 2026-09-09 · fatia 4A (classificação de investimentos/ativos e valor líquido realizável, `RF-53`–`RF-60`) concluída e verificada 2026-09-09 · Rodada 3 em 2026-09-07 · Rodada 2 em 2026-09-04 · backlog original 78/78 concluído em 2026-09-01/02) |
 | Fonte    | [`specs/piq-app-spec.md`](piq-app-spec.md) — Matriz Canônica v1.0.1 |
 | Fonte    | [`specs/piq-definicoes-engine.md`](piq-definicoes-engine.md) — Fechamento das Definições Remanescentes da Engine |
 | Fonte    | Devolutiva do especialista de 2026-09-01 — fecha `OQ-01` a `OQ-08` |
@@ -14,6 +14,7 @@
 | Fonte    | Documento canônico *"PIQ v1.0.1 — Definição Canônica de `RESERVA_MOBILIZAVEL` e `ATAQUE_IMEDIATO_RECOMENDADO`"*, entregue em 2026-09-07 — transcrito na íntegra em §13 (Rodada 3) |
 | Fonte    | Documento canônico *"PIQ v1.0.1 — Fechamento Canônico — Necessidade Financeira Imediata e Classificação de Ativos"*, entregue em 2026-09-09 — transcrito na íntegra em §14 (Rodada 4) |
 | Fonte    | Decisão do especialista de 2026-09-30 — [`docs/decisoes-especialista/README.md`](../docs/decisoes-especialista/README.md) `DE-02` (confirmada), incorporada como **v1.0.2** da canônica (`piq-app-spec.md`, Registro de alterações, `E-10`) — §15 (Rodada 5) |
+| Fonte    | Decisão do responsável do produto de 2026-10-14 — [`specs/enxugamento-questionario.spec.md`](enxugamento-questionario.spec.md) §6, pergunta única de custo da dívida — §16 (Rodada 6) |
 
 > **Esta spec não substitui as fontes — ela as endereça.** Cada requisito aponta
 > para os IDs de regra e as seções que o definem. Nenhuma regra é parafraseada
@@ -2798,7 +2799,7 @@ para o plano mensal fechar. A capacidade mensal, o `STATUS_FINANCEIRO` e o
   já no orçamento (`RF-75`).
 - Férias: é extraordinário **apenas o acréscimo (1/3)**, não a remuneração
   normal, que já é renda mensal. O motor recebe o valor já coletado assim
-  (`app-aluno` `RF-98`).
+  (requisito de recursos extraordinários do `app-aluno`).
 
 ### 15.3. Prováveis e possíveis
 
@@ -2824,3 +2825,79 @@ essenciais, despesas sazonais já conhecidas, obrigações prioritárias e a
 proteção mínima, aplicando as regras de mobilização/reserva **já existentes**
 (§13.3, `RESERVA_MOBILIZAVEL`) no mês em que o recurso é projetado — nenhum
 `P_*` novo (`RF-74`, `OQ-48`).
+
+---
+
+## 16. Definições incorporadas — Rodada 6 (normalização da taxa da dívida)
+
+> **Origem.** Decisão do responsável do produto de 2026-10-14, na feature
+> `enxugamento-questionario` (pergunta única de custo da dívida, `T-393`, fonte
+> em `specs/enxugamento-questionario.spec.md` §6): o aluno informa **um só
+> valor** por dívida (o CET ou, se não souber, a taxa de juros) **com a
+> periodicidade** ao mês ou ao ano. Até aqui o motor recebia a taxa já mensal
+> (`Divida.TAXA_EFETIVA_MENSAL_NORMALIZADA`) e a camada de aplicação só repassava
+> o valor quando a periodicidade informada já era mensal; **o motor não tinha a
+> conversão ano → mês**, e a Lei nº 3 do backlog de `app-aluno` proíbe a camada
+> de aplicação de calculá-la. Esta seção cria a regra no motor. **Mudança de
+> motor:** uma função pura nova; nenhuma regra existente muda, o contrato de
+> `Divida` não muda e nenhum `P_*` é criado.
+
+### 16.1. Normalização da taxa da dívida — regra `§16.1`
+
+**ID normativo: `§16.1`.** As letras `M`, `R`, `A`, `F`, `O`, `H`, `S`, `Q`, `V`,
+`T`, `G` (54 regras) são a lista fechada da canônica (`piq-app-spec.md` §9) e
+`tests/estatica/test_toda_regra_citada.py` recusa qualquer ID desse formato fora
+dela; esta spec não altera a canônica. As Rodadas 2 a 5 seguiram o mesmo
+caminho: regra incorporada citada pela seção da spec do motor (`§11.1`, `§13.3`).
+Por isso a regra é citada no código como `§16.1`.
+
+```
+Entrada:  VALOR  (fração: 2% == 0.02)  e  PERIODICIDADE ∈ {MENSAL, ANUAL}
+Saída:    TAXA_EFETIVA_MENSAL_NORMALIZADA
+
+PERIODICIDADE = MENSAL → TAXA_EFETIVA_MENSAL_NORMALIZADA = VALOR
+PERIODICIDADE = ANUAL  → TAXA_EFETIVA_MENSAL_NORMALIZADA = (1 + VALOR)^(1/12) − 1
+```
+
+- **Juros compostos, equivalência de taxas.** A taxa mensal é a que, composta
+  por 12 meses, reproduz a taxa anual: `(1 + mensal)^12 = 1 + anual`. É a mesma
+  convenção de capitalização mensal que o motor já usa (`saldo × (1 + taxa)`,
+  `RF-05`). Não há conversão linear (`anual ÷ 12`).
+- **Precisão decimal integral (`RF-12`, `G-01`):** aritmética `Decimal` no
+  contexto único do motor (`engine/precisao.py`); nenhum arredondamento. O
+  arredondamento existe só na exibição.
+- **Sem parâmetro:** nenhum `P_*` novo. Os dois domínios de periodicidade são
+  fechados pela decisão do produto; qualquer outra periodicidade (`OUTRA`,
+  `NAO_SEI`, diária, semestral) **não existe** na entrada desta regra.
+- **Valor desconhecido não chega aqui:** o motor continua a receber
+  `DESCONHECIDO` em `TAXA_EFETIVA_MENSAL_NORMALIZADA` quando o dado não existe
+  (`RF-16`). Esta regra só se aplica a um valor informado.
+- **Entrada inválida é recusada, nunca corrigida:** valor negativo, valor que
+  não seja `Decimal`/`int`/`str` (`float` recusado, como em `dinheiro()`) e
+  periodicidade fora do domínio fechado levantam erro. Valor `0` é válido e
+  devolve `0` nas duas periodicidades.
+- **Função pura:** sem I/O, sem relógio; não importa de `app/`, `persistencia/`
+  nem `collection/`. Quem informa o valor e a periodicidade (a camada de
+  montagem) chama a função e entrega o resultado em `Divida`; o `CET` de
+  `Divida` segue `DESCONHECIDO` (não se registra qual dos dois foi informado).
+- **Efeito no ranking (`RF-21`):** a Avalanche ordena por
+  `TAXA_EFETIVA_MENSAL_NORMALIZADA` no fallback do benefício marginal; uma dívida
+  informada ao ano passa a ser comparável às informadas ao mês.
+
+**Critérios de aceite da regra `§16.1`** (cada teste de `tests/regras/` cita o
+critério):
+
+| ID | Critério | Resultado esperado |
+| --- | --- | --- |
+| `§16.1-C1` | `VALOR = 0.02`, `MENSAL` | exatamente `0.02` (identidade) |
+| `§16.1-C2` | `VALOR = 1.02^12 − 1 = 0.268241794562545318301696` (≈ 26,82% a.a.), `ANUAL` | exatamente `0.02` (≈ 2% a.m.) |
+| `§16.1-C3` | `VALOR = 4095` (`1 + VALOR = 2^12`), `ANUAL` | exatamente `1` (100% a.m.) |
+| `§16.1-C4` | `VALOR = 0`, `MENSAL` e `ANUAL` | exatamente `0` |
+| `§16.1-C5` | valores diversos e grandes (por exemplo `0.1`, `0.2682`, `5`, `1000`), `ANUAL` | igualdade exata, no contexto do motor (34 dígitos), com o valor calculado de forma independente no teste (`ln`/`exp` em precisão 80, arredondado a 34 dígitos) — **sem** tolerância |
+| `§16.1-C6` | `VALOR < 0` (por exemplo `-0.01`), qualquer periodicidade | erro (`ValueError`); nada é devolvido |
+| `§16.1-C7` | periodicidade fora de `MENSAL`/`ANUAL` (por exemplo `OUTRA`, `NAO_SEI`) ou `VALOR` em `float` | erro (`ValueError` / `TypeError`) |
+| `§16.1-C8` | duas dívidas iguais, uma `0.02` `MENSAL` e outra `1.02^12 − 1` `ANUAL` | `TAXA_EFETIVA_MENSAL_NORMALIZADA` idêntica; a ordem do ranking por juros não distingue as duas |
+
+**Tolerância.** A tolerância de `± R$ 0,05` (`G-02`, `sdd.config.md` §5) vale só
+para dinheiro acumulado. Taxa **não** tem tolerância: a igualdade é exata contra
+o valor de referência calculado de forma independente.

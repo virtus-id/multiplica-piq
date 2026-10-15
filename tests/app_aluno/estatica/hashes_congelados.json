@@ -24,6 +24,7 @@
   "engine/risco.py": "44da471ec4eb085658a913082a6ac784b4708c2a2cd24e7748dfa03887c0c305",
   "engine/snapshot.py": "f497606ec85df181f6227ce3475df86fc5f0257e12f491c94f5b74a4ba1fb4a9",
   "engine/status_metodo.py": "2ac516366621942afe043eb10318c3a85fd31dd56039187ab8cc85102c0a7a3b",
+  "engine/taxa.py": "4517a06c266294d9992e94b8e56d2222a9e8fc66033db3d888e4dd2e7fa36fd5",
   "engine/tipos.py": "295be12c984277503f45311fc9caa885c296eb6faaa117d2272556d2e4120e78",
   "engine/trajetoria.py": "dc9fabc10ada5bf9a481012a7b9335848e0cccd50316e5f9ee9ba805d61acde5",
   "engine/troca.py": "3e5010e120bb0aad52e79893b70e5a5c5286916c342f91fea1156a3303c7e20d",

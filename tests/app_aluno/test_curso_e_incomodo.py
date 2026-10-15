@@ -31,6 +31,7 @@ from tests.app_aluno.fixtures.caso_completo import (
     DATA_REFERENCIA,
     caso_completo,
     montar_respostas_caso,
+    sem_o_custo_da_divida,
 )
 
 _PARAMETROS_VERSAO = "1.0.1"
@@ -41,7 +42,9 @@ def _snapshot(renda: Decimal | None = None, peso_b: int | None = None) -> Snapsh
     """Duas dívidas (a segunda com a nota de incômodo pedida); `renda`
     sobrescreve `RENDA_PRINCIPAL`."""
     valores: dict[str, object] = {} if renda is None else {"RENDA_PRINCIPAL": renda}
-    caso_a = caso_completo(DIVIDA_ID="D-A", valores_caso=valores)
+    caso_a = caso_completo(
+        DIVIDA_ID="D-A", valores_caso=valores, valores_divida={"TAXA_DIVIDA": Decimal("0.05")}
+    )
     divida_b: dict[str, object] = {
         "TIPO_DIVIDA": "CONSIGNADO",
         "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("8.000,00"),
@@ -52,7 +55,11 @@ def _snapshot(renda: Decimal | None = None, peso_b: int | None = None) -> Snapsh
     respostas_b = montar_respostas_caso(
         valores_caso=valores, valores_divida=divida_b, DIVIDA_ID="D-B"
     )
-    respostas = RespostasCaso(respostas=caso_a.respostas.respostas + respostas_b.respostas)
+    # `T-393`: a segunda dívida sem o custo mantém o plano provisório ("O que
+    # falta informar"); o rotativo (D-A, 5% a.m.) vem primeiro, pelo custo.
+    respostas = sem_o_custo_da_divida(
+        RespostasCaso(respostas=caso_a.respostas.respostas + respostas_b.respostas), "D-B"
+    )
     estado = montar_estado_financeiro(
         respostas,
         DATA_REFERENCIA=DATA_REFERENCIA,

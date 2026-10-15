@@ -1,6 +1,7 @@
 """Remoção de perguntas sem efeito no cálculo — `T-389` (`RF-402`).
 
-O especialista retirou 87 perguntas dos Blocos 1 a 5 que o motor não lê
+O especialista retirou 87 perguntas dos Blocos 1 a 5 que o motor não lê, e o produto
+retirou `B4.V01` na `T-396`
 (`specs/enxugamento-questionario.spec.md`, RF-402; a lista é a de `T-389`,
 menos `B3.S03` e `B5.I01`, que ficaram porque outras perguntas dependem
 delas). Este arquivo prova duas coisas:
@@ -119,6 +120,7 @@ _REMOVIDAS: tuple[tuple[str, str, str | None, ValorResposta], ...] = (
     ("B4.I07", "IMOVEL_ESSENCIAL", None, "ESSENCIAL"),
     ("B4.I08", "POSSIBILIDADE_VENDA_IMOVEL", None, "NAO"),
     ("B4.I09", "CUSTOS_ESTIMADOS_DESMOBILIZACAO (imóvel)", None, Decimal("123.45")),
+    ("B4.V01", "VEICULO_EXISTE", None, "SIM"),  # T-396
     ("B4.V02", "TIPO_VEICULO", None, "CARRO"),
     ("B4.V03", "VALOR_VEICULO (= VALOR_ESTIMADO_ATIVO)", None, Decimal("123.45")),
     ("B4.V04", "VEICULO_POSSUI_PASSIVO", None, "SIM"),
@@ -152,6 +154,13 @@ _REMOVIDAS: tuple[tuple[str, str, str | None, ValorResposta], ...] = (
     ("B5.C04", "DATA_TERMINO_CONTRATUAL", "DIVIDA_ID", date(2026, 1, 15)),
     ("B5.C07A", "NOVO_USO", "DIVIDA_ID", Decimal("123.45")),
     ("B5.D02", "NATUREZA_TAXA", "DIVIDA_ID", "EFETIVA"),
+    # `T-393` (RF-407): substituídas por `B5.D06`. As respostas antigas ficam no
+    # banco e não são lidas (a taxa vem de `TAXA_DIVIDA`).
+    ("B5.D01", "QUALIDADE_TAXA_INFORMADA", "DIVIDA_ID", "CONFIRMADA"),
+    ("B5.D01A", "TAXA_INFORMADA", "DIVIDA_ID", Decimal("0.04")),
+    ("B5.D01B", "PERIODICIDADE_TAXA", "DIVIDA_ID", "ANUAL"),
+    ("B5.D03", "POSSUI_CET", "DIVIDA_ID", "SIM"),
+    ("B5.D03A", "CET (+ PERIODICIDADE_CET)", "DIVIDA_ID", Decimal("0.03")),
     ("B5.G02", "JA_RENEGOCIADA", "DIVIDA_ID", "SIM"),
     ("B5.G03", "PORTABILIDADE_CONSULTADA", "DIVIDA_ID", "SIM"),
     ("B5.H02", "MOTIVO_PESO_EMOCIONAL", "DIVIDA_ID", frozenset({"JUROS_MUITO_ALTOS"})),
@@ -161,8 +170,6 @@ _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = (
     "B3.S03",  # `origem_opcoes` de B5.A02V (vínculo da dívida consignada)
     "B5.I01",  # `nivel_comprovacao_se` de B5.I02 (comprovação da fonte)
     "B3.C02",  # pai de B3.C02A/B3.C02B, que o especialista quer ligar ao motor
-    "B5.D03",  # substituída pela pergunta única de CET ou taxa (RF-407)
-    "B5.D03A",  # idem
     "B4.04",  # o responsável do produto decidiu manter
 )
 
@@ -170,8 +177,8 @@ _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = (
 def test_perguntas_removidas_nao_existem_e_as_mantidas_continuam() -> None:
     ids = {r.ID for r in carregar_registros().registros}
 
-    assert len(_REMOVIDAS) == 87
-    assert len({ID for ID, *_ in _REMOVIDAS}) == 87
+    assert len(_REMOVIDAS) == 93
+    assert len({ID for ID, *_ in _REMOVIDAS}) == 93
     assert {ID for ID, *_ in _REMOVIDAS} & ids == set()
     assert set(_MANTIDAS_QUE_OUTRAS_USAM) <= ids
 
@@ -232,3 +239,24 @@ def test_estado_identico_com_a_resposta_de_cada_pergunta_removida(
     sem, dividas = _CASOS["perfil_t02_duas_dividas"]
 
     assert _estado(_com(sem, ((variavel, escopo, valor),)), dividas) == _estado(sem, dividas)
+
+
+# `T-397` (RF-411): B5.E05, B5.G01 e B3.NM01 perderam o "Não sei"/"Talvez" e a
+# opção de proposta vencida. Caso antigo guarda esses valores no banco: a
+# leitura não quebra. `specs/piq-app-spec.md` segue com o texto e as opções
+# antigas (canônica congelada); a origem das mudanças é a spec do enxugamento.
+@pytest.mark.parametrize("variavel", ["COBRANCA_JUDICIAL_INFORMADA", "PROPOSTA_ATUAL"])
+@pytest.mark.parametrize("valor", ["NAO_SEI", "TALVEZ", "EXPIRADA"])
+def test_valor_antigo_nas_perguntas_de_existencia_nao_muda_o_estado(
+    variavel: str, valor: str
+) -> None:
+    sem, dividas = _CASOS["perfil_t02_duas_dividas"]
+
+    assert _estado(_com(sem, ((variavel, "DIVIDA_ID", valor),)), dividas) == _estado(sem, dividas)
+
+
+def test_valor_antigo_nao_sei_em_b3_nm01_nao_quebra_a_montagem() -> None:
+    sem, dividas = _CASOS["caso_completo"]
+    com = _com(sem, (("DESPESAS_NAO_MENSAIS_EXISTE", None, "NAO_SEI"),))
+
+    assert _estado(com, dividas) == _estado(sem, dividas)

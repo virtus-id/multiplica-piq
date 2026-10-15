@@ -116,8 +116,13 @@ export default function CampoPergunta({
   // `T-294`: a opção com `abre_campo: MOEDA` grava o próprio código, e o R$
   // digitado vai a outra variável (o servidor sabe qual). Trocar entre duas
   // dessas opções ("Sim."/"Aproximadamente.") mantém o que foi digitado.
+  // `T-393`: `abre_campo: TAXA` é o mesmo mecanismo com um percentual ("ao mês
+  // / ao ano" de `B5.D06`): o campo é o de `TAXA`, o "%" fica fora.
   const abreMoeda = pergunta.opcoes.some(
     (opcao) => opcao.abre_campo === 'MOEDA' && opcao.valor_interno === texto,
+  )
+  const abreTaxa = pergunta.opcoes.some(
+    (opcao) => opcao.abre_campo === 'TAXA' && opcao.valor_interno === texto,
   )
 
   /** O rádio sozinho não envia nada: o valor é a data digitada. */
@@ -156,7 +161,9 @@ export default function CampoPergunta({
                   else if (valorInterno !== null) {
                     setCampoEscolhidoEm(null)
                     escolher(
-                      opcao.abre_campo === 'MOEDA' ? [valorInterno, digitadoNoCampo] : valorInterno,
+                      opcao.abre_campo === 'MOEDA' || opcao.abre_campo === 'TAXA'
+                        ? [valorInterno, digitadoNoCampo]
+                        : valorInterno,
                     )
                   }
                 }}
@@ -198,6 +205,23 @@ export default function CampoPergunta({
                 value={digitadoNoCampo}
                 onChange={(e) => onValor([texto, aplicarMascara('MOEDA', e.target.value)])}
               />
+            </div>
+          )}
+          {abreTaxa && (
+            // Mesmo campo do tipo `TAXA`, com a mesma máscara.
+            <div className="flex items-center gap-2">
+              <div className="money flex-1">
+                <input
+                  inputMode="decimal"
+                  aria-label="Taxa em %"
+                  aria-describedby={idAviso}
+                  value={digitadoNoCampo}
+                  onChange={(e) => onValor([texto, aplicarMascara('TAXA', e.target.value)])}
+                />
+              </div>
+              <span className="text-muted" aria-hidden="true">
+                %
+              </span>
             </div>
           )}
         </fieldset>

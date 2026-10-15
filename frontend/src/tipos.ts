@@ -35,7 +35,7 @@ export interface Opcao {
   admite_nao_sei: boolean
   /**
    * `T-213`: a opção pede um valor digitado. `DATA` grava no lugar do
-   * código; `MOEDA` (`T-294`) grava o código e o R$ vai a outra variável.
+   * código; `MOEDA` (`T-294`) e `TAXA` (`T-393`) gravam o código e o valor vai a outra variável.
    */
   abre_campo?: TipoResposta | null
 }
