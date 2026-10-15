@@ -149,10 +149,6 @@ def _contar_por_fora(
         )
 
     for registro in registros:
-        # `T-200`: o Bloco 11 não é da coleta inicial.
-        if registro.bloco == 11:
-            continue
-
         variavel = registro.VARIAVEL_GRAVADA
         assert variavel is not None, f"{registro.ID} sem variável gravada"
 
@@ -544,8 +540,10 @@ def test_a_colecao_real_tem_113_registros() -> None:
     e 10 inteiros e 11 das 12 perguntas do Bloco 11 (180 → 125). `T-391` (RF-410): `-7`,
     o seguro da dívida (125 → 118). `T-396` (RF-402): `-1`, a pergunta de veículo
     `B4.V01` (118 → 117). `T-393` (RF-407): `-4`, cinco perguntas de taxa e CET
-    (`B5.D01`, `B5.D01A`, `B5.D01B`, `B5.D03`, `B5.D03A`) viram uma, `B5.D06` (117 → 113)."""
-    assert len(_registros_reais()) == 113
+    (`B5.D01`, `B5.D01A`, `B5.D01B`, `B5.D03`, `B5.D03A`) viram uma, `B5.D06` (117 → 113).
+    `T-398` (RF-402): `-15`, sete do Bloco 4, sete do Bloco 5 e `B11.01`, a
+    última do Bloco 11 (113 → 98)."""
+    assert len(_registros_reais()) == 98
 
 
 def test_os_casos_de_prova_do_gerador_ficam_fora_da_coleta() -> None:

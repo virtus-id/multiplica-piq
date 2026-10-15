@@ -472,7 +472,7 @@ class TestEC16EEC17AusenciasEstruturais:
 # AC-60 — as três coleções são `()` mesmo com as fichas preenchidas.
 # ---------------------------------------------------------------------------
 # Fichas de patrimônio do Bloco 4 pelos `VARIAVEL_GRAVADA` REAIS do registro
-# (`collection/registros/bloco-04.yaml`): investimento (B4.04/B4.04B), imóvel
+# (`collection/registros/bloco-04.yaml`): investimento (B4.04), imóvel
 # (B4.I01/B4.I03), veículo (B4.V01/B4.V03) e outro ativo (B4.O01/B4.O03). Só
 # `INVESTIMENTOS_EXISTE` tem `valor_interno` no registro hoje; os `EXISTE` das
 # outras três gravam `null` — por isso as respostas afirmativas usam o rótulo
@@ -480,7 +480,6 @@ class TestEC16EEC17AusenciasEstruturais:
 # `montar_estado_financeiro`: é justamente o ponto do critério.
 _FICHAS_DE_PATRIMONIO: dict[str, object] = {
     "INVESTIMENTOS_EXISTE": "SIM",
-    "VALOR_ESTIMADO_ATIVO (investimento)": converter_para_dinheiro("25.000,00"),
     "IMOVEL_EXISTE": "Sim",
     "VALOR_IMOVEL (= VALOR_ESTIMADO_ATIVO)": converter_para_dinheiro("380.000,00"),
     "VEICULO_EXISTE": "Sim",

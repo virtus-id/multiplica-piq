@@ -35,7 +35,7 @@ _DIRETORIO_REGISTROS_REAIS = Path(__file__).resolve().parents[2] / "collection" 
 
 @pytest.fixture(scope="module")
 def _colecao_real() -> ColecaoDeRegistros:
-    """Os registros reais dos Blocos 1-5, 9 e 11 (`B11.01`) **mais** os três casos
+    """Os registros reais dos Blocos 1-5 e 9 **mais** os três casos
     de prova do Bloco 12 (`T-16`..`T-19`).
 
     `incluir_casos_de_prova=True` desde `T-172`: o Bloco 12 saiu da coleção

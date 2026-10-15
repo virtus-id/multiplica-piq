@@ -48,7 +48,6 @@ from app.casos.inventario import pendencias_de_inventario
 from app.casos.maquina import ESTADO_CASO
 from app.casos.progresso import (
     contar_coleta,
-    da_coleta_inicial,
     itens_em_aberto,
     proxima_pergunta_nao_respondida,
 )
@@ -429,7 +428,7 @@ def inicio_do_caso(
     # (`RF-87`/`RF-88`), faz o total crescer — o cliente mostra só as
     # respondidas, que nunca regridem.
     fichas_abertas = bool(
-        itens_em_aberto(da_coleta_inicial(colecao.registros), respostas, itens_por_escopo)
+        itens_em_aberto(colecao.registros, respostas, itens_por_escopo)
         or pendencias_de_inventario(colecao.registros, respostas, itens_por_escopo)
     )
 

@@ -158,10 +158,9 @@ _BLOCO_PATRIMONIO: Final[int] = 4
 def _variaveis_do_bloco_4() -> frozenset[str]:
     """As `VARIAVEL_GRAVADA` do Bloco 4, lidas do REGISTRO REAL (`collection/
     registros/bloco-04.yaml` via `collection.carga`, T-16) — nunca uma lista
-    transcrita neste arquivo. Quatro delas são strings COMPOSTAS no registro
-    (`"VALOR_ESTIMADO_ATIVO (investimento)"`, `"VALOR_IMOVEL (=
-    VALOR_ESTIMADO_ATIVO)"`, ...), então o conjunto guarda tanto a string
-    inteira quanto o primeiro token — é por esse token que uma chamada a
+    transcrita neste arquivo. Uma `VARIAVEL_GRAVADA` pode ser string COMPOSTA
+    (`"VALOR_IMOVEL (= VALOR_ESTIMADO_ATIVO)"`), então o conjunto guarda tanto
+    a string inteira quanto o primeiro token — é por esse token que uma chamada a
     `valores_do_escopo` a referenciaria."""
     variaveis: set[str] = set()
     for registro in carregar_registros().registros:
@@ -719,8 +718,8 @@ def test_variaveis_do_bloco_4_vem_do_registro_real() -> None:
     assert len(VARIAVEIS_BLOCO_4) > 0, "o registro do Bloco 4 precisa estar carregado"
     # As três patrimoniais seguem vigiadas mesmo sem pergunta no registro:
     # `T-389` retirou as que gravavam `SALDO_PASSIVO_VINCULADO` e
-    # `CUSTOS_ESTIMADOS_DESMOBILIZACAO` (`VALOR_ESTIMADO_ATIVO` ainda é gravada
-    # por `B4.04B`).
+    # `CUSTOS_ESTIMADOS_DESMOBILIZACAO`; `T-398`, a última que gravava
+    # `VALOR_ESTIMADO_ATIVO` (`B4.04B`).
     assert VARIAVEIS_PATRIMONIAIS <= VARIAVEIS_BLOCO_4
     # Os cinco campos escalares que a fatia 2A de fato lê (`AC-71`).
     for escalar in (

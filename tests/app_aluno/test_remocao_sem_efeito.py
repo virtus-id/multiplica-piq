@@ -1,7 +1,8 @@
 """Remoção de perguntas sem efeito no cálculo — `T-389` (`RF-402`).
 
-O especialista retirou 87 perguntas dos Blocos 1 a 5 que o motor não lê, e o produto
-retirou `B4.V01` na `T-396`
+O especialista retirou 87 perguntas dos Blocos 1 a 5 que o motor não lê, o produto
+retirou `B4.V01` na `T-396`, e os dois retiraram mais 15 na `T-398` (Blocos 4, 5 e
+`B11.01`)
 (`specs/enxugamento-questionario.spec.md`, RF-402; a lista é a de `T-389`,
 menos `B3.S03` e `B5.I01`, que ficaram porque outras perguntas dependem
 delas). Este arquivo prova duas coisas:
@@ -64,6 +65,7 @@ _ITEM_POR_ESCOPO: dict[str, str] = {
     "MARGEM_ID": "M001",
     "RENDA_ADICIONAL_ID": "REND001",
     "RECURSO_EXTRAORDINARIO_ID": "EXT001",
+    "ACAO_ID": "A001",
 }
 
 # (ID da pergunta, VARIAVEL_GRAVADA como era no registro, escopo, valor de
@@ -164,6 +166,27 @@ _REMOVIDAS: tuple[tuple[str, str, str | None, ValorResposta], ...] = (
     ("B5.G02", "JA_RENEGOCIADA", "DIVIDA_ID", "SIM"),
     ("B5.G03", "PORTABILIDADE_CONSULTADA", "DIVIDA_ID", "SIM"),
     ("B5.H02", "MOTIVO_PESO_EMOCIONAL", "DIVIDA_ID", frozenset({"JUROS_MUITO_ALTOS"})),
+    # `T-398` (RF-402): decisão do produto e do especialista.
+    ("B4.04B", "VALOR_ESTIMADO_ATIVO (investimento)", None, Decimal("123.45")),
+    ("B4.05", "LIQUIDEZ_INVESTIMENTOS", None, "D0"),
+    ("B4.06", "CUSTO_DESMOBILIZACAO_INVESTIMENTOS_EXISTE", None, "SIM"),
+    ("B4.I04", "IMOVEL_POSSUI_PASSIVO", None, "SIM"),
+    ("B4.I04A", "SALDO_FINANCIAMENTO_IMOVEL (= SALDO_PASSIVO_VINCULADO)", None, Decimal("123.45")),
+    ("B4.I05", "IMOVEL_GERA_RENDA", None, "SIM"),
+    ("B4.I05A", "RENDA_IMOVEL", None, Decimal("123.45")),
+    ("B5.C03", "PARCELAS_RESTANTES", "DIVIDA_ID", 12),
+    ("B5.C05", "POSSUI_PAGAMENTO_MINIMO", "DIVIDA_ID", "SIM"),
+    (
+        "B5.C05A",
+        "PAGAMENTO_MINIMO_INFORMADO (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)",
+        "DIVIDA_ID",
+        Decimal("123.45"),
+    ),
+    ("B5.D04", "OUTROS_CUSTOS_EXISTE", "DIVIDA_ID", "SIM"),
+    ("B5.D04A", "OUTROS_CUSTOS", "DIVIDA_ID", Decimal("123.45")),
+    ("B5.E04", "COBRANCA_ATIVA", "DIVIDA_ID", "SIM"),
+    ("B5.F04", "CONSEQUENCIA_INADIMPLEMENTO", "DIVIDA_ID", "Texto"),
+    ("B11.01", "ACAO_STATUS", "ACAO_ID", "CONCLUIDA"),
 )
 
 _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = (
@@ -177,8 +200,8 @@ _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = (
 def test_perguntas_removidas_nao_existem_e_as_mantidas_continuam() -> None:
     ids = {r.ID for r in carregar_registros().registros}
 
-    assert len(_REMOVIDAS) == 93
-    assert len({ID for ID, *_ in _REMOVIDAS}) == 93
+    assert len(_REMOVIDAS) == 108
+    assert len({ID for ID, *_ in _REMOVIDAS}) == 108
     assert {ID for ID, *_ in _REMOVIDAS} & ids == set()
     assert set(_MANTIDAS_QUE_OUTRAS_USAM) <= ids
 

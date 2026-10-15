@@ -242,62 +242,6 @@ perguntas:
     admite_nao_sei: true
     salto_consequencia: null
 
-  - ID: B5.C03
-    bloco: 5
-    enunciado: Quantas parcelas ainda faltam?
-    tipo: NUMERO
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: ___ parcelas, valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: PARCELAS_RESTANTES
-    condicao_exibicao: {tipo: IGUAL, variavel: POSSUI_PARCELA_DEFINIDA, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B5.C05
-    bloco: 5
-    enunciado: Existe algum pagamento mínimo ou valor mensal formalmente exigido hoje?
-    tipo: SIM_NAO_TALVEZ
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: POSSUI_PAGAMENTO_MINIMO
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: POSSUI_PARCELA_DEFINIDA, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Sim → B5.C05A. Não/Não sei e B5.C06 = Não sei → cronograma definitivo
-      desta dívida bloqueado (Matriz, Bloco 5 Grupo C).
-
-  - ID: B5.C05A
-    bloco: 5
-    enunciado: Qual é esse valor mínimo?
-    tipo: MOEDA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: "PAGAMENTO_MINIMO_INFORMADO (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
-    condicao_exibicao: {tipo: IGUAL, variavel: POSSUI_PAGAMENTO_MINIMO, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
   - ID: B5.C06
     bloco: 5
     enunciado: Na prática, quanto você está pagando por mês nesta dívida atualmente?
@@ -390,43 +334,6 @@ perguntas:
     admite_nao_sei: false
     salto_consequencia: null
 
-  - ID: B5.D04
-    bloco: 5
-    enunciado: >-
-      Além dos juros, existe alguma tarifa, encargo ou custo sendo cobrado
-      nessa operação?
-    tipo: SIM_NAO_TALVEZ
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: OUTROS_CUSTOS_EXISTE
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: "Sim → B5.D04A."
-
-  - ID: B5.D04A
-    bloco: 5
-    enunciado: Qual valor?
-    tipo: MOEDA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: OUTROS_CUSTOS
-    condicao_exibicao: {tipo: IGUAL, variavel: OUTROS_CUSTOS_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
   # Grupo E — Situação
   - ID: B5.E01
     bloco: 5
@@ -484,26 +391,6 @@ perguntas:
       - {rotulo: Não, valor_interno: NAO}
       - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: NEGATIVACAO
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B5.E04
-    bloco: 5
-    enunciado: >-
-      Você está recebendo atualmente cobranças relacionadas a essa dívida?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "Sim, com frequência.", valor_interno: FREQUENTE}
-      - {rotulo: "Sim, eventualmente.", valor_interno: EVENTUAL}
-      - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: Não sei., valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: COBRANCA_ATIVA
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
@@ -591,32 +478,6 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: true
     salto_consequencia: null
-
-  - ID: B5.F04
-    bloco: 5
-    enunciado: >-
-      Você sabe de alguma consequência específica que pode ocorrer se esta
-      dívida continuar sem pagamento ou irregular?
-    tipo: SELECAO_MULTIPLA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: Risco sobre um bem dado em garantia, valor_interno: RISCO_SOBRE_UM_BEM_DADO_EM_GARANTIA}
-      - {rotulo: Negativação, valor_interno: NEGATIVACAO}
-      - {rotulo: Cobrança, valor_interno: COBRANCA}
-      - {rotulo: Desconto em folha, valor_interno: DESCONTO_EM_FOLHA}
-      - {rotulo: Outra consequência informada pelo credor/documento, valor_interno: OUTRA_CONSEQUENCIA_INFORMADA_PELO_CREDOR_DOCUMENTO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-      - {rotulo: Nenhuma consequência específica que eu conheça, valor_interno: NENHUMA_CONSEQUENCIA_ESPECIFICA_QUE_EU_CONHECA}
-    VARIAVEL_GRAVADA: CONSEQUENCIA_INADIMPLEMENTO
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Não inferir consequências não informadas. "Não sei" e "Nenhuma" são
-      exclusivas.
 
   # Grupo G — Oportunidades
   - ID: B5.G01

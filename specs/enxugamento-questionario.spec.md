@@ -42,6 +42,7 @@ Decisão de implementação (OQ-1, parte final): **desligar** o fluxo, sem apaga
 ### RF-402. Remover do questionário o que o motor não usa (Blocos 1 a 5)
 
 **Situação (2026-10-14):** 87 das 89 listadas foram removidas (T-389). `B3.S03` e `B5.I01` continuam porque perguntas que ficam dependem delas (decisão pendente com o especialista).
+**Situação (2026-10-15):** mais 15 removidas por decisão do produto e do especialista (T-398): `B4.04B`, `B4.05`, `B4.06`, `B4.I04`, `B4.I04A`, `B4.I05`, `B4.I05A`, `B5.C03`, `B5.C05`, `B5.C05A`, `B5.D04`, `B5.D04A`, `B5.E04`, `B5.F04` e `B11.01` (o Bloco 11 deixa de existir). Registros 113 → 98.
 Remoção sem efeito no cálculo, comprovada em 4 casos reais (estado do motor idêntico). Lista:
 
 #### Bloco 1 · Compromisso (10)

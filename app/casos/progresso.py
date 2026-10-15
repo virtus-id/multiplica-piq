@@ -406,14 +406,12 @@ def _percorrer_ocorrencias(
 
     O segundo eixo tem motivo registrado (era a docstring de
     `_pergunta_em_branco`, T-45): os registros reais têm perguntas repetíveis
-    por item CONDICIONAIS **sem** o membro `REP` — o Bloco 11 (`B11.01`)
-    declara `obrigatoriedade: [COND]` com `escopo_repeticao: ACAO_ID`. Ali `REP`
+    por item CONDICIONAIS **sem** o membro `REP` — o Bloco 3 declara
+    `obrigatoriedade: [COND]` com `escopo_repeticao: VINCULO_ID`. Ali `REP`
     qualificaria "obrigatório por item", não "existe por item". A retomada
     precisa oferecer TODA pergunta que o aluno de fato veria por item,
     inclusive as só `COND`; a varredura de pendência BLOQUEANTE, não — e essa
-    distinção não afeta `AC-11`. (Desde `T-200` a retomada só varre a coleta
-    inicial — `da_coleta_inicial` —, mas o Bloco 3 tem o mesmo caso, com
-    `VINCULO_ID`.)
+    distinção não afeta `AC-11`.
 
     Fixar qualquer um dos dois predicados aqui dentro quebraria `AC-11` ou
     `AC-01`. Por isso eles entram como parâmetro, e por isso este gerador não
@@ -583,30 +581,16 @@ def _e_pergunta_aberta(
     return _condicao_permite_exigencia(registro, respostas, item_id)
 
 
-#: `T-200` — os blocos que NÃO são da coleta inicial. Os Blocos 7, 8 e 10
-#: saíram do questionário (`T-390`); sobra o Bloco 11 (`B11.01`, em dúvida),
-#: posterior ao plano (`RF-27`). O resto dos blocos carregados (1–5 e 9) é a
-#: coleta inicial.
-BLOCOS_POS_PLANO: Final[frozenset[int]] = frozenset({11})
-
-
-def da_coleta_inicial(registros: tuple[RegistroPergunta, ...]) -> tuple[RegistroPergunta, ...]:
-    """`T-200` — os registros da coleta inicial, na ordem recebida. A
-    retomada e a contagem usam só estes; a ficha do Bloco 5 também
-    (`rotas_fichas.py`). `perguntas_da_ficha` fica sem o filtro."""
-    return tuple(registro for registro in registros if registro.bloco not in BLOCOS_POS_PLANO)
-
-
 def _ocorrencias_da_retomada(
     registros: tuple[RegistroPergunta, ...],
     respostas: RespostasCaso,
     itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]] | None,
 ) -> Iterator[tuple[PendenciaObrigatoria, bool]]:
-    """A varredura com os predicados da retomada (`AC-01`) sobre a coleta
-    inicial (`T-200`) — a única que `proxima_pergunta_nao_respondida`,
-    `contar_coleta`, `itens_em_aberto` e `proxima_pergunta_do_item` leem."""
+    """A varredura com os predicados da retomada (`AC-01`) — a única que
+    `proxima_pergunta_nao_respondida`, `contar_coleta`, `itens_em_aberto` e
+    `proxima_pergunta_do_item` leem."""
     return _percorrer_ocorrencias(
-        da_coleta_inicial(registros),
+        registros,
         respostas,
         itens_por_escopo or {},
         elegivel=_e_pergunta_aberta,
@@ -674,7 +658,7 @@ def itens_em_aberto(
 
     `T-219`: varre os `registros` recebidos, SEM o filtro da coleta inicial
     — quem chama passa as perguntas da ficha (`rotas_fichas.py`). Com o
-    filtro, a ficha de ação (toda no Bloco 11) saía sempre completa."""
+    filtro, a ficha de ação (toda no antigo Bloco 11) saía sempre completa."""
     return frozenset(
         ocorrencia.item_id
         for ocorrencia, em_branco in _percorrer_ocorrencias(

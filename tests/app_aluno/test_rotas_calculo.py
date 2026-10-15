@@ -794,16 +794,16 @@ def test_t217_pergunta_aberta_continua_no_calculo(monkeypatch: pytest.MonkeyPatc
     assert vistas == respostas
 
 
-_MINIMO = "PAGAMENTO_MINIMO_INFORMADO (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
+_PARCELA = "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
 
 
-def test_t217_ficha_de_divida_filtra_por_item_e_em_cadeia(
+def test_t217_ficha_de_divida_filtra_por_item(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`D002` passou a ter parcela definida: `B5.C05` fecha no item e
-    `B5.C05A`, que dependia dela, cai junto (ponto fixo). `D001` segue sem
-    parcela definida, intacta. (`T-389`: era `B5.C07`/`B5.C07A`; `T-391`: era
-    `B5.D05`/`B5.D05A`/`B5.D05V`.)"""
+    """`D001` não tem parcela definida: `B5.C02` fecha naquele item e a
+    resposta dela cai. `D002` tem, intacta. (`T-389`: era `B5.C07`/`B5.C07A`;
+    `T-391`: era `B5.D05`/`B5.D05A`/`B5.D05V`; `T-398`: era a cadeia
+    `B5.C05`/`B5.C05A`, que saiu do questionário.)"""
     itens = tuple(
         ItemRepetido(
             item_id=item_id,
@@ -816,18 +816,14 @@ def test_t217_ficha_de_divida_filtra_por_item_e_em_cadeia(
     )
     respostas = (
         _resposta_t217("POSSUI_PARCELA_DEFINIDA", "NAO", "D001"),
-        _resposta_t217("POSSUI_PAGAMENTO_MINIMO", "SIM", "D001"),
-        _resposta_t217(_MINIMO, Decimal("100"), "D001"),
+        _resposta_t217(_PARCELA, Decimal("100"), "D001"),
         _resposta_t217("POSSUI_PARCELA_DEFINIDA", "SIM", "D002"),
-        _resposta_t217("POSSUI_PAGAMENTO_MINIMO", "SIM", "D002"),
-        _resposta_t217(_MINIMO, Decimal("100"), "D002"),
+        _resposta_t217(_PARCELA, Decimal("100"), "D002"),
     )
 
-    vistas = _respostas_vistas_pela_montagem(
-        monkeypatch, ("B5.C01", "B5.C05", "B5.C05A"), respostas, itens
-    )
+    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B5.C01", "B5.C02"), respostas, itens)
 
-    assert vistas == respostas[:4]
+    assert vistas == (respostas[0], *respostas[2:])
 
 
 # ---------------------------------------------------------------------------

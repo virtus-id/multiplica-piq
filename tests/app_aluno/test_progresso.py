@@ -373,15 +373,6 @@ def test_t199_condicao_de_ficha_abre_so_no_item_que_a_satisfaz() -> None:
     assert proxima_pergunta_nao_respondida(registros, respondida, itens) is None
 
 
-def test_t199_nao_sobre_variavel_de_ficha_fecha_no_item() -> None:
-    """`B5.C05` é `NAO(POSSUI_PARCELA_DEFINIDA == SIM)`: era sempre aberta."""
-    registros = _reais_por_id("B5.C05")
-    itens = {EscopoRepeticao.DIVIDA_ID: ("D001",)}
-    respostas = RespostasCaso(respostas=(_resposta("POSSUI_PARCELA_DEFINIDA", "SIM", "D001"),))
-
-    assert proxima_pergunta_nao_respondida(registros, respostas, itens) is None
-
-
 def test_t200_coleta_inicial_com_uma_divida_nunca_oferece_bloco_7() -> None:
     """Reproduz C4/C5: `B7.08`/`B7.09` (`NAO(PROPOSTA_PARCELA == A_VISTA)`)
     apareciam na coleta inicial. Os Blocos 7, 8, 10 e 11 são pós-plano."""
@@ -390,15 +381,6 @@ def test_t200_coleta_inicial_com_uma_divida_nunca_oferece_bloco_7() -> None:
     blocos = {id_.split(".")[0] for id_, _ in percurso}
     assert blocos.isdisjoint({"B7", "B8", "B10", "B11"})
     assert "B5" in blocos
-
-
-def test_t200_contar_coleta_nao_conta_blocos_pos_plano() -> None:
-    pos_plano = tuple(r for r in _colecao_real() if r.bloco in {7, 8, 10, 11})
-    contagem = contar_coleta(
-        pos_plano, RespostasCaso(respostas=()), {EscopoRepeticao.DIVIDA_ID: ("D001",)}
-    )
-
-    assert contagem.total == 0
 
 
 def test_t202_ficha_percorrida_item_a_item_e_o_resto_na_ordem_do_registro() -> None:

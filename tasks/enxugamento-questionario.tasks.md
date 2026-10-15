@@ -11,7 +11,7 @@
 
 ## Progresso
 
-`8/11 tarefas concluídas`
+`9/12 tarefas concluídas`
 
 ### `T-387` — Plano entregue é definitivo: desligar acompanhamento e "refazer plano" (backend)
 
@@ -137,3 +137,11 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Ajustar o código que tratava "Não sei" nessas três (montagem, telas, conferências) e os testes, sem mudar o motor; `B5.F04` e a extensão a outras perguntas ficam fora desta tarefa
 
 **Status:** `[x] concluída` — 2026-10-14
+
+### `T-398` — Remover mais 15 perguntas dos Blocos 4, 5 e 11
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-389`, `T-390` · **Rastreia:** `RF-402`
+- [x] Remover `B4.04B`, `B4.05`, `B4.06`, `B4.I04`, `B4.I04A`, `B4.I05`, `B4.I05A`, `B5.C03`, `B5.C05`, `B5.C05A`, `B5.D04`, `B5.D04A`, `B5.E04`, `B5.F04` e `B11.01` (decisão do produto e do especialista); apagar `bloco-11.yaml` e o filtro de blocos pós-plano (`BLOCOS_POS_PLANO`, `da_coleta_inicial`), que ficaram sem uso
+- [x] Ajustar a contagem de registros (113 → 98) e os testes que citavam essas perguntas; estado do motor e snapshot idênticos com e sem as respostas (`test_remocao_sem_efeito.py`)
+
+**Status:** `[x] concluída` — 2026-10-15

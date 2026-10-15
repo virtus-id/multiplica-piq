@@ -468,32 +468,6 @@ def test_t201_ficha_com_as_abertas_respondidas_e_completa_mesmo_com_condicao_fal
 
 
 # ---------------------------------------------------------------------------
-# T-211 — `GET /fichas/ACAO_ID` sem campos (efeito de T-200).
-# ---------------------------------------------------------------------------
-
-
-def test_t211_ficha_de_acao_lista_os_campos_do_bloco_11(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """Todo registro de `ACAO_ID` é do Bloco 11, fora da coleta inicial; o
-    filtro de `T-200` zerava a ficha. Só vale para escopo que TEM registro na
-    coleta inicial."""
-    from collection.carga import carregar_registros
-
-    cliente = _montar_cliente(monkeypatch, tmp_path, colecao=carregar_registros())
-    escopo = EscopoRepeticao.ACAO_ID.value
-    assert cliente.post(f"/caso/{_CASO_ID}/fichas/{escopo}").status_code == 201
-
-    resposta = cliente.get(f"/caso/{_CASO_ID}/fichas/{escopo}")
-
-    assert resposta.status_code == 200, resposta.text
-    campos = resposta.json()["fichas"][0]["campos"]
-    assert campos
-    assert {campo["bloco"] for campo in campos} == {11}
-    assert all(campo["item_id"] == resposta.json()["fichas"][0]["item_id"] for campo in campos)
-
-
-# ---------------------------------------------------------------------------
 # T-212 — fichas repetíveis do Bloco 3 alcançáveis pelo aluno.
 # ---------------------------------------------------------------------------
 

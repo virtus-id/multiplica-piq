@@ -123,7 +123,6 @@ from app.casos.maquina import ErroConsentimentoNaoRegistrado
 from app.casos.progresso import (
     PendenciaObrigatoria,
     _variaveis_da_condicao,
-    da_coleta_inicial,
     em_branco_no_item,
     escopos_abertos_pela_resposta,
     pendencias_obrigatorias,
@@ -1167,10 +1166,9 @@ def serializar_pergunta_do_caso(
 def perguntas_da_ficha_inicial(
     colecao: ColecaoDeRegistros, escopo: EscopoRepeticao
 ) -> tuple[RegistroPergunta, ...]:
-    """As perguntas da ficha do escopo na coleta inicial (`T-200`); escopo
-    todo pós-plano (o do Bloco 11, `B11.01`) fica com as suas (`T-211`)."""
-    da_ficha = perguntas_da_ficha(colecao.registros, escopo)
-    return da_coleta_inicial(da_ficha) or da_ficha
+    """As perguntas da ficha do escopo (`T-200`). Sem o Bloco 11 (`T-398`),
+    toda pergunta carregada é da coleta inicial."""
+    return perguntas_da_ficha(colecao.registros, escopo)
 
 
 def perguntas_do_formulario(
