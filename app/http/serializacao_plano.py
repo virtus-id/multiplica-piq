@@ -29,6 +29,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Final
 
 from app.casos.inventario import credor_da_ficha
+from app.http.rotas_calculo import _respostas_do_calculo
+from app.montagem.entrada import resumo_das_despesas
 from app.revisao.comprovacao import NivelDaFicha
 from app.revisao.fila import ItemFila
 from collection.registro import RegistroPergunta
@@ -44,6 +46,11 @@ from report.plano import (
 )
 
 REGRAS: Final[tuple[str, ...]] = ("RF-50", "RF-51", "RF-21", "AC-14", "AC-16")
+
+
+#: `B5.E01` (`RF-412`): a variável do registro e as respostas que dizem "atrasada".
+_SITUACAO_DO_PAGAMENTO: Final[str] = "DIVIDA_EM_DIA / DIVIDA_ATRASADA"
+_SITUACOES_ATRASADAS: Final[frozenset[str]] = frozenset({"VENCIDO", "PARCIAL"})
 
 
 def rotulo_do_nivel(nivel: NivelDaFicha, textos: TextosCanonicosPlano) -> str:
@@ -82,12 +89,38 @@ def vocabulario_do_caso(
         for opcao in registro.opcoes:
             if opcao.valor_interno is not None:
                 opcoes.setdefault(opcao.valor_interno, opcao.rotulo)
+    dividas = tuple(dividas)
     credores = {
         divida: credor
         for divida in dividas
         if (credor := credor_da_ficha(respostas, divida)) is not None
     }
-    return VocabularioDoCaso(rotulos_de_opcao=rotulos, credores=credores)
+    # `RF-412`: só respostas, transportadas; o texto e a frase de
+    # responsabilidade são montados em `report/`.
+    declaradas = respostas.valor("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL")
+    vinculos = {
+        divida: str(nome)
+        for divida in dividas
+        if (vinculo := respostas.valor_no_item(divida, "VINCULO_DA_DIVIDA")) is not None
+        and isinstance(vinculo, str)
+        and (nome := respostas.valor_no_item(vinculo, "ORGAO_FONTE_PAGADORA")) is not None
+    }
+    return VocabularioDoCaso(
+        rotulos_de_opcao=rotulos,
+        credores=credores,
+        dividas_atrasadas=frozenset(
+            d
+            for d in dividas
+            if respostas.valor_no_item(d, _SITUACAO_DO_PAGAMENTO) in _SITUACOES_ATRASADAS
+        ),
+        dividas_com_garantia=frozenset(
+            d for d in dividas if respostas.valor_no_item(d, "POSSUI_GARANTIA") == "SIM"
+        ),
+        vinculos=vinculos,
+        fichas_faltando=isinstance(declaradas, int) and declaradas > len(dividas),
+        # as mesmas respostas que o motor leu (`B3.04A` só vale com `B3.04` = Sim)
+        resumo_das_despesas=resumo_das_despesas(_respostas_do_calculo(registros, respostas)),
+    )
 
 
 def serializar_plano(
@@ -149,6 +182,8 @@ def serializar_plano(
                 # que a ordem seguiu o critério do método (nota alta).
                 "incomodo": posicao.incomodo,
                 "aviso_incomodo": posicao.aviso_incomodo,
+                # `RF-412`: avisos do que o aluno declarou (atraso, garantia).
+                "avisos": list(posicao.avisos),
                 # `T-354`: o que o aluno respondeu sobre atraso, cobrança
                 # judicial e garantia — só o revisor, só respostas, sem
                 # selo de "crítica" calculado (Lei nº 3).
@@ -254,7 +289,14 @@ def serializar_plano(
             "parcelas": contexto.ponto_de_partida.parcelas,
             "valor_extra": contexto.ponto_de_partida.valor_extra,
             "quantidade_de_dividas": contexto.ponto_de_partida.quantidade_de_dividas,
+            # `RF-412` (`B3.DF02`): fixo × variável e o resultado mensal.
+            "contribuicao_familiar": contexto.ponto_de_partida.contribuicao_familiar,
+            "despesas_tipo_fixo": contexto.ponto_de_partida.despesas_tipo_fixo,
+            "despesas_tipo_variavel": contexto.ponto_de_partida.despesas_tipo_variavel,
+            "despesas_nao_classificadas": contexto.ponto_de_partida.despesas_nao_classificadas,
+            "despesas_mensais_totais": contexto.ponto_de_partida.despesas_mensais_totais,
         },
+        "avisos_gerais": list(contexto.avisos_gerais),
         "como_funciona": list(contexto.como_funciona),
         # `T-352`/`T-353`: o curso de entrada e o aviso de plano sem valor
         # extra — texto fixo, escolhido por lookup (nenhuma conta).

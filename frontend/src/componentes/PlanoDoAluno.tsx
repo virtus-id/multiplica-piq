@@ -82,6 +82,13 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
         </p>
       )}
 
+      {/* `RF-412` (`B5.00`): faltam fichas de dívida declaradas; não bloqueia. */}
+      {plano.avisos_gerais?.map((aviso) => (
+        <p key={aviso} className="aviso-atencao m-0" role="status">
+          {aviso}
+        </p>
+      ))}
+
       {plano.MODO_ESTABILIZACAO && (
         <div className="aviso-atencao" role="status">
           <div>
@@ -142,6 +149,12 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
                       {posicao.aviso_incomodo && ` ${posicao.aviso_incomodo}`}
                     </p>
                   )}
+                  {/* `RF-412`: o que o aluno declarou (atraso, garantia), texto pronto. */}
+                  {posicao.avisos?.map((aviso) => (
+                    <p key={aviso} className="m-0 font-bold" role="note">
+                      {aviso}
+                    </p>
+                  ))}
                   {/* Revisão de design: os números de toda dívida ficam à
                       vista, inclusive o mês em que ela termina (`T-304`,
                       lido do cronograma gravado). */}

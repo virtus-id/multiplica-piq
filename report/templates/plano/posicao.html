@@ -28,6 +28,8 @@
     <p>{{ posicao.explicacao }}</p>
     {% if posicao.incomodo %}<p class="muted" style="margin: 0;">{{ posicao.incomodo }}{% if posicao.aviso_incomodo %} {{ posicao.aviso_incomodo }}{% endif %}</p>{% endif %}
 
+    {% for aviso in posicao.avisos %}<p class="muted" style="margin: 0;"><strong>{{ aviso }}</strong></p>{% endfor %}
+
     <div class="subtitulo">{{ dt.get("numeros", "") }}</div>
     <div class="fatos">
         {% for rotulo, valor in posicao.fatos %}

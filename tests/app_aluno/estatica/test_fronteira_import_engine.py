@@ -217,6 +217,14 @@ NOMES_PERMITIDOS_DE_ENGINE: Final[frozenset[str]] = frozenset(
         # reimplementa a fórmula financeira (Lei nº 3), só a invoca. Nenhum
         # outro nome de `engine.taxa` entra.
         "engine.taxa.derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA",
+        # `RF-412` (`B3.DF02`): a montagem chama a função pura do motor que
+        # soma as despesas fixas e as variáveis. Mesmo precedente de
+        # `engine.taxa`: `app/` só a invoca. Nenhum outro nome de
+        # `engine.despesas` entra.
+        "engine.despesas.somar_despesas_por_classificacao",
+        # `RF-412` (`B3.C02A`/`B3.C02B`): idem, a diferença entre a sobra ou
+        # falta percebida e o resultado mensal calculado.
+        "engine.percepcao.diferenca_percebida_do_calculado",
         # engine.precisao — módulo inteiro
         "engine.precisao",
         "engine.precisao.dinheiro",

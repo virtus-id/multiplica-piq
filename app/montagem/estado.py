@@ -34,7 +34,8 @@ agregação de **entrada** para o motor, não leitura de **saída** dele):
 - `RENDA_TOTAL_RECORRENTE` = `RENDA_PRINCIPAL` (B3.01) + soma de todas as
   fichas REP de `RENDA_RECORRENTE_ADICIONAL` (B3.03A-C, escopo
   `RENDA_ADICIONAL_ID`) — lista aberta, sem limite de quantidade
-  codificado. `RECURSOS_EXTRAORDINARIOS` (B3.05) e a renda extra potencial
+  codificado, + `CONTRIBUICAO_FAMILIAR` (B3.04A, `RF-412`).
+  `RECURSOS_EXTRAORDINARIOS` (B3.05) e a renda extra potencial
   (B3.06) nunca entram (`_renda_total_recorrente`).
 - `DESPESAS_OPERACIONAIS_ATUAIS` = soma de todos os valores das fichas REP
   de `B3.D01` a `B3.D11` (as 10 categorias fixas mais a não listada,
@@ -1033,6 +1034,16 @@ def _renda_recorrente_adicional_total(respostas: RespostasCaso) -> Dinheiro:
     return total
 
 
+def _contribuicao_familiar(respostas: RespostasCaso) -> Dinheiro:
+    """`RF-412` (`B3.04A`, `CONTRIBUICAO_FAMILIAR`): quanto outra pessoa
+    coloca por mês nas despesas do orçamento soma à renda disponível. Sem
+    resposta, `NAO_SEI` ou pergunta que não abriu (`B3.04` = Não): zero — a
+    renda fica idêntica à de antes. Soma simples; nenhuma fórmula nova."""
+    valor = respostas.valor("CONTRIBUICAO_FAMILIAR")
+    traduzido = None if valor is None else _ou_desconhecido(valor)
+    return traduzido if isinstance(traduzido, Decimal) else _ZERO
+
+
 def _renda_total_recorrente(respostas: RespostasCaso) -> Dinheiro:
     """`OQ-16`: `RENDA_TOTAL_RECORRENTE` = `RENDA_PRINCIPAL` (B3.01) + soma
     de todas as fichas de `RENDA_RECORRENTE_ADICIONAL` (B3.03A-C, escopo
@@ -1041,7 +1052,11 @@ def _renda_total_recorrente(respostas: RespostasCaso) -> Dinheiro:
     função nem por nenhuma outra deste módulo, então não há filtro a
     escrever: a exclusão é por simplesmente nunca ler essas duas
     variáveis."""
-    return _renda_principal(respostas) + _renda_recorrente_adicional_total(respostas)
+    return (
+        _renda_principal(respostas)
+        + _renda_recorrente_adicional_total(respostas)
+        + _contribuicao_familiar(respostas)
+    )
 
 
 def _despesas_operacionais_atuais(respostas: RespostasCaso) -> Dinheiro:

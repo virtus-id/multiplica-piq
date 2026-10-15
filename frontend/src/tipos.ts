@@ -122,6 +122,15 @@ export interface LinhaDaFotografia {
   corrigir: { ID_PERGUNTA: string | null; item_id: string }
 }
 
+/** `RF-412` — tudo calculado no servidor; `diferenca` nula = sem resultado calculado. */
+export interface ComparacaoSobraFalta {
+  sentido: 'SOBRA' | 'FALTA'
+  informado: string | null
+  calculado: string | null
+  /** Informado − calculado, sobra positiva e falta negativa. */
+  diferenca: string | null
+}
+
 /**
  * `B3.C00` — os três números, todos do servidor (`RF-79`). `null` = não
  * informado, nunca `0` (`EC-28`); `parcial` marca o total com item "não sei"
@@ -129,6 +138,8 @@ export interface LinhaDaFotografia {
  */
 export interface PainelFotografia {
   tipo: 'FOTOGRAFIA_DO_MES'
+  /** `RF-412` (`B3.C02C`): sobra ou falta informada × calculado. Só nessa pergunta. */
+  comparacao?: ComparacaoSobraFalta | null
   renda_total: string | null
   despesas_totais: string | null
   sobra_antes_das_dividas: string | null
@@ -301,6 +312,8 @@ export interface PosicaoDaOrdem {
    */
   incomodo?: string
   aviso_incomodo?: string
+  /** `RF-412` — avisos do que o aluno declarou (atraso, garantia), texto pronto. */
+  avisos?: string[]
   /**
    * `T-354` — só no payload do REVISOR: o que o aluno respondeu sobre
    * atraso, cobrança judicial e garantia. Respostas, nunca um selo.
@@ -353,6 +366,8 @@ export interface Plano {
   curso_ssd?: CursoSsd | null
   /** `T-352`: plano normal sem valor extra no mês; vazio nos demais casos. */
   aviso_sem_valor_extra?: string
+  /** `RF-412` — avisos do plano inteiro (faltam fichas de dívida declaradas). */
+  avisos_gerais?: string[]
   /** Redação vigente de `textos-canonicos.yaml` — vem do servidor, nunca reescrita aqui. */
   titulo: string
   corpo: string
@@ -439,6 +454,13 @@ export interface PontoDePartida {
   parcelas: string
   valor_extra: string
   quantidade_de_dividas: number
+  /** `RF-412` (`B3.DF02`) — vazios quando o servidor não envia o resumo. */
+  /** `RF-412` (`B3.04A`) — vazio sem contribuição familiar; a renda acima já a inclui. */
+  contribuicao_familiar?: string
+  despesas_tipo_fixo?: string
+  despesas_tipo_variavel?: string
+  despesas_nao_classificadas?: string
+  despesas_mensais_totais?: string
 }
 
 export interface CaminhoDoPrognostico {

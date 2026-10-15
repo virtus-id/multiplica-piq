@@ -542,8 +542,8 @@ def test_a_colecao_real_tem_113_registros() -> None:
     `B4.V01` (118 → 117). `T-393` (RF-407): `-4`, cinco perguntas de taxa e CET
     (`B5.D01`, `B5.D01A`, `B5.D01B`, `B5.D03`, `B5.D03A`) viram uma, `B5.D06` (117 → 113).
     `T-398` (RF-402): `-15`, sete do Bloco 4, sete do Bloco 5 e `B11.01`, a
-    última do Bloco 11 (113 → 98)."""
-    assert len(_registros_reais()) == 98
+    última do Bloco 11 (113 → 98). `T-399` (RF-412): `+2`, `B3.C00A` e `B3.C02C` (98 → 100)."""
+    assert len(_registros_reais()) == 100
 
 
 def test_os_casos_de_prova_do_gerador_ficam_fora_da_coleta() -> None:

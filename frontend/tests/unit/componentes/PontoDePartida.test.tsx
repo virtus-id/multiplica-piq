@@ -34,3 +34,23 @@ describe('PontoDePartida — entrada e saída', () => {
     expect(contagem?.className).not.toMatch(/text-accent|text-bad/)
   })
 })
+
+describe('PontoDePartida — contribuição familiar (RF-412, B3.04A)', () => {
+  it('mostra a contribuição já somada na renda só quando o servidor a envia', () => {
+    const { rerender } = render(
+      <PontoDePartida ponto={PONTO} textos={{}} titulo="" mostrarValorExtra={false} />,
+    )
+    expect(screen.queryByText(/outra pessoa da família/)).toBeNull()
+
+    rerender(
+      <PontoDePartida
+        ponto={{ ...PONTO, contribuicao_familiar: 'R$ 650,00' }}
+        textos={{}}
+        titulo=""
+        mostrarValorExtra={false}
+      />,
+    )
+    expect(screen.getByText(/outra pessoa da família/)).toBeInTheDocument()
+    expect(screen.getByText('R$ 650,00')).toBeInTheDocument()
+  })
+})

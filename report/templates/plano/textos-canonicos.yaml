@@ -54,6 +54,7 @@ rotulos_de_apoio:
   TAXA_EFETIVA_MENSAL_NORMALIZADA: "Taxa de juros"
   CET: "Custo efetivo total (CET)"
   PESO_EMOCIONAL: "Quanto esta dívida pesa para você"
+  VINCULO_DA_DIVIDA: "Vínculo em que é descontada"
 
 # ---------------------------------------------------------------------------
 # Por que esta dívida vem nesta posição — T-177, decisão do especialista.
@@ -454,9 +455,18 @@ ponto_de_partida:
     Estes são os números do seu mês, de acordo com as suas respostas. Eles
     são a base de tudo o que vem a seguir.
   renda: "Sua renda no mês"
+  # `RF-412` (`B3.04A`): redação proposta, a aprovar. A renda acima já a inclui.
+  contribuicao_familiar: "Desta renda, o que outra pessoa da família coloca por mês (já somado, informado por você)"
   gastos: "Seus gastos do dia a dia"
   gastos_ocasionais: "Gastos que não acontecem todo mês, em média mensal"
   parcelas: "Parcelas de dívidas que você já paga"
+  # `RF-412` (`B3.DF02`): quanto das despesas é fixo e quanto é variável; a
+  # linha de total é a da spec, verbatim.
+  despesas_tipo_fixo: "Despesas do tipo fixo"
+  despesas_tipo_variavel: "Despesas do tipo variável"
+  despesas_nao_classificadas: "Despesas sem classificação (fixo ou variável)"
+  despesas_mensais_totais: "Despesas mensais totais (receitas totais − despesas totais)"
+  parcial: "alguma informação ficou de fora"
   quantidade_dividas: "Dívidas incluídas neste plano"
   # Etiquetas curtas: a cor (verde entra, vermelho sai) não é o único sinal.
   entrada_rotulo: "Entra"
@@ -695,6 +705,15 @@ incomodo:
     A ordem segue o critério do método do seu plano, explicado em "Como o seu
     plano funciona". Esta dívida está no plano e termina no mês indicado em
     "Termina no".
+
+# `RF-412` — avisos do que o aluno declarou. `atrasada` é a redação do
+# especialista; `garantia` e `fichas_faltando` são redação proposta, a
+# aprovar. Todo aviso termina com `responsabilidade`. Não mudam a ordem.
+avisos:
+  atrasada: "Esta dívida está atrasada. Procure o credor para negociar antes de qualquer outra coisa."
+  garantia: "Esta dívida está vinculada a um bem ou garantia. Confira com o credor as condições dessa garantia antes de decidir qualquer coisa sobre ela."
+  fichas_faltando: "Você disse ter mais dívidas do que as que foram cadastradas. Este plano considera apenas as dívidas cadastradas."
+  responsabilidade: "A responsabilidade pela informação é do aluno."
 
 # Plano normal com capacidade de ataque zero no mês.
 sem_valor_extra: >-

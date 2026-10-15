@@ -145,3 +145,14 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Ajustar a contagem de registros (113 → 98) e os testes que citavam essas perguntas; estado do motor e snapshot idênticos com e sem as respostas (`test_remocao_sem_efeito.py`)
 
 **Status:** `[x] concluída` — 2026-10-15
+
+### `T-399` — Ligar ao motor as regras já confirmadas pelo especialista
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-389` · **Rastreia:** `RF-412`, `RF-404`
+- [x] (parte A) Avisos `B5.E01`, `B5.F01`, `B5.00` no plano/tela, com a frase de responsabilidade do aluno; sem mudar a ordem
+- [x] (parte B) `B3.C00` bloqueia e exige indicar quais itens não conferem (`B3.C00A`); `B3.C02A`/`B3.C02B` comparam com o resultado calculado (`B3.C02C`, `engine/percepcao.py`) e o aluno aceita ou revisa
+- [x] (parte B) `B3.04A` soma à renda disponível (`_contribuicao_familiar`) e o plano avisa (tela e PDF)
+- [x] (parte A) plano mostra fixo × variável (`B3.DF02`) e "Despesas mensais totais"
+- [x] (parte A) Credor (já no nome da dívida) e vínculo (`B5.A02V`, fato do cartão) só exibidos; `B5.I03` (só revisor) pendente; testes por critério de aceite; fora: regras de ordem, `B3.02A` e dúvidas
+
+**Status:** `[ ] pendente`

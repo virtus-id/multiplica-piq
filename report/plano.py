@@ -130,7 +130,7 @@ import yaml
 from engine.estado import Divida, EstadoFinanceiro
 from engine.precisao import quantizar_exibicao
 from engine.snapshot import SnapshotOrdem
-from engine.tipos import DESCONHECIDO, ORDEM_STATUS, Desconhecido
+from engine.tipos import DESCONHECIDO, ORDEM_STATUS, Desconhecido, DinheiroTalvez
 
 REGRAS: Final[tuple[str, ...]] = (
     "RF-20",
@@ -149,6 +149,7 @@ REGRAS: Final[tuple[str, ...]] = (
     "RF-43",
     "AC-70",
     "EC-18",
+    "RF-412",
 )
 
 CAMINHO_TEXTOS_CANONICOS: Final[Path] = (
@@ -259,6 +260,27 @@ class TextosCanonicosPlano:
     prognostico: Mapping[str, str] = field(default_factory=dict)
     incomodo: Mapping[str, str] = field(default_factory=dict)
     sem_valor_extra: str = ""
+    #: `RF-412` — avisos de `B5.E01` (`atrasada`), `B5.F01` (`garantia`) e
+    #: `B5.00` (`fichas_faltando`) e a frase `responsabilidade`, que fecha
+    #: todos eles.
+    avisos: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class ResumoDasDespesas:
+    """`RF-412` — o mês do aluno como a montagem o agregou das respostas:
+    despesas fixas e variáveis (`B3.DF02`, soma do motor), as sem
+    classificação e o resultado mensal (receitas totais − despesas totais).
+    `parcial`: algum total tem item "não sei" (decisão `R9-2`)."""
+
+    fixas: Decimal
+    variaveis: Decimal
+    nao_classificadas: Decimal
+    resultado_mensal: DinheiroTalvez
+    parcial: bool
+    #: `B3.04A`: quanto outra pessoa da família coloca por mês; já está na
+    #: renda do motor. Nulo ou zero = não informada.
+    contribuicao_familiar: Decimal | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,6 +293,15 @@ class VocabularioDoCaso:
 
     rotulos_de_opcao: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
     credores: Mapping[str, str] = field(default_factory=dict)
+    #: `RF-412` — respostas lidas pela aplicação, só transportadas: dívidas
+    #: atrasadas (`B5.E01`) e com garantia (`B5.F01`), o vínculo de cada
+    #: dívida consignada (`B5.A02V`), se há ficha declarada em `B5.00` sem
+    #: cadastro e o resumo das despesas. Nenhuma regra de ordem.
+    dividas_atrasadas: frozenset[str] = frozenset()
+    dividas_com_garantia: frozenset[str] = frozenset()
+    vinculos: Mapping[str, str] = field(default_factory=dict)
+    fichas_faltando: bool = False
+    resumo_das_despesas: ResumoDasDespesas | None = None
 
 
 def rotulo_de_codigo(rotulos: Mapping[str, str], codigo: str) -> str:
@@ -359,6 +390,7 @@ def carregar_textos_canonicos(
         prognostico=_mapa("prognostico"),
         incomodo=_mapa("incomodo"),
         sem_valor_extra=str(bruto.get("sem_valor_extra") or ""),
+        avisos=_mapa("avisos"),
     )
 
 
@@ -1011,6 +1043,10 @@ class ContextoPosicao:
     #: critério do método. Texto, nunca regra de ordem.
     incomodo: str = ""
     aviso_incomodo: str = ""
+    #: `RF-412` — avisos do que o aluno declarou (dívida atrasada, com
+    #: garantia), cada um terminando na frase de responsabilidade. Texto,
+    #: nunca regra de ordem.
+    avisos: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1094,6 +1130,8 @@ class ContextoPlano:
     #: T-352 — plano normal sem valor extra no mês (capacidade 0, sem
     #: estabilização): o aviso ao aluno; vazio nos demais casos.
     aviso_sem_valor_extra: str = ""
+    #: `RF-412` — avisos do plano inteiro (`B5.00`: faltam fichas declaradas).
+    avisos_gerais: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1697,7 +1735,7 @@ def _contexto_do_curso(
 
 
 def _fatos_da_divida(
-    divida: Divida | None, textos: TextosCanonicosPlano
+    divida: Divida | None, textos: TextosCanonicosPlano, vinculo: str | None = None
 ) -> tuple[tuple[str, str], ...]:
     """Os números fixos do cartão de cada dívida, LIDOS de `Divida` —
     mesmos rótulos de `rotulos_de_apoio`, para que o documento possa omitir
@@ -1718,7 +1756,36 @@ def _fatos_da_divida(
         else:
             texto = formatar_dinheiro_br(valor)
         fatos.append((textos.rotulos_de_apoio.get(campo, campo), texto))
+    if vinculo:  # `RF-412` (`B5.A02V`): só exibição
+        fatos.append((textos.rotulos_de_apoio.get("VINCULO_DA_DIVIDA", "Vínculo"), vinculo))
     return tuple(fatos)
+
+
+def _avisos_gerais(
+    vocabulario: VocabularioDoCaso | None, textos: TextosCanonicosPlano
+) -> tuple[str, ...]:
+    """`RF-412` (`B5.00`) — faltam fichas de dívida declaradas; não bloqueia."""
+    aviso = textos.avisos.get("fichas_faltando")
+    if not (vocabulario and vocabulario.fichas_faltando and aviso):
+        return ()
+    return (f"{aviso} {textos.avisos.get('responsabilidade', '')}".strip(),)
+
+
+def _avisos_da_divida(
+    divida_id: str, vocabulario: VocabularioDoCaso, textos: TextosCanonicosPlano
+) -> tuple[str, ...]:
+    """`RF-412` (`B5.E01`, `B5.F01`) — o aviso de cada coisa que o aluno
+    declarou sobre a dívida, com a frase de responsabilidade. Só texto: a
+    ordem do plano e o motor não leem isto."""
+    chaves = (
+        ("atrasada", divida_id in vocabulario.dividas_atrasadas),
+        ("garantia", divida_id in vocabulario.dividas_com_garantia),
+    )
+    return tuple(
+        f"{textos.avisos[chave]} {textos.avisos.get('responsabilidade', '')}".strip()
+        for chave, vale in chaves
+        if vale and textos.avisos.get(chave)
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1735,12 +1802,52 @@ class ContextoPontoDePartida:
     parcelas: str
     valor_extra: str
     quantidade_de_dividas: int  # len(estado_inputs.dividas): contagem, não valor
+    #: `RF-412` — `B3.DF02` e o resultado mensal; vazios sem o resumo.
+    despesas_tipo_fixo: str = ""
+    despesas_tipo_variavel: str = ""
+    despesas_nao_classificadas: str = ""
+    despesas_mensais_totais: str = ""
+    #: `RF-412` (`B3.04A`) — vazio sem contribuição familiar informada.
+    contribuicao_familiar: str = ""
 
 
-def _ponto_de_partida(snapshot: SnapshotOrdem) -> ContextoPontoDePartida:
+def _resumo_das_despesas(
+    resumo: ResumoDasDespesas | None, textos: TextosCanonicosPlano
+) -> dict[str, str]:
+    """`RF-412` — o resumo já somado pela montagem/motor, só formatado.
+    Sem resumo, nada aparece; total parcial leva a marca (`R9-2`)."""
+    if resumo is None:
+        return {}
+    marca = f" ({textos.ponto_de_partida.get('parcial', 'parcial')})" if resumo.parcial else ""
+    total = (
+        formatar_dinheiro_br(resumo.resultado_mensal)
+        if isinstance(resumo.resultado_mensal, Decimal)
+        else rotulo_de_codigo(textos.rotulos_de_codigos, "DESCONHECIDO")
+    )
+    return {
+        # `B3.04A`: só aparece com contribuição informada; a renda acima já a inclui
+        "contribuicao_familiar": (
+            formatar_dinheiro_br(resumo.contribuicao_familiar)
+            if resumo.contribuicao_familiar
+            else ""
+        ),
+        "despesas_tipo_fixo": formatar_dinheiro_br(resumo.fixas),
+        "despesas_tipo_variavel": formatar_dinheiro_br(resumo.variaveis),
+        # só aparece se houver o que não foi classificado
+        "despesas_nao_classificadas": (
+            formatar_dinheiro_br(resumo.nao_classificadas) if resumo.nao_classificadas else ""
+        ),
+        "despesas_mensais_totais": total + marca,
+    }
+
+
+def _ponto_de_partida(
+    snapshot: SnapshotOrdem, resumo: ResumoDasDespesas | None, textos: TextosCanonicosPlano
+) -> ContextoPontoDePartida:
     estado = snapshot.estado_inputs
     diagnostico = snapshot.diagnostico
     return ContextoPontoDePartida(
+        **_resumo_das_despesas(resumo, textos),
         renda=formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE),
         gastos=formatar_dinheiro_br(estado.DESPESAS_OPERACIONAIS_ATUAIS),
         gastos_ocasionais=formatar_dinheiro_br(estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS),
@@ -1844,7 +1951,14 @@ def montar_contexto_plano(
                 snapshot.METODO_RECOMENDADO_PIQ.value, {}
             ).get("primeira" if indice == 1 else "seguintes", ""),
             mes_de_quitacao=quitacoes.get(posicao_do_snapshot.DIVIDA_ID),
-            fatos=_fatos_da_divida(dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID), textos),
+            fatos=_fatos_da_divida(
+                dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID),
+                textos,
+                (vocabulario.vinculos if vocabulario else {}).get(posicao_do_snapshot.DIVIDA_ID),
+            ),
+            avisos=_avisos_da_divida(
+                posicao_do_snapshot.DIVIDA_ID, vocabulario or VocabularioDoCaso(), textos
+            ),
             incomodo=_incomodo_da_divida(
                 dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID), indice, textos
             )[0],
@@ -1894,7 +2008,10 @@ def montar_contexto_plano(
         # `cenario_recomendado`/`snapshot` já obtidos acima; nenhum campo
         # novo é lido do motor, só reorganizado para a "consultoria".
         nome_do_aluno=primeiro_nome(nome_do_aluno),
-        ponto_de_partida=_ponto_de_partida(snapshot),
+        ponto_de_partida=_ponto_de_partida(
+            snapshot, vocabulario.resumo_das_despesas if vocabulario else None, textos
+        ),
+        avisos_gerais=_avisos_gerais(vocabulario, textos),
         como_funciona=textos.como_funciona.get(snapshot.METODO_RECOMENDADO_PIQ.value, ()),
         pendencias_acionaveis=_pendencias_acionaveis(snapshot, textos, nomes),
         prognostico=prognostico,

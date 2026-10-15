@@ -671,6 +671,29 @@ perguntas:
     # totais da fotografia e as decomposições (`app/montagem/entrada.py`).
     painel: FOTOGRAFIA_DO_MES
 
+  # RF-412: resposta que não confere BLOQUEIA o avanço até o aluno dizer o
+  # que não está condizente (obrigatória só nesses dois casos).
+  - ID: B3.C00A
+    bloco: 3
+    enunciado: >-
+      Quais rendas ou despesas não estão condizentes com o seu mês? A
+      responsabilidade pela informação é do aluno.
+    tipo: TEXTO_CURTO
+    obrigatoriedade: [OBR, COND]
+    escopo_repeticao: NENHUM
+    opcoes: []
+    VARIAVEL_GRAVADA: ITENS_NAO_CONDIZENTES
+    condicao_exibicao:
+      tipo: OU
+      termos:
+        - {tipo: IGUAL, variavel: CONFIRMACAO_MAPEAMENTO_DESPESAS, valor: FALTA_DESPESA}
+        - {tipo: IGUAL, variavel: CONFIRMACAO_MAPEAMENTO_DESPESAS, valor: VALOR_ERRADO}
+    interpolacoes: []
+    validacoes_cruzadas: []
+    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
+    admite_nao_sei: false
+    salto_consequencia: null
+
   - ID: B3.C01
     bloco: 3
     enunciado: >-
@@ -740,7 +763,7 @@ perguntas:
     bloco: 3
     enunciado: Quanto costuma sobrar, aproximadamente?
     tipo: MOEDA
-    obrigatoriedade: [COND]
+    obrigatoriedade: [OBR, COND]
     escopo_repeticao: NENHUM
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
@@ -756,7 +779,7 @@ perguntas:
     bloco: 3
     enunciado: Quanto costuma faltar, aproximadamente?
     tipo: MOEDA
-    obrigatoriedade: [COND]
+    obrigatoriedade: [OBR, COND]
     escopo_repeticao: NENHUM
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
@@ -767,6 +790,33 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
     salto_consequencia: null
+
+  # RF-412: etapa didática. O painel mostra a sobra ou falta informada ao
+  # lado do resultado mensal calculado, com a diferença (sem limite de
+  # tolerância); o aluno aceita a diferença ou revisa as respostas.
+  - ID: B3.C02C
+    bloco: 3
+    enunciado: >-
+      O valor que você informou e o resultado calculado a partir das suas
+      respostas são diferentes. O que você prefere fazer?
+    tipo: SELECAO_UNICA
+    obrigatoriedade: [OBR, COND]
+    escopo_repeticao: NENHUM
+    opcoes:
+      - {rotulo: Aceitar a diferença e continuar., valor_interno: ACEITAR_DIFERENCA}
+      - {rotulo: Revisar as minhas respostas., valor_interno: REVISAR}
+    VARIAVEL_GRAVADA: CONFERENCIA_SOBRA_FALTA
+    condicao_exibicao:
+      tipo: OU
+      termos:
+        - {tipo: IGUAL, variavel: PERCEPCAO_FECHAMENTO_MES, valor: SOBRA}
+        - {tipo: IGUAL, variavel: PERCEPCAO_FECHAMENTO_MES, valor: FALTA}
+    interpolacoes: []
+    validacoes_cruzadas: []
+    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
+    admite_nao_sei: false
+    salto_consequencia: "REVISAR → o aluno corrige pelo painel; ACEITAR_DIFERENCA → segue."
+    painel: COMPARACAO_SOBRA_FALTA
 
   # Parte E — Servidor / consignação
   - ID: B3.S01

@@ -458,3 +458,14 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 
 ## 13. Out of Scope (fora de escopo desta spec)
 Implementação de código, edição dos YAML e mudança de parâmetros `P_*`.
+
+### RF-412. Regras do especialista já confirmadas, ligadas ao motor (decisão de 2026-10-15)
+Entram só as regras que o especialista escolheu com instrução clara. Tudo o que ficou em dúvida ou sem instrução **não é implementado** (ver "Fora desta entrega").
+- **Avisos com responsabilidade do aluno:** `B5.E01` (dívida atrasada: "Esta dívida está atrasada. Procure o credor para negociar antes de qualquer outra coisa."), `B5.F01` (dívida com garantia) e `B5.00` (faltam fichas de dívida; não bloqueia). Todo aviso termina com "A responsabilidade pela informação é do aluno." A ordem do plano não muda.
+- **Conferência do mês (`B3.C00`):** se a resposta não confere, bloqueia o avanço e exige indicar quais rendas ou despesas não estão condizentes.
+- **Sobra e falta (`B3.C02A` e `B3.C02B`):** compara com o resultado mensal calculado; qualquer diferença é mostrada ao aluno, que aceita a diferença ou revisa. Etapa didática, sem limite.
+- **Contribuição familiar (`B3.04A`):** soma à renda disponível e o plano mostra ao aluno que essa renda está sendo considerada.
+- **Plano:** mostra quanto das despesas é fixo e quanto é variável (`B3.DF02`) e o campo "Despesas mensais totais (receitas totais − despesas totais)".
+- **Só exibição:** credor (`B5.A01`), vínculo (`B5.A02V`) e data da informação (`B5.I03`, só ao revisor).
+
+**Fora desta entrega (pendente):** regras de ordem `B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04` (faltam precedência e pesos), `B3.02A` (conflita com `B3.02`) e tudo marcado como dúvida.

@@ -209,6 +209,7 @@ def test_nenhuma_variavel_nova_de_rotulo_visual_para_a_ordem() -> None:
         "prognostico",
         "incomodo",
         "sem_valor_extra",
+        "avisos",  # `RF-412`: avisos do que o aluno declarou
         # `T-326` (RF-111): nome da dívida, descrição das ações e rótulos
         # dos dados e códigos — nenhum renomeia a ordem.
         "nome_da_divida",

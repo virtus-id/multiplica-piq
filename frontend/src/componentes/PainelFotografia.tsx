@@ -12,7 +12,7 @@
  * leva ao "corrigir" pela rota de correção de `RF-69`.
  */
 import { formatarDecimalDoServidor } from '../mascaras'
-import type { LinhaDaFotografia, PainelFotografia as Painel } from '../tipos'
+import type { ComparacaoSobraFalta, LinhaDaFotografia, PainelFotografia as Painel } from '../tipos'
 
 const NAO_INFORMADO = 'não informado'
 const PARCIAL = 'parcial (há itens sem valor)'
@@ -73,6 +73,27 @@ function Linhas({
   )
 }
 
+/** `RF-412` (`B3.C02C`): o informado ao lado do calculado, com a diferença — tudo do servidor. */
+function Comparacao({ comparacao }: { comparacao: ComparacaoSobraFalta }) {
+  const sobra = comparacao.sentido === 'SOBRA'
+  return (
+    <div role="status" className="flex flex-col gap-1">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+        <dt className="text-muted">{sobra ? 'Sobra que você informou' : 'Falta que você informou'}</dt>
+        <dd className="m-0 font-bold tabular-nums">{moeda(comparacao.informado)}</dd>
+        <dt className="text-muted">Resultado calculado das suas respostas</dt>
+        <dd className="m-0 font-bold tabular-nums">{moeda(comparacao.calculado)}</dd>
+        <dt className="text-muted">Diferença</dt>
+        <dd className="m-0 font-bold tabular-nums">{moeda(comparacao.diferenca)}</dd>
+      </dl>
+      <p className="nota m-0">
+        A diferença pode vir de alguma renda ou despesa que ficou de fora ou de um valor errado. A
+        responsabilidade pela informação é do aluno.
+      </p>
+    </div>
+  )
+}
+
 export default function PainelFotografia({
   painel,
   aoCorrigir,
@@ -83,6 +104,7 @@ export default function PainelFotografia({
 }) {
   return (
     <section className="cartao" aria-label="Fotografia do seu mês">
+      {painel.comparacao && <Comparacao comparacao={painel.comparacao} />}
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
         <Numero rotulo="Renda total" valor={painel.renda_total} parcial={painel.parcial.renda} />
         <Numero

@@ -155,7 +155,7 @@ class RegistroPergunta:
     # própria. `painel` (RF-79): a serialização anexa a fotografia do mês.
     # `indispensavel` (RF-93): dado cuja ausência bloqueia a liberação.
     # `faixa` (RF-84): intervalo FECHADO aceito na gravação (EC-01).
-    painel: Literal["FOTOGRAFIA_DO_MES"] | None = None
+    painel: Literal["FOTOGRAFIA_DO_MES", "COMPARACAO_SOBRA_FALTA"] | None = None
     indispensavel: bool = False
     faixa: tuple[Decimal, Decimal] | None = None
     # Redação ao aluno quando o valor sai da `faixa` (`T-238`) — do YAML.

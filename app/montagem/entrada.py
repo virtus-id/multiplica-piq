@@ -32,6 +32,7 @@ import yaml
 from app.montagem.conversao import converter_para_dinheiro
 from app.montagem.estado import (
     ErroCampoAgregadoDesconhecido,
+    _contribuicao_familiar,
     _despesas_nao_mensais_por_item,
     _despesas_operacionais_por_item,
     _renda_total_recorrente,
@@ -39,8 +40,11 @@ from app.montagem.estado import (
 )
 from collection.registro import EscopoRepeticao
 from collection.respostas import RespostasCaso
+from engine.despesas import somar_despesas_por_classificacao
+from engine.percepcao import diferenca_percebida_do_calculado
 from engine.precisao import quantizar_exibicao
 from engine.tipos import DESCONHECIDO, Dinheiro, DinheiroTalvez
+from report.plano import ResumoDasDespesas
 
 REGRAS: Final[tuple[str, ...]] = ("RF-79", "RF-80", "EC-28", "EC-29", "OQ-16", "OQ-53")
 
@@ -118,6 +122,59 @@ def fotografia_do_mes(respostas: RespostasCaso) -> FotografiaDoMes:
         parcial_despesas=parcial_despesas,
         despesas_por_item=despesas,
         nao_mensais_por_item=nao_mensais,
+    )
+
+
+def resumo_das_despesas(respostas: RespostasCaso) -> ResumoDasDespesas:
+    """RF-412 — despesas fixas e variáveis (`B3.DF02`) e o resultado mensal
+    para o plano. A soma por classificação é a função pura do motor; o
+    resultado mensal (`renda − despesas`) é o MESMO da `B3.C00`
+    (`fotografia_do_mes`), sem conta nova aqui."""
+    fotografia = fotografia_do_mes(respostas)
+    fixas, variaveis, nao_classificadas = somar_despesas_por_classificacao(
+        (respostas.valor_no_item(linha.item_id, "CLASSIFICACAO_FIXA_VARIAVEL"), linha.valor_mensal)
+        for linha in fotografia.despesas_por_item
+    )
+    return ResumoDasDespesas(
+        fixas=fixas,
+        variaveis=variaveis,
+        nao_classificadas=nao_classificadas,
+        resultado_mensal=fotografia.SOBRA_ANTES_DAS_DIVIDAS,
+        parcial=fotografia.parcial_sobra,
+        contribuicao_familiar=_contribuicao_familiar(respostas),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ComparacaoSobraFalta:
+    """`RF-412` (`B3.C02A`/`B3.C02B`) — o que o aluno disse que sobra ou
+    falta × o resultado mensal calculado da fotografia. `sentido`: `SOBRA`
+    ou `FALTA`. `diferenca` = percebido − calculado (sobra positiva, falta
+    negativa), `DESCONHECIDO` se o calculado é desconhecido (`EC-28`)."""
+
+    sentido: str
+    percebido: Dinheiro
+    calculado: DinheiroTalvez
+    diferenca: DinheiroTalvez
+
+
+def comparar_sobra_ou_falta(respostas: RespostasCaso) -> ComparacaoSobraFalta | None:
+    """`RF-412` — `None` se o aluno não informou sobra nem falta. O
+    resultado calculado é o MESMO da `B3.C00` (`fotografia_do_mes`); a
+    diferença é a função pura do motor, sem conta nova aqui."""
+    sobra = respostas.valor("SOBRA_PERCEBIDA")
+    falta = respostas.valor("FALTA_PERCEBIDA")
+    sobra = sobra if isinstance(sobra, Decimal) else None
+    falta = falta if isinstance(falta, Decimal) else None
+    percebido = sobra if sobra is not None else falta
+    if percebido is None:
+        return None
+    calculado = fotografia_do_mes(respostas).SOBRA_ANTES_DAS_DIVIDAS
+    return ComparacaoSobraFalta(
+        sentido="SOBRA" if sobra is not None else "FALTA",
+        percebido=percebido,
+        calculado=calculado,
+        diferenca=diferenca_percebida_do_calculado(sobra, falta, calculado),
     )
 
 

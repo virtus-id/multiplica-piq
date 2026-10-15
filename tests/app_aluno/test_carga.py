@@ -637,7 +637,7 @@ def test_t224_questionario_na_versao_1_2_0_e_b3_c00_com_painel() -> None:
     colecao = carregar_registros(incluir_casos_de_prova=True)
 
     assert colecao.QUESTIONARIO_VERSION == "1.2.0"
-    assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00"]
+    assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00", "B3.C02C"]
     assert next(r for r in colecao.registros if r.ID == "B3.C00").painel == "FOTOGRAFIA_DO_MES"
 
 
