@@ -346,10 +346,14 @@ rotulos_de_codigos:
   AGUARDANDO_REVISAO: "Plano em conferência"
   REPROVADO_EM_REVISAO: "Plano devolvido na conferência"
   PLANO_LIBERADO: "Plano liberado"
-  COLETA_DIRIGIDA: "Completando informações"
-  CONFIRMACAO_ATAQUE: "Confirmando a dívida em ataque"
-  ACOMPANHAMENTO: "Em acompanhamento"
   ENCERRADO: "Encerrado"
+  # Liquidez do investimento (engine/estado.py::LIQUIDEZ_INVESTIMENTOS)
+  D0: "No mesmo dia"
+  D1: "Em 1 dia"
+  D7: "Em até 7 dias"
+  D30: "Em até 30 dias"
+  MAIS_30: "Em mais de 30 dias"
+  BLOQUEADO: "Bloqueado"
   # Valores gerais
   DESCONHECIDO: "Não informado"
   NENHUM: "Nenhum"

@@ -628,15 +628,15 @@ def test_t223_faixa_nao_numerica_e_recusada(tmp_path: Path) -> None:
     assert "B1.01" in _recusa(tmp_path, pergunta)
 
 
-def test_t224_questionario_na_versao_1_2_0_e_b3_c00_com_painel() -> None:
+def test_t224_questionario_na_versao_1_3_0_e_b3_c00_com_painel() -> None:
     """RF-03/AC-38 (T-224, `OQ-52`): a versão única de todos os registros é a
     1.2.0 (1.0.3 da canônica; 1.1.0 em `T-389` com as 87 perguntas retiradas, RF-402;
-    1.2.0 na publicação do enxugamento, com as demais mudanças das tarefas T-390 a T-397).
+    1.2.0 na publicação do enxugamento (T-390 a T-397); 1.3.0 em `T-400`, RF-413).
     `B3.C00` declara o painel da fotografia do mês e é o único registro que
     o faz."""
     colecao = carregar_registros(incluir_casos_de_prova=True)
 
-    assert colecao.QUESTIONARIO_VERSION == "1.2.0"
+    assert colecao.QUESTIONARIO_VERSION == "1.3.0"
     assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00", "B3.C02C"]
     assert next(r for r in colecao.registros if r.ID == "B3.C00").painel == "FOTOGRAFIA_DO_MES"
 

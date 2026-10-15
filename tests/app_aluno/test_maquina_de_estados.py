@@ -1,7 +1,7 @@
 """Testes de comportamento de `app/casos/maquina.py` — `RF-01` (T-34).
 
 Suíte DIFERENTE de `tests/app_aluno/test_maquina_estados_construcao.py`
-(T-33): aquela prova o que a máquina PROMETE CONSTRUIR (doze estados, forma
+(T-33): aquela prova o que a máquina PROMETE CONSTRUIR (nove estados, forma
 de `Transicao`, um par recusado como amostra, ausência de estado
 "reaberto"). Esta prova o COMPORTAMENTO da máquina ao longo do tempo:
 
@@ -108,29 +108,19 @@ def test_plano_liberado_e_terminal_nenhuma_transicao_e_aceita(para: ESTADO_CASO)
     assert capturado.value.para is para
 
 
-@pytest.mark.parametrize(
-    "estado",
-    [
-        ESTADO_CASO.COLETA_DIRIGIDA,
-        ESTADO_CASO.CONFIRMACAO_ATAQUE,
-        ESTADO_CASO.ACOMPANHAMENTO,
-    ],
-)
-def test_estados_pos_plano_ficam_sem_nenhuma_transicao(estado: ESTADO_CASO) -> None:
-    """`RF-401`, `RF-409` (`T-390`): os três estados seguem no enum (a coluna
-    `casos.estado` é texto e a leitura faz `ESTADO_CASO(valor)`), mas não têm
-    entrada nem saída — nem o recálculo que existia a partir deles."""
-    assert transicoes_a_partir_de(estado) == ()
-    assert not [t for t in TABELA_TRANSICOES if t.para is estado]
+@pytest.mark.parametrize("nome", ["COLETA_DIRIGIDA", "CONFIRMACAO_ATAQUE", "ACOMPANHAMENTO"])
+def test_estados_pos_plano_nao_existem_mais(nome: str) -> None:
+    """`RF-413` (`T-400`): os três estados pós-plano foram apagados do enum."""
+    assert nome not in ESTADO_CASO.__members__
 
 
-def test_produto_cartesiano_completo_dos_doze_estados_e_exaustivo() -> None:
-    """Critério 2 — EXAUSTIVO sobre os 12×12 = 144 pares (de, para), nenhuma
+def test_produto_cartesiano_completo_dos_nove_estados_e_exaustivo() -> None:
+    """Critério 2 — EXAUSTIVO sobre os 9×9 = 81 pares (de, para), nenhuma
     amostra: os 10 pares declarados sucedem e devolvem a `Transicao`
-    correta; os 134 restantes são recusados com `ErroTransicaoNaoDeclarada`
+    correta; os 71 restantes são recusados com `ErroTransicaoNaoDeclarada`
     nomeando origem e destino."""
     todos_os_pares = list(itertools.product(ESTADO_CASO, ESTADO_CASO))
-    assert len(todos_os_pares) == 144  # 12 x 12, produto cartesiano completo
+    assert len(todos_os_pares) == 81  # 9 x 9, produto cartesiano completo
 
     pares_declarados_vistos = 0
     pares_recusados_vistos = 0
@@ -150,8 +140,8 @@ def test_produto_cartesiano_completo_dos_doze_estados_e_exaustivo() -> None:
             pares_recusados_vistos += 1
 
     assert pares_declarados_vistos == 10
-    assert pares_recusados_vistos == 134
-    assert pares_declarados_vistos + pares_recusados_vistos == 144
+    assert pares_recusados_vistos == 71
+    assert pares_declarados_vistos + pares_recusados_vistos == 81
 
 
 def test_erro_de_calculo_volta_so_a_coleta_inicial_ec06() -> None:
@@ -237,11 +227,5 @@ def test_aluno_nao_refaz_o_plano_depois_da_entrega() -> None:
     tabela; de nenhum estado de plano entregue ou de etapa pós-plano se volta
     a `COLETA_INICIAL` pelo aluno."""
     assert not [t for t in TABELA_TRANSICOES if t.gatilho == "aluno_refaz_plano"]
-    for origem in (
-        ESTADO_CASO.PLANO_LIBERADO,
-        ESTADO_CASO.ACOMPANHAMENTO,
-        ESTADO_CASO.COLETA_DIRIGIDA,
-        ESTADO_CASO.CONFIRMACAO_ATAQUE,
-    ):
-        with pytest.raises(ErroTransicaoNaoDeclarada):
-            transicionar(origem, ESTADO_CASO.COLETA_INICIAL)
+    with pytest.raises(ErroTransicaoNaoDeclarada):
+        transicionar(ESTADO_CASO.PLANO_LIBERADO, ESTADO_CASO.COLETA_INICIAL)

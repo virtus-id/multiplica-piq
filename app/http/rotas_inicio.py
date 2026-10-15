@@ -296,7 +296,7 @@ def _proxima_etapa(
             )
 
         case FASE_INICIO.ACOMPANHAMENTO:
-            # Inalcançável (T-390): não há acompanhamento depois do plano.
+            # Só `ENCERRADO` chega aqui (EC-25): não há acompanhamento depois do plano.
             return ProximaEtapa(
                 destino=DESTINO_DA_ETAPA.PLANO,
             )

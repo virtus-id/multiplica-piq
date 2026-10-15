@@ -469,3 +469,6 @@ Entram só as regras que o especialista escolheu com instrução clara. Tudo o q
 - **Só exibição:** credor (`B5.A01`), vínculo (`B5.A02V`) e data da informação (`B5.I03`, só ao revisor).
 
 **Fora desta entrega (pendente):** regras de ordem `B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04` (faltam precedência e pesos), `B3.02A` (conflita com `B3.02`) e tudo marcado como dúvida.
+
+### RF-413. Excluir de vez o pós-entrega do plano (decisão de 2026-10-15)
+Os estados `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` saem do código (enum `ESTADO_CASO`, testes, textos e tipos do frontend). `PLANO_LIBERADO` segue terminal. Antes de apagar, conferir (somente leitura) que nenhum caso está nesses estados. Também: `QUESTIONARIO_VERSION` sobe para `1.3.0` (perguntas novas B3.C00A e B3.C02C) e o rótulo faltante de `ItemInvestimento.LIQUIDEZ_INVESTIMENTOS` é corrigido (falha antiga de teste, resquício da remoção do Bloco 4).

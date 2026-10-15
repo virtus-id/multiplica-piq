@@ -175,22 +175,6 @@ def test_ac182_antes_da_liberacao_pedir_plano_novo_e_recusado(
         assert cliente.get(f"/caso/{CASO_ID}/respostas").json()["pode_refazer_plano"] is False
 
 
-def test_ac181_de_acompanhamento_tambem_nao_pode_refazer(cenario: Cenario) -> None:  # noqa: F811
-    cliente, casos, _, _, _ = cenario
-    with cliente:
-        for destino in (
-            ESTADO_CASO.CALCULANDO,
-            ESTADO_CASO.AGUARDANDO_REVISAO,
-            ESTADO_CASO.PLANO_LIBERADO,
-            ESTADO_CASO.ACOMPANHAMENTO,
-        ):
-            casos.transicionar_estado(CASO_ID, destino)
-
-        assert cliente.get(f"/caso/{CASO_ID}/respostas").json()["pode_refazer_plano"] is False
-        assert cliente.post(f"/caso/{CASO_ID}/refazer-plano").status_code == 409
-        assert _caso(casos).estado is ESTADO_CASO.ACOMPANHAMENTO
-
-
 def test_etapas_pos_plano_nao_existem_mais(cenario: Cenario) -> None:  # noqa: F811
     """`RF-401`, `RF-409` (T-387, T-390) — depois da entrega não há rota de
     abertura de etapa nem do Bloco 10: o caso fica em `PLANO_LIBERADO`."""

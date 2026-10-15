@@ -14,7 +14,7 @@ e `Caso` nascem AQUI, e `persistencia/app_aluno/casos.py` foi ajustado (nesta
 mesma tarefa) para importar os dois daqui em vez de os duplicar — ver o
 comentário atualizado naquele módulo.
 
-`ESTADO_CASO` tem exatamente os doze membros do plano §4.3, nomeados
+`ESTADO_CASO` tem exatamente os nove membros do plano §4.3, nomeados
 caractere por caractere. **Reabertura de pergunta não é estado**: o plano
 §7.1 é explícito — "reabriu B5.B03" não multiplica estados; a pendência mora
 na PERGUNTA (`AC-33`, `AC-34`), o estado do caso só diz em que fase ele está.
@@ -28,11 +28,9 @@ coberto" silenciosamente tolerado.
 
 **`PLANO_LIBERADO` é terminal (`RF-401`, `RF-409`, T-387, T-390).** O plano
 entregue é definitivo: a tabela não declara saída de `PLANO_LIBERADO`.
-`COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` ficam como
-membros do enum **sem nenhuma transição**: a coluna `casos.estado` é texto e
-`persistencia/app_aluno/` reconstrói o membro por `ESTADO_CASO(valor)`, então
-remover o membro quebraria a leitura de qualquer caso que já tenha gravado
-esse valor. Retirá-los exige antes uma migração dos dados.
+`COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` foram apagados
+do enum (T-400, `RF-413`): a conferência no banco novo mostrou nenhum caso
+nesses estados, então não há dado a migrar.
 
 **`ERRO_DE_CALCULO` retorna a `COLETA_INICIAL` (`EC-06`).** É a única origem
 de `CALCULANDO` que sobrou (o recálculo a partir dos estados pós-plano saiu
@@ -80,7 +78,7 @@ REGRAS: Final[tuple[str, ...]] = ("RF-01", "AC-33", "AC-34", "RF-30", "AC-39", "
 
 
 class ESTADO_CASO(Enum):
-    """Os doze estados do plano §4.3 — nomes caractere por caractere."""
+    """Os nove estados do plano §4.3 — nomes caractere por caractere."""
 
     CADASTRADO = "CADASTRADO"
     CONSENTIMENTO_REGISTRADO = "CONSENTIMENTO_REGISTRADO"
@@ -90,9 +88,6 @@ class ESTADO_CASO(Enum):
     AGUARDANDO_REVISAO = "AGUARDANDO_REVISAO"
     REPROVADO_EM_REVISAO = "REPROVADO_EM_REVISAO"
     PLANO_LIBERADO = "PLANO_LIBERADO"
-    COLETA_DIRIGIDA = "COLETA_DIRIGIDA"
-    CONFIRMACAO_ATAQUE = "CONFIRMACAO_ATAQUE"
-    ACOMPANHAMENTO = "ACOMPANHAMENTO"
     ENCERRADO = "ENCERRADO"
 
 
@@ -213,8 +208,7 @@ TABELA_TRANSICOES: Final[tuple[Transicao, ...]] = (
         guarda="RF-24: decisão = LIBERADO",
     ),
     # RF-401 · RF-409 (T-387, T-390): o plano entregue é definitivo. De
-    # `PLANO_LIBERADO` não sai transição nenhuma, e `COLETA_DIRIGIDA`,
-    # `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` não têm entrada nem saída.
+    # `PLANO_LIBERADO` não sai transição nenhuma.
 )
 
 # Índice (de, para) -> Transicao, montado uma vez a partir da tabela acima.

@@ -3,7 +3,7 @@
 # (RF-03, RF-04, RF-09, AC-04, AC-36). 55 das 58 perguntas são REP por
 # DIVIDA_ID (cada dívida é uma ficha) — só B5.00, B5.00A e B5.FIM02 não são
 # repetíveis (são perguntas de caso, não de ficha de dívida).
-QUESTIONARIO_VERSION: "1.2.0"
+QUESTIONARIO_VERSION: "1.3.0"
 perguntas:
   - ID: B5.00
     bloco: 5

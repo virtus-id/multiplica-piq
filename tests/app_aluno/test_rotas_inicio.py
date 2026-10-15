@@ -373,7 +373,7 @@ def _percorrer_valores(no: object, caminho: str = "") -> list[tuple[str, object]
         (ESTADO_CASO.AGUARDANDO_REVISAO, FASE_INICIO.REVISAO, None),
         (ESTADO_CASO.REPROVADO_EM_REVISAO, FASE_INICIO.REPROVADO, None),
         (ESTADO_CASO.PLANO_LIBERADO, FASE_INICIO.PLANO, "3000.00"),
-        (ESTADO_CASO.ACOMPANHAMENTO, FASE_INICIO.ACOMPANHAMENTO, None),
+        (ESTADO_CASO.ENCERRADO, FASE_INICIO.ACOMPANHAMENTO, None),
     ],
 )
 def test_ac81_cada_fase_devolve_uma_unica_proxima_etapa(
@@ -413,7 +413,7 @@ def test_ac81_as_cinco_fases_sao_alcancaveis_pela_rota(
         _payload_da_fase(
             monkeypatch, ESTADO_CASO.PLANO_LIBERADO, ataque_recomendado="3000.00"
         )["fase"],
-        _payload_da_fase(monkeypatch, ESTADO_CASO.ACOMPANHAMENTO)["fase"],
+        _payload_da_fase(monkeypatch, ESTADO_CASO.ENCERRADO)["fase"],
     }
 
     assert fases_observadas == {fase.value for fase in FASE_INICIO}
@@ -537,7 +537,7 @@ def test_ac88_valor_em_destaque_e_nulo_fora_da_fase_plano(
     for estado in (
         ESTADO_CASO.COLETA_INICIAL,
         ESTADO_CASO.AGUARDANDO_REVISAO,
-        ESTADO_CASO.ACOMPANHAMENTO,
+        ESTADO_CASO.ENCERRADO,
     ):
         payload = _payload_da_fase(monkeypatch, estado)
 
@@ -905,12 +905,6 @@ def test_t293_ficha_em_branco_marca_fichas_abertas(monkeypatch: pytest.MonkeyPat
         (ESTADO_CASO.AGUARDANDO_REVISAO, None, "Seu plano está em revisão."),
         (ESTADO_CASO.PLANO_LIBERADO, "0.00", "Seu plano está liberado."),
         (ESTADO_CASO.PLANO_LIBERADO, "3000.00", "Seu plano está liberado."),
-        (
-            ESTADO_CASO.CONFIRMACAO_ATAQUE,
-            "3000.00",
-            "Falta confirmar sua decisão.",
-        ),
-        (ESTADO_CASO.ACOMPANHAMENTO, "0.00", "Seu plano está em acompanhamento."),
         (ESTADO_CASO.ENCERRADO, "0.00", "Seu caso foi encerrado."),
     ],
 )

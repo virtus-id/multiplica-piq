@@ -156,3 +156,12 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] (parte A) Credor (já no nome da dívida) e vínculo (`B5.A02V`, fato do cartão) só exibidos; `B5.I03` (só revisor) pendente; testes por critério de aceite; fora: regras de ordem, `B3.02A` e dúvidas
 
 **Status:** `[ ] pendente`
+
+### `T-400` — Excluir o pós-entrega do plano e fechar pendências técnicas
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-390`, `T-399` · **Rastreia:** `RF-413`, `RF-409`
+- [x] Conferir (leitura) que nenhum caso está em `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` ou `ACOMPANHAMENTO`
+- [x] Apagar os três estados do código, testes, textos e frontend; `PLANO_LIBERADO` continua terminal
+- [x] `QUESTIONARIO_VERSION` 1.3.0 em todos os registros; rótulo de `LIQUIDEZ_INVESTIMENTOS`
+
+**Status:** `[x] concluída` — conferência no banco novo (somente leitura): AGUARDANDO_REVISAO 4, CADASTRADO 7, COLETA_INICIAL 1, nenhum nos três estados. Estados apagados de `ESTADO_CASO`, `fases.py`, `mensagens_de_estado.py`, `textos-canonicos.yaml` e testes; `QUESTIONARIO_VERSION` 1.3.0; rótulos `D0`..`BLOQUEADO` (liquidez do investimento) em `rotulos_de_codigos` (o enum é do motor, em uso, não removido).

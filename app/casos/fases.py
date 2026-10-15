@@ -3,14 +3,14 @@
 O protótipo validado `PIQ Meu Plano` decide o que a tela Início mostra a
 partir de uma **fase**, não do estado bruto do caso: `renderInicio` tem cinco
 ramos (`coleta`, `revisao`, `reprovado`, `plano`, `acompanhamento`), enquanto
-`app/casos/maquina.py::ESTADO_CASO` tem doze membros. Este módulo é o mapa
+`app/casos/maquina.py::ESTADO_CASO` tem nove membros. Este módulo é o mapa
 entre os dois, e nada além disso.
 
 **Por que uma fase, e não o estado direto.** O estado é a verdade da máquina —
 `CALCULANDO` e `AGUARDANDO_REVISAO` são transições distintas, com guardas
 distintas, e a máquina precisa dessa distinção. A fase é a verdade do **aluno**:
 nos dois casos a resposta à pergunta "o que eu faço agora?" é a mesma, *é com a
-gente, você não faz nada*. Colapsar os doze em cinco é o que permite a tela
+gente, você não faz nada*. Colapsar os nove em cinco é o que permite a tela
 Início oferecer **uma** próxima etapa (`RF-58`) em vez de expor a máquina de
 estados a quem não precisa dela.
 
@@ -42,8 +42,6 @@ acrescenta medo. A falha é observável pelo operador, que é quem pode agir.
 ## `PLANO_LIBERADO` — sem exceção desde T-387
 
 Com o plano definitivo (`RF-409`) a fase é função só do estado.
-`COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` não são mais
-alcançáveis (T-390); seguem mapeados porque o match é exaustivo.
 
 REGRAS: `RF-58`, `RF-61`, `AC-81`, `AC-89`, `EC-25`
 """
@@ -94,9 +92,6 @@ def fase_do_estado(estado: ESTADO_CASO) -> FASE_INICIO:
         case ESTADO_CASO.COLETA_INICIAL:
             # O caso canônico do protótipo: "62 de 195".
             return FASE_INICIO.COLETA
-        case ESTADO_CASO.COLETA_DIRIGIDA:
-            # Inalcançável (T-390): era a coleta dos Blocos 7 e 8.
-            return FASE_INICIO.COLETA
 
         # --- revisão: é com a equipe, o aluno não faz nada ---
         case ESTADO_CASO.CALCULANDO:
@@ -121,13 +116,8 @@ def fase_do_estado(estado: ESTADO_CASO) -> FASE_INICIO:
             # `RF-409` (T-387): o plano entregue é definitivo, a fase é sempre
             # esta.
             return FASE_INICIO.PLANO
-        case ESTADO_CASO.CONFIRMACAO_ATAQUE:
-            # Inalcançável (T-390): era a confirmação do ataque imediato.
-            return FASE_INICIO.PLANO
 
-        # --- acompanhamento: inalcançável desde T-390, mapeado por exaustividade ---
-        case ESTADO_CASO.ACOMPANHAMENTO:
-            return FASE_INICIO.ACOMPANHAMENTO
+        # --- encerrado ---
         case ESTADO_CASO.ENCERRADO:
             # Ver a nota do cabeçalho: não é uma sexta fase. É acompanhamento
             # com ações vazias e a mensagem de encerramento.

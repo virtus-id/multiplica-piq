@@ -1,7 +1,7 @@
 """Testes de `app/casos/fases.py` — as cinco fases do aluno (`RF-61`,
 `AC-89`, `EC-25`, T-146).
 
-Os doze membros de `ESTADO_CASO` colapsam nas cinco fases de `renderInicio`
+Os nove membros de `ESTADO_CASO` colapsam nas cinco fases de `renderInicio`
 do protótipo validado. Este módulo prova três coisas distintas:
 
 1. **`AC-89`** — todo membro de `ESTADO_CASO` tem fase. A enumeração é feita
@@ -69,15 +69,15 @@ def test_ac89_todo_membro_de_estado_caso_tem_uma_fase() -> None:
         )
 
 
-def test_ac89_os_doze_membros_de_estado_caso_estao_cobertos() -> None:
-    """`AC-89` — a máquina tem doze estados, e os doze aparecem na varredura
+def test_ac89_os_nove_membros_de_estado_caso_estao_cobertos() -> None:
+    """`AC-89` — a máquina tem nove estados, e os nove aparecem na varredura
     acima. A contagem é lida do enum: se a máquina ganhar um décimo terceiro
     estado, é o teste anterior que precisa continuar verde, não este número
     que precisa ser reescrito às pressas."""
     fases_por_estado = {estado: fase_do_estado(estado) for estado in ESTADO_CASO}
 
     assert len(fases_por_estado) == len(ESTADO_CASO)
-    assert len(ESTADO_CASO) == 12
+    assert len(ESTADO_CASO) == 9
 
 
 # ---------------------------------------------------------------------------
@@ -91,14 +91,11 @@ def test_ac89_os_doze_membros_de_estado_caso_estao_cobertos() -> None:
         (ESTADO_CASO.CADASTRADO, FASE_INICIO.COLETA),
         (ESTADO_CASO.CONSENTIMENTO_REGISTRADO, FASE_INICIO.COLETA),
         (ESTADO_CASO.COLETA_INICIAL, FASE_INICIO.COLETA),
-        (ESTADO_CASO.COLETA_DIRIGIDA, FASE_INICIO.COLETA),
         (ESTADO_CASO.CALCULANDO, FASE_INICIO.REVISAO),
         (ESTADO_CASO.ERRO_DE_CALCULO, FASE_INICIO.REVISAO),
         (ESTADO_CASO.AGUARDANDO_REVISAO, FASE_INICIO.REVISAO),
         (ESTADO_CASO.REPROVADO_EM_REVISAO, FASE_INICIO.REPROVADO),
         (ESTADO_CASO.PLANO_LIBERADO, FASE_INICIO.PLANO),
-        (ESTADO_CASO.CONFIRMACAO_ATAQUE, FASE_INICIO.PLANO),
-        (ESTADO_CASO.ACOMPANHAMENTO, FASE_INICIO.ACOMPANHAMENTO),
         (ESTADO_CASO.ENCERRADO, FASE_INICIO.ACOMPANHAMENTO),
     ],
 )
@@ -162,12 +159,10 @@ def test_ec25_calculando_e_erro_de_calculo_compartilham_a_mesma_fase() -> None:
     assert fase_do_estado(ESTADO_CASO.ERRO_DE_CALCULO) is FASE_INICIO.REVISAO
 
 
-def test_ec25_encerrado_compartilha_a_fase_de_acompanhamento() -> None:
+def test_ec25_encerrado_e_a_fase_de_acompanhamento() -> None:
     """`EC-25` — `ENCERRADO` **não** é uma sexta fase: é `acompanhamento`.
     O que muda é o conteúdo do cartão, não o que o aluno faz agora."""
-    assert fase_do_estado(ESTADO_CASO.ENCERRADO) is fase_do_estado(
-        ESTADO_CASO.ACOMPANHAMENTO
-    )
+    assert fase_do_estado(ESTADO_CASO.ENCERRADO) is FASE_INICIO.ACOMPANHAMENTO
 
 
 # ---------------------------------------------------------------------------

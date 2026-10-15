@@ -21,8 +21,8 @@ from app.casos.maquina import (
 )
 
 
-def test_estado_caso_tem_exatamente_os_doze_membros_do_plano() -> None:
-    """Critério 1: `ESTADO_CASO` tem exatamente os doze membros do plano
+def test_estado_caso_tem_exatamente_os_nove_membros_do_plano() -> None:
+    """Critério 1: `ESTADO_CASO` tem exatamente os nove membros do plano
     §4.3, com os nomes caractere por caractere."""
     nomes_esperados = {
         "CADASTRADO",
@@ -33,15 +33,12 @@ def test_estado_caso_tem_exatamente_os_doze_membros_do_plano() -> None:
         "AGUARDANDO_REVISAO",
         "REPROVADO_EM_REVISAO",
         "PLANO_LIBERADO",
-        "COLETA_DIRIGIDA",
-        "CONFIRMACAO_ATAQUE",
-        "ACOMPANHAMENTO",
         "ENCERRADO",
     }
     nomes_reais = {membro.name for membro in ESTADO_CASO}
 
     assert nomes_reais == nomes_esperados
-    assert len(ESTADO_CASO) == 12
+    assert len(ESTADO_CASO) == 9
     # Nome do membro e valor da string devem coincidir caractere por
     # caractere — nenhuma tradução entre o identificador Python e o valor
     # persistido na coluna `app_aluno.casos.estado`.
