@@ -7,9 +7,9 @@ perguntas:
   - ID: B3.01
     bloco: 3
     enunciado: >-
-      Quanto você recebe por mês, em média, depois do imposto de renda e da
-      previdência, mas antes de empréstimos e consignados? (Não desconte
-      parcelas de empréstimo nem consignado: você cadastra essas dívidas mais
+      Qual é o valor líquido que você recebe por mês, conforme seu contracheque
+      (depois do imposto de renda e da previdência, antes de empréstimos e
+      consignados)? (Não desconte parcelas de empréstimo nem consignado: você cadastra essas dívidas mais
       adiante. Plano de saúde, sindicato e outros descontos de folha entram
       nas despesas.)
     tipo: MOEDA
@@ -97,7 +97,7 @@ perguntas:
 
   - ID: B3.03B
     bloco: 3
-    enunciado: Quanto essa renda acrescenta, em média, por mês?
+    enunciado: Qual é o valor mensal dessa renda adicional, conforme o último comprovante?
     tipo: MOEDA
     obrigatoriedade: [COND, REP]
     escopo_repeticao: RENDA_ADICIONAL_ID
@@ -134,8 +134,8 @@ perguntas:
   - ID: B3.04A
     bloco: 3
     enunciado: >-
-      Quanto essa pessoa efetivamente coloca, em média, por mês nas despesas
-      deste orçamento?
+      Qual valor exato essa pessoa coloca por mês nas despesas deste
+      orçamento?
     tipo: MOEDA
     obrigatoriedade: [COND]
     escopo_repeticao: NENHUM
@@ -697,10 +697,8 @@ perguntas:
   - ID: B3.C01
     bloco: 3
     enunciado: >-
-      Pensando na sua realidade de hoje, qual valor adicional você acredita
-      conseguir separar todos os meses para acelerar a quitação das
-      dívidas, sem precisar fazer uma nova dívida para conseguir fechar o
-      mês?
+      Qual valor exato você se compromete a separar todo mês para pagar
+      dívidas?
     tipo: MOEDA
     obrigatoriedade: [OBR]
     escopo_repeticao: NENHUM
@@ -761,7 +759,7 @@ perguntas:
 
   - ID: B3.C02A
     bloco: 3
-    enunciado: Quanto costuma sobrar, aproximadamente?
+    enunciado: Qual foi a sobra do último mês fechado, conforme seu extrato?
     tipo: MOEDA
     obrigatoriedade: [OBR, COND]
     escopo_repeticao: NENHUM
@@ -777,7 +775,7 @@ perguntas:
 
   - ID: B3.C02B
     bloco: 3
-    enunciado: Quanto costuma faltar, aproximadamente?
+    enunciado: Qual foi a falta do último mês fechado, conforme seu extrato?
     tipo: MOEDA
     obrigatoriedade: [OBR, COND]
     escopo_repeticao: NENHUM

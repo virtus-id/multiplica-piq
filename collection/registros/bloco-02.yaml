@@ -206,8 +206,8 @@ perguntas:
   - ID: B2.10
     bloco: 2
     enunciado: >-
-      Quanto por mês você estima que poderia reduzir ou eliminar desses
-      gastos?
+      Qual é o valor mensal exato desses gastos, conforme sua fatura ou
+      extrato?
     tipo: MOEDA
     obrigatoriedade: [COND]
     escopo_repeticao: NENHUM

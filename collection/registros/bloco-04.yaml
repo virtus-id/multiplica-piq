@@ -26,7 +26,7 @@ perguntas:
 
   - ID: B4.01A
     bloco: 4
-    enunciado: Quanto aproximadamente?
+    enunciado: Qual é o valor exato disponível hoje?
     tipo: MOEDA
     obrigatoriedade: [COND]
     escopo_repeticao: NENHUM
@@ -66,8 +66,7 @@ perguntas:
   - ID: B4.02A
     bloco: 4
     enunciado: >-
-      Qual é o valor total que você considera hoje como reserva ou dinheiro
-      guardado para proteção?
+      Qual é o saldo total da sua reserva hoje, conforme o extrato?
     tipo: MOEDA
     obrigatoriedade: [COND]
     escopo_repeticao: NENHUM

@@ -158,6 +158,7 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
   const pendencias = conferencia?.pendencias_homologacao ?? []
   const fontes = conferencia?.fontes ?? []
   const divergencias = conferencia?.divergencias ?? []
+  const datasDaInformacao = conferencia?.datas_da_informacao ?? []
   const homologacao = conferencia?.homologacao
 
   return (
@@ -257,13 +258,18 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
         </div>
       )}
 
-      {(fontes.length > 0 || divergencias.length > 0) && (
+      {(fontes.length > 0 || divergencias.length > 0 || datasDaInformacao.length > 0) && (
         <div className="cartao">
           <span className="eyebrow">Fonte de comprovação e avisos</span>
           <ul>
             {fontes.map((f) => (
               <li key={`${f.item_id}-${f.origem}`}>
                 {f.nome} · {f.dado}: {f.rotulo}
+              </li>
+            ))}
+            {datasDaInformacao.map((d) => (
+              <li key={`data-${d.item_id}`}>
+                {d.nome} · informações consultadas ou atualizadas: {d.rotulo}
               </li>
             ))}
             {divergencias.map((d, i) => (

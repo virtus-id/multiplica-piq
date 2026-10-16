@@ -264,7 +264,7 @@ perguntas:
   - ID: B5.C06A
     bloco: 5
     enunciado: >-
-      Nos últimos 3 meses, qual foi aproximadamente a média mensal paga?
+      Qual foi a média mensal paga nos últimos 3 meses, conforme o extrato?
     tipo: MOEDA
     obrigatoriedade: [COND, REP]
     escopo_repeticao: DIVIDA_ID

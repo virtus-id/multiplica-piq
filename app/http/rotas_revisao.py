@@ -408,7 +408,21 @@ def _contexto_de_conferencia(
         if conferir_desconto(respostas, item_id).divergencia_rs_pct
     ]
 
+    # `RF-415`: `B5.I03` (data da informação) só informa o revisor — nada chega ao motor.
+    pergunta_data = next(r for r in colecao.registros if r.ID == "B5.I03")
+    rotulo_por_valor = {o.valor_interno: o.rotulo for o in pergunta_data.opcoes}
+    datas_da_informacao = [
+        {
+            "item_id": item_id,
+            "nome": nome(item_id),
+            "rotulo": rotulo_por_valor.get(str(valor), str(valor)),
+        }
+        for item_id in dividas
+        if (valor := no_item(item_id, str(pergunta_data.VARIAVEL_GRAVADA))) is not None
+    ]
+
     return {
+        "datas_da_informacao": datas_da_informacao,
         "fontes": [
             {
                 "item_id": nivel.item_id,

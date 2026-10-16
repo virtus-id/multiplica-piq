@@ -434,8 +434,8 @@ def _dinheiro_obrigatorio(
     return traduzido
 
 
-# `VARIAVEL_GRAVADA` de B5.C06A ("Nos últimos 3 meses, qual foi
-# aproximadamente a média mensal paga?") — string composta, mesmo padrão de
+# `VARIAVEL_GRAVADA` de B5.C06A ("Qual foi a média mensal paga nos últimos
+# 3 meses, conforme o extrato?") — string composta, mesmo padrão de
 # `_VARIAVEL_PARCELA_CONTRATUAL`.
 _VARIAVEL_PAGAMENTO_MEDIA_TRES_MESES: Final[str] = (
     "PAGAMENTO_MENSAL_EFETIVO" + " (média 3 meses)"

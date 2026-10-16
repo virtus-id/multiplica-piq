@@ -467,6 +467,8 @@ export interface OpcoesDeDecisao {
   classificacoes_erro: string[]
   // `T-266` — derivados das respostas atuais, a cada leitura.
   fontes?: FonteDaFicha[]
+  /** `RF-415`: quando a dívida foi consultada (`B5.I03`) — só informação. */
+  datas_da_informacao?: { item_id: string; nome: string; rotulo: string }[]
   divergencias?: {
     tipo: 'DESCONTO'
     item_id: string | null

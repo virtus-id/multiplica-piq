@@ -173,3 +173,11 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [ ] Teste: estado do motor idêntico para as respostas que continuam válidas
 
 **Status:** `[ ] pendente`
+
+### `T-402` — Textos de valor exato aprovados (T-394) e `B5.I03` na tela do revisor
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-399`, `T-401` · **Rastreia:** `RF-415`, `RF-408`
+- [x] Aplicar nos registros os textos aprovados das 9 perguntas e o texto novo de `B5.C06A`; ajustar testes que comparam texto com a spec
+- [x] `B5.I03` aparece na tela do revisor como informação, sem efeito no cálculo; teste de regressão do estado do motor
+
+**Status:** `[x] concluída`
