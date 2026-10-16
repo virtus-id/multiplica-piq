@@ -94,13 +94,13 @@ resposta gravada (nem valor concreto, nem `NAO_SEI` — mesmo critério de
 
 **Ordem da varredura**: `registros` é percorrido na ordem em que a coleção
 chega (`collection/carga.py::carregar_registros`, que preserva a ordem dos
-arquivos YAML por nome — `bloco-01.yaml` .. `bloco-11.yaml` — e a ordem de
+arquivos YAML por nome — `bloco-01.yaml` .. `bloco-09.yaml` — e a ordem de
 aparição de cada pergunta dentro do arquivo, T-16/T-17..T-19); esta função
 NÃO reordena por `RegistroPergunta.bloco` nem por `ID`: reordenar inventaria
 uma ordem própria que poderia divergir da ordem real de exibição declarada
 pelo registro (a mesma ordem que `T-43`/HTMX usa para andar de pergunta em
 pergunta). Como os arquivos de registro nascem nomeados na ordem normativa
-dos blocos (`bloco-01` < `bloco-02` < ... < `bloco-11`, T-17/T-18) e cada
+dos blocos (`bloco-01` < `bloco-02` < ... < `bloco-09`, T-17/T-18) e cada
 arquivo lista suas perguntas na ordem da §11, a ordem de carga JÁ É a ordem
 de blocos exigida por `AC-01` — sem duplicar esse conhecimento aqui.
 
@@ -147,22 +147,21 @@ não introduzir uma rota nova por fora do que a tarefa pediu.
 um fato — a alteração cadastral (`registrar_alteracao_cadastral`, `T-87`),
 que NUNCA transiciona o caso. As transições de estado propriamente ditas
 (`app/http/rotas_consentimento.py`, `app/http/rotas_calculo.py`,
-`app/revisao/fila.py`, `app/casos/acompanhamento.py`, `app/motor/
-executor.py`) continuavam persistindo o novo `estado` sem deixar rastro na
-trilha — o abandono ficava observável só por `Caso.ultima_interacao_em`,
-nunca por "em que transição o caso passou e quando".
+`app/revisao/fila.py`, `app/motor/executor.py`) continuavam persistindo o novo
+`estado` sem deixar rastro na trilha — o abandono ficava observável só por
+`Caso.ultima_interacao_em`, nunca por "em que transição o caso passou e
+quando".
 
 **Por que um wrapper único aqui, em vez de repetir o `INSERT` em cada
-chamador.** Os nove pontos reais de chamada (`rotas_consentimento.py`;
-`rotas_calculo.py`, duas vezes; `app/revisao/fila.py`, duas vezes;
-`app/casos/acompanhamento.py`, duas vezes; `app/motor/executor.py`, quatro
+chamador.** Os pontos reais de chamada (`rotas_consentimento.py`; `rotas_calculo.py`, duas
+vezes; `app/revisao/fila.py`, duas vezes; `app/motor/executor.py`, quatro
 vezes) já seguem o MESMO padrão de três passos: (1) validar o par contra
 `app.casos.maquina.transicionar` (nunca uma transição "forçada" fora da
 tabela); (2) persistir via `RepositorioCasos.transicionar_estado_se`
 (condicional ao estado esperado, a mesma trava de concorrência de `T-56` —
 nunca `transicionar_estado` incondicional, que reabriria a corrida dupla que
 aquela tarefa fechou); (3), a partir de agora, gravar um `EventoCaso` na
-trilha. Duplicar esses três passos em nove lugares arriscaria um chamador
+trilha. Duplicar esses três passos em vários lugares arriscaria um chamador
 futuro esquecer o terceiro passo (evento sem transição gravada, ou
 vice-versa) — exatamente o tipo de dessincronia que `RF-31`/`AC-40` existem
 para eliminar. `transicionar_e_registrar`, abaixo, é o ÚNICO lugar que faz os
@@ -407,15 +406,12 @@ def _percorrer_ocorrencias(
 
     O segundo eixo tem motivo registrado (era a docstring de
     `_pergunta_em_branco`, T-45): os registros reais têm perguntas repetíveis
-    por item CONDICIONAIS **sem** o membro `REP` — todo o Bloco 7
-    (`B7.05`..`B7.16`), o Bloco 8 e o Bloco 11 declaram `obrigatoriedade:
-    [COND]` com `escopo_repeticao: DIVIDA_ID`/`ACAO_ID`. Ali `REP`
+    por item CONDICIONAIS **sem** o membro `REP` — o Bloco 3 declara
+    `obrigatoriedade: [COND]` com `escopo_repeticao: VINCULO_ID`. Ali `REP`
     qualificaria "obrigatório por item", não "existe por item". A retomada
     precisa oferecer TODA pergunta que o aluno de fato veria por item,
     inclusive as só `COND`; a varredura de pendência BLOQUEANTE, não — e essa
-    distinção não afeta `AC-11`. (Desde `T-200` a retomada só varre a coleta
-    inicial — `da_coleta_inicial` —, mas o Bloco 3 tem o mesmo caso, com
-    `VINCULO_ID`.)
+    distinção não afeta `AC-11`.
 
     Fixar qualquer um dos dois predicados aqui dentro quebraria `AC-11` ou
     `AC-01`. Por isso eles entram como parâmetro, e por isso este gerador não
@@ -585,31 +581,16 @@ def _e_pergunta_aberta(
     return _condicao_permite_exigencia(registro, respostas, item_id)
 
 
-#: `T-200` — os blocos que NÃO são da coleta inicial. `RF-17` abre os Blocos
-#: 7 e 8 só para as dívidas que o motor sinalizou (coleta dirigida, "outra
-#: etapa" em `AC-92`); os Blocos 10 e 11 são posteriores ao plano (`RF-18`,
-#: `RF-27`). O resto dos blocos carregados (1–5 e 9) é a coleta inicial.
-BLOCOS_POS_PLANO: Final[frozenset[int]] = frozenset({7, 8, 10, 11})
-
-
-def da_coleta_inicial(registros: tuple[RegistroPergunta, ...]) -> tuple[RegistroPergunta, ...]:
-    """`T-200` — os registros da coleta inicial, na ordem recebida. A
-    retomada e a contagem usam só estes; a ficha do Bloco 5 também
-    (`rotas_fichas.py`). `perguntas_da_ficha` fica sem o filtro de propósito:
-    a coleta dirigida precisa do Bloco 7 por ela."""
-    return tuple(registro for registro in registros if registro.bloco not in BLOCOS_POS_PLANO)
-
-
 def _ocorrencias_da_retomada(
     registros: tuple[RegistroPergunta, ...],
     respostas: RespostasCaso,
     itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]] | None,
 ) -> Iterator[tuple[PendenciaObrigatoria, bool]]:
-    """A varredura com os predicados da retomada (`AC-01`) sobre a coleta
-    inicial (`T-200`) — a única que `proxima_pergunta_nao_respondida`,
-    `contar_coleta`, `itens_em_aberto` e `proxima_pergunta_do_item` leem."""
+    """A varredura com os predicados da retomada (`AC-01`) — a única que
+    `proxima_pergunta_nao_respondida`, `contar_coleta`, `itens_em_aberto` e
+    `proxima_pergunta_do_item` leem."""
     return _percorrer_ocorrencias(
-        da_coleta_inicial(registros),
+        registros,
         respostas,
         itens_por_escopo or {},
         elegivel=_e_pergunta_aberta,
@@ -677,7 +658,7 @@ def itens_em_aberto(
 
     `T-219`: varre os `registros` recebidos, SEM o filtro da coleta inicial
     — quem chama passa as perguntas da ficha (`rotas_fichas.py`). Com o
-    filtro, a ficha de ação (toda no Bloco 11) saía sempre completa."""
+    filtro, a ficha de ação (toda no antigo Bloco 11) saía sempre completa."""
     return frozenset(
         ocorrencia.item_id
         for ocorrencia, em_branco in _percorrer_ocorrencias(
@@ -769,17 +750,12 @@ def posicao_na_ficha(
     não existe "pergunta 4 de 12" numa pergunta que não é de ficha. O cliente
     cai no rótulo do bloco (`serializacao.py`).
 
-    **A ficha é por escopo E por BLOCO.** Filtrar só por `escopo_repeticao`
-    parece natural e está errado: `DIVIDA_ID` tem 88 registros espalhados por
-    três blocos — 55 no Bloco 5 (o inventário de dívidas), 13 no Bloco 7
-    (renegociação) e 20 no Bloco 8 (troca). Os Blocos 7 e 8 são **coleta
-    dirigida pelo motor, etapa pós-plano**: o aluno só os vê para as dívidas
-    que o motor sinalizou, meses depois de terminar o inventário.
-
-    Somar as três no mesmo denominador diria "pergunta 4 de 37" a quem está
-    cadastrando a primeira dívida, contando contra ele perguntas que talvez
-    nunca abram — e que, se abrirem, serão outra etapa da vida dele. A ficha
-    que o aluno percebe é a do bloco em que está.
+    **A ficha é por escopo E por BLOCO.** Filtrar só por `escopo_repeticao` parece
+    natural e está errado: um escopo pode ter registros em mais de um bloco.
+    Somar blocos no
+    mesmo denominador diria "pergunta 4 de 37" a quem está cadastrando a
+    primeira dívida, contando contra ele perguntas de outra etapa. A ficha que
+    o aluno percebe é a do bloco em que está.
 
     Usa `_e_pergunta_aberta` — os predicados da RETOMADA, não os da pendência:
     o localizador conta o que o aluno percorre, igual à barra de progresso —
@@ -841,8 +817,8 @@ def escopos_abertos_pela_resposta(
     deixou abertos: a cabeça tem condição, a condição lê `variavel` e vale
     agora. Cabeça sem condição (nada a abrir) nunca aparece aqui.
 
-    É "lê a variável", e não "estava fechada antes": `NAO(VINCULO_CONSIGNAVEL
-    = NAO)` já vale sem resposta, e o "Sim" em `B3.S01` precisa apontar a
+    É "lê a variável", e não "estava fechada antes": uma condição como
+    `NAO(X = NAO)` já vale sem resposta, e o "Sim" em `X` precisa apontar a
     ficha mesmo assim."""
     return tuple(
         escopo

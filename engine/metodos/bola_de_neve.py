@@ -119,6 +119,7 @@ from typing import Final
 from engine.ciclo_mensal import EstadoSimulacao, SelecionarAlvo
 from engine.estado import Divida
 from engine.parametros import Parametros
+from engine.prioridade_ordem import peso_emocional_efetivo
 from engine.tipos import DESCONHECIDO, Dinheiro
 from engine.valor_quitacao import compor_VALOR_RELEVANTE_PARA_QUITACAO
 
@@ -145,7 +146,7 @@ class ResultadoOrdenacaoBolaDeNeve:
 def _chave_desempate_O05(
     divida_id: str,
     divida: Divida,
-) -> tuple[Decimal, Decimal, int, str]:
+) -> tuple[Decimal, Decimal, Decimal, str]:
     """`O-05`, os quatro níveis nesta ordem EXATA — ver docstring do módulo:
 
     1. maior `VALOR_FLUXO_LIBERADO` (lido como `PAGAMENTO_MENSAL_EFETIVO`);
@@ -171,9 +172,13 @@ def _chave_desempate_O05(
         -custo_financeiro if custo_financeiro is not DESCONHECIDO else Decimal("Infinity")
     )
 
-    peso_emocional = divida.PESO_EMOCIONAL
+    # `§16.4` passo 4: o peso emocional efetivo soma 20% da urgência (sem
+    # urgência é o próprio `PESO_EMOCIONAL`, ordem idêntica à anterior).
+    peso_emocional = peso_emocional_efetivo(divida)
     peso_emocional_chave = (
-        -peso_emocional if peso_emocional is not DESCONHECIDO else 1  # pior: 0..10 negado é -10..0
+        -peso_emocional
+        if peso_emocional is not DESCONHECIDO
+        else Decimal(1)  # pior: 0..12 negado é -12..0
     )
 
     return (fluxo_liberado_chave, custo_financeiro_chave, peso_emocional_chave, divida_id)

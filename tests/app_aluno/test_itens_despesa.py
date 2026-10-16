@@ -1,5 +1,4 @@
-"""T-217 (itens 1–5) — ficha `ITEM_DESPESA` por item marcado em `B3.D01`–`D11`;
-T-219 — completude da ficha de ação.
+"""T-217 (itens 1–5) — ficha `ITEM_DESPESA` por item marcado em `B3.D01`–`D11`.
 
 A coleção é a real (`collection/registros/*.yaml`); os repositórios são os de
 arquivo sobre `tmp_path`, com o de respostas ligado ao de itens (o `NOT
@@ -289,7 +288,7 @@ def test_despesa_nao_listada_sim_abre_uma_ficha_que_pede_nome(
     [ficha] = _fichas(cliente)
     assert confirmacao["proxima"]["pergunta"]["item_id"] == ficha["item_id"]
     assert ficha["pede_nome"] is True
-    assert [c["ID"] for c in ficha["campos"]] == ["B3.DF01", "B3.DF02", "B3.DF03", "B3.DF04"]
+    assert [c["ID"] for c in ficha["campos"]] == ["B3.DF01", "B3.DF02"]
     _nomear(cliente, ficha["item_id"], "Pet")
     assert _rotulos(cliente) == ["Pet"]
 
@@ -411,20 +410,3 @@ def test_resposta_de_item_removido_continua_gravada(tmp_path: Path) -> None:
     [removido] = itens.listar_do_caso(CASO_ID)
     assert removido.origem == "B3.D01:AGUA"
 
-
-# ---------------------------------------------------------------------------
-# T-219 — a ficha de ação considera as perguntas do próprio escopo.
-# ---------------------------------------------------------------------------
-
-
-def test_t219_ficha_de_acao_com_pergunta_aberta_em_branco_nao_e_completa(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    cliente = _cliente(monkeypatch, tmp_path)
-    escopo = EscopoRepeticao.ACAO_ID.value
-    assert cliente.post(f"/caso/{CASO_ID}/fichas/{escopo}").status_code == 201
-
-    [ficha] = _fichas(cliente, escopo)
-
-    assert ficha["campos"]
-    assert ficha["completa"] is False

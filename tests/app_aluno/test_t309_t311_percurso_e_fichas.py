@@ -52,29 +52,29 @@ def _anterior(cliente: TestClient, ID: str, item_id: str | None) -> tuple[str, s
 def test_t309_t311_anterior_e_a_pergunta_exibida_logo_antes_no_percurso(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """Percorre duas fichas, com a condicional de Férias/abono, gravando a
+    """Percorre duas fichas, gravando a
     ordem EXIBIDA; cada pergunta aponta como anterior a exibida logo antes.
 
     Reproduz o defeito: o cliente montava a ordem a partir de `/respostas`
     (registro → item, e agrupada por parte) — `B3.05B@EXT002` voltava para
-    `B3.05D@EXT001` e `B3.05A@EXT002` para `B3.05A@EXT001`."""
+    `B3.05D@EXT001`."""
     cliente = _cliente_real(monkeypatch, tmp_path)
 
     # `T-311`: o "Sim" cria `EXT001` e a próxima é a primeira pergunta dele.
     gatilho = _responder(cliente, "B3.05", "SIM").json()
     assert gatilho["abrir_fichas"] == []
     exibidas = [("B3.05", None), _par(gatilho["proxima"]["pergunta"])]
-    assert exibidas[1] == ("B3.05A", "EXT001")
+    assert exibidas[1] == ("B3.05B", "EXT001")
 
     # As perguntas antes de `B3.05` estão em branco aqui, então a `proxima`
     # global seria `B1.01`; o percurso do item é o que a ficha mostra.
-    for valor in ("FERIAS_ABONO", "1000", "ATE_30D"):
+    for valor in ("1000", "ATE_30D"):
         ID, item = exibidas[-1]
         corpo = _responder(cliente, ID, valor, item).json()
         assert corpo["abrir_fichas"] == []  # item ainda aberto: segue nele
         assert "anterior" in corpo["proxima"]["pergunta"]
         exibidas.append(_par(_do_item(cliente, "EXT001")))
-    assert [ID for ID, _ in exibidas[2:]] == ["B3.05BF", "B3.05C", "B3.05D"]
+    assert [ID for ID, _ in exibidas[2:]] == ["B3.05C", "B3.05D"]
 
     # `T-311`: terminado o item, a lista do escopo reabre.
     fim = _responder(cliente, "B3.05D", "CONFIRMADO", "EXT001").json()
@@ -83,9 +83,10 @@ def test_t309_t311_anterior_e_a_pergunta_exibida_logo_antes_no_percurso(
     segundo = _criar_em(cliente, _ESCOPO).json()["ficha"]["item_id"]
     primeira = cliente.get(f"/caso/{_CASO_ID}/pergunta", params={"item_id": segundo}).json()
     exibidas.append(_par(primeira["pergunta"]))
-    _responder(cliente, "B3.05A", "13O_SALARIO", segundo)
-    exibidas.append(_par(_do_item(cliente, segundo)))
     assert exibidas[-1] == ("B3.05B", segundo)
+    _responder(cliente, "B3.05B", "500", segundo)
+    exibidas.append(_par(_do_item(cliente, segundo)))
+    assert exibidas[-1] == ("B3.05C", segundo)
 
     assert _anterior(cliente, *exibidas[0]) is None
     for antes, agora in zip(exibidas, exibidas[1:], strict=False):
@@ -107,9 +108,9 @@ def test_t310_trilha_por_partes_com_o_bloco_9_no_fim_do_percurso() -> None:
     registros = carregar_registros().registros
     percurso = _percurso(
         ("B1.01", False),
-        ("B2.01", False),
+        ("B2.06", False),
         ("B3.01", False),
-        ("B3.02", True),
+        ("B3.03", True),
         ("B4.01", True),
         ("B9.02", True),
     )

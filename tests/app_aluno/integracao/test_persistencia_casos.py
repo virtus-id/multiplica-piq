@@ -276,7 +276,7 @@ def test_ultima_interacao_em_e_gravada_e_legivel_na_trilha() -> None:
     """`RF-31`/`EC-14`: `registrar_interacao` grava `ultima_interacao_em`
     com o instante fornecido (comparável exatamente, não só "atualizou
     algo") e o valor é lido de volta por `buscar` — a mesma consulta que a
-    trilha de acompanhamento usaria."""
+    trilha de atividade do caso usaria."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
         cursor.execute("SET search_path TO app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)

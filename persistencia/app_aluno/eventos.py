@@ -1,6 +1,6 @@
 """Adaptador Supabase/Postgres da trilha de progresso do caso — `RF-31`,
-`AC-40` (T-21), consumido por `app/casos/acompanhamento.py::
-registrar_alteracao_cadastral` (`T-87`, `AC-35`).
+`AC-40` (T-21), consumido por `app/casos/progresso.py::
+transicionar_e_registrar`.
 
 Grava e lê `app_aluno.eventos_caso` (`persistencia/supabase/migracoes/
 002_app_aluno.sql`, T-21) — tabela já criada por aquela migração e, até esta

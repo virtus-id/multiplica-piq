@@ -6,7 +6,7 @@
 Sem `valor_interno`, o front grava `''` (`opcao.valor_interno ?? ''`) e a
 montagem, que compara literais (`"SIM"`/`"NAO"`/`"NAO_SEI"` em
 `app/montagem/estado.py`), lê "nenhuma opção" — `ValueError`, sinal ausente
-ou, pior, `False` silencioso (`SEGURO_INCLUIDO_PARCELA`). A convenção é a que
+ou, pior, `False` silencioso. A convenção é a que
 o registro já usava em `B1.02`/`B1.07`: `SIM`/`NAO`/`TALVEZ`/`NAO_SEI`.
 
 `T-208` estende a regra a TODA pergunta de escolha: sem `valor_interno`,
@@ -51,9 +51,6 @@ EXCECOES_VALOR_NULO: Final[frozenset[str]] = frozenset({"B7.16"})
 _TIPOS_DE_ESCOLHA: Final[frozenset[TipoResposta]] = frozenset(
     {TipoResposta.SELECAO_UNICA, TipoResposta.SELECAO_MULTIPLA, TipoResposta.SIM_NAO_TALVEZ}
 )
-
-ID_SEGURO_INCLUIDO_PARCELA: Final[str] = "B5.D05B"
-
 
 def _registros() -> tuple[RegistroPergunta, ...]:
     return tuple(carregar_registros().registros)
@@ -129,26 +126,6 @@ def test_nenhuma_pergunta_de_selecao_repete_valor_interno() -> None:
             violacoes.append(f"{registro.ID}: {repetidos}")
 
     assert not violacoes, "valor_interno repetido entre opções:\n" + "\n".join(violacoes)
-
-
-def test_seguro_incluido_parcela_gravado_pelo_valor_interno_chega_a_montagem() -> None:
-    """Reproduz C1 de ponta a ponta: grava cada opção de `B5.D05B` como o
-    front grava (`valor_interno ?? ''`) no `caso_completo` e monta a dívida.
-    Com `valor_interno` nulo, toda opção vira `''` e nenhuma produz
-    `SEGURO_INCLUIDO_PARCELA = True` — o "Sim" do aluno se perdia calado."""
-    registro = next(r for r in _registros() if r.ID == ID_SEGURO_INCLUIDO_PARCELA)
-    assert registro.VARIAVEL_GRAVADA is not None
-
-    lidos = []
-    for opcao in registro.opcoes:
-        caso = caso_completo(valores_divida={registro.VARIAVEL_GRAVADA: opcao.valor_interno or ""})
-        divida = montar_divida(caso.respostas, caso.DIVIDA_ID)
-        lidos.append(divida.SEGURO_INCLUIDO_PARCELA)
-
-    assert lidos.count(True) == 1, (
-        f"{ID_SEGURO_INCLUIDO_PARCELA}: esperava exatamente uma opção lida como "
-        f"SEGURO_INCLUIDO_PARCELA=True, obtive {lidos}"
-    )
 
 
 def test_t213_b5b05b_com_data_monta_a_divida_com_o_mesmo_status() -> None:

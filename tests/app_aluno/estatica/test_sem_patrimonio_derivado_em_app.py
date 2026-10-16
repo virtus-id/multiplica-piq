@@ -158,10 +158,9 @@ _BLOCO_PATRIMONIO: Final[int] = 4
 def _variaveis_do_bloco_4() -> frozenset[str]:
     """As `VARIAVEL_GRAVADA` do Bloco 4, lidas do REGISTRO REAL (`collection/
     registros/bloco-04.yaml` via `collection.carga`, T-16) — nunca uma lista
-    transcrita neste arquivo. Quatro delas são strings COMPOSTAS no registro
-    (`"VALOR_ESTIMADO_ATIVO (investimento)"`, `"VALOR_IMOVEL (=
-    VALOR_ESTIMADO_ATIVO)"`, ...), então o conjunto guarda tanto a string
-    inteira quanto o primeiro token — é por esse token que uma chamada a
+    transcrita neste arquivo. Uma `VARIAVEL_GRAVADA` pode ser string COMPOSTA
+    (`"VALOR_IMOVEL (= VALOR_ESTIMADO_ATIVO)"`), então o conjunto guarda tanto
+    a string inteira quanto o primeiro token — é por esse token que uma chamada a
     `valores_do_escopo` a referenciaria."""
     variaveis: set[str] = set()
     for registro in carregar_registros().registros:
@@ -178,7 +177,10 @@ def _variaveis_do_bloco_4() -> frozenset[str]:
     return frozenset(variaveis)
 
 
-VARIAVEIS_BLOCO_4: Final[frozenset[str]] = _variaveis_do_bloco_4()
+# `T-389` (RF-402): as perguntas patrimoniais de imóvel, veículo e outros ativos
+# saíram do registro; as três variáveis seguem vigiadas (uma pergunta que
+# voltasse sem esta trava abriria a dupla contagem de `OQ-24`).
+VARIAVEIS_BLOCO_4: Final[frozenset[str]] = _variaveis_do_bloco_4() | VARIAVEIS_PATRIMONIAIS
 
 
 @dataclass(frozen=True, slots=True)
@@ -647,7 +649,7 @@ def test_detector_d_pega_valores_do_escopo_sobre_variavel_do_bloco_4(variavel: s
     `VALOR_ESTIMADO_ATIVO`, gravada em QUATRO lugares do `bloco-04.yaml`, que
     é o caso concreto que a §13.8 veda."""
     assert variavel in VARIAVEIS_BLOCO_4, (
-        f"premissa da prova: {variavel!r} precisa ser variável do Bloco 4 no registro real"
+        f"premissa da prova: {variavel!r} precisa ser variável vigiada do Bloco 4"
     )
     codigo = (
         "def somar(respostas):\n"
@@ -714,11 +716,11 @@ def test_variaveis_do_bloco_4_vem_do_registro_real() -> None:
     `OQ-24` cita, o detector (d) estaria vigiando um conjunto vazio e
     passaria vácuo."""
     assert len(VARIAVEIS_BLOCO_4) > 0, "o registro do Bloco 4 precisa estar carregado"
-    for variavel in VARIAVEIS_PATRIMONIAIS:
-        assert variavel in VARIAVEIS_BLOCO_4, (
-            f"{variavel!r} deveria aparecer entre as VARIAVEL_GRAVADA do Bloco 4 "
-            "(é uma das três que OQ-24 cita como gravadas em vários lugares)"
-        )
+    # As três patrimoniais seguem vigiadas mesmo sem pergunta no registro:
+    # `T-389` retirou as que gravavam `SALDO_PASSIVO_VINCULADO` e
+    # `CUSTOS_ESTIMADOS_DESMOBILIZACAO`; `T-398`, a última que gravava
+    # `VALOR_ESTIMADO_ATIVO` (`B4.04B`).
+    assert VARIAVEIS_PATRIMONIAIS <= VARIAVEIS_BLOCO_4
     # Os cinco campos escalares que a fatia 2A de fato lê (`AC-71`).
     for escalar in (
         "DINHEIRO_DISPONIVEL_EXISTE",

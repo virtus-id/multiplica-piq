@@ -20,11 +20,11 @@ Este módulo cobre três frentes:
 3. **Não-regressão do refactor de T-146** — `proxima_pergunta_nao_respondida`
    e `pendencias_obrigatorias` mantêm o comportamento anterior, inclusive a
    **divergência deliberada** entre as duas varreduras: uma pergunta
-   repetível por item CONDICIONAL **sem** o membro `REP` (Blocos 7, 8 e 11) é
+   repetível por item CONDICIONAL **sem** o membro `REP` (ex.: `B3.S03`) é
    vista pela retomada e não pela pendência bloqueante.
 
-> A coleção tem **247** registros. Nenhuma asserção aqui afirma `245` — essa
-> contagem envelheceu quando `bloco-09.yaml` entrou.
+> A contagem total da coleção tem uma âncora só, no fim deste módulo
+> (`test_a_colecao_real_tem_113_registros`); nenhuma outra asserção a repete.
 
 REGRAS: `RF-31`, `RF-62`, `AC-01`, `AC-11`, `AC-90`
 """
@@ -32,6 +32,7 @@ REGRAS: `RF-31`, `RF-62`, `AC-01`, `AC-11`, `AC-90`
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import UTC, datetime
 from functools import cache
 from typing import Final
@@ -52,25 +53,25 @@ from collection.registro import (
 )
 from collection.respostas import Resposta, RespostasCaso
 
-# `OBRIGACAO_FUTURA_INEVITAVEL == SIM` é a condição real que abre `B1.06A`,
-# `B1.06B` e `B1.06C` — três registros não repetíveis, do Bloco 1, todos com
-# `condicao_exibicao` idêntica. É o caso mais limpo dos registros reais para
-# provar que o denominador só conta o que está aberto.
-_VARIAVEL_QUE_ABRE: Final[str] = "OBRIGACAO_FUTURA_INEVITAVEL"
-_IDS_ABERTOS_PELA_CONDICAO: Final[tuple[str, ...]] = ("B1.06A", "B1.06B", "B1.06C")
+# `GASTOS_FANTASMAS == SIM` é a condição real que abre `B2.10` e `B2.10A` —
+# dois registros não repetíveis, do Bloco 2, com `condicao_exibicao`
+# idêntica. É o caso mais limpo dos registros reais para provar que o
+# denominador só conta o que está aberto. (`T-389`: era `B1.06A`–`C`, que
+# saíram do questionário.)
+_VARIAVEL_QUE_ABRE: Final[str] = "GASTOS_FANTASMAS"
+_IDS_ABERTOS_PELA_CONDICAO: Final[tuple[str, ...]] = ("B2.10", "B2.10A")
 
-# `B3.S02` é o caso real da divergência deliberada: `obrigatoriedade=[COND]`
-# (sem `REP`) com `escopo_repeticao=VINCULO_ID`. Ver
-# `_percorrer_ocorrencias`: ali `REP` qualificaria "obrigatório por item", e
-# a retomada precisa oferecer toda pergunta que o aluno de fato VERIA por
-# item, inclusive as só `COND`. Era `B7.13A` até `T-200` tirar o Bloco 7 da
-# coleta inicial; `B3.S02` abre sem resposta nenhuma (`NAO(... == NAO)`).
-_ID_CONDICIONAL_POR_ITEM_SEM_REP: Final[str] = "B3.S02"
+# A divergência deliberada: `obrigatoriedade=[COND]` (sem `REP`) com escopo
+# por item. Ver `_percorrer_ocorrencias`: ali `REP` qualificaria "obrigatório
+# por item", e a retomada precisa oferecer toda pergunta que o aluno de fato
+# VERIA por item, inclusive as só `COND`. Era `B7.13A` até `T-200`, depois
+# `B3.S03`; `T-404` tirou `B3.S03` e nenhum registro real tem mais essa
+# combinação, então o caso é `B3.NM02B` com `REP` retirado e sem condição.
+_ID_CONDICIONAL_POR_ITEM_SEM_REP: Final[str] = "B3.NM02B"
 
-# `B1.03A` é a ÚNICA pergunta `OPT` pura dos 247 registros reais (as demais
-# combinações são `OBR`, `COND`, `REP` e `COND`+`REP`). Ela é condicional,
-# então o teste que a usa precisa abrir a condição primeiro.
-_ID_OPCIONAL_PURO: Final[str] = "B1.03A"
+# `B3.C01A` é a ÚNICA pergunta `OPT` pura dos registros reais (as demais
+# combinações são `OBR`, `COND`, `REP` e `COND`+`REP`); não tem condição.
+_ID_OPCIONAL_PURO: Final[str] = "B3.C01A"
 
 
 @cache
@@ -87,6 +88,14 @@ def _registros_reais() -> tuple[RegistroPergunta, ...]:
 
 def _registro_real(ID: str) -> RegistroPergunta:
     return next(r for r in _registros_reais() if r.ID == ID)
+
+
+def _registro_condicional_por_item_sem_rep() -> RegistroPergunta:
+    return replace(
+        _registro_real(_ID_CONDICIONAL_POR_ITEM_SEM_REP),
+        obrigatoriedade=frozenset({Obrigatoriedade.COND}),
+        condicao_exibicao=None,
+    )
 
 
 def _resposta(variavel: str, valor: object, item_id: str | None = None) -> Resposta:
@@ -149,10 +158,6 @@ def _contar_por_fora(
         )
 
     for registro in registros:
-        # `T-200`: Blocos 7, 8, 10 e 11 não são da coleta inicial.
-        if registro.bloco in {7, 8, 10, 11}:
-            continue
-
         variavel = registro.VARIAVEL_GRAVADA
         assert variavel is not None, f"{registro.ID} sem variável gravada"
 
@@ -238,14 +243,14 @@ def test_ac90_invariante_vale_com_todas_as_perguntas_abertas_respondidas() -> No
     é o denominador dinâmico de `RF-62` funcionando: ele cresce conforme o
     aluno responde, e o invariante segue valendo **em cada passo**.
 
-    O recorte é o Bloco 1 REAL (16 registros, com condicionais reais entre
-    eles) e não a coleção inteira: exaurir 247 registros custaria mais de um
+    O recorte são os Blocos 1 e 2 REAIS (`T-404` tirou as condicionais do
+    Bloco 1) e não a coleção inteira: exaurir 247 registros custaria mais de um
     minuto por reconstrução de índice, sem exercitar nada que o Bloco 1 já
     não exercite — condição que abre pergunta, pergunta sempre aberta e
     pergunta `OPT`."""
     por_id = {registro.ID: registro for registro in _registros_reais()}
-    registros = tuple(r for r in por_id.values() if r.bloco == 1)
-    assert len(registros) == 16
+    registros = tuple(r for r in por_id.values() if r.bloco in (1, 2))
+    assert len(registros) > 6
     respostas = RespostasCaso(respostas=())
 
     for _ in range(len(registros) * 2):
@@ -296,7 +301,7 @@ def test_ac90_invariante_vale_com_fichas_repetiveis_ativas() -> None:
 def test_ac90_resposta_em_um_item_nao_conta_pelo_outro() -> None:
     """`AC-90` — responder a ficha de `D001` move a barra em uma unidade, não
     nas duas: a ocorrência de `D002` continua em branco."""
-    registro = _registro_real("B5.B01")
+    registro = _registro_real("B5.B03")
     itens = {EscopoRepeticao.DIVIDA_ID: ("D001", "D002")}
 
     vazio = contar_coleta((registro,), RespostasCaso(respostas=()), itens)
@@ -318,7 +323,7 @@ def test_ac90_resposta_em_um_item_nao_conta_pelo_outro() -> None:
 
 
 def test_rf62_pergunta_com_condicao_falsa_nao_entra_no_total() -> None:
-    """`RF-62` — `B1.06A` só abre com `OBRIGACAO_FUTURA_INEVITAVEL == SIM`.
+    """`RF-62` — `B2.10` só abre com `GASTOS_FANTASMAS == SIM`.
     Respondido `NAO`, a pergunta não é contada: ela nunca será exibida neste
     estado, e incluí-la no denominador mentiria sobre o trabalho restante."""
     registro_condicional = _registro_real(_IDS_ABERTOS_PELA_CONDICAO[0])
@@ -336,9 +341,8 @@ def test_rf62_pergunta_com_condicao_falsa_nao_entra_no_total() -> None:
 
 def test_rf62_total_aumenta_quando_a_resposta_abre_a_condicao() -> None:
     """`RF-62` — a mesma pergunta, agora com a condição verdadeira, entra no
-    denominador. Sobre os registros REAIS, responder `SIM` abre `B1.06A`,
-    `B1.06B` e `B1.06C`: o total sobe exatamente três, e todas as três
-    entram como faltantes."""
+    denominador. Sobre os registros REAIS, responder `SIM` abre `B2.10` e
+    `B2.10A`: o total sobe exatamente dois, e os dois entram como faltantes."""
     registros = _registros_reais()
 
     com_condicao_falsa = contar_coleta(
@@ -385,17 +389,9 @@ def test_rf62_barra_conta_o_que_o_aluno_ve_nao_so_o_que_bloqueia() -> None:
     perguntas que ela não conta."""
     registro_opcional = _registro_real(_ID_OPCIONAL_PURO)
     assert registro_opcional.obrigatoriedade == frozenset({Obrigatoriedade.OPT})
-    assert isinstance(registro_opcional.condicao_exibicao, CondicaoIgual)
+    assert registro_opcional.condicao_exibicao is None
 
-    # Abre a condição da única pergunta `OPT` pura da coleção real.
-    respostas = RespostasCaso(
-        respostas=(
-            _resposta(
-                registro_opcional.condicao_exibicao.variavel,
-                registro_opcional.condicao_exibicao.valor,
-            ),
-        )
-    )
+    respostas = RespostasCaso(respostas=())
 
     contagem = contar_coleta((registro_opcional,), respostas)
 
@@ -452,8 +448,8 @@ def test_ac11_pendencia_obrigatoria_continua_devolvendo_so_os_obr() -> None:
 def test_ac01_ac11_condicional_por_item_sem_rep_e_vista_so_pela_retomada() -> None:
     """A DIVERGÊNCIA DELIBERADA, preservada pelo gerador parametrizado.
 
-    `B3.S02` é real: `obrigatoriedade=[COND]` (**sem** `REP`) com
-    `escopo_repeticao=VINCULO_ID`. Com a condição aberta e dois vínculos
+    `B3.NM02B` (sem `REP` nem condição) tem `obrigatoriedade=[COND]` com
+    `escopo_repeticao=DESPESA_NAO_MENSAL_ID`. Com a condição aberta e dois vínculos
     ativos:
 
     - a **retomada** (`AC-01`) a oferece por item — o aluno de fato veria a
@@ -463,29 +459,29 @@ def test_ac01_ac11_condicional_por_item_sem_rep_e_vista_so_pela_retomada() -> No
 
     Um `_ocorrencias_abertas` que fixasse um dos dois predicados quebraria
     uma das duas. É este teste que segura o refactor."""
-    registro = _registro_real(_ID_CONDICIONAL_POR_ITEM_SEM_REP)
+    registro = _registro_condicional_por_item_sem_rep()
     assert Obrigatoriedade.REP not in registro.obrigatoriedade
-    assert registro.escopo_repeticao is EscopoRepeticao.VINCULO_ID
+    assert registro.escopo_repeticao is EscopoRepeticao.DESPESA_NAO_MENSAL_ID
 
     respostas = RespostasCaso(respostas=())
-    itens = {EscopoRepeticao.VINCULO_ID: ("V001", "V002")}
+    itens = {EscopoRepeticao.DESPESA_NAO_MENSAL_ID: ("N001", "N002")}
 
     retomada = proxima_pergunta_nao_respondida((registro,), respostas, itens)
     pendencias = pendencias_obrigatorias((registro,), respostas, itens)
 
-    assert retomada == PendenciaObrigatoria(ID="B3.S02", item_id="V001")
+    assert retomada == PendenciaObrigatoria(ID="B3.NM02B", item_id="N001")
     assert pendencias == ()
 
 
 def test_rf62_barra_conta_a_condicional_por_item_sem_rep_em_cada_item() -> None:
     """`RF-62` — a barra usa os predicados da RETOMADA, então ela conta a
-    mesma `B3.S02` uma vez por vínculo ativo. É o que garante que "continuar
+    mesma pergunta uma vez por item ativo. É o que garante que "continuar
     de onde parei" aponte sempre para dentro do que a barra está medindo."""
-    registro = _registro_real(_ID_CONDICIONAL_POR_ITEM_SEM_REP)
+    registro = _registro_condicional_por_item_sem_rep()
     respostas = RespostasCaso(respostas=())
 
     contagem = contar_coleta(
-        (registro,), respostas, {EscopoRepeticao.VINCULO_ID: ("V001", "V002")}
+        (registro,), respostas, {EscopoRepeticao.DESPESA_NAO_MENSAL_ID: ("N001", "N002")}
     )
 
     assert contagem == ContagemDeColeta(respondidas=0, faltam=2, total=2)
@@ -495,7 +491,7 @@ def test_rf62_sem_item_ativo_a_pergunta_por_item_nao_entra_no_total() -> None:
     """`RF-62` — sem nenhuma dívida cadastrada não há ficha a preencher, e a
     pergunta por item não é contada. Nunca se inventa item (mesma convenção
     de `pendencias_obrigatorias`)."""
-    registro = _registro_real(_ID_CONDICIONAL_POR_ITEM_SEM_REP)
+    registro = _registro_condicional_por_item_sem_rep()
     respostas = RespostasCaso(respostas=())
 
     contagem = contar_coleta((registro,), respostas)
@@ -525,9 +521,9 @@ def test_rf62_contagem_e_retomada_nunca_divergem_sobre_os_registros_reais() -> N
     assert proxima_pergunta_nao_respondida((registro_respondido,), respostas) is None
 
 
-def test_a_colecao_real_tem_245_registros() -> None:
+def test_a_colecao_real_tem_81_registros() -> None:
     """Âncora explícita contra a contagem envelhecida: a coleção de COLETA
-    tem **245** registros.
+    tem **81** registros.
 
     Foram 247 até `T-172`, quando os três casos de prova do gerador
     (`B12.08`, `B12.15`, `B12.16`) saíram da coleção que a aplicação
@@ -548,8 +544,17 @@ def test_a_colecao_real_tem_245_registros() -> None:
     `B3.05BF` (`T-270`). Rodada 10: `+5` descrições de "Outro" nas fichas
     curtas — `B3.03AO`, `B3.05AO`, `B3.NM02AO`, `B3.NM02CO`, `B3.S06AO`
     (`T-315`). Rodada 10: `+1` — `B3.C01A`, contribuição extra para o
-    prognóstico (`T-371`)."""
-    assert len(_registros_reais()) == 267
+    prognóstico (`T-371`). `T-389` (RF-402): `-87`, as perguntas retiradas por
+    decisão do especialista (267 → 180). `T-390` (RF-401): `-55`, os Blocos 7, 8
+    e 10 inteiros e 11 das 12 perguntas do Bloco 11 (180 → 125). `T-391` (RF-410): `-7`,
+    o seguro da dívida (125 → 118). `T-396` (RF-402): `-1`, a pergunta de veículo
+    `B4.V01` (118 → 117). `T-393` (RF-407): `-4`, cinco perguntas de taxa e CET
+    (`B5.D01`, `B5.D01A`, `B5.D01B`, `B5.D03`, `B5.D03A`) viram uma, `B5.D06` (117 → 113).
+    `T-398` (RF-402): `-15`, sete do Bloco 4, sete do Bloco 5 e `B11.01`, a
+    última do Bloco 11 (113 → 98). `T-399` (RF-412): `+2`, `B3.C00A` e `B3.C02C` (98 → 100).
+    `T-404` (RF-418): `-19`, as perguntas que saem do questionário e do
+    cálculo (100 → 81)."""
+    assert len(_registros_reais()) == 81
 
 
 def test_os_casos_de_prova_do_gerador_ficam_fora_da_coleta() -> None:

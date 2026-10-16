@@ -1,15 +1,15 @@
 # Bloco 3 — Fluxo de caixa real. 57 perguntas, transcritas caractere por
 # caractere da §11 da canônica (specs/piq-app-spec.md, linhas 1040-1899). T-17
 # (RF-03, RF-04, RF-09, AC-04, AC-36).
-QUESTIONARIO_VERSION: "1.0.3"
+QUESTIONARIO_VERSION: "1.3.0"
 perguntas:
   # Parte A — Renda
   - ID: B3.01
     bloco: 3
     enunciado: >-
-      Quanto você recebe por mês, em média, depois do imposto de renda e da
-      previdência, mas antes de empréstimos e consignados? (Não desconte
-      parcelas de empréstimo nem consignado: você cadastra essas dívidas mais
+      Qual é o valor líquido que você recebe por mês, conforme seu contracheque
+      (depois do imposto de renda e da previdência, antes de empréstimos e
+      consignados)? (Não desconte parcelas de empréstimo nem consignado: você cadastra essas dívidas mais
       adiante. Plano de saúde, sindicato e outros descontos de folha entram
       nas despesas.)
     tipo: MOEDA
@@ -29,72 +29,7 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
     salto_consequencia: >-
-      "Renda variável sem valor único" → RENDA_PRINCIPAL = DESCONHECIDA e
-      B3.02 deve ser Variável.
-
-  - ID: B3.02
-    bloco: 3
-    enunciado: Qual destas opções descreve melhor a sua principal renda?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [OBR]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - rotulo: >-
-          Fixa — recebo praticamente o mesmo valor líquido todos os meses.
-        valor_interno: FIXA
-      - rotulo: >-
-          Relativamente estável — o valor varia, mas normalmente dentro de
-          uma faixa pequena.
-        valor_interno: RELATIVAMENTE_ESTAVEL
-      - rotulo: >-
-          Variável — o valor pode mudar bastante de um mês para outro.
-        valor_interno: VARIAVEL
-    VARIAVEL_GRAVADA: TIPO_RENDA
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "VARIAVEL → abre B3.02A e B3.02B."
-
-  - ID: B3.02A
-    bloco: 3
-    enunciado: >-
-      Considerando os últimos meses, qual foi aproximadamente a sua renda
-      líquida média mensal?
-    tipo: MOEDA
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não consigo estimar., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: RENDA_VARIAVEL_MEDIA_HISTORICA
-    condicao_exibicao: {tipo: IGUAL, variavel: TIPO_RENDA, valor: VARIAVEL}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B3.02B
-    bloco: 3
-    enunciado: >-
-      Pensando em um mês mais fraco, qual valor líquido você considera
-      realisticamente seguro esperar receber?
-    tipo: MOEDA
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não consigo estimar., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: RENDA_VARIAVEL_PISO_DECLARADO
-    condicao_exibicao: {tipo: IGUAL, variavel: TIPO_RENDA, valor: VARIAVEL}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Ambos desconhecidos → PRIORIDADE DE INFORMAÇÃO (não inventar renda).
+      "Renda variável sem valor único" → RENDA_PRINCIPAL = DESCONHECIDA.
 
   - ID: B3.03
     bloco: 3
@@ -115,53 +50,9 @@ perguntas:
     admite_nao_sei: false
     salto_consequencia: "Sim → ficha REP B3.03A–C."
 
-  - ID: B3.03A
-    bloco: 3
-    enunciado: Que renda é essa?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: RENDA_ADICIONAL_ID
-    opcoes:
-      - {rotulo: Segundo trabalho ou vínculo, valor_interno: SEGUNDO_TRABALHO_OU_VINCULO}
-      - {rotulo: Trabalho autônomo/freelance, valor_interno: TRABALHO_AUTONOMO_FREELANCE}
-      - {rotulo: Aluguel, valor_interno: ALUGUEL}
-      - {rotulo: Pensão recebida, valor_interno: PENSAO_RECEBIDA}
-      - {rotulo: Benefício, valor_interno: BENEFICIO}
-      - {rotulo: Comissão, valor_interno: COMISSAO}
-      - {rotulo: Renda de negócio, valor_interno: RENDA_DE_NEGOCIO}
-      - {rotulo: Outra renda recorrente, valor_interno: OUTRA_RENDA_RECORRENTE}
-    VARIAVEL_GRAVADA: TIPO_RENDA_ADICIONAL
-    condicao_exibicao: {tipo: IGUAL, variavel: RENDA_RECORRENTE_ADICIONAL_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "Aluguel lançado aqui não é relançado em B4.I05A."
-
-  # T-315 (RF-103): "Outro" pede a descrição na mesma tela (decisão do
-  # produto, 2026-10-01; canônica v1.0.6, errata E-18). Só coleta.
-  - ID: B3.03AO
-    bloco: 3
-    enunciado: Descreva essa renda.
-    tipo: TEXTO_CURTO
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: RENDA_ADICIONAL_ID
-    opcoes: []
-    VARIAVEL_GRAVADA: DESCRICAO_RENDA_ADICIONAL
-    condicao_exibicao:
-      tipo: E
-      termos:
-        - {tipo: IGUAL, variavel: RENDA_RECORRENTE_ADICIONAL_EXISTE, valor: SIM}
-        - {tipo: IGUAL, variavel: TIPO_RENDA_ADICIONAL, valor: OUTRA_RENDA_RECORRENTE}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
   - ID: B3.03B
     bloco: 3
-    enunciado: Quanto essa renda acrescenta, em média, por mês?
+    enunciado: Qual é o valor mensal dessa renda adicional, conforme o último comprovante?
     tipo: MOEDA
     obrigatoriedade: [COND, REP]
     escopo_repeticao: RENDA_ADICIONAL_ID
@@ -174,24 +65,6 @@ perguntas:
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B3.03C
-    bloco: 3
-    enunciado: "Esse valor costuma ser:"
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: RENDA_ADICIONAL_ID
-    opcoes:
-      - {rotulo: Praticamente fixo., valor_interno: FIXA}
-      - {rotulo: Relativamente estável., valor_interno: RELATIVAMENTE_ESTAVEL}
-      - {rotulo: Bastante variável., valor_interno: VARIAVEL}
-    VARIAVEL_GRAVADA: TIPO_RENDA_ADICIONAL_ESTABILIDADE
-    condicao_exibicao: {tipo: IGUAL, variavel: RENDA_RECORRENTE_ADICIONAL_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B3.04
@@ -216,8 +89,8 @@ perguntas:
   - ID: B3.04A
     bloco: 3
     enunciado: >-
-      Quanto essa pessoa efetivamente coloca, em média, por mês nas despesas
-      deste orçamento?
+      Qual valor exato essa pessoa coloca por mês nas despesas deste
+      orçamento?
     tipo: MOEDA
     obrigatoriedade: [COND]
     escopo_repeticao: NENHUM
@@ -250,61 +123,7 @@ perguntas:
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
-    salto_consequencia: "Sim/Talvez → ficha REP B3.05A–D."
-
-  - ID: B3.05A
-    bloco: 3
-    enunciado: Que valor extraordinário é esse?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: RECURSO_EXTRAORDINARIO_ID  # T-270 (RF-98)
-    opcoes:
-      - {rotulo: 13º salário, valor_interno: "13O_SALARIO"}
-      - {rotulo: Férias/abono, valor_interno: FERIAS_ABONO}
-      - {rotulo: Bônus ou gratificação, valor_interno: BONUS_OU_GRATIFICACAO}
-      - {rotulo: Restituição de imposto, valor_interno: RESTITUICAO_DE_IMPOSTO}
-      - {rotulo: Precatório/RPV, valor_interno: PRECATORIO_RPV}
-      - {rotulo: Venda já prevista, valor_interno: VENDA_JA_PREVISTA}
-      - {rotulo: Valor a receber de terceiro, valor_interno: VALOR_A_RECEBER_DE_TERCEIRO}
-      - {rotulo: Outro, valor_interno: OUTRO}
-    VARIAVEL_GRAVADA: TIPO_RECURSO_EXTRAORDINARIO
-    condicao_exibicao:
-      tipo: OU
-      termos:
-        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
-        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
-        # T-286 (DE-03): item criado pela restituição confirmada (T-274).
-        - {tipo: IGUAL, variavel: ORIGEM_RECURSO_EXTRAORDINARIO, valor: B5.D05R}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
-  # T-315 (RF-103): "Outro" pede a descrição na mesma tela (decisão do
-  # produto, 2026-10-01; canônica v1.0.6, errata E-18). Só coleta.
-  - ID: B3.05AO
-    bloco: 3
-    enunciado: Descreva a origem do valor.
-    tipo: TEXTO_CURTO
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: RECURSO_EXTRAORDINARIO_ID
-    opcoes: []
-    VARIAVEL_GRAVADA: DESCRICAO_RECURSO_EXTRAORDINARIO
-    condicao_exibicao:
-      tipo: E
-      termos:
-        - tipo: OU
-          termos:
-            - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
-            - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
-            - {tipo: IGUAL, variavel: ORIGEM_RECURSO_EXTRAORDINARIO, valor: B5.D05R}
-        - {tipo: IGUAL, variavel: TIPO_RECURSO_EXTRAORDINARIO, valor: OUTRO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
+    salto_consequencia: "Sim/Talvez → ficha REP B3.05B–D."
 
   - ID: B3.05B
     bloco: 3
@@ -316,48 +135,12 @@ perguntas:
       - {rotulo: "R$ ______", valor_interno: null}
       - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: VALOR_RECURSO_EXTRAORDINARIO
-    # T-270 (AC-151, DE-02): em Férias/abono o valor é o de B3.05BF.
+    # T-404 (RF-418): sem o tipo (B3.05A saiu), a ficha começa aqui.
     condicao_exibicao:
-      tipo: E
+      tipo: OU
       termos:
-        - tipo: OU
-          termos:
-            - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
-            - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
-            - {tipo: IGUAL, variavel: ORIGEM_RECURSO_EXTRAORDINARIO, valor: B5.D05R}
-        - tipo: NAO
-          termo: {tipo: IGUAL, variavel: TIPO_RECURSO_EXTRAORDINARIO, valor: FERIAS_ABONO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  # T-270 (RF-98, AC-151, DE-02): em Férias/abono só o acréscimo (1/3) é
-  # extraordinário — a remuneração normal já é renda mensal. Mesma
-  # VARIAVEL_GRAVADA de B3.05B: a aplicação grava o valor informado, nunca
-  # calcula o 1/3. Enunciado: aplicado; pendente de validação do especialista (T-289).
-  - ID: B3.05BF
-    bloco: 3
-    enunciado: >-
-      Quanto você espera receber só do acréscimo de férias (o 1/3)? Não
-      inclua a remuneração normal do mês, que já faz parte da sua renda.
-    tipo: MOEDA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: RECURSO_EXTRAORDINARIO_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: VALOR_RECURSO_EXTRAORDINARIO
-    condicao_exibicao:
-      tipo: E
-      termos:
-        - tipo: OU
-          termos:
-            - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
-            - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
-            - {tipo: IGUAL, variavel: ORIGEM_RECURSO_EXTRAORDINARIO, valor: B5.D05R}
-        - {tipo: IGUAL, variavel: TIPO_RECURSO_EXTRAORDINARIO, valor: FERIAS_ABONO}
+        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
+        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
@@ -382,8 +165,6 @@ perguntas:
       termos:
         - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
         - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
-        # T-286 (DE-03): item criado pela restituição confirmada (T-274).
-        - {tipo: IGUAL, variavel: ORIGEM_RECURSO_EXTRAORDINARIO, valor: B5.D05R}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
@@ -406,72 +187,11 @@ perguntas:
       termos:
         - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
         - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
-        # T-286 (DE-03): item criado pela restituição confirmada (T-274).
-        - {tipo: IGUAL, variavel: ORIGEM_RECURSO_EXTRAORDINARIO, valor: B5.D05R}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
     salto_consequencia: "Não compõe renda recorrente."
-
-  - ID: B3.06
-    bloco: 3
-    enunciado: >-
-      Existe alguma forma realista de aumentar sua renda mensal de maneira
-      recorrente nos próximos meses?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [OBR]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: "Sim, e já tenho uma possibilidade concreta.", valor_interno: CONCRETA}
-      - {rotulo: "Talvez, mas ainda não existe nada definido.", valor_interno: INDEFINIDA}
-      - {rotulo: Não vejo essa possibilidade no momento., valor_interno: NAO}
-    VARIAVEL_GRAVADA: RENDA_EXTRA_RECORRENTE_POTENCIAL_EXISTE
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "CONCRETA → abre B3.06A e B3.06B."
-
-  - ID: B3.06A
-    bloco: 3
-    enunciado: De onde viria essa renda adicional?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: Trabalho extra, valor_interno: TRABALHO_EXTRA}
-      - {rotulo: Novo vínculo ou atividade, valor_interno: NOVO_VINCULO_OU_ATIVIDADE}
-      - {rotulo: Horas extras/adicional, valor_interno: HORAS_EXTRAS_ADICIONAL}
-      - {rotulo: Aluguel, valor_interno: ALUGUEL}
-      - {rotulo: Negócio, valor_interno: NEGOCIO}
-      - {rotulo: Serviço autônomo, valor_interno: SERVICO_AUTONOMO}
-      - {rotulo: Outra, valor_interno: OUTRA}
-    VARIAVEL_GRAVADA: ORIGEM_RENDA_EXTRA_POTENCIAL
-    condicao_exibicao: {tipo: IGUAL, variavel: RENDA_EXTRA_RECORRENTE_POTENCIAL_EXISTE, valor: CONCRETA}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
-  - ID: B3.06B
-    bloco: 3
-    enunciado: Quanto você estima que essa renda poderia acrescentar por mês?
-    tipo: MOEDA
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Ainda não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: RENDA_EXTRA_RECORRENTE_POTENCIAL
-    condicao_exibicao: {tipo: IGUAL, variavel: RENDA_EXTRA_RECORRENTE_POTENCIAL_EXISTE, valor: CONCRETA}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
 
   # Parte B — Despesas mensais
   - ID: B3.D01
@@ -760,114 +480,31 @@ perguntas:
     admite_nao_sei: true
     salto_consequencia: "Não inferir pela categoria."
 
-  - ID: B3.DF03
-    bloco: 3
-    enunciado: >-
-      No seu orçamento atual, esse gasto é obrigatório ou não obrigatório?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: ITEM_DESPESA
-    opcoes:
-      - {rotulo: Obrigatório, valor_interno: OBRIGATORIA}
-      - {rotulo: Não obrigatório, valor_interno: NAO_OBRIGATORIA}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: CLASSIFICACAO_OBRIGATORIA
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: "Não inferir pela categoria."
-
-  - ID: B3.DF04
-    bloco: 3
-    enunciado: >-
-      O valor informado foi conferido recentemente ou é uma estimativa?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: ITEM_DESPESA
-    opcoes:
-      - {rotulo: Conferido., valor_interno: CONFIRMADA}
-      - {rotulo: Estimativa., valor_interno: ESTIMADA}
-      - {rotulo: Não sei., valor_interno: DESCONHECIDA, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: QUALIDADE_VALOR_DESPESA
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
   # Parte C — Despesas não mensais
   - ID: B3.NM01
     bloco: 3
     enunciado: >-
-      Você tem despesas previsíveis que não acontecem todos os meses, mas
-      que sabe que precisará pagar ao longo do ano?
+      Você tem Despesas Extraordinárias já previstas? (São despesas que não
+      acontecem todo mês.)
     tipo: SELECAO_UNICA
     obrigatoriedade: [OBR]
     escopo_repeticao: NENHUM
     opcoes:
       - {rotulo: "Sim.", valor_interno: SIM}
       - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: Não sei / preciso levantar., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: DESPESAS_NAO_MENSAIS_EXISTE
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Sim → ficha REP B3.NM02A–D. NAO_SEI → ação de levantamento.
-
-  - ID: B3.NM02A
-    bloco: 3
-    enunciado: Que despesa é essa?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DESPESA_NAO_MENSAL_ID
-    opcoes:
-      - {rotulo: IPTU, valor_interno: IPTU}
-      - {rotulo: IPVA/licenciamento, valor_interno: IPVA_LICENCIAMENTO}
-      - {rotulo: Matrícula, valor_interno: MATRICULA}
-      - {rotulo: Material escolar, valor_interno: MATERIAL_ESCOLAR}
-      - {rotulo: Seguro anual, valor_interno: SEGURO_ANUAL}
-      - {rotulo: Manutenção programada, valor_interno: MANUTENCAO_PROGRAMADA}
-      - {rotulo: Imposto/taxa, valor_interno: IMPOSTO_TAXA}
-      - {rotulo: Assinatura anual, valor_interno: ASSINATURA_ANUAL}
-      - {rotulo: Outra, valor_interno: OUTRA}
-    VARIAVEL_GRAVADA: TIPO_DESPESA_NAO_MENSAL
-    condicao_exibicao: {tipo: IGUAL, variavel: DESPESAS_NAO_MENSAIS_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
-    salto_consequencia: null
-
-  # T-315 (RF-103): "Outro" pede a descrição na mesma tela (decisão do
-  # produto, 2026-10-01; canônica v1.0.6, errata E-18). Só coleta.
-  - ID: B3.NM02AO
-    bloco: 3
-    enunciado: Descreva essa despesa.
-    tipo: TEXTO_CURTO
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DESPESA_NAO_MENSAL_ID
-    opcoes: []
-    VARIAVEL_GRAVADA: DESCRICAO_DESPESA_NAO_MENSAL
-    condicao_exibicao:
-      tipo: E
-      termos:
-        - {tipo: IGUAL, variavel: DESPESAS_NAO_MENSAIS_EXISTE, valor: SIM}
-        - {tipo: IGUAL, variavel: TIPO_DESPESA_NAO_MENSAL, valor: OUTRA}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
+    salto_consequencia: "Sim → ficha REP B3.NM02B."
 
   - ID: B3.NM02B
     bloco: 3
-    enunciado: Qual é o valor total previsto?
+    enunciado: >-
+      Qual é o valor total previsto? Só inclua despesas que NÃO estão nas
+      despesas mensais que você já informou.
     tipo: MOEDA
     obrigatoriedade: [COND, REP]
     escopo_repeticao: DESPESA_NAO_MENSAL_ID
@@ -882,67 +519,6 @@ perguntas:
     admite_nao_sei: true
     salto_consequencia: null
 
-  - ID: B3.NM02C
-    bloco: 3
-    enunciado: Com que frequência ela ocorre?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DESPESA_NAO_MENSAL_ID
-    opcoes:
-      - {rotulo: Uma vez por ano, valor_interno: ANUAL}
-      - {rotulo: Duas vezes por ano, valor_interno: SEMESTRAL}
-      - {rotulo: Trimestral, valor_interno: TRIMESTRAL}
-      - {rotulo: Outra, valor_interno: OUTRA}
-    VARIAVEL_GRAVADA: FREQUENCIA_DESPESA_NAO_MENSAL
-    condicao_exibicao: {tipo: IGUAL, variavel: DESPESAS_NAO_MENSAIS_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
-  # T-315 (RF-103): "Outro" pede a descrição na mesma tela (decisão do
-  # produto, 2026-10-01; canônica v1.0.6, errata E-18). Só coleta.
-  - ID: B3.NM02CO
-    bloco: 3
-    enunciado: Descreva com que frequência ela ocorre.
-    tipo: TEXTO_CURTO
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DESPESA_NAO_MENSAL_ID
-    opcoes: []
-    VARIAVEL_GRAVADA: DESCRICAO_FREQUENCIA_DESPESA_NAO_MENSAL
-    condicao_exibicao:
-      tipo: E
-      termos:
-        - {tipo: IGUAL, variavel: DESPESAS_NAO_MENSAIS_EXISTE, valor: SIM}
-        - {tipo: IGUAL, variavel: FREQUENCIA_DESPESA_NAO_MENSAL, valor: OUTRA}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
-  - ID: B3.NM02D
-    bloco: 3
-    enunciado: >-
-      Esse valor já está sendo reservado ou contabilizado mensalmente em
-      alguma despesa que você informou antes?
-    tipo: SIM_NAO_TALVEZ
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DESPESA_NAO_MENSAL_ID
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: DESPESA_NAO_MENSAL_JA_CONTABILIZADA
-    condicao_exibicao: {tipo: IGUAL, variavel: DESPESAS_NAO_MENSAIS_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Sim → não normalizar novamente (impedir dupla contagem).
-
   # Parte D — Conferência
   - ID: B3.C00
     bloco: 3
@@ -956,13 +532,12 @@ perguntas:
       - {rotulo: "Sim.", valor_interno: SIM}
       - {rotulo: "Não, acho que alguma despesa ficou de fora.", valor_interno: FALTA_DESPESA}
       - {rotulo: "Não, algum valor parece errado.", valor_interno: VALOR_ERRADO}
-      - {rotulo: Ainda não consigo avaliar., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: CONFIRMACAO_MAPEAMENTO_DESPESAS
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
       FALTA_DESPESA → retorna a B3.D11; VALOR_ERRADO → permite editar
       fichas.
@@ -970,13 +545,34 @@ perguntas:
     # totais da fotografia e as decomposições (`app/montagem/entrada.py`).
     painel: FOTOGRAFIA_DO_MES
 
+  # RF-412: resposta que não confere BLOQUEIA o avanço até o aluno dizer o
+  # que não está condizente (obrigatória só nesses dois casos).
+  - ID: B3.C00A
+    bloco: 3
+    enunciado: >-
+      Quais rendas ou despesas não estão condizentes com o seu mês? A
+      responsabilidade pela informação é do aluno.
+    tipo: TEXTO_CURTO
+    obrigatoriedade: [OBR, COND]
+    escopo_repeticao: NENHUM
+    opcoes: []
+    VARIAVEL_GRAVADA: ITENS_NAO_CONDIZENTES
+    condicao_exibicao:
+      tipo: OU
+      termos:
+        - {tipo: IGUAL, variavel: CONFIRMACAO_MAPEAMENTO_DESPESAS, valor: FALTA_DESPESA}
+        - {tipo: IGUAL, variavel: CONFIRMACAO_MAPEAMENTO_DESPESAS, valor: VALOR_ERRADO}
+    interpolacoes: []
+    validacoes_cruzadas: []
+    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
+    admite_nao_sei: false
+    salto_consequencia: null
+
   - ID: B3.C01
     bloco: 3
     enunciado: >-
-      Pensando na sua realidade de hoje, qual valor adicional você acredita
-      conseguir separar todos os meses para acelerar a quitação das
-      dívidas, sem precisar fazer uma nova dívida para conseguir fechar o
-      mês?
+      Qual valor exato você se compromete a separar todo mês para pagar
+      dívidas?
     tipo: MOEDA
     obrigatoriedade: [OBR]
     escopo_repeticao: NENHUM
@@ -1037,9 +633,9 @@ perguntas:
 
   - ID: B3.C02A
     bloco: 3
-    enunciado: Quanto costuma sobrar, aproximadamente?
+    enunciado: Qual foi a sobra do último mês fechado, conforme seu extrato?
     tipo: MOEDA
-    obrigatoriedade: [COND]
+    obrigatoriedade: [OBR, COND]
     escopo_repeticao: NENHUM
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
@@ -1053,9 +649,9 @@ perguntas:
 
   - ID: B3.C02B
     bloco: 3
-    enunciado: Quanto costuma faltar, aproximadamente?
+    enunciado: Qual foi a falta do último mês fechado, conforme seu extrato?
     tipo: MOEDA
-    obrigatoriedade: [COND]
+    obrigatoriedade: [OBR, COND]
     escopo_repeticao: NENHUM
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
@@ -1067,362 +663,29 @@ perguntas:
     admite_nao_sei: false
     salto_consequencia: null
 
-  # Parte E — Servidor / consignação
-  - ID: B3.S01
+  # RF-412: etapa didática. O painel mostra a sobra ou falta informada ao
+  # lado do resultado mensal calculado, com a diferença (sem limite de
+  # tolerância); o aluno aceita a diferença ou revisa as respostas.
+  - ID: B3.C02C
     bloco: 3
     enunciado: >-
-      Alguma das suas rendas está ligada a vínculo público, aposentadoria ou
-      pensão com possibilidade de consignação?
+      O valor que você informou e o resultado calculado a partir das suas
+      respostas são diferentes. O que você prefere fazer?
     tipo: SELECAO_UNICA
-    obrigatoriedade: [OBR]
+    obrigatoriedade: [OBR, COND]
     escopo_repeticao: NENHUM
     opcoes:
-      - {rotulo: "Sim.", valor_interno: SIM}
-      - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: Não sei., valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: VINCULO_CONSIGNAVEL
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Não → encerra a Parte E. Sim/Não sei → B3.S02.
-
-  - ID: B3.S02
-    bloco: 3
-    enunciado: Qual é a sua situação principal?
-    tipo: SELECAO_MULTIPLA
-    obrigatoriedade: [COND]
-    escopo_repeticao: VINCULO_ID
-    opcoes:
-      - {rotulo: Servidor público federal, valor_interno: FEDERAL}
-      - {rotulo: Servidor público estadual, valor_interno: ESTADUAL}
-      - {rotulo: Servidor público municipal, valor_interno: MUNICIPAL}
-      - {rotulo: Militar, valor_interno: MILITAR}
-      - {rotulo: Aposentado/pensionista do serviço público, valor_interno: APOSENTADO_PUBLICO}
-      - {rotulo: Aposentado/pensionista do INSS, valor_interno: INSS}
-      - {rotulo: Outra situação com consignação, valor_interno: OUTRO}
-    VARIAVEL_GRAVADA: REGIME_MARGEM
+      - {rotulo: Aceitar a diferença e continuar., valor_interno: ACEITAR_DIFERENCA}
+      - {rotulo: Revisar as minhas respostas., valor_interno: REVISAR}
+    VARIAVEL_GRAVADA: CONFERENCIA_SOBRA_FALTA
     condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "Permitir mais de um vínculo."
-
-  - ID: B3.S03
-    bloco: 3
-    enunciado: Qual é o órgão ou a fonte pagadora desse vínculo?
-    tipo: TEXTO_CURTO
-    obrigatoriedade: [COND]
-    escopo_repeticao: VINCULO_ID
-    opcoes: []
-    VARIAVEL_GRAVADA: ORGAO_FONTE_PAGADORA
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
-  - ID: B3.S04
-    bloco: 3
-    enunciado: Qual é a sua remuneração bruta nesse vínculo?
-    tipo: MOEDA
-    obrigatoriedade: [COND]
-    escopo_repeticao: VINCULO_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: RENDA_BRUTA_VINCULO
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: "Não calcular margem por percentual legal; usar o valor declarado."
-
-  # RF-89 (T-255, DE-05/q5_1, OQ-58): renda líquida por vínculo — só
-  # conferência contra a renda do Bloco 3 (`conferir_renda_dos_vinculos`),
-  # nunca entrada do motor. Nome técnico a critério do plano (OQ-59);
-  # enunciado: aprovado pelo produto (T-289, 2026-09-30).
-  - ID: B3.S04L
-    bloco: 3
-    enunciado: Qual é a sua renda líquida nesse vínculo?
-    tipo: MOEDA
-    obrigatoriedade: [COND]
-    escopo_repeticao: VINCULO_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: RENDA_LIQUIDA_VINCULO
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Conferência: soma das líquidas × renda do Bloco 3; divergência só
-      sinalizada, nunca somada.
-
-  - ID: B3.S05
-    bloco: 3
-    enunciado: Você consegue consultar atualmente suas margens consignáveis?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND]
-    escopo_repeticao: VINCULO_ID
-    opcoes:
-      - {rotulo: "Sim.", valor_interno: SIM}
-      - {rotulo: Tenho apenas parte das informações., valor_interno: PARCIAL}
-      - {rotulo: "Não.", valor_interno: NAO}
-    VARIAVEL_GRAVADA: ACESSO_MARGENS
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      NAO → gera ação de obtenção (Bloco 11); ficha B3.S06 fica com valores
-      DESCONHECIDOS.
-
-  # RF-89 (T-255, DE-05/q5_1): existência de consignação por vínculo.
-  # Nome técnico a critério do plano (OQ-59); enunciado: aprovado pelo produto (T-289, 2026-09-30).
-  - ID: B3.S05C
-    bloco: 3
-    enunciado: Há algum desconto consignado neste vínculo?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND]
-    escopo_repeticao: VINCULO_ID
-    opcoes:
-      - {rotulo: "Sim.", valor_interno: SIM}
-      - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: Não sei., valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: CONSIGNACAO_EXISTE_VINCULO
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B3.S06A
-    bloco: 3
-    enunciado: Qual é o tipo desta margem?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: MARGEM_ID
-    escopo_pai: VINCULO_ID
-    opcoes:
-      - {rotulo: Empréstimo consignado, valor_interno: EMPRESTIMO}
-      - {rotulo: Cartão consignado, valor_interno: CARTAO_CONSIGNADO}
-      - {rotulo: Cartão benefício, valor_interno: CARTAO_BENEFICIO}
-      - {rotulo: Outra margem do regime, valor_interno: OUTRA_DO_REGIME}
-    VARIAVEL_GRAVADA: TIPO_MARGEM
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "SYS: MARGEM_ID por ficha."
-
-  # T-315 (RF-103): "Outro" pede a descrição na mesma tela (decisão do
-  # produto, 2026-10-01; canônica v1.0.6, errata E-18). Só coleta.
-  - ID: B3.S06AO
-    bloco: 3
-    enunciado: Descreva essa margem.
-    tipo: TEXTO_CURTO
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: MARGEM_ID
-    escopo_pai: VINCULO_ID
-    opcoes: []
-    VARIAVEL_GRAVADA: DESCRICAO_MARGEM
-    condicao_exibicao:
-      tipo: E
+      tipo: OU
       termos:
-        - tipo: NAO
-          termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-        - {tipo: IGUAL, variavel: TIPO_MARGEM, valor: OUTRA_DO_REGIME}
+        - {tipo: IGUAL, variavel: PERCEPCAO_FECHAMENTO_MES, valor: SOBRA}
+        - {tipo: IGUAL, variavel: PERCEPCAO_FECHAMENTO_MES, valor: FALTA}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
-    salto_consequencia: null
-
-  - ID: B3.S06B
-    bloco: 3
-    enunciado: Qual é o valor total disponível para essa modalidade?
-    tipo: MOEDA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: MARGEM_ID
-    escopo_pai: VINCULO_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: VALOR_TOTAL_MARGEM
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas:
-      - variavel_esquerda: VALOR_UTILIZADO_MARGEM
-        operador: "<="
-        variavel_direita: VALOR_TOTAL_MARGEM
-        escopo: MARGEM_ID
-        mensagem: "O valor utilizado não pode superar o valor total da margem."
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B3.S06C
-    bloco: 3
-    enunciado: Quanto está atualmente utilizado?
-    tipo: MOEDA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: MARGEM_ID
-    escopo_pai: VINCULO_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: VALOR_UTILIZADO_MARGEM
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas:
-      - variavel_esquerda: VALOR_UTILIZADO_MARGEM
-        operador: "<="
-        variavel_direita: VALOR_TOTAL_MARGEM
-        escopo: MARGEM_ID
-        mensagem: "O valor utilizado não pode superar o valor total da margem."
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B3.S06D
-    bloco: 3
-    enunciado: Qual é o valor livre informado pelo sistema ou contracheque?
-    tipo: MOEDA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: MARGEM_ID
-    escopo_pai: VINCULO_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: VALOR_LIVRE_MARGEM
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: "Margem livre não é dinheiro nem recomendação de crédito."
-
-  - ID: B3.S06E
-    bloco: 3
-    enunciado: De quando é essa informação?
-    tipo: DATA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: MARGEM_ID
-    escopo_pai: VINCULO_ID
-    opcoes:
-      - {rotulo: Data, valor_interno: null}
-      - {rotulo: Não sei, valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: DATA_REFERENCIA_MARGEM
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B3.S07
-    bloco: 3
-    enunciado: >-
-      Você sabe se alguma parcela consignada termina nos próximos 12 meses e
-      liberará margem?
-    tipo: SIM_NAO_TALVEZ
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: MARGEM_A_LIBERAR_EXISTE
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: "Sim → B3.S07A e B3.S07B."
-
-  - ID: B3.S07A
-    bloco: 3
-    enunciado: Qual é o valor da parcela que deixará de ocupar margem?
-    tipo: MOEDA
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: VALOR_A_LIBERAR_MARGEM
-    condicao_exibicao: {tipo: IGUAL, variavel: MARGEM_A_LIBERAR_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Conciliar com a dívida consignada correspondente no Bloco 5.
-
-  - ID: B3.S07B
-    bloco: 3
-    enunciado: Quando isso deve ocorrer?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: 1–3 meses, valor_interno: "1_3M"}
-      - {rotulo: 4–6 meses, valor_interno: "4_6M"}
-      - {rotulo: 7–12 meses, valor_interno: "7_12M"}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: JANELA_LIBERACAO_MARGEM
-    condicao_exibicao: {tipo: IGUAL, variavel: MARGEM_A_LIBERAR_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: null
-
-  - ID: B3.S08
-    bloco: 3
-    enunciado: >-
-      Existe algum desconto relacionado a crédito ou consignação no seu
-      contracheque que você não reconhece ou não consegue identificar?
-    tipo: SIM_NAO_TALVEZ
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: DESCONTO_CONTRACHEQUE_NAO_RECONHECIDO
-    condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: VINCULO_CONSIGNAVEL, valor: NAO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Sim/Não sei → ação: obter extrato de consignações (Bloco 11).
+    salto_consequencia: "REVISAR → o aluno corrige pelo painel; ACEITAR_DIFERENCA → segue."
+    painel: COMPARACAO_SOBRA_FALTA

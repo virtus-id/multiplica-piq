@@ -48,7 +48,7 @@ Postgres para `SELECT FOR UPDATE`.
 
 **`ultima_interacao_em` (RF-31, EC-14).** Toda gravação de estado atualiza
 `ultima_interacao_em` para o instante da chamada (`datetime.now(UTC)`) — é
-o carimbo que a trilha de acompanhamento lê para saber há quanto tempo o
+o carimbo que o painel do operador lê para saber há quanto tempo o
 caso está parado (`EC-14`: abandono é observável, nunca silencioso).
 
 **`pertence_a_conta` (RF-02, AC-03, T-31).** Extensão pequena e necessária

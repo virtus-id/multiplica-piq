@@ -116,14 +116,8 @@ def _ids(complementares: dict[str, list[dict[str, object]]]) -> dict[str, list[o
 @pytest.mark.parametrize(
     ("mae", "item_id", "esperado"),
     [
-        ("B3.02", None, {"VARIAVEL": ["B3.02A", "B3.02B"]}),
         ("B2.09", None, {"SIM": ["B2.10", "B2.10A"]}),
-        ("B5.D05", "D001", {"SIM": ["B5.D05A", "B5.D05B", "B5.D05S"]}),
-        (
-            "B5.C01",
-            "D001",
-            {"SIM": ["B5.C02", "B5.C03", "B5.C04"], "NAO": ["B5.C05"], "NAO_SEI": ["B5.C05"]},
-        ),
+        ("B5.C01", "D001", {"SIM": ["B5.C02"]}),
     ],
 )
 def test_ac157_mae_traz_as_filhas_de_cada_opcao(
@@ -146,16 +140,6 @@ def test_ac157_mae_traz_as_filhas_de_cada_opcao(
             assert "complementares" not in filha
 
 
-def test_ac157_filha_longe_da_mae_nao_entra_na_thread(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`B5.G03` lê o tipo da dívida (`B5.A02`) mas está em outro grupo da
-    ficha: puxá-la para a tela de `B5.A02` mudaria a ordem da coleta."""
-    cliente, _ = _cliente(monkeypatch)
-
-    pergunta = cliente.get(f"/caso/{_CASO}/pergunta/B5.A02?item_id=D001").json()["pergunta"]
-
-    assert "complementares" not in pergunta
-
-
 def test_ac157_pergunta_sem_filhas_mantem_o_contrato(monkeypatch: pytest.MonkeyPatch) -> None:
     cliente, _ = _cliente(monkeypatch)
 
@@ -171,29 +155,29 @@ def test_ac157_mae_e_filhas_gravadas_em_ordem_e_proxima_pula_as_respondidas(
 
     # Antes da mãe, a filha está fechada — a ordem mãe → filhas importa.
     fechada = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B3.02A", "valor": "1.000,00"}
+        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B2.10", "valor": "1.000,00"}
     )
     assert fechada.status_code == 400
 
     mae = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B3.02", "valor": "VARIAVEL"}
+        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B2.09", "valor": "SIM"}
     )
     assert mae.status_code == 200, mae.text
 
     recusada = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B3.02A", "valor": "abc"}
+        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B2.10", "valor": "abc"}
     )
     assert recusada.status_code == 400
     # A mãe continua gravada; a filha recusada não.
     gravadas = {r.ID_PERGUNTA: r.valor for r in respostas.respostas}
-    assert gravadas["TIPO_RENDA"] == "VARIAVEL"
+    assert gravadas["GASTOS_FANTASMAS"] == "SIM"
     assert len(gravadas) == 1
 
-    for filha, valor in (("B3.02A", "1.000,00"), ("B3.02B", "3.000,00")):
+    for filha, valor in (("B2.10", "1.000,00"), ("B2.10A", "SIM")):
         gravada = cliente.post(
             f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": filha, "valor": valor}
         )
         assert gravada.status_code == 200, gravada.text
 
     proxima = gravada.json()["proxima"]["pergunta"]
-    assert proxima["ID"] not in {"B3.02", "B3.02A", "B3.02B"}
+    assert proxima["ID"] not in {"B2.09", "B2.10", "B2.10A"}

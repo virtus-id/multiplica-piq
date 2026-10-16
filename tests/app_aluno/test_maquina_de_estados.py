@@ -1,23 +1,25 @@
 """Testes de comportamento de `app/casos/maquina.py` — `RF-01` (T-34).
 
 Suíte DIFERENTE de `tests/app_aluno/test_maquina_estados_construcao.py`
-(T-33): aquela prova o que a máquina PROMETE CONSTRUIR (doze estados, forma
+(T-33): aquela prova o que a máquina PROMETE CONSTRUIR (nove estados, forma
 de `Transicao`, um par recusado como amostra, ausência de estado
 "reaberto"). Esta prova o COMPORTAMENTO da máquina ao longo do tempo:
 
-1. o caminho completo do plano §7.1 é percorrível só por transições
-   declaradas (`gatilho` nomeado a cada passo, nunca uma transição
-   inventada pelo teste);
+1. o caminho do plano §7.1 até a entrega (`PLANO_LIBERADO`) é percorrível
+   só por transições declaradas (`gatilho` nomeado a cada passo, nunca uma
+   transição inventada pelo teste);
 2. o produto cartesiano DOS DOZE ESTADOS — 12×12 = 144 pares, EXAUSTIVO,
-   não amostrado — separa os 21 pares declarados (sucesso) dos 123
+   não amostrado — separa os 10 pares declarados (sucesso) dos 134
    restantes (recusa por `ErroTransicaoNaoDeclarada`, nomeando origem e
    destino);
-3. `ERRO_DE_CALCULO` volta a CADA UM dos quatro estados de origem de
-   `CALCULANDO` por transição nomeada (`EC-06`);
+3. `ERRO_DE_CALCULO` volta à origem de `CALCULANDO` por transição nomeada
+   (`EC-06`); os estados pós-plano não têm transição alguma (`T-390`);
 4. `REPROVADO_EM_REVISAO` é alcançável só a partir de `AGUARDANDO_REVISAO`,
    nunca a partir de `PLANO_LIBERADO` (`EC-12`);
 5. a única saída de `REPROVADO_EM_REVISAO` é a volta à coleta
-   (`devolve_ao_aluno`, `RF-113`, `T-333`).
+   (`devolve_ao_aluno`, `RF-113`, `T-333`);
+6. `PLANO_LIBERADO` é terminal: o plano entregue é definitivo (`RF-401`,
+   `RF-409`, `T-387`).
 
 REGRAS: `RF-01`, `RF-113`
 """
@@ -33,9 +35,10 @@ from app.casos.maquina import (
     TABELA_TRANSICOES,
     ErroTransicaoNaoDeclarada,
     transicionar,
+    transicoes_a_partir_de,
 )
 
-# Os 21 pares declarados na tabela — usados para a exaustão do produto
+# Os pares declarados na tabela — usados para a exaustão do produto
 # cartesiano. Não é uma cópia solta: é derivado da própria TABELA_TRANSICOES,
 # para que o teste nunca divirja do módulo por edição manual desatualizada.
 _PARES_DECLARADOS: frozenset[tuple[ESTADO_CASO, ESTADO_CASO]] = frozenset(
@@ -43,19 +46,22 @@ _PARES_DECLARADOS: frozenset[tuple[ESTADO_CASO, ESTADO_CASO]] = frozenset(
 )
 
 
-def test_tabela_declara_exatamente_vinte_e_uma_transicoes() -> None:
+def test_tabela_declara_exatamente_dez_transicoes() -> None:
     """Pré-condição da exaustão: a tabela citada pela tarefa (17 linhas, 18
-    desde `T-333`, 19 desde `T-336`, 21 desde `T-341`) tem 21 pares distintos.
+    desde `T-333`, 19 desde `T-336`, 21 desde `T-341`, 16 desde `T-387`, que
+    desligou as cinco saídas de `PLANO_LIBERADO`/`ACOMPANHAMENTO`, e 10 desde
+    `T-390`, que tirou o recálculo e os retornos de erro dos três estados
+    pós-plano) tem 10 pares distintos.
     Se este número mudar, os testes abaixo continuam corretos (derivam de
     `TABELA_TRANSICOES`), mas este teste avisa explicitamente que a
     superfície declarada mudou."""
-    assert len(TABELA_TRANSICOES) == 21
-    assert len(_PARES_DECLARADOS) == 21
+    assert len(TABELA_TRANSICOES) == 10
+    assert len(_PARES_DECLARADOS) == 10
 
 
 def test_caminho_completo_do_plano_e_percorrivel_so_por_transicoes_declaradas() -> None:
-    """Critério 1 — o caminho `CADASTRADO → ... → ACOMPANHAMENTO →
-    CALCULANDO` do plano §7.1 é percorrido passo a passo, cada um por
+    """Critério 1 — o caminho `CADASTRADO → ... → PLANO_LIBERADO` do plano
+    §7.1 (que desde `T-387` termina na entrega) é percorrido passo a passo, cada um por
     `transicionar(de, para)`. Se um par do caminho não estivesse na tabela,
     `transicionar` levantaria `ErroTransicaoNaoDeclarada` e o teste falharia
     — não há atalho nem transição inventada pelo teste."""
@@ -66,8 +72,6 @@ def test_caminho_completo_do_plano_e_percorrivel_so_por_transicoes_declaradas() 
         ESTADO_CASO.CALCULANDO,
         ESTADO_CASO.AGUARDANDO_REVISAO,
         ESTADO_CASO.PLANO_LIBERADO,
-        ESTADO_CASO.ACOMPANHAMENTO,
-        ESTADO_CASO.CALCULANDO,
     )
 
     gatilhos_esperados = (
@@ -76,8 +80,6 @@ def test_caminho_completo_do_plano_e_percorrivel_so_por_transicoes_declaradas() 
         "bloco_6_executa",
         "snapshot_anexado",
         "libera",
-        "abre_bloco_11",
-        "recalcula",
     )
 
     assert len(caminho) - 1 == len(gatilhos_esperados)
@@ -92,67 +94,33 @@ def test_caminho_completo_do_plano_e_percorrivel_so_por_transicoes_declaradas() 
         )
 
 
-@pytest.mark.parametrize(
-    "de_para_gatilho",
-    [
-        pytest.param(
-            (ESTADO_CASO.PLANO_LIBERADO, ESTADO_CASO.COLETA_DIRIGIDA, "abre_blocos_7_8"),
-            id="plano_liberado_para_coleta_dirigida",
-        ),
-        pytest.param(
-            (
-                ESTADO_CASO.PLANO_LIBERADO,
-                ESTADO_CASO.CONFIRMACAO_ATAQUE,
-                "abre_bloco_10",
-            ),
-            id="plano_liberado_para_confirmacao_ataque",
-        ),
-    ],
-)
-def test_os_outros_dois_ramos_de_plano_liberado_tambem_sao_transicoes_declaradas(
-    de_para_gatilho: tuple[ESTADO_CASO, ESTADO_CASO, str],
-) -> None:
-    """Complemento ao caminho principal: o plano §7.1 desenha TRÊS ramos a
-    partir de `PLANO_LIBERADO` (`COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE`,
-    `ACOMPANHAMENTO` — este último já coberto no caminho principal). Os
-    outros dois também são transições nomeadas, não bifurcações implícitas."""
-    de, para, gatilho_esperado = de_para_gatilho
-    transicao = transicionar(de, para)
-    assert transicao.gatilho == gatilho_esperado
+@pytest.mark.parametrize("para", list(ESTADO_CASO))
+def test_plano_liberado_e_terminal_nenhuma_transicao_e_aceita(para: ESTADO_CASO) -> None:
+    """`RF-401`, `RF-409` (`T-387`) — o plano entregue é definitivo: de
+    `PLANO_LIBERADO` NENHUM destino é aceito (nem a coleta dirigida, nem a
+    confirmação do ataque, nem o acompanhamento, nem plano novo em
+    `COLETA_INICIAL`, nem ele mesmo), e a tabela não tem linha de saída."""
+    assert not [t for t in TABELA_TRANSICOES if t.de is ESTADO_CASO.PLANO_LIBERADO]
+    assert transicoes_a_partir_de(ESTADO_CASO.PLANO_LIBERADO) == ()
+    with pytest.raises(ErroTransicaoNaoDeclarada) as capturado:
+        transicionar(ESTADO_CASO.PLANO_LIBERADO, para)
+    assert capturado.value.de is ESTADO_CASO.PLANO_LIBERADO
+    assert capturado.value.para is para
 
 
-@pytest.mark.parametrize(
-    "de_para_gatilho",
-    [
-        pytest.param(
-            (ESTADO_CASO.COLETA_DIRIGIDA, ESTADO_CASO.CALCULANDO, "recalcula"),
-            id="coleta_dirigida_para_calculando",
-        ),
-        pytest.param(
-            (ESTADO_CASO.CONFIRMACAO_ATAQUE, ESTADO_CASO.CALCULANDO, "recalcula"),
-            id="confirmacao_ataque_para_calculando",
-        ),
-    ],
-)
-def test_coleta_dirigida_e_confirmacao_ataque_tambem_convergem_para_calculando(
-    de_para_gatilho: tuple[ESTADO_CASO, ESTADO_CASO, str],
-) -> None:
-    """Fecha o ciclo dos três ramos de `PLANO_LIBERADO`: os três convergem de
-    volta a `CALCULANDO` por `recalcula`, tal como `ACOMPANHAMENTO` no
-    caminho principal — nenhum dos três tem um destino de recálculo
-    diferente inventado."""
-    de, para, gatilho_esperado = de_para_gatilho
-    transicao = transicionar(de, para)
-    assert transicao.gatilho == gatilho_esperado
+@pytest.mark.parametrize("nome", ["COLETA_DIRIGIDA", "CONFIRMACAO_ATAQUE", "ACOMPANHAMENTO"])
+def test_estados_pos_plano_nao_existem_mais(nome: str) -> None:
+    """`RF-413` (`T-400`): os três estados pós-plano foram apagados do enum."""
+    assert nome not in ESTADO_CASO.__members__
 
 
-def test_produto_cartesiano_completo_dos_doze_estados_e_exaustivo() -> None:
-    """Critério 2 — EXAUSTIVO sobre os 12×12 = 144 pares (de, para), nenhuma
-    amostra: os 21 pares declarados sucedem e devolvem a `Transicao`
-    correta; os 123 restantes são recusados com `ErroTransicaoNaoDeclarada`
+def test_produto_cartesiano_completo_dos_nove_estados_e_exaustivo() -> None:
+    """Critério 2 — EXAUSTIVO sobre os 9×9 = 81 pares (de, para), nenhuma
+    amostra: os 10 pares declarados sucedem e devolvem a `Transicao`
+    correta; os 71 restantes são recusados com `ErroTransicaoNaoDeclarada`
     nomeando origem e destino."""
     todos_os_pares = list(itertools.product(ESTADO_CASO, ESTADO_CASO))
-    assert len(todos_os_pares) == 144  # 12 x 12, produto cartesiano completo
+    assert len(todos_os_pares) == 81  # 9 x 9, produto cartesiano completo
 
     pares_declarados_vistos = 0
     pares_recusados_vistos = 0
@@ -171,55 +139,27 @@ def test_produto_cartesiano_completo_dos_doze_estados_e_exaustivo() -> None:
             assert erro.para is para
             pares_recusados_vistos += 1
 
-    assert pares_declarados_vistos == 21
-    assert pares_recusados_vistos == 123
-    assert pares_declarados_vistos + pares_recusados_vistos == 144
+    assert pares_declarados_vistos == 10
+    assert pares_recusados_vistos == 71
+    assert pares_declarados_vistos + pares_recusados_vistos == 81
 
 
-@pytest.mark.parametrize(
-    "estado_de_origem_de_calculando",
-    [
-        ESTADO_CASO.COLETA_INICIAL,
-        ESTADO_CASO.COLETA_DIRIGIDA,
-        ESTADO_CASO.CONFIRMACAO_ATAQUE,
-        ESTADO_CASO.ACOMPANHAMENTO,
-    ],
-)
-def test_erro_de_calculo_volta_a_cada_estado_de_origem_de_calculando_ec06(
-    estado_de_origem_de_calculando: ESTADO_CASO,
-) -> None:
-    """Critério 3 (`EC-06`) — `ERRO_DE_CALCULO` retorna a CADA UM dos quatro
-    estados que alcançam `CALCULANDO`, por transição nomeada
-    (`operador_retoma_apos_erro`), nunca por um destino fixo único
-    inventado. As quatro transições `CALCULANDO → estado` também existem
-    (o caminho de ida), confirmando que o estado de origem é de fato uma
-    origem real de `CALCULANDO` no grafo."""
-    transicao_de_volta = transicionar(
-        ESTADO_CASO.ERRO_DE_CALCULO, estado_de_origem_de_calculando
-    )
+def test_erro_de_calculo_volta_so_a_coleta_inicial_ec06() -> None:
+    """Critério 3 (`EC-06`) — `COLETA_INICIAL` é a única origem de
+    `CALCULANDO` que sobrou (`T-390` tirou o recálculo a partir dos estados
+    pós-plano). `ERRO_DE_CALCULO` volta a ela por transição nomeada
+    (`operador_retoma_apos_erro`) e a ida `COLETA_INICIAL → CALCULANDO`
+    existe: a origem alegada é de fato uma origem real de `CALCULANDO`."""
+    transicao_de_volta = transicionar(ESTADO_CASO.ERRO_DE_CALCULO, ESTADO_CASO.COLETA_INICIAL)
     assert transicao_de_volta.gatilho == "operador_retoma_apos_erro"
 
-    # A origem alegada de CALCULANDO precisa, de fato, alcançar CALCULANDO —
-    # senão "EC-06 volta ao estado anterior" seria uma alegação vazia.
-    transicao_de_ida = transicionar(estado_de_origem_de_calculando, ESTADO_CASO.CALCULANDO)
+    transicao_de_ida = transicionar(ESTADO_CASO.COLETA_INICIAL, ESTADO_CASO.CALCULANDO)
     assert transicao_de_ida.para is ESTADO_CASO.CALCULANDO
 
-
-def test_erro_de_calculo_nao_tem_quinta_transicao_de_volta_declarada() -> None:
-    """Reforço do critério 3: exatamente quatro transições partem de
-    `ERRO_DE_CALCULO` — nenhuma quinta, nenhum destino fixo único inventado
-    além dos quatro estados de origem reais de `CALCULANDO`."""
-    origens_esperadas = {
-        ESTADO_CASO.COLETA_INICIAL,
-        ESTADO_CASO.COLETA_DIRIGIDA,
-        ESTADO_CASO.CONFIRMACAO_ATAQUE,
-        ESTADO_CASO.ACOMPANHAMENTO,
-    }
     destinos_declarados = {
         t.para for t in TABELA_TRANSICOES if t.de is ESTADO_CASO.ERRO_DE_CALCULO
     }
-    assert destinos_declarados == origens_esperadas
-    assert len(destinos_declarados) == 4
+    assert destinos_declarados == {ESTADO_CASO.COLETA_INICIAL}
 
 
 def test_reprovado_em_revisao_e_alcancavel_a_partir_de_aguardando_revisao_ec12() -> None:
@@ -282,13 +222,10 @@ def test_aluno_retira_o_plano_da_conferencia_so_a_partir_de_aguardando_revisao()
         transicionar(ESTADO_CASO.CALCULANDO, ESTADO_CASO.COLETA_INICIAL)
 
 
-def test_aluno_refaz_o_plano_so_de_plano_liberado_e_acompanhamento() -> None:
-    """`RF-118` (T-341): `PLANO_LIBERADO`/`ACOMPANHAMENTO → COLETA_INICIAL` pelo
-    gatilho `aluno_refaz_plano`; as etapas de blocos dirigidos não voltam."""
-    origens = {t.de for t in TABELA_TRANSICOES if t.gatilho == "aluno_refaz_plano"}
-    assert origens == {ESTADO_CASO.PLANO_LIBERADO, ESTADO_CASO.ACOMPANHAMENTO}
-    for origem in origens:
-        assert transicionar(origem, ESTADO_CASO.COLETA_INICIAL).gatilho == "aluno_refaz_plano"
-    for fora in (ESTADO_CASO.COLETA_DIRIGIDA, ESTADO_CASO.CONFIRMACAO_ATAQUE):
-        with pytest.raises(ErroTransicaoNaoDeclarada):
-            transicionar(fora, ESTADO_CASO.COLETA_INICIAL)
+def test_aluno_nao_refaz_o_plano_depois_da_entrega() -> None:
+    """`RF-409` (T-387): o gatilho `aluno_refaz_plano` (`RF-118`, T-341) saiu da
+    tabela; de nenhum estado de plano entregue ou de etapa pós-plano se volta
+    a `COLETA_INICIAL` pelo aluno."""
+    assert not [t for t in TABELA_TRANSICOES if t.gatilho == "aluno_refaz_plano"]
+    with pytest.raises(ErroTransicaoNaoDeclarada):
+        transicionar(ESTADO_CASO.PLANO_LIBERADO, ESTADO_CASO.COLETA_INICIAL)

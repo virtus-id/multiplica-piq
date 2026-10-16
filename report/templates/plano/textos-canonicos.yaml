@@ -28,9 +28,7 @@ titulo: "Seu plano inteligente de quitação de dívidas"
 corpo: >-
   Montamos este plano a partir das informações que você nos passou. Ele
   mostra, mês a mês, quanto pagar e em qual dívida, até a última ser
-  quitada. Se algo importante mudar na sua vida financeira, como a renda,
-  uma dívida nova ou um dinheiro extra, o plano é refeito para continuar
-  adequado à sua realidade.
+  quitada. Este plano é definitivo.
 
 # ---------------------------------------------------------------------------
 # Rótulos dos valores de apoio — T-177.
@@ -110,7 +108,7 @@ explicacao_da_posicao:
 # O que falta para o plano deixar de ser provisório — T-177.
 #
 # O aviso de plano provisório listava o nome do campo do motor: "D001: falta
-# VALOR_QUITACAO_HOJE, CET, PARCELA_CONTRATUAL, CUSTO_SEGURO". O aluno
+# VALOR_QUITACAO_HOJE, TAXA_EFETIVA_MENSAL_NORMALIZADA, PARCELA_CONTRATUAL". O aluno
 # precisa saber o que buscar no extrato, não como o campo se chama no código.
 #
 # As chaves são os campos que `report/plano.py::_campos_desconhecidos_da_
@@ -118,17 +116,15 @@ explicacao_da_posicao:
 rotulos_de_pendencia:
   SALDO_DEVEDOR_ATUAL: "quanto você ainda deve"
   VALOR_QUITACAO_HOJE: "quanto precisaria pagar para quitar hoje"
-  TAXA_EFETIVA_MENSAL_NORMALIZADA: "a taxa de juros"
-  CET: "o custo efetivo total (CET)"
+  TAXA_EFETIVA_MENSAL_NORMALIZADA: "o CET ou a taxa de juros"
   PARCELA_CONTRATUAL: "o valor da parcela do contrato"
   PAGAMENTO_MENSAL_EFETIVO: "quanto você paga por mês"
-  CUSTO_SEGURO: "o custo do seguro"
 
 # ---------------------------------------------------------------------------
 # Fonte de comprovação — RF-91, RF-92 (T-267, T-266, DE-06).
 #
 # Os três níveis são a redação de `DE-06` (`q6_1`). "Não informado" é a
-# fonte ainda sem resposta e o seguro "não sei" (`EC-39`) — redação
+# fonte ainda sem resposta — redação
 # aprovada pelo produto (`T-289`, 2026-09-30). As chaves são
 # `collection.registro.NIVEL_COMPROVACAO`.
 rotulos_de_comprovacao:
@@ -150,21 +146,6 @@ cenario_adicional:
     Esta projeção inclui os valores extraordinários que você marcou como
     prováveis ou possíveis. Eles não fazem parte do seu plano: só passam a
     contar quando forem efetivamente recebidos.
-
-# ---------------------------------------------------------------------------
-# Seguro prestamista — RF-82 (T-245, DE-03, `E-11`: "orientar o aluno sobre
-# apólice e cancelamento").
-#
-# Exibida no plano em cada dívida com `SEGURO_PRESTAMISTA = SIM`. Aplicada,
-# pendente de validação do especialista (`T-289`): restituição proporcional
-# nunca é prometida.
-orientacao_seguro_prestamista: >-
-  Esta dívida tem seguro prestamista. Confira na apólice ou no certificado:
-  o valor total do prêmio, a forma de cobrança (junto da parcela ou à parte)
-  e se a contratação era facultativa. Se não quiser mais o seguro e o
-  contrato permitir, peça o cancelamento das cobranças futuras e pergunte
-  sobre a restituição proporcional do período não usado. Essa restituição
-  depende das condições da apólice e não é garantida.
 
 # ---------------------------------------------------------------------------
 # Plano e conferência em linguagem humana — RF-111, AC-174 (T-326).
@@ -267,13 +248,17 @@ rotulos_de_dados:
   CET: "Custo efetivo total (CET)"
   PARCELA_CONTRATUAL: "Parcela do contrato"
   PAGAMENTO_MENSAL_EFETIVO: "Pagamento mensal efetivo"
-  SEGURO_INCLUIDO_PARCELA: "Seguro incluído na parcela"
-  CUSTO_SEGURO: "Custo do seguro"
   PESO_EMOCIONAL: "Peso emocional"
   RENEGOCIACAO_PENDENTE: "Renegociação pendente"
   TROCA_PENDENTE: "Troca de dívida pendente"
   RISCO_MATERIAL_IMINENTE: "Risco material iminente"
   OPORTUNIDADE_VIGENTE: "Oportunidade de quitação vigente"
+  # `T-406` (`§16.4`): respostas que reordenam a quitação.
+  GARANTIA_ESSENCIAL: "Bem da garantia é essencial"
+  NEGATIVADA: "Está negativada"
+  TIPO_GARANTIA: "Tipo de garantia"
+  URGENCIA_PERCEBIDA: "Urgência para resolver"
+  PREFERENCIA_QUITACAO: "Seria uma das primeiras a quitar"
   beneficio: "Benefício"
   recurso_disponivel: "Recurso disponível"
   prazo: "Prazo"
@@ -364,10 +349,14 @@ rotulos_de_codigos:
   AGUARDANDO_REVISAO: "Plano em conferência"
   REPROVADO_EM_REVISAO: "Plano devolvido na conferência"
   PLANO_LIBERADO: "Plano liberado"
-  COLETA_DIRIGIDA: "Completando informações"
-  CONFIRMACAO_ATAQUE: "Confirmando a dívida em ataque"
-  ACOMPANHAMENTO: "Em acompanhamento"
   ENCERRADO: "Encerrado"
+  # Liquidez do investimento (engine/estado.py::LIQUIDEZ_INVESTIMENTOS)
+  D0: "No mesmo dia"
+  D1: "Em 1 dia"
+  D7: "Em até 7 dias"
+  D30: "Em até 30 dias"
+  MAIS_30: "Em mais de 30 dias"
+  BLOQUEADO: "Bloqueado"
   # Valores gerais
   DESCONHECIDO: "Não informado"
   NENHUM: "Nenhum"
@@ -392,6 +381,15 @@ rotulos_de_codigos:
   IMPORTANTE: "Importante"
   PARCIAL: "Parcialmente essencial"
   NAO_ESSENCIAL: "Não essencial"
+  # Valores assumidos pelo PIQ no lugar das perguntas retiradas (T-404, RF-418):
+  # o revisor lê que o aluno não respondeu isto.
+  RELATIVAMENTE_ESTAVEL: "Relativamente estável (assumido, não perguntado)"
+  PARTE: "Parte dos gastos (assumido, não perguntado)"
+  INDEFINIDA: "Sem regularidade definida (assumido, não perguntado)"
+  DIAS_DEPOIS: "Dias depois (assumido, não perguntado)"
+  ALGUNS: "Alguns (assumido, não perguntado)"
+  QUASE_TOTAL: "Quase todos (assumido, não perguntado)"
+  ALGUMAS_MES: "Algumas vezes por mês (assumido, não perguntado)"
 
 # ---------------------------------------------------------------------------
 # Critério do método — T-330 (RF-111), relato do produto 2026-10-02.
@@ -473,9 +471,18 @@ ponto_de_partida:
     Estes são os números do seu mês, de acordo com as suas respostas. Eles
     são a base de tudo o que vem a seguir.
   renda: "Sua renda no mês"
+  # `RF-412` (`B3.04A`): redação proposta, a aprovar. A renda acima já a inclui.
+  contribuicao_familiar: "Desta renda, o que outra pessoa da família coloca por mês (já somado, informado por você)"
   gastos: "Seus gastos do dia a dia"
   gastos_ocasionais: "Gastos que não acontecem todo mês, em média mensal"
   parcelas: "Parcelas de dívidas que você já paga"
+  # `RF-412` (`B3.DF02`): quanto das despesas é fixo e quanto é variável; a
+  # linha de total é a da spec, verbatim.
+  despesas_tipo_fixo: "Despesas do tipo fixo"
+  despesas_tipo_variavel: "Despesas do tipo variável"
+  despesas_nao_classificadas: "Despesas sem classificação (fixo ou variável)"
+  despesas_mensais_totais: "Despesas mensais totais (receitas totais − despesas totais)"
+  parcial: "alguma informação ficou de fora"
   quantidade_dividas: "Dívidas incluídas neste plano"
   # Etiquetas curtas: a cor (verde entra, vermelho sai) não é o único sinal.
   entrada_rotulo: "Entra"
@@ -574,33 +581,26 @@ reserva_explicacao: >-
 onde_achar:
   SALDO_DEVEDOR_ATUAL: "No aplicativo ou no extrato do credor, procure por \"saldo devedor\" ou \"saldo a pagar\"."
   VALOR_QUITACAO_HOJE: "No aplicativo do credor, procure a opção \"quitação antecipada\" ou \"liquidação\"."
-  TAXA_EFETIVA_MENSAL_NORMALIZADA: "No contrato ou no aplicativo do credor, procure por \"taxa de juros mensal\"."
-  CET: "No contrato, procure por \"CET\" ou \"custo efetivo total\"."
+  TAXA_EFETIVA_MENSAL_NORMALIZADA: "No contrato, extrato ou aplicativo do banco, procure por \"CET\" ou \"taxa de juros\"."
   PARCELA_CONTRATUAL: "No contrato ou no aplicativo do credor, procure o valor da parcela combinada."
   PAGAMENTO_MENSAL_EFETIVO: "No seu extrato bancário, veja quanto realmente saiu por mês para esta dívida."
-  CUSTO_SEGURO: "No contrato ou na fatura, procure por \"seguro prestamista\" ou \"seguro do contrato\"."
 
 pergunta_do_campo:
   SALDO_DEVEDOR_ATUAL: "B5.B03"
   VALOR_QUITACAO_HOJE: "B5.B05A"
   PARCELA_CONTRATUAL: "B5.C02"
   PAGAMENTO_MENSAL_EFETIVO: "B5.C06"
-  TAXA_EFETIVA_MENSAL_NORMALIZADA: "B5.D01A"
-  CET: "B5.D03A"
-  CUSTO_SEGURO: "B5.D05A"
+  TAXA_EFETIVA_MENSAL_NORMALIZADA: "B5.D06"
 
 # Perguntas frequentes, sempre abertas no documento impresso. Só perguntas com
 # resposta FECHADA, que diz ao aluno o que fazer, sem mandar "avisar a equipe".
-# Pergunta cuja resposta varia por caso não entra. O botão citado existe em
-# "Minhas respostas". Sugestão, a validar.
+# Pergunta cuja resposta varia por caso não entra. Sugestão, a validar.
 duvidas:
   - pergunta: "Quando o meu plano muda?"
     resposta: >-
-      O plano é refeito quando algo importante acontece: uma dívida é
-      quitada, a sua renda muda, surge uma dívida nova ou você recebe um
-      dinheiro extra. A simples passagem dos meses não muda o plano. Quando
-      isso acontecer com você, atualize as suas respostas em "Minhas
-      respostas" e use o botão "Gerar um novo plano com as minhas respostas".
+      Este plano é definitivo e a simples passagem dos meses não o muda.
+      Siga as parcelas e o valor extra de cada mês até a última
+      dívida ser quitada.
   - pergunta: "O que acontece com as outras dívidas enquanto eu pago uma?"
     resposta: >-
       Você continua pagando a parcela normal de todas elas, sem atraso. Só
@@ -609,14 +609,12 @@ duvidas:
     resposta: >-
       Pague as parcelas normais de todas as dívidas, em dia: elas nunca
       podem atrasar. No mês seguinte, volte a separar o valor extra. A dívida
-      da vez termina mais tarde, mas a ordem do plano continua a mesma. Se
-      você não conseguir mais separar esse valor, atualize as suas respostas e
-      gere um novo plano.
+      da vez termina mais tarde, mas a ordem do plano continua a mesma.
   - pergunta: "E se eu tiver uma dívida nova?"
     resposta: >-
       O plano parte da regra de não fazer dívida nova, a regra da aula 1 do
-      curso. Se mesmo assim surgir uma, inclua a dívida em "Minhas respostas"
-      e gere um novo plano: uma dívida nova muda a ordem e o valor do plano.
+      curso. Uma dívida nova não faz parte deste plano, por isso o melhor é
+      evitá-la enquanto você segue as etapas.
   - pergunta: "Por que não começar pela maior dívida?"
     resposta: >-
       A ordem segue o método do seu plano, explicado em "Como o seu plano
@@ -638,6 +636,8 @@ estabilizacao:
     fase, o objetivo é equilibrar as contas do mês. Quando isso acontecer,
     começa a segunda fase do plano, em que as dívidas passam a ser quitadas
     uma a uma.
+  # T-405 (RF-418): o quanto falta cortar é `DEFICIT_MENSAL` do motor.
+  falta_cortar: "Para chegar a zero, faltam cortar {valor} por mês."
 
 # ---------------------------------------------------------------------------
 # Curso de entrada (Servidor Sem Dívidas) — T-352 a T-354.
@@ -719,11 +719,20 @@ incomodo:
     plano funciona". Esta dívida está no plano e termina no mês indicado em
     "Termina no".
 
+# `RF-412` — avisos do que o aluno declarou. `atrasada` é a redação do
+# especialista; `garantia` e `fichas_faltando` são redação proposta, a
+# aprovar. Todo aviso termina com `responsabilidade`. Não mudam a ordem.
+avisos:
+  atrasada: "Esta dívida está atrasada. Procure o credor para negociar antes de qualquer outra coisa."
+  garantia: "Esta dívida está vinculada a um bem ou garantia. Confira com o credor as condições dessa garantia antes de decidir qualquer coisa sobre ela."
+  fichas_faltando: "Você disse ter mais dívidas do que as que foram cadastradas. Este plano considera apenas as dívidas cadastradas."
+  responsabilidade: "A responsabilidade pela informação é do aluno."
+
 # Plano normal com capacidade de ataque zero no mês.
 sem_valor_extra: >-
   Neste mês não há valor extra para quitar dívidas além das parcelas. Pague as
-  parcelas normais de todas as dívidas, em dia. Quando houver valor extra, o
-  plano é refeito.
+  parcelas normais de todas as dívidas, em dia. Quando houver valor extra, ele
+  vai para a dívida da vez.
 
 # RF-77/RF-78 — "Seu prognóstico: três caminhos". Texto de produto, a aprovar
 # (docs/textos-para-aprovacao.md, rodada 10). Sem ameaça: descreve a situação.
@@ -744,7 +753,7 @@ prognostico:
     o detalhe dele.
   meses_titulo: "Mês a mês, em detalhe"
   meses_intro: >-
-    O detalhe de cada mês, para você acompanhar e guardar. O Mês 01 é o mês em
+    O detalhe de cada mês, para você consultar e guardar. O Mês 01 é o mês em
     que você começa a seguir o plano, e os meses seguintes contam a partir dele.
   rotulo_deve: "Ainda deve"
   rotulo_extra_mes: "Pagar a mais"

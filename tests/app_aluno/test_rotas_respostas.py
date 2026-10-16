@@ -362,19 +362,49 @@ def test_isolamento_sem_sessao_responde_401(monkeypatch: pytest.MonkeyPatch) -> 
 def test_t198_resposta_cuja_condicao_fechou_nao_quebra_nem_e_listada(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`B1.02=SIM` abre `B1.03`; corrigir para `NAO` fecha. A resposta de
-    `B1.03` continua gravada, mas a revisão respondia `500` em toda carga —
+    """`B2.09=SIM` abre `B2.10`; corrigir para `NAO` fecha. A resposta de
+    `B2.10` continua gravada, mas a revisão respondia `500` em toda carga —
     e o "‹ Pergunta anterior", que usa a mesma rota, sumia.
 
-    A linha some da revisão (mesma disciplina das fichas); a parte fica."""
-    b103 = _resposta("B1.03", "CONSUMO")
-    respostas = (_resposta("B1.02", "NAO"), b103)
+    A linha some da revisão (mesma disciplina das fichas); a parte fica.
+    (`T-389`: era `B1.02`/`B1.03`.)"""
+    b210 = _resposta("B2.10", Decimal("100"))
+    respostas = (_resposta("B2.09", "NAO"), b210)
     cliente = _montar_cliente(monkeypatch, respostas=respostas)
 
-    parte = next(p for p in _partes(cliente) if p["bloco"] == 1)
+    parte = next(p for p in _partes(cliente) if p["bloco"] == 2)
 
-    assert [r["ID"] for r in parte["respondidas"]] == ["B1.02"]
-    assert b103 in _RepositorioRespostasDublê(respostas).listar_do_caso(_CASO)
+    assert [r["ID"] for r in parte["respondidas"]] == ["B2.09"]
+    assert b210 in _RepositorioRespostasDublê(respostas).listar_do_caso(_CASO)
+
+
+def test_t389_resposta_de_pergunta_retirada_do_questionario_nao_quebra_a_revisao(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`T-389` (RF-402): as respostas já gravadas das perguntas retiradas
+    seguem no repositório (nada é apagado), mas o `ID_PERGUNTA` delas não
+    existe mais nos registros — a revisão não quebra e não as lista."""
+    orfas = tuple(
+        Resposta(
+            CASO_ID=_CASO,
+            ID_PERGUNTA=variavel,
+            item_id=item_id,
+            valor="X",
+            QUESTIONARIO_VERSION="1.0.3",
+            respondida_em=datetime(2026, 3, 1, tzinfo=UTC),
+        )
+        for variavel, item_id in (
+            ("FINALIDADE_NOVA_DIVIDA", None),
+            ("QUALIDADE_VALOR_ORIGINAL", "D001"),
+        )
+    )
+    respostas = (_resposta("B1.01", "ESTABELECIDO"), *orfas)
+    cliente = _montar_cliente(monkeypatch, respostas=respostas, itens=_dividas("D001"))
+
+    partes = _partes(cliente)
+
+    assert [r["ID"] for p in partes for r in p["respondidas"]] == ["B1.01"]
+    assert set(orfas) <= set(_RepositorioRespostasDublê(respostas).listar_do_caso(_CASO))
 
 
 # ---------------------------------------------------------------------------
@@ -432,21 +462,21 @@ def test_t297_total_conta_por_ficha_como_as_respondidas(
 def test_t297_respostas_do_bloco_9_aparecem_na_revisao(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`AC-100`: `B9.02`/`B9.04` são respondidas na coleta inicial e sumiam
+    """`AC-100`: `B9.02` (`B9.04` saiu na `T-404`) é respondida na coleta inicial e sumiam
     da revisão — nenhuma das cinco partes listava o Bloco 9. Ficam em "Seu
     compromisso" (perseverança no plano), sem criar sexta parte (`RF-68`)."""
     cliente = _montar_cliente(
         monkeypatch,
-        respostas=(_resposta("B9.02", 7), _resposta("B9.04", "NAO")),
+        respostas=(_resposta("B9.02", 7),),
     )
 
     partes = _partes(cliente)
     ids = [r["ID"] for p in partes for r in p["respondidas"]]
 
     assert [p["bloco"] for p in partes] == [1, 2, 3, 4, 5]
-    assert {"B9.02", "B9.04"} <= set(ids)
+    assert "B9.02" in ids
     parte_1 = next(p for p in partes if p["bloco"] == 1)
-    assert {"B9.02", "B9.04"} <= {r["ID"] for r in parte_1["respondidas"]}
+    assert "B9.02" in {r["ID"] for r in parte_1["respondidas"]}
 
 
 # ---------------------------------------------------------------------------
@@ -454,42 +484,17 @@ def test_t297_respostas_do_bloco_9_aparecem_na_revisao(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    ("valor", "esperado"),
-    [("CONFIRMADA", "Sim. — R$ 8.000,00"), ("ESTIMADA", "Aproximadamente. — R$ 8.000,00")],
-)
-def test_t303_b5_b01_mostra_o_valor_original(
-    monkeypatch: pytest.MonkeyPatch, valor: str, esperado: str
-) -> None:
-    """Achado no teste ponta a ponta: a revisão mostrava só "Sim."."""
-    valor_original = Resposta(
-        CASO_ID=_CASO,
-        ID_PERGUNTA="VALOR_ORIGINAL",
-        item_id="D001",
-        valor=Decimal("8000"),
-        QUESTIONARIO_VERSION="1.0.0",
-        respondida_em=datetime(2026, 3, 1, tzinfo=UTC),
-    )
-    cliente = _montar_cliente(
-        monkeypatch,
-        respostas=(_resposta("B5.B01", valor, "D001"), valor_original),
-        itens=_dividas("D001"),
-    )
-
-    parte = next(p for p in _partes(cliente) if p["bloco"] == 5)
-    linha = next(r for r in parte["respondidas"] if r["ID"] == "B5.B01")
-
-    assert linha["valores"] == [esperado]
-
-
 def test_t303_data_digitada_aparece_formatada(monkeypatch: pytest.MonkeyPatch) -> None:
     cliente = _montar_cliente(
         monkeypatch,
-        respostas=(_resposta("B5.B04", date(2026, 1, 15), "D001"),),
+        respostas=(
+            _resposta("B5.B05", "SIM", "D001"),
+            _resposta("B5.B05B", date(2026, 1, 15), "D001"),
+        ),
         itens=_dividas("D001"),
     )
 
     parte = next(p for p in _partes(cliente) if p["bloco"] == 5)
-    linha = next(r for r in parte["respondidas"] if r["ID"] == "B5.B04")
+    linha = next(r for r in parte["respondidas"] if r["ID"] == "B5.B05B")
 
-    assert linha["valores"] == ["Data (dd/mm/aaaa) — 15/01/2026"]
+    assert linha["valores"] == ["Data — 15/01/2026"]

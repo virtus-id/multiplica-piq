@@ -41,7 +41,8 @@ const CASO = 'CASO-NAV-E2E'
 const TITULO_BASE = 'PIQ Meu Plano'
 
 /**
- * As cinco fases de `app/casos/fases.py::FASE_INICIO`, cada uma com o
+ * As quatro fases do aluno de `app/casos/fases.py::FASE_INICIO` (o
+ * acompanhamento saiu: o plano entregue é definitivo, `RF-409`), cada uma com o
  * destino que `rotas_inicio.py::_proxima_etapa` devolve para ela, e o rótulo
  * que `TelaInicio::TEXTO_DA_ETAPA` mapeia — `AC-81`.
  *
@@ -80,16 +81,9 @@ const FASES: readonly {
   {
     fase: 'plano',
     estado: 'PLANO_LIBERADO',
-    destino: 'bloco10',
+    destino: 'plano',
     mensagem: 'Seu plano está liberado.',
-    rotulo: 'Decidir sobre o dinheiro que você tem disponível',
-  },
-  {
-    fase: 'acompanhamento',
-    estado: 'EM_ACOMPANHAMENTO',
-    destino: 'acoes',
-    mensagem: 'Seu plano está em acompanhamento.',
-    rotulo: 'Ver o que fazer agora',
+    rotulo: 'Ver o seu plano',
   },
 ]
 
@@ -107,7 +101,7 @@ function focoAtual(page: Page): Promise<{ tag: string; texto: string }> {
 }
 
 /**
- * `AC-81` — o Início oferece UMA próxima etapa, em cada uma das cinco fases.
+ * `AC-81` — o Início oferece UMA próxima etapa, em cada uma das quatro fases.
  *
  * Um teste por fase, e não um laço dentro de um teste: assim o relatório diz
  * QUAL fase quebrou, que é a informação que falta quando um laço falha na
@@ -133,7 +127,7 @@ for (const caso of FASES) {
           ID_PERGUNTA: caso.destino === 'pergunta' ? 'B5.B03' : null,
           item_id: caso.destino === 'pergunta' ? 'D001' : null,
         },
-        valor_em_destaque: caso.fase === 'plano' ? '3000.00' : null,
+        valor_em_destaque: null,
         plano_liberado: caso.fase !== 'coleta',
       },
     })
@@ -325,9 +319,9 @@ test('AC-85: o rodapé de ações fica visível com o conteúdo rolado', async (
   await interceptarBase(page, CASO, {
     inicio: {
       estado: 'PLANO_LIBERADO',
-      fase: 'acompanhamento',
+      fase: 'plano',
       mensagem: 'Seu plano está liberado.',
-      proxima_etapa: { destino: 'acoes', ID_PERGUNTA: null, item_id: null },
+      proxima_etapa: { destino: 'plano', ID_PERGUNTA: null, item_id: null },
       plano_liberado: true,
     },
   })
@@ -350,6 +344,7 @@ test('AC-85: o rodapé de ações fica visível com o conteúdo rolado', async (
           pendencias: null,
           MODO_ESTABILIZACAO: false,
           RESULTADO_CAIXA_OBSERVADO: '7700.00',
+          FALTA_CORTAR: "",
           reserva_mobilizavel: { pendente_de_decisao: false, valor: '3000.00' },
         },
       },
@@ -942,7 +937,7 @@ test('T-154: sessão válida na carga da página não mostra login', async ({ pa
 //
 // A trilha (`TrilhaDaJornada`) e as boas-vindas (`TelaBoasVindas`) são
 // testadas pela interface que o aluno vê, nunca pelas classes CSS: o que
-// `AC-93` promete é uma lista de cinco etapas com UMA marcada como atual, e
+// `AC-93` promete é uma lista de quatro etapas com UMA marcada como atual, e
 // `aria-current="step"` é o contrato dessa marca — quem não vê a cor depende
 // só dele.
 // ---------------------------------------------------------------------------
@@ -954,21 +949,20 @@ function trilha(page: Page) {
   return page.locator('[aria-label="Sua jornada no PIQ"]')
 }
 
-/** As cinco etapas, na ordem do DOM. */
+/** As quatro etapas, na ordem do DOM. */
 function etapasDaTrilha(page: Page) {
   return trilha(page).locator('li')
 }
 
-/** Os rótulos das cinco etapas, na ordem em que o aluno as percorre. */
+/** Os rótulos das quatro etapas, na ordem em que o aluno as percorre. */
 const ROTULOS_DAS_ETAPAS: readonly string[] = [
   'Suas respostas',
   'Cálculo do plano',
   'Conferência da equipe',
   'Seu plano',
-  'Acompanhamento',
 ]
 
-test('AC-93: a trilha mostra as cinco etapas, com exatamente uma em curso', async ({
+test('AC-93: a trilha mostra as quatro etapas, com exatamente uma em curso', async ({
   page,
 }) => {
   await interceptarBase(page, CASO_JORNADA)
@@ -977,12 +971,12 @@ test('AC-93: a trilha mostra as cinco etapas, com exatamente uma em curso', asyn
   await expect(trilha(page)).toBeVisible()
 
   // A CONTAGEM é a asserção que carrega o requisito: `RF-64` promete a
-  // jornada INTEIRA, e uma trilha de quatro etapas esconde justamente o
+  // jornada INTEIRA, e uma trilha com etapas a menos esconde justamente o
   // pedaço que o aluno ainda não conhece.
-  await expect(etapasDaTrilha(page)).toHaveCount(5)
+  await expect(etapasDaTrilha(page)).toHaveCount(4)
 
   // E na ordem: a jornada é uma sequência, não um conjunto. Uma trilha com as
-  // mesmas cinco etapas embaralhadas responderia "onde estou" errado.
+  // mesmas quatro etapas embaralhadas responderia "onde estou" errado.
   const rotulos = await etapasDaTrilha(page).evaluateAll((itens) =>
     itens.map((item) => item.querySelector('.linha span')?.textContent?.trim() ?? ''),
   )
@@ -993,7 +987,7 @@ test('AC-93: a trilha mostra as cinco etapas, com exatamente uma em curso', asyn
 })
 
 /**
- * `AC-94` — a etapa em curso corresponde à fase, em cada uma das cinco.
+ * `AC-94` — a etapa em curso corresponde à fase, em cada uma das quatro.
  *
  * Um teste por fase, e não um laço dentro de um teste, pelo mesmo motivo de
  * `AC-81`: quando quebra, o relatório precisa dizer QUAL fase quebrou.
@@ -1015,8 +1009,7 @@ const ETAPA_ESPERADA_POR_FASE: readonly {
   { fase: 'coleta', estado: 'COLETA_INICIAL', destino: 'pergunta', indice: 0 },
   { fase: 'revisao', estado: 'AGUARDANDO_REVISAO', destino: 'aguardando', indice: 2 },
   { fase: 'reprovado', estado: 'REPROVADO', destino: 'progresso', indice: 2 },
-  { fase: 'plano', estado: 'PLANO_LIBERADO', destino: 'bloco10', indice: 3 },
-  { fase: 'acompanhamento', estado: 'EM_ACOMPANHAMENTO', destino: 'acoes', indice: 4 },
+  { fase: 'plano', estado: 'PLANO_LIBERADO', destino: 'plano', indice: 3 },
 ]
 
 for (const caso of ETAPA_ESPERADA_POR_FASE) {
@@ -1038,7 +1031,7 @@ for (const caso of ETAPA_ESPERADA_POR_FASE) {
     await abrirTela(page, CASO_JORNADA, 'inicio')
 
     const etapas = etapasDaTrilha(page)
-    await expect(etapas).toHaveCount(5)
+    await expect(etapas).toHaveCount(4)
 
     // Nenhuma fase produz trilha vazia nem duas em curso — a metade do
     // critério que vale para TODAS as fases, e que um teste só da fase feliz
@@ -1056,7 +1049,7 @@ for (const caso of ETAPA_ESPERADA_POR_FASE) {
 
     // ...e as SEGUINTES não. "Feito" numa etapa futura seria promessa falsa:
     // diria ao aluno que a equipe já conferiu um plano que não existe.
-    for (let i = caso.indice + 1; i < 5; i += 1) {
+    for (let i = caso.indice + 1; i < 4; i += 1) {
       await expect(etapas.nth(i)).not.toContainText('Feito')
       await expect(etapas.nth(i)).not.toHaveAttribute('aria-current', 'step')
     }
@@ -1083,11 +1076,11 @@ test('AC-95: a trilha é visível sem interação e não exige rolagem horizonta
   )
   expect(dentroDeDetails).toBe(false)
 
-  // As cinco etapas estão TODAS na tela, não só o cartão: uma trilha visível
-  // cujas etapas 4 e 5 ficam fora do container não mostra a jornada inteira.
+  // As quatro etapas estão TODAS na tela, não só o cartão: uma trilha visível
+  // cujas etapas 3 e 4 ficam fora do container não mostra a jornada inteira.
   const etapas = etapasDaTrilha(page)
-  await expect(etapas).toHaveCount(5)
-  for (let i = 0; i < 5; i += 1) {
+  await expect(etapas).toHaveCount(4)
+  for (let i = 0; i < 4; i += 1) {
     await expect(etapas.nth(i)).toBeVisible()
   }
 
@@ -1124,9 +1117,9 @@ test('AC-115: a trilha é informativa — nenhum degrau é clicável', async ({ 
   )
   expect(interativosNaTrilha).toBe(0)
 
-  // E a estrutura que `AC-93`/`AC-94` usam como seletor continua de pé: cinco
+  // E a estrutura que `AC-93`/`AC-94` usam como seletor continua de pé: quatro
   // `<li>`, o rótulo em `.linha span`, `aria-current="step"` em exatamente uma.
-  await expect(etapasDaTrilha(page)).toHaveCount(5)
+  await expect(etapasDaTrilha(page)).toHaveCount(4)
   await expect(trilha(page).locator('li[aria-current="step"]')).toHaveCount(1)
 })
 

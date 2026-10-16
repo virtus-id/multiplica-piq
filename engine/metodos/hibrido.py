@@ -178,6 +178,7 @@ from engine.estado import Divida, EstadoFinanceiro
 from engine.metodos.avalanche import criar_selecionar_alvo_avalanche
 from engine.parametros import Parametros
 from engine.precisao import CONTEXTO_MOTOR, dinheiro
+from engine.prioridade_ordem import peso_emocional_efetivo
 from engine.tipos import CLASSIFICACAO_CENARIO, DESCONHECIDO, Dinheiro, Meses
 from engine.valor_quitacao import compor_VALOR_RELEVANTE_PARA_QUITACAO
 
@@ -213,7 +214,7 @@ class MetricasHibridoD:
     PENALIDADE_CUSTO_VS_AVALANCHE: Decimal
     ATRASO_PRAZO_VS_AVALANCHE: Meses
     VALOR_FLUXO_LIBERADO: Dinheiro  # H-04 nível 3 — lido como PAGAMENTO_MENSAL_EFETIVO
-    PESO_EMOCIONAL: int  # H-04 nível 4 — DESCONHECIDO já resolvido para o pior valor
+    PESO_EMOCIONAL: Decimal  # H-04 nível 4 — DESCONHECIDO já resolvido para o pior valor
     BENEFICIO_MARGINAL_AMORTIZACAO: Decimal  # H-04 nível 5 — idem
 
 
@@ -321,8 +322,9 @@ def _avaliar_candidata(
         valor_fluxo_liberado if valor_fluxo_liberado is not DESCONHECIDO else dinheiro(0)
     )
 
-    peso_emocional = divida.PESO_EMOCIONAL
-    peso_emocional_chave = peso_emocional if peso_emocional is not DESCONHECIDO else -1
+    # `§16.4` passo 4: peso emocional efetivo (+20% da urgência, se houver).
+    peso_emocional = peso_emocional_efetivo(divida)
+    peso_emocional_chave = peso_emocional if peso_emocional is not DESCONHECIDO else Decimal(-1)
 
     resultado_valor_relevante = compor_VALOR_RELEVANTE_PARA_QUITACAO(divida)
     valor_relevante = resultado_valor_relevante.VALOR_RELEVANTE_PARA_QUITACAO
@@ -394,7 +396,7 @@ def _chave_desempate_H04(
         Decimal(metricas.MESES_PRIMEIRA_VITORIA),
         metricas.PENALIDADE_CUSTO_VS_AVALANCHE,
         -metricas.VALOR_FLUXO_LIBERADO,
-        Decimal(-metricas.PESO_EMOCIONAL),
+        -metricas.PESO_EMOCIONAL,
         -metricas.BENEFICIO_MARGINAL_AMORTIZACAO,
         metricas.DIVIDA_ID,
     )

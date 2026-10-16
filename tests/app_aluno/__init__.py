@@ -1,4 +1,4 @@
-"""Suíte de testes da feature App do Aluno (coleta, plano e acompanhamento).
+"""Suíte de testes da feature App do Aluno (coleta e plano).
 
 Espelha a estrutura de `tests/` do motor (`sdd.config.md` §3), mas isolada em
 `app_aluno/` porque rastreia os requisitos e critérios de aceite da spec desta

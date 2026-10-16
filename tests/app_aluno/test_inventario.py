@@ -149,7 +149,6 @@ def test_ac153_nao_tenho_certeza_nao_confirma() -> None:
             "B3.03",
             None,
         ),
-        ("VINCULO_CONSIGNAVEL", EscopoRepeticao.VINCULO_ID, _T.VINCULO_SEM_ITEM, "B3.S01", None),
     ],
 )
 def test_ac135_sim_sem_item_bloqueia_e_nao_remove(
@@ -175,10 +174,6 @@ def test_ac135_sim_sem_item_bloqueia_e_nao_remove(
         )
         == ()
     )
-
-
-def test_ec34_vinculo_nao_sei_sem_ficha_nao_e_pendencia() -> None:
-    assert _pendencias(_resposta("VINCULO_CONSIGNAVEL", NAO_SEI)) == ()
 
 
 def test_ficha_criada_e_vazia_nao_conta_como_cadastrada() -> None:

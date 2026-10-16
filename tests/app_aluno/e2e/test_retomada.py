@@ -50,7 +50,7 @@ Cobertura dos quatro critérios de aceite desta tarefa:
   MULTISSESSÃO completo de `US-01` (cadastro → consentimento → responder →
   "matar" o cliente → novo cliente → retomada), que é o que esta tarefa pede.
 - Nenhum campo já respondido é reapresentado como pendente: reafirmado em
-  `test_ac01_...` (a retomada nunca aponta `PACTO`/`NOVA_DIVIDA_PREVISTA`,
+  `test_ac01_...` (a retomada nunca aponta `PACTO`/`NOVO_PARCELAMENTO_PREVISTO`,
   já respondidos) e em `test_nenhum_campo_ja_respondido_e_reapresentado_
   apos_responder_a_pendencia_seguinte`.
 - Os testes citam `AC-01`/`AC-02` nos nomes: `test_ac01_...`/`test_ac02_...`.
@@ -177,7 +177,7 @@ def test_ac01_cliente_novo_sessao_nova_todas_as_respostas_presentes_e_retomada_n
     aplicacao_real: FastAPI,
 ) -> None:
     """Dispositivo 1: cadastro, consentimento e duas respostas reais
-    (`B1.01=PACTO=ESTABELECIDO`, `B1.02=NOVA_DIVIDA_PREVISTA=NAO`) — ambas
+    (`B1.01=PACTO=ESTABELECIDO`, `B1.07=NOVO_PARCELAMENTO_PREVISTO=NAO`) — ambas
     `OBR`, sempre abertas, sem escopo de repetição, exatamente os registros
     reais usados também por `tests/app_aluno/e2e/test_rota_resposta.py`. O
     `TestClient` do dispositivo 1 NUNCA é reutilizado depois disso — é
@@ -189,9 +189,9 @@ def test_ac01_cliente_novo_sessao_nova_todas_as_respostas_presentes_e_retomada_n
     `RepositorioRespostasSupabase` (nenhum estado em memória do dispositivo
     1 é reaproveitado) e devem conter as duas gravadas. A retomada, chamada
     DIRETAMENTE sobre `proxima_pergunta_nao_respondida` (não existe rota GET
-    de retomada — ver nota do módulo) com essas respostas, aponta `B1.06`
-    (`OBRIGACAO_FUTURA_INEVITAVEL`, `OBR`, sempre aberta, a próxima pergunta
-    real na ordem de carga que ainda está em branco) — nunca `B1.01`/`B1.02`,
+    de retomada — ver nota do módulo) com essas respostas, aponta `B1.09`
+    (`MECANISMO_DEFICIT`, `OBR`, sempre aberta, a próxima pergunta
+    real na ordem de carga que ainda está em branco) — nunca `B1.01`/`B1.07`,
     já respondidas."""
     email = f"t46-ac01-{uuid.uuid4().hex}@teste.invalido"
     caso_id = _cadastrar_consentir_e_iniciar_coleta(aplicacao_real, email)
@@ -208,7 +208,7 @@ def test_ac01_cliente_novo_sessao_nova_todas_as_respostas_presentes_e_retomada_n
     )
     assert resposta_pacto.status_code == 200
     resposta_nova_divida = dispositivo_1.post(
-        f"/caso/{caso_id}/resposta", data={"ID_PERGUNTA": "B1.02", "valor": "NAO"}
+        f"/caso/{caso_id}/resposta", data={"ID_PERGUNTA": "B1.07", "valor": "NAO"}
     )
     assert resposta_nova_divida.status_code == 200
     del dispositivo_1  # fim da sessão 1 — nunca mais usado neste teste.
@@ -225,7 +225,7 @@ def test_ac01_cliente_novo_sessao_nova_todas_as_respostas_presentes_e_retomada_n
     respostas_do_banco = RepositorioRespostasSupabase().listar_do_caso(caso_id)
     valores = {r.ID_PERGUNTA: r.valor for r in respostas_do_banco}
     assert valores.get("PACTO") == "ESTABELECIDO"
-    assert valores.get("NOVA_DIVIDA_PREVISTA") == "NAO"
+    assert valores.get("NOVO_PARCELAMENTO_PREVISTO") == "NAO"
 
     # Retomada no ponto correto — chamada direta à função pura (T-45); não
     # existe rota GET de retomada ainda (ver nota do módulo).
@@ -234,22 +234,22 @@ def test_ac01_cliente_novo_sessao_nova_todas_as_respostas_presentes_e_retomada_n
         registros, RespostasCaso(respostas=respostas_do_banco)
     )
 
-    assert proxima == PendenciaObrigatoria(ID="B1.06", item_id=None), (
-        "AC-01: com PACTO/NOVA_DIVIDA_PREVISTA respondidos por outra sessão, "
-        f"a retomada deveria apontar B1.06; obteve {proxima!r}"
+    assert proxima == PendenciaObrigatoria(ID="B1.09", item_id=None), (
+        "AC-01: com PACTO/NOVO_PARCELAMENTO_PREVISTO respondidos por outra sessão, "
+        f"a retomada deveria apontar B1.09; obteve {proxima!r}"
     )
     # Nenhum campo já respondido é reapresentado como pendente.
-    assert proxima.ID not in ("B1.01", "B1.02")
+    assert proxima.ID not in ("B1.01", "B1.07")
 
 
 def test_ac01_apos_responder_a_pendencia_seguinte_nenhum_campo_antigo_e_reapresentado(
     aplicacao_real: FastAPI,
 ) -> None:
     """Continuação do cenário acima: o dispositivo 2 grava a resposta que a
-    retomada apontou (`B1.06`) — a retomada seguinte, computada de novo com
-    o snapshot atualizado do banco, avança para além de `B1.06` e continua
-    sem jamais reapresentar `PACTO`, `NOVA_DIVIDA_PREVISTA` ou
-    `OBRIGACAO_FUTURA_INEVITAVEL`."""
+    retomada apontou (`B1.09`) — a retomada seguinte, computada de novo com
+    o snapshot atualizado do banco, avança para além de `B1.09` e continua
+    sem jamais reapresentar `PACTO`, `NOVO_PARCELAMENTO_PREVISTO` ou
+    `MECANISMO_DEFICIT`."""
     email = f"t46-ac01b-{uuid.uuid4().hex}@teste.invalido"
     caso_id = _cadastrar_consentir_e_iniciar_coleta(aplicacao_real, email)
 
@@ -259,7 +259,7 @@ def test_ac01_apos_responder_a_pendencia_seguinte_nenhum_campo_antigo_e_reaprese
         f"/caso/{caso_id}/resposta", data={"ID_PERGUNTA": "B1.01", "valor": "ESTABELECIDO"}
     )
     dispositivo_1.post(
-        f"/caso/{caso_id}/resposta", data={"ID_PERGUNTA": "B1.02", "valor": "NAO"}
+        f"/caso/{caso_id}/resposta", data={"ID_PERGUNTA": "B1.07", "valor": "NAO"}
     )
     del dispositivo_1
 
@@ -267,7 +267,7 @@ def test_ac01_apos_responder_a_pendencia_seguinte_nenhum_campo_antigo_e_reaprese
     dispositivo_2.post("/api/conta/login", data={"email": email, "senha": _SENHA_TESTE})
     resposta_obrigacao = dispositivo_2.post(
         f"/caso/{caso_id}/resposta",
-        data={"ID_PERGUNTA": "B1.06", "valor": "NAO"},
+        data={"ID_PERGUNTA": "B1.09", "valor": "NAO_OCORRE"},
     )
     assert resposta_obrigacao.status_code == 200
     del dispositivo_2
@@ -283,7 +283,7 @@ def test_ac01_apos_responder_a_pendencia_seguinte_nenhum_campo_antigo_e_reaprese
     )
 
     assert proxima is not None
-    assert proxima.ID not in ("B1.01", "B1.02", "B1.06"), (
+    assert proxima.ID not in ("B1.01", "B1.07", "B1.09"), (
         "nenhum campo já respondido pode ser reapresentado como pendente "
         f"pela retomada; obteve {proxima!r}"
     )

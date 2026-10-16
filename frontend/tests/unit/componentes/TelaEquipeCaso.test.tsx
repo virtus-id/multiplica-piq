@@ -36,6 +36,7 @@ const CASO = {
     pendencias: null,
     MODO_ESTABILIZACAO: false,
     RESULTADO_CAIXA_OBSERVADO: "",
+    FALTA_CORTAR: "",
     reserva_mobilizavel: { pendente_de_decisao: false, valor: null },
   },
   estado_inputs: {
@@ -85,10 +86,6 @@ describe("TelaEquipeCaso — pendências de homologação (T-266)", () => {
           rotulo: "Pendente de confirmação",
         },
       ],
-      seguros_nao_informados: [
-        { item_id: "D001", nome: "Consignado — CAIXA · 2" },
-      ],
-      rotulo_nao_informado: "Não informado",
       pendencias_homologacao: [
         {
           item_id: "D001",
@@ -116,9 +113,7 @@ describe("TelaEquipeCaso — pendências de homologação (T-266)", () => {
         "Consignado — CAIXA · 2 · Fonte das informações: Pendente de confirmação",
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Consignado — CAIXA · 2 · seguro: Não informado"),
-    ).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/seguro/i);
     expect(document.body.textContent).not.toMatch(
       /\bD0\d\d\b|\bB\d+\.[A-Z0-9]+\b/,
     );

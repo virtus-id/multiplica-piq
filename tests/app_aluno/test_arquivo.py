@@ -223,7 +223,7 @@ def test_buscar_caso_inexistente_devolve_none(tmp_path: Path) -> None:
 
 
 def test_ultima_interacao_em_e_gravada_e_legivel(tmp_path: Path) -> None:
-    """RF-31/EC-14: a trilha de acompanhamento lê `ultima_interacao_em` —
+    """RF-31/EC-14: a trilha de atividade do caso lê `ultima_interacao_em` —
     comparação por igualdade exata do `datetime` gravado vs. lido, mesmo
     critério de `T-23` contra Postgres."""
     repositorio = RepositorioCasosArquivo(tmp_path / "casos.jsonl")

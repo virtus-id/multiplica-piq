@@ -5,7 +5,7 @@
 | Slug     | `motor-calculo`                                             |
 | Status   | `em revisão`                                                |
 | Autor    | virtushold@gmail.com                                        |
-| Data     | 2026-09-30 (Rodada 5 — projeção de recursos extraordinários, `DE-02`, canônica v1.0.2 — **mudança de motor**, ver §15) · 2026-09-10 (Rodada 4, fatia 4C — ligação de `NECESSIDADE_FINANCEIRA_IMEDIATA_ELEGIVEL` (fatia 4B) e da classificação de ativos/investimentos (fatia 4A) em `calcular_diagnostico`, fazendo `ATAQUE_IMEDIATO_RECOMENDADO` sair do placeholder `dinheiro(0)` — **última fatia do documento do especialista**, fecha `OQ-29` por completo · fatia 4B (necessidade financeira imediata, `RF-61`–`RF-65`) concluída e verificada 2026-09-09 · fatia 4A (classificação de investimentos/ativos e valor líquido realizável, `RF-53`–`RF-60`) concluída e verificada 2026-09-09 · Rodada 3 em 2026-09-07 · Rodada 2 em 2026-09-04 · backlog original 78/78 concluído em 2026-09-01/02) |
+| Data     | 2026-10-14 (Rodada 6 — normalização da taxa da dívida, ver §16) · 2026-09-30 (Rodada 5 — projeção de recursos extraordinários, `DE-02`, canônica v1.0.2 — **mudança de motor**, ver §15) · 2026-09-10 (Rodada 4, fatia 4C — ligação de `NECESSIDADE_FINANCEIRA_IMEDIATA_ELEGIVEL` (fatia 4B) e da classificação de ativos/investimentos (fatia 4A) em `calcular_diagnostico`, fazendo `ATAQUE_IMEDIATO_RECOMENDADO` sair do placeholder `dinheiro(0)` — **última fatia do documento do especialista**, fecha `OQ-29` por completo · fatia 4B (necessidade financeira imediata, `RF-61`–`RF-65`) concluída e verificada 2026-09-09 · fatia 4A (classificação de investimentos/ativos e valor líquido realizável, `RF-53`–`RF-60`) concluída e verificada 2026-09-09 · Rodada 3 em 2026-09-07 · Rodada 2 em 2026-09-04 · backlog original 78/78 concluído em 2026-09-01/02) |
 | Fonte    | [`specs/piq-app-spec.md`](piq-app-spec.md) — Matriz Canônica v1.0.1 |
 | Fonte    | [`specs/piq-definicoes-engine.md`](piq-definicoes-engine.md) — Fechamento das Definições Remanescentes da Engine |
 | Fonte    | Devolutiva do especialista de 2026-09-01 — fecha `OQ-01` a `OQ-08` |
@@ -14,6 +14,7 @@
 | Fonte    | Documento canônico *"PIQ v1.0.1 — Definição Canônica de `RESERVA_MOBILIZAVEL` e `ATAQUE_IMEDIATO_RECOMENDADO`"*, entregue em 2026-09-07 — transcrito na íntegra em §13 (Rodada 3) |
 | Fonte    | Documento canônico *"PIQ v1.0.1 — Fechamento Canônico — Necessidade Financeira Imediata e Classificação de Ativos"*, entregue em 2026-09-09 — transcrito na íntegra em §14 (Rodada 4) |
 | Fonte    | Decisão do especialista de 2026-09-30 — [`docs/decisoes-especialista/README.md`](../docs/decisoes-especialista/README.md) `DE-02` (confirmada), incorporada como **v1.0.2** da canônica (`piq-app-spec.md`, Registro de alterações, `E-10`) — §15 (Rodada 5) |
+| Fonte    | Decisão do responsável do produto de 2026-10-14 — [`specs/enxugamento-questionario.spec.md`](enxugamento-questionario.spec.md) §6, pergunta única de custo da dívida — §16 (Rodada 6) |
 
 > **Esta spec não substitui as fontes — ela as endereça.** Cada requisito aponta
 > para os IDs de regra e as seções que o definem. Nenhuma regra é parafraseada
@@ -1538,6 +1539,10 @@ Atende: `RF-70`, `RF-71`, `RF-72`, `RF-73`, `RF-74`, `RF-75`, `RF-76`
 | `OQ-48` | Como se **quantifica** a preservação de `RF-74`? Quais "parâmetros de reserva já existentes" e como tratar despesas sazonais que já estão em `DESPESAS_NAO_MENSAIS_NORMALIZADAS` (preservar de novo seria dupla contagem)? | Sem regra, o valor destinado às dívidas não é determinístico | `RF-74`, `AC-126` | `resolvida` (2026-09-30) — decisão da equipe técnica com base em `DE-02`/obs de `q2_1`: a preservação usa as regras de mobilização/reserva já existentes (§13.3, `RESERVA_MOBILIZAVEL`), aplicadas no mês em que o recurso é projetado; sem parâmetro novo (`RF-74`, `AC-126`). **Nota (2026-09-30, `T-155`/`T-167`):** leitura de `RF-74` confirmada pelo responsável do produto — a preservação é a trava de déficit já existente do §13.4: com `RESULTADO_MENSAL_ATUAL < 0` nenhum aporte é destinado; fora dela `VALOR_DESTINADO = VALOR_RECURSO_EXTRAORDINARIO` (valor líquido). Nenhuma dedução de essenciais/sazonais (já fora da capacidade — seria dupla contagem). Reversível: uma expressão em `engine/extraordinarios.py::selecionar_aportes` (plano `R9M.10` #1) |
 | `OQ-49` | Qual é a **forma do cenário adicional** de `PROVAVEL`/`POSSIVEL`: só a lista dos itens, ou uma projeção alternativa completa (prazo e custo com os itens)? Um cenário por item ou um conjunto? | Define o campo novo de saída e o que o relatório mostra | `RF-71`, `AC-120` | `resolvida` (2026-09-30, revista no mesmo dia) — segunda projeção incluindo `PROVAVEL` **e** `POSSIVEL`, apresentada à parte e rotulada; forma de exibição a critério do plano. Base: `DE-02` ("Prováveis e Possíveis aparecem só como cenário adicional"), **confirmado pelo responsável do produto em nome do especialista em 30/09/2026** ("é isso mesmo"). A divergência com o `obs` de `q2_3` ("(3) Incerto — não considerar até confirmação") fica **superada** por essa confirmação posterior (`RF-71`, `AC-120`, `AC-131`) |
 | `OQ-50` | Recurso `CONFIRMADO` projetado precisa de **aprovação do aluno** (como `ATAQUE_IMEDIATO_APROVADO`, §13.6) antes de entrar na projeção? E `CONFIRMADO` em `ATE_30D` ainda não recebido é ataque de hoje ou aporte no mês 1? | §13.6 diz que só o aprovado entra no cronograma como ataque imediato; `DE-02` diz que confirmados entram na projeção | `RF-70`, `RF-73`, `EC-54` | `resolvida` (2026-09-30, mantida após revisão) — decisão da equipe técnica com base em `DE-02`: não exige aprovação do aluno; `ATE_30D` `CONFIRMADO` segue a regra **atual** do §13.3 (ataque de hoje), inalterada, e não é duplicado na projeção. **Justificativa:** `DE-02` declara expressamente "Ataque de hoje (§13.3, `EXTRAORDINARIOS_RECOMENDADOS`): só o que já está disponível no momento — **regra atual mantida**"; esta resolução não reinterpreta o §13.3, apenas o preserva como está, e evita contar o item duas vezes (§13.8) (`RF-73`, `AC-130`, `EC-54`) |
+| `OQ-51` | Como se lê "urgência soma 20% ao peso emocional" (`B5.H03`, regra `§16.4`)? Soma de `0,20 × urgência` ao peso, mistura ponderada ou multiplicador? | Define a escala do peso efetivo e quem desempata | — | `resolvida` (2026-10-16, interpretação conservadora, a confirmar com o especialista) — `peso + 0,20 × urgência`, só nos desempates onde o peso emocional já atuava |
+| `OQ-52` | "Negativada passa na frente das demais atrasadas": também passa na frente de dívida não atrasada? | `STATUS_DIVIDA` não tem "atrasada" | — | `resolvida` (2026-10-16, a confirmar) — passa na frente das demais do mesmo nível do passo 1 |
+| `OQ-53` | Qual é a "diferença de custo" de 5% e entre quais candidatas? | Define quando a escolha do aluno (`B5.H04`) vale | — | `resolvida` (2026-10-16, a confirmar) — relativa à maior `TAXA_EFETIVA_MENSAL_NORMALIZADA` entre as duas primeiras do grupo; o 5% é `P_DIFERENCA_CUSTO_EQUIVALENTE` |
+| `OQ-54` | "Outros 1": entram aval/fiança e saldo/aplicação financeira como garantia de peso 1? | Define o peso de tipos que não são bem físico | — | `resolvida` (2026-10-16, a confirmar) — sim, todo tipo declarado diferente de imóvel e veículo pesa 1 |
 
 ## 11. Definições incorporadas
 
@@ -2798,7 +2803,7 @@ para o plano mensal fechar. A capacidade mensal, o `STATUS_FINANCEIRO` e o
   já no orçamento (`RF-75`).
 - Férias: é extraordinário **apenas o acréscimo (1/3)**, não a remuneração
   normal, que já é renda mensal. O motor recebe o valor já coletado assim
-  (`app-aluno` `RF-98`).
+  (requisito de recursos extraordinários do `app-aluno`).
 
 ### 15.3. Prováveis e possíveis
 
@@ -2824,3 +2829,287 @@ essenciais, despesas sazonais já conhecidas, obrigações prioritárias e a
 proteção mínima, aplicando as regras de mobilização/reserva **já existentes**
 (§13.3, `RESERVA_MOBILIZAVEL`) no mês em que o recurso é projetado — nenhum
 `P_*` novo (`RF-74`, `OQ-48`).
+
+---
+
+## 16. Definições incorporadas — Rodada 6 (normalização da taxa da dívida, soma de despesas, percepção)
+
+> **Origem.** Decisão do responsável do produto de 2026-10-14, na feature
+> `enxugamento-questionario` (pergunta única de custo da dívida, `T-393`, fonte
+> em `specs/enxugamento-questionario.spec.md` §6): o aluno informa **um só
+> valor** por dívida (o CET ou, se não souber, a taxa de juros) **com a
+> periodicidade** ao mês ou ao ano. Até aqui o motor recebia a taxa já mensal
+> (`Divida.TAXA_EFETIVA_MENSAL_NORMALIZADA`) e a camada de aplicação só repassava
+> o valor quando a periodicidade informada já era mensal; **o motor não tinha a
+> conversão ano → mês**, e a Lei nº 3 do backlog de `app-aluno` proíbe a camada
+> de aplicação de calculá-la. Esta seção cria a regra no motor. **Mudança de
+> motor:** uma função pura nova; nenhuma regra existente muda, o contrato de
+> `Divida` não muda e nenhum `P_*` é criado.
+
+### 16.1. Normalização da taxa da dívida — regra `§16.1`
+
+**ID normativo: `§16.1`.** As letras `M`, `R`, `A`, `F`, `O`, `H`, `S`, `Q`, `V`,
+`T`, `G` (54 regras) são a lista fechada da canônica (`piq-app-spec.md` §9) e
+`tests/estatica/test_toda_regra_citada.py` recusa qualquer ID desse formato fora
+dela; esta spec não altera a canônica. As Rodadas 2 a 5 seguiram o mesmo
+caminho: regra incorporada citada pela seção da spec do motor (`§11.1`, `§13.3`).
+Por isso a regra é citada no código como `§16.1`.
+
+```
+Entrada:  VALOR  (fração: 2% == 0.02)  e  PERIODICIDADE ∈ {MENSAL, ANUAL}
+Saída:    TAXA_EFETIVA_MENSAL_NORMALIZADA
+
+PERIODICIDADE = MENSAL → TAXA_EFETIVA_MENSAL_NORMALIZADA = VALOR
+PERIODICIDADE = ANUAL  → TAXA_EFETIVA_MENSAL_NORMALIZADA = (1 + VALOR)^(1/12) − 1
+```
+
+- **Juros compostos, equivalência de taxas.** A taxa mensal é a que, composta
+  por 12 meses, reproduz a taxa anual: `(1 + mensal)^12 = 1 + anual`. É a mesma
+  convenção de capitalização mensal que o motor já usa (`saldo × (1 + taxa)`,
+  `RF-05`). Não há conversão linear (`anual ÷ 12`).
+- **Precisão decimal integral (`RF-12`, `G-01`):** aritmética `Decimal` no
+  contexto único do motor (`engine/precisao.py`); nenhum arredondamento. O
+  arredondamento existe só na exibição.
+- **Sem parâmetro:** nenhum `P_*` novo. Os dois domínios de periodicidade são
+  fechados pela decisão do produto; qualquer outra periodicidade (`OUTRA`,
+  `NAO_SEI`, diária, semestral) **não existe** na entrada desta regra.
+- **Valor desconhecido não chega aqui:** o motor continua a receber
+  `DESCONHECIDO` em `TAXA_EFETIVA_MENSAL_NORMALIZADA` quando o dado não existe
+  (`RF-16`). Esta regra só se aplica a um valor informado.
+- **Entrada inválida é recusada, nunca corrigida:** valor negativo, valor que
+  não seja `Decimal`/`int`/`str` (`float` recusado, como em `dinheiro()`) e
+  periodicidade fora do domínio fechado levantam erro. Valor `0` é válido e
+  devolve `0` nas duas periodicidades.
+- **Função pura:** sem I/O, sem relógio; não importa de `app/`, `persistencia/`
+  nem `collection/`. Quem informa o valor e a periodicidade (a camada de
+  montagem) chama a função e entrega o resultado em `Divida`; o `CET` de
+  `Divida` segue `DESCONHECIDO` (não se registra qual dos dois foi informado).
+- **Efeito no ranking (`RF-21`):** a Avalanche ordena por
+  `TAXA_EFETIVA_MENSAL_NORMALIZADA` no fallback do benefício marginal; uma dívida
+  informada ao ano passa a ser comparável às informadas ao mês.
+
+**Critérios de aceite da regra `§16.1`** (cada teste de `tests/regras/` cita o
+critério):
+
+| ID | Critério | Resultado esperado |
+| --- | --- | --- |
+| `§16.1-C1` | `VALOR = 0.02`, `MENSAL` | exatamente `0.02` (identidade) |
+| `§16.1-C2` | `VALOR = 1.02^12 − 1 = 0.268241794562545318301696` (≈ 26,82% a.a.), `ANUAL` | exatamente `0.02` (≈ 2% a.m.) |
+| `§16.1-C3` | `VALOR = 4095` (`1 + VALOR = 2^12`), `ANUAL` | exatamente `1` (100% a.m.) |
+| `§16.1-C4` | `VALOR = 0`, `MENSAL` e `ANUAL` | exatamente `0` |
+| `§16.1-C5` | valores diversos e grandes (por exemplo `0.1`, `0.2682`, `5`, `1000`), `ANUAL` | igualdade exata, no contexto do motor (34 dígitos), com o valor calculado de forma independente no teste (`ln`/`exp` em precisão 80, arredondado a 34 dígitos) — **sem** tolerância |
+| `§16.1-C6` | `VALOR < 0` (por exemplo `-0.01`), qualquer periodicidade | erro (`ValueError`); nada é devolvido |
+| `§16.1-C7` | periodicidade fora de `MENSAL`/`ANUAL` (por exemplo `OUTRA`, `NAO_SEI`) ou `VALOR` em `float` | erro (`ValueError` / `TypeError`) |
+| `§16.1-C8` | duas dívidas iguais, uma `0.02` `MENSAL` e outra `1.02^12 − 1` `ANUAL` | `TAXA_EFETIVA_MENSAL_NORMALIZADA` idêntica; a ordem do ranking por juros não distingue as duas |
+
+**Tolerância.** A tolerância de `± R$ 0,05` (`G-02`, `sdd.config.md` §5) vale só
+para dinheiro acumulado. Taxa **não** tem tolerância: a igualdade é exata contra
+o valor de referência calculado de forma independente.
+
+---
+
+### 16.2. Soma das despesas por classificação (fixas e variáveis) — regra `§16.2`
+
+> **Origem.** Decisão do especialista confirmada pelo responsável do produto em
+> 2026-10-15, feature `enxugamento-questionario` (requisito 412, tarefa `T-399`):
+> o aluno classifica cada item de despesa como **fixo** ou **variável**
+> (`B3.DF02`) e o plano mostra quanto das despesas é fixo e quanto é variável. A
+> soma é fórmula e, pela Lei nº 3 do backlog de `app-aluno`, pertence ao motor,
+> não à camada de aplicação. **Mudança de motor:** uma função pura nova
+> (`engine/despesas.py`); nenhuma regra existente muda e nenhum `P_*` é criado.
+
+**ID normativo: `§16.2`** (mesmo motivo de `§16.1`: os IDs `LETRA-NN` são a lista
+fechada da canônica).
+
+```
+Entrada:  lista de itens (CLASSIFICACAO, VALOR_MENSAL)
+Saída:    (DESPESAS_FIXAS, DESPESAS_VARIAVEIS, DESPESAS_NAO_CLASSIFICADAS)
+
+CLASSIFICACAO = FIXA      → soma em DESPESAS_FIXAS
+CLASSIFICACAO = VARIAVEL  → soma em DESPESAS_VARIAVEIS
+qualquer outra            → soma em DESPESAS_NAO_CLASSIFICADAS
+VALOR_MENSAL desconhecido → o item não contribui para nenhum grupo
+```
+
+- **Sem inferência.** Item sem classificação (`NAO_SEI`, ausente ou qualquer valor
+  fora de `FIXA`/`VARIAVEL`) **não** é classificado pela categoria da despesa: vai
+  para o terceiro grupo. O motor não adivinha.
+- **Valor desconhecido não contribui, nunca vira `0` inventado:** é o mesmo
+  critério da soma dos itens informados da fotografia do mês. A soma das três
+  saídas é a soma dos itens com valor informado.
+- **Precisão decimal integral (`RF-12`, `G-01`):** aritmética `Decimal` no
+  contexto único do motor; nenhum arredondamento (só na exibição).
+- **Sem parâmetro:** nenhum `P_*` novo. Função pura, sem I/O nem relógio; não
+  importa de `app/`, `persistencia/` nem `collection/`.
+
+**Critérios de aceite da regra `§16.2`** (cada teste de
+`tests/regras/test_despesas.py` cita o critério):
+
+| ID | Critério | Resultado esperado |
+| --- | --- | --- |
+| `§16.2-C1` | itens `FIXA` 1000,10 e 200,05; `VARIAVEL` 300,20; sem classificação 50 e 7 | `(1200,15; 300,20; 57)` |
+| `§16.2-C2` | item `FIXA` com valor desconhecido e item `VARIAVEL` de 9 | `(0; 9; 0)`: o desconhecido não contribui |
+| `§16.2-C3` | nenhum item | `(0; 0; 0)` |
+
+---
+
+### 16.3. Diferença entre o percebido e o calculado — regra `§16.3`
+
+> **Origem.** Mesma decisão e feature (requisito 412, `T-399`): o aluno diz
+> quanto costuma **sobrar** (`B3.C02A`) ou **faltar** (`B3.C02B`) no mês; o
+> resultado mensal calculado (`renda − despesas`) vem da montagem; a tela mostra
+> ao aluno qualquer diferença entre os dois (`B3.C02C`), que aceita a diferença
+> ou revisa as respostas. **Mudança de motor:** uma função pura nova
+> (`engine/percepcao.py`); nenhuma regra existente muda e nenhum `P_*` é criado.
+
+**ID normativo: `§16.3`.**
+
+```
+Entrada:  SOBRA_PERCEBIDA (ou ausente), FALTA_PERCEBIDA (ou ausente),
+          RESULTADO_CALCULADO (dinheiro ou desconhecido)
+Saída:    DIFERENCA_PERCEBIDA_CALCULADA (dinheiro ou desconhecido)
+
+RESULTADO_CALCULADO desconhecido            → desconhecido
+SOBRA_PERCEBIDA informada                   → SOBRA_PERCEBIDA − RESULTADO_CALCULADO
+senão, FALTA_PERCEBIDA informada            → −FALTA_PERCEBIDA − RESULTADO_CALCULADO
+nenhuma das duas                            → desconhecido
+```
+
+- **Convenção de sinal.** A sobra é positiva e a falta é negativa. Diferença
+  positiva = o aluno percebe mais folga do que as respostas dão; negativa = menos.
+- **Se vierem as duas, vale a sobra.** A falta é ignorada; o motor não soma nem
+  escolhe a de maior valor.
+- **Sem limite de tolerância.** Qualquer diferença, inclusive de um centavo, é
+  devolvida e mostrada ao aluno (etapa didática, decisão do especialista). A
+  tolerância de `± R$ 0,05` (`G-02`) **não** se aplica aqui.
+- **Não inventar dado:** sem valor percebido, ou com resultado calculado
+  desconhecido, a saída é `DESCONHECIDO`, nunca `0`.
+- **Precisão decimal integral (`RF-12`, `G-01`);** sem parâmetro `P_*`; função
+  pura, sem I/O nem relógio.
+
+**Critérios de aceite da regra `§16.3`** (cada teste de
+`tests/regras/test_percepcao.py` cita o critério):
+
+| ID | Critério | Resultado esperado |
+| --- | --- | --- |
+| `§16.3-C1` | sobra percebida 500; calculado 200,50 | `299,50` |
+| `§16.3-C2` | falta percebida 300; calculado −100 | `−200` (a falta conta como negativa) |
+| `§16.3-C3` | sobra 0,01 e calculado 0,00; sobra 10 e calculado 10 | `0,01` (sem tolerância); `0` |
+| `§16.3-C4` | calculado desconhecido com sobra 1; ou nenhum valor percebido com calculado 1 | `DESCONHECIDO` nos dois casos (nunca `0`) |
+| `§16.3-C5` | sobra e falta informadas ao mesmo tempo | usa a sobra; a falta é ignorada (ainda sem teste dedicado: acompanhar na `T-403`) |
+
+---
+
+### 16.4. Prioridade na ordem de quitação — regra `§16.4`
+
+> **Origem.** Decisão do especialista (levantamento do produto de 2026-10-16),
+> feature `enxugamento-questionario`, requisito 418, tarefa `T-406`. As
+> cinco perguntas por dívida já existem no Bloco 5 (`B5.E03`, `B5.F02`,
+> `B5.F03`, `B5.H03`, `B5.H04`); o que faltava era a regra de ordem. **Mudança
+> de motor:** uma função pura nova (`engine/prioridade_ordem.py`), cinco campos
+> opcionais em `Divida` (com valor neutro) e a troca do peso emocional pelo peso
+> emocional efetivo nas duas cadeias de desempate que já o usam (`O-05`, nível 3,
+> e `H-04`, nível 4). Nenhum `P_*` é criado.
+
+**ID normativo: `§16.4`** (mesmo motivo de `§16.1`: os IDs `LETRA-NN` são a lista
+fechada da canônica). Atenção a um falso amigo: o `H-04` citado acima é o
+desempate do Híbrido; a pergunta do aluno é `B5.H04` (variável
+`PREFERENCIA_QUITACAO`).
+
+```
+Entrada por dívida (todas opcionais; ausente, NAO, NAO_SEI ou DESCONHECIDO = ausente):
+  GARANTIA_ESSENCIAL      bool   B5.F03 = ESSENCIAL        (só lida se B5.F01 = SIM)
+  NEGATIVADA              bool   B5.E03 = SIM
+  TIPO_GARANTIA           str    B5.F02                     (só lida se B5.F01 = SIM)
+  URGENCIA_PERCEBIDA      0..10  B5.H03
+  PREFERENCIA_QUITACAO    bool   B5.H04 = SIM
+Saída: o alvo escolhido a cada chamada de SelecionarAlvo (Avalanche, Bola de Neve ou Híbrido)
+```
+
+Prioridade, da mais forte para a mais fraca (decisão do especialista):
+
+1. **Bem essencial sobe ao topo.** Dívida com `GARANTIA_ESSENCIAL` entra antes de
+   toda dívida sem ele.
+2. **Dívida negativada passa na frente das demais.** Entre as dívidas de mesmo
+   nível no passo 1, a `NEGATIVADA` entra antes das que não são.
+3. **Peso por tipo de garantia.** `IMOVEL` = 3; `VEICULO` = 2; qualquer outro tipo
+   declarado (`OUTRO_BEM`, `AVAL_FIANCA`, `SALDO_APLICACAO_FINANCEIRA`, `OUTRA`)
+   = 1; sem garantia, `NAO_SEI` ou ausente = 0. Entre as dívidas de mesmo nível
+   nos passos 1 e 2, entra antes a de maior peso.
+4. **Urgência soma 20% ao peso emocional.** `PESO_EMOCIONAL_EFETIVO =
+   PESO_EMOCIONAL + 0,20 × URGENCIA_PERCEBIDA`. Sem urgência informada, ou com
+   `PESO_EMOCIONAL` desconhecido, o peso efetivo é o próprio `PESO_EMOCIONAL`
+   (desconhecido continua a perder o desempate). O peso efetivo substitui o
+   `PESO_EMOCIONAL` nas duas cadeias de desempate em que ele já existe.
+5. **Escolha do aluno dentro de 5% de custo.** Sejam `A` a primeira e `B` a
+   segunda candidatas do método vigente dentro do grupo dos passos 1 a 3. Se a
+   diferença de custo entre `A` e `B` for de até 5% e só `B` tiver
+   `PREFERENCIA_QUITACAO`, `B` entra primeiro.
+
+- **Os passos 1 a 3 formam uma chave lexicográfica `(essencial, negativada,
+  peso_garantia)`.** O grupo é o conjunto das dívidas ainda não quitadas com a
+  maior chave. Dentro do grupo, quem decide é o método vigente (Avalanche, Bola de
+  Neve, Híbrido), com seus desempates. Nenhum passo reordena dívidas de grupos
+  diferentes.
+- **Diferença de custo (passo 5).** O custo da dívida é
+  `TAXA_EFETIVA_MENSAL_NORMALIZADA`: é o "maior custo financeiro" que a cadeia
+  `O-05` já usa, o fallback do benefício marginal (`§11.1`) e a única medida de
+  custo que existe por dívida, sem depender do ataque do mês. A diferença é
+  relativa e simétrica: `|custo(A) − custo(B)| ≤ T × máx(custo(A), custo(B))`, com
+  `T = P_DIFERENCA_CUSTO_EQUIVALENTE ÷ 100` (hoje 5). Reaproveitar o parâmetro
+  evita número solto no código e usa a mesma tolerância de custo "equivalente" do
+  Híbrido (`H-03`). Custo desconhecido em `A` ou em `B`: a regra do passo 5 não se
+  aplica. Os dois custos iguais a zero: diferença zero, a regra se aplica.
+- **Empate e preferência.** Se `A` e `B` têm ambas `PREFERENCIA_QUITACAO`, ou
+  nenhuma, a ordem do método vigente permanece. A preferência nunca atravessa
+  grupos dos passos 1 a 3 e nunca é aplicada a uma terceira candidata: a
+  comparação é só entre as duas primeiras.
+- **Ausência de respostas = regra não se aplica.** Se nenhuma dívida da carteira
+  tem qualquer dos cinco campos informados, `SelecionarAlvo` devolvido é o próprio
+  do método (identidade), e a ordem é idêntica à anterior à regra. Dentro de uma
+  carteira com algumas dívidas respondidas, cada passo só distingue dívidas quando
+  o campo difere; campo ausente conta como o valor neutro (falso, `0`).
+- **Alvo fixo (`O-02`, `H-06`).** A regra só escolhe quando o método escolheria
+  (bootstrap ou cascata de resíduo); um alvo vigente não quitado nunca é trocado.
+- **Fallback.** Se o método não devolve candidata dentro do grupo (valor relevante
+  desconhecido, por exemplo), vale a escolha do método sobre a carteira inteira:
+  a regra nunca deixa a carteira sem alvo.
+- **Determinismo.** Sem relógio, sem aleatoriedade, sem I/O; mesma entrada, mesma
+  saída; o desempate final continua sendo `DIVIDA_ID`. Precisão decimal integral
+  (`RF-12`, `G-01`). Nenhum `P_*` novo (os pesos 3/2/1 e o 20% são decisão do
+  especialista, fixos em constantes nomeadas do módulo).
+
+**Critérios de aceite da regra `§16.4`** (cada teste de
+`tests/regras/test_prioridade_ordem.py` cita o critério):
+
+| ID | Critério | Resultado esperado |
+| --- | --- | --- |
+| `§16.4-C1` | nenhuma dívida com os cinco campos (carteira dos gabaritos) | `SelecionarAlvo` é o do método; `ORDEM_QUITACAO` dos três métodos idêntica à de antes, inclusive nos gabaritos `GAB-A`, `GAB-B` e `GAB-C` |
+| `§16.4-C2` | campos presentes porém neutros (`NAO`, `NAO_SEI`, urgência ausente, sem garantia) | mesma ordem do método |
+| `§16.4-C3` | uma dívida com bem essencial entre outras mais caras | a essencial é o primeiro alvo, nos três métodos |
+| `§16.4-C4` | uma negativada contra uma não negativada, sem bem essencial | a negativada entra primeiro |
+| `§16.4-C5` | imóvel, veículo e outra garantia, sem essencial nem negativada | ordem `IMOVEL` (3), `VEICULO` (2), outra (1), depois sem garantia (0) |
+| `§16.4-C6` | essencial sem negativação contra negativada sem bem essencial | a essencial entra primeiro (passo 1 acima do 2) |
+| `§16.4-C7` | negativada de garantia 1 contra não negativada de garantia 3 | a negativada entra primeiro (passo 2 acima do 3) |
+| `§16.4-C8` | duas dívidas empatadas no método (Bola de Neve: mesmo valor relevante, fluxo e custo), pesos emocionais 5 e 4, urgências 0 e 10 | com urgência, `5 + 0 = 5` contra `4 + 2 = 6`: a de peso efetivo 6 entra primeiro; sem urgência, entra a de peso 5 |
+| `§16.4-C9` | duas primeiras candidatas com custos 2,00% e 1,95% a.m. (diferença 2,5%); só a segunda com `PREFERENCIA_QUITACAO` | a segunda entra primeiro |
+| `§16.4-C10` | custos 2,00% e 1,80% a.m. (diferença 10%); só a segunda com preferência | a ordem do método permanece |
+| `§16.4-C11` | custos 2,00% e 1,90% a.m. (diferença exatamente 5%) | a preferência vale (até 5%, inclusive) |
+| `§16.4-C12` | as duas com preferência, ou nenhuma | a ordem do método permanece |
+| `§16.4-C13` | preferência numa dívida de grupo inferior (sem bem essencial, contra uma essencial) | a preferência não atravessa o grupo; a essencial entra primeiro |
+| `§16.4-C14` | custo desconhecido em uma das duas primeiras | o passo 5 não se aplica |
+| `§16.4-C15` | alvo vigente não quitado | devolvido sem nova decisão |
+| `§16.4-C16` | mesma entrada duas vezes | mesma saída; `ORDEM_QUITACAO` determinística |
+
+**Pontos de interpretação** (a leitura mais conservadora foi adotada; ver `OQ-51`
+a `OQ-54` na seção 10):
+
+- "Urgência soma 20% ao peso emocional" foi lida como
+  `peso + 0,20 × urgência` (a urgência de 0 a 10 vale até 2 pontos na mesma
+  escala do peso), e não como mistura ponderada nem como multiplicador do peso.
+  O peso efetivo atua só onde o peso emocional já atuava (desempate): não passa a
+  ordenar acima do custo.
+- "Passa na frente das demais atrasadas" foi lida como passa na frente das demais
+  do mesmo nível do passo 1: o domínio de `STATUS_DIVIDA` não tem "atrasada", e uma
+  dívida negativada é, por definição, atrasada.
+- "Outros 1" abrange todo tipo de garantia declarado diferente de imóvel e veículo.

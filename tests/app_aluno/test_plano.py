@@ -83,9 +83,7 @@ _TITULO_Q03 = "Seu plano inteligente de quitação de dívidas"
 _CORPO_Q03 = (
     "Montamos este plano a partir das informações que você nos passou. Ele "
     "mostra, mês a mês, quanto pagar e em qual dívida, até a última ser "
-    "quitada. Se algo importante mudar na sua vida financeira, como a renda, "
-    "uma dívida nova ou um dinheiro extra, o plano é refeito para continuar "
-    "adequado à sua realidade."
+    "quitada. Este plano é definitivo."
 )
 
 _PALAVRAS_PROIBIDAS = ("definitiva", "final", "fixa")
@@ -209,8 +207,7 @@ def test_nenhuma_variavel_nova_de_rotulo_visual_para_a_ordem() -> None:
         "prognostico",
         "incomodo",
         "sem_valor_extra",
-        # `T-245` (RF-82): orientação por dívida com seguro, não da ordem.
-        "orientacao_seguro_prestamista",
+        "avisos",  # `RF-412`: avisos do que o aluno declarou
         # `T-326` (RF-111): nome da dívida, descrição das ações e rótulos
         # dos dados e códigos — nenhum renomeia a ordem.
         "nome_da_divida",

@@ -105,7 +105,7 @@ def montar_contexto_pergunta(
     `item_id` é o identificador do item corrente, para pergunta `REP`
     (`escopo_repeticao != NENHUM`) — usado tanto para ler o valor já
     respondido NAQUELE item quanto como `ContextoItem.item_id` da
-    interpolação (`[Dxxx]` em `B11.Q01`, RF-06/AC-05). `rotulo_do_item`
+    interpolação (`[Dxxx]`, RF-06/AC-05). `rotulo_do_item`
     (`T-217`) é o nome do item para o aluno, quando ele tem um.
     `itens_por_escopo`/`rotulos` (`T-256`): os itens ativos do caso, para a
     origem `ITENS_DO_ESCOPO` — sem eles, essa pergunta sai sem opções.

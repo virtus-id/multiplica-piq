@@ -13,16 +13,9 @@ era um servidor público endividado, diante de sete botões, sem saber qual se
 aplicava ao seu caso — e vários não se aplicavam. `RF-58` devolve a decisão a
 quem tem os dados para tomá-la.
 
-**Arquivo próprio, e não `rotas_etapas.py`.** Aquele módulo trata da ABERTURA
-das etapas pós-plano (Blocos 7/8/10/11) — quando o caso pode transicionar. Este
-responde "o que o aluno vê ao abrir o app". São dois assuntos, e juntá-los faria
-um módulo que muda por duas razões.
-
 ## Lei nº 3 — o que esta rota NÃO faz
 
-Nenhum limiar é avaliado aqui. A fase vem de `app/casos/fases.py`; a guarda do
-Bloco 10 vem de `app/casos/confirmacao_ataque.py::bloco_10_alcancavel`, a MESMA
-que `rotas_etapas.py` consulta; a mensagem vem de
+Nenhum limiar é avaliado aqui. A fase vem de `app/casos/fases.py`; a mensagem vem de
 `app/http/mensagens_de_estado.py`. Esta rota LÊ e COMPÕE — não decide nada de
 método (`RF-34`).
 
@@ -34,9 +27,8 @@ Esta rota **não** copia isso: manda o `rotulo` genérico e o
 
 Dois motivos normativos, não estéticos: `RF-13` (dinheiro nunca atravessa
 `float` — e `JSON.parse` transformaria um número em `double` silenciosamente,
-por isso todo valor monetário viaja como string, mesma disciplina de
-`rotas_etapas.py`); e a Lei nº 3 (o número é leitura de campo do snapshot, não
-parte de uma frase montada no servidor). `AC-88` verifica os dois.
+por isso todo valor monetário viaja como string); e a Lei nº 3 (o número é
+leitura de campo do snapshot, não parte de uma frase montada no servidor). `AC-88` verifica os dois.
 
 REGRAS: `RF-58`, `RF-60`, `RF-61`, `RF-62`, `AC-81`, `AC-88`, `AC-90`, `EC-25`
 """
@@ -51,30 +43,22 @@ from typing import Annotated, Final
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from app.casos.acompanhamento import _snapshot_corrente
-from app.casos.confirmacao_ataque import (
-    ataque_imediato_recomendado_de,
-    bloco_10_alcancavel,
-)
-from app.casos.fases import FASE_INICIO, fase_do_estado, fase_do_plano_liberado
+from app.casos.fases import FASE_INICIO, fase_do_estado
 from app.casos.inventario import pendencias_de_inventario
 from app.casos.maquina import ESTADO_CASO
 from app.casos.progresso import (
     contar_coleta,
-    da_coleta_inicial,
     itens_em_aberto,
     proxima_pergunta_nao_respondida,
 )
 from app.concorrencia import tres_em_paralelo
-from app.http.atualizacoes import respostas_mudaram_desde_o_plano
-from app.http.edicao import ESTADOS_COM_PLANO_LIBERADO
 from app.http.isolamento import exigir_caso_da_sessao, obter_repositorio_casos
 from app.http.mensagens_de_estado import (
     MENSAGEM_COLETA_COMPLETA,
     MENSAGEM_CORRECAO_PEDIDA,
     mensagem_do_estado_do_caso,
 )
-from app.http.rotas_calculo import ParametrosExternosDoBloco6, obter_parametros_externos_do_bloco6
+from app.http.rotas_calculo import snapshot_corrente
 from app.http.rotas_coleta import (
     _itens_por_escopo,
     faltam_fichas_de_divida,
@@ -175,8 +159,6 @@ class DESTINO_DA_ETAPA(Enum):
     CALCULANDO = "calculando"
     AGUARDANDO = "aguardando"
     PROGRESSO = "progresso"
-    BLOCO_10 = "bloco10"
-    ACOES = "acoes"
     PLANO = "plano"
 
 
@@ -208,16 +190,15 @@ def _snapshot_liberado(
 ) -> SnapshotOrdem | None:
     """O snapshot LIBERADO do caso, ou `None` — nunca o último calculado.
 
-    **O ponto de injeção é `rotas_plano.obter_repositorio_snapshots`, nunca o
-    de `rotas_coleta_dirigida`.** Esse foi o defeito nº 1 corrigido em `T-145`,
+    **O ponto de injeção é `rotas_plano.obter_repositorio_snapshots`.** Usar
+    outro foi o defeito nº 1 corrigido em `T-145`,
     e a justificativa está em `rotas_api_plano.py`: pontos de injeção
     diferentes fazem a tela e o PDF lerem de repositórios distintos num teste
     que sobrescreve só um dos dois, e "o aluno veria um plano que o PDF não
     confirma". Repeti-lo aqui faria a tela Início discordar do plano que ela
     anuncia — pior ainda, porque o Início é a tela que manda o aluno até lá.
 
-    Mesma tolerância de `rotas_etapas.py::_snapshot_liberado`: devolve `None`
-    em vez de levantar, porque a ausência de snapshot é estado legítimo do
+    Devolve `None` em vez de levantar, porque a ausência de snapshot é estado legítimo do
     caso (ninguém calculou ainda), não falha."""
     if caso.snapshot_liberado_id is None:
         return None
@@ -225,25 +206,6 @@ def _snapshot_liberado(
         return repositorio_snapshots.obter(caso.snapshot_liberado_id)
     except ErroSnapshotNaoEncontrado:  # pragma: no cover — defensivo
         return None
-
-
-def _fase_do_caso(caso: Caso, snapshot: SnapshotOrdem | None) -> FASE_INICIO:
-    """A fase do aluno — `RF-61`.
-
-    Para onze dos doze estados é `fase_do_estado`, função pura do estado.
-    `PLANO_LIBERADO` é a exceção declarada: a fase `plano` do protótipo é
-    literalmente *"Decidir sobre os R$ X"*, e sem ataque imediato recomendado
-    não há decisão nenhuma a tomar — mandar o aluno ao Bloco 10 nesse caso o
-    levaria a uma tela que o servidor fecha com `409`.
-
-    A guarda é `bloco_10_alcancavel`, a MESMA que `rotas_etapas.py` consulta
-    antes de abrir o Bloco 10 — nenhum limiar novo é escrito aqui (`RF-34`).
-    Sem snapshot, não há o que decidir: cai em `acompanhamento`."""
-    if caso.estado is not ESTADO_CASO.PLANO_LIBERADO:
-        return fase_do_estado(caso.estado)
-
-    tem_ataque = snapshot is not None and bloco_10_alcancavel(snapshot)
-    return fase_do_plano_liberado(tem_ataque_a_decidir=tem_ataque)
 
 
 def _proxima_etapa(
@@ -327,21 +289,16 @@ def _proxima_etapa(
             )
 
         case FASE_INICIO.PLANO:
-            # O "Decidir sobre os R$ X" do protótipo. O valor NÃO entra no
+            # `RF-401`/`RF-409` (T-387): o plano entregue é o destino. O valor NÃO entra no
             # rótulo — ver a nota do cabeçalho e `AC-88`.
             return ProximaEtapa(
-                destino=DESTINO_DA_ETAPA.BLOCO_10,
+                destino=DESTINO_DA_ETAPA.PLANO,
             )
 
         case FASE_INICIO.ACOMPANHAMENTO:
-            if caso.estado is ESTADO_CASO.ENCERRADO:
-                # `EC-25`: encerrado não é uma sexta fase. É acompanhamento
-                # sem ações a executar.
-                return ProximaEtapa(
-                    destino=DESTINO_DA_ETAPA.PLANO,
-                )
+            # Só `ENCERRADO` chega aqui (EC-25): não há acompanhamento depois do plano.
             return ProximaEtapa(
-                destino=DESTINO_DA_ETAPA.ACOES,
+                destino=DESTINO_DA_ETAPA.PLANO,
             )
 
 
@@ -369,7 +326,7 @@ def _correcao_pedida(
     if not revisoes or revisoes[-1].decisao is not DECISAO_REVISAO.REPROVADO:
         return None
 
-    snapshot = _snapshot_corrente(caso, repositorio_snapshots)
+    snapshot = snapshot_corrente(caso, repositorio_snapshots)
     dividas = snapshot.estado_inputs.dividas if snapshot is not None else ()
     nomes = nomear_dividas(
         dividas,
@@ -409,9 +366,6 @@ def inicio_do_caso(
     repositorio_revisoes: Annotated[
         RepositorioRevisoes, Depends(obter_repositorio_revisoes_do_inicio)
     ],
-    parametros_externos: Annotated[
-        ParametrosExternosDoBloco6, Depends(obter_parametros_externos_do_bloco6)
-    ],
 ) -> JSONResponse:
     """`RF-58`, `RF-60`, `AC-81` — a fase do caso e a ÚNICA próxima etapa.
 
@@ -440,7 +394,9 @@ def inicio_do_caso(
     respostas = RespostasCaso(respostas=respostas_brutas)
     snapshot = _snapshot_liberado(caso, repositorio_snapshots)
 
-    fase = _fase_do_caso(caso, snapshot)
+    # `RF-401`/`RF-409` (T-387): função pura do estado; `PLANO_LIBERADO` é sempre
+    # `plano`, nunca `acompanhamento` nem "ataque a decidir".
+    fase = fase_do_estado(caso.estado)
     contagem = contar_coleta(colecao.registros, respostas, itens_por_escopo)
     etapa = _proxima_etapa(caso, fase, colecao, respostas, itens_por_escopo)
 
@@ -449,7 +405,7 @@ def inicio_do_caso(
     # de dinheiro pendente, e mandar um número que a tela não usa convidaria
     # alguém a compor uma frase com ele.
     valor_em_destaque = (
-        str(ataque_imediato_recomendado_de(snapshot))
+        str(snapshot.diagnostico.ATAQUE_IMEDIATO_RECOMENDADO)
         if fase is FASE_INICIO.PLANO and snapshot is not None
         else None
     )
@@ -472,7 +428,7 @@ def inicio_do_caso(
     # (`RF-87`/`RF-88`), faz o total crescer — o cliente mostra só as
     # respondidas, que nunca regridem.
     fichas_abertas = bool(
-        itens_em_aberto(da_coleta_inicial(colecao.registros), respostas, itens_por_escopo)
+        itens_em_aberto(colecao.registros, respostas, itens_por_escopo)
         or pendencias_de_inventario(colecao.registros, respostas, itens_por_escopo)
     )
 
@@ -498,17 +454,7 @@ def inicio_do_caso(
             "versao_do_plano": snapshot.versao if snapshot is not None else None,
             # `T-333` (RF-113): `null` fora da correção pedida.
             "correcao_pedida": correcao_pedida,
-            # `RF-120` (T-343): o que o Início oferece além da próxima etapa.
-            "pode_refazer_plano": caso.estado in ESTADOS_COM_PLANO_LIBERADO,
             "pode_retomar_edicao": caso.estado is ESTADO_CASO.AGUARDANDO_REVISAO,
-            "respostas_atualizadas": respostas_mudaram_desde_o_plano(
-                caso=caso,
-                snapshot=snapshot,
-                respostas=respostas,
-                itens_por_escopo=itens_por_escopo,
-                colecao=colecao,
-                parametros_externos=parametros_externos,
-            ),
         }
     )
 

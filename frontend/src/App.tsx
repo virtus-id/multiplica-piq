@@ -29,13 +29,9 @@ import Tela from './componentes/Tela'
 import { eTelaDaEquipe, type Rota, substituirRota, useRota } from './navegacao'
 import { obterInicio, obterSessao, sair } from './services/api'
 import type { Inicio, Pergunta } from './tipos'
-import TelaAcao from './telas/TelaAcao'
-import TelaAcoes from './telas/TelaAcoes'
 import TelaAguardando from './telas/TelaAguardando'
 import TelaCalculando from './telas/TelaCalculando'
-import TelaBloco10 from './telas/TelaBloco10'
 import TelaBoasVindas from './telas/TelaBoasVindas'
-import TelaColetaDirigida from './telas/TelaColetaDirigida'
 import TelaConsentimento from './telas/TelaConsentimento'
 import TelaDefinirSenha from './telas/TelaDefinirSenha'
 import TelaEquipeCaso from './telas/TelaEquipeCaso'
@@ -47,7 +43,6 @@ import TelaOperador from './telas/TelaOperador'
 import TelaPergunta from './telas/TelaPergunta'
 import TelaPlano from './telas/TelaPlano'
 import TelaProgresso from './telas/TelaProgresso'
-import TelaRecalculo from './telas/TelaRecalculo'
 import TelaRespostas from './telas/TelaRespostas'
 import TelaRevisao from './telas/TelaRevisao'
 
@@ -631,9 +626,6 @@ export default function App() {
             blocoDaRevisao.current = bloco
             irPara({ tela: 'respostas', idPergunta: id, itemId: item ?? undefined })
           }}
-          // `RF-118`: o caso já voltou à coleta; `#calculando` dispara o cálculo
-          // (e mostra as pendências, se houver) — o plano atual segue valendo.
-          aoPedirPlanoNovo={() => irPara({ tela: 'calculando' })}
         />
       )
     }
@@ -685,34 +677,8 @@ export default function App() {
     case 'plano':
       return <TelaPlano casoId={casoId} voltar={voltarAoInicio} />
 
-    case 'bloco10':
-      return <TelaBloco10 casoId={casoId} voltar={voltarAoInicio} />
-
-    case 'coleta-dirigida':
-      return (
-        <TelaColetaDirigida casoId={casoId} bloco={rota.bloco} voltar={voltarAoInicio} />
-      )
-
-    case 'acoes':
-      return (
-        <TelaAcoes
-          casoId={casoId}
-          voltar={voltarAoInicio}
-          abrirAcao={(id) => irPara({ tela: 'acao', acaoId: id })}
-        />
-      )
-
-    case 'acao':
-      return (
-        <TelaAcao
-          casoId={casoId}
-          acaoId={rota.acaoId}
-          voltar={() => irPara({ tela: 'acoes' })}
-        />
-      )
-
-    case 'recalculo':
-      return <TelaRecalculo inicio={inicio} voltar={voltarAoInicio} />
+    // `RF-401`, `RF-409`: sem rotas para Bloco 10, coleta dirigida, ações e
+    // recálculo — depois do plano o aluno só vê o plano.
 
     // `T-186`: sem `voltar`. É a raiz da navegação do revisor — como
     // `inicio` é a do aluno (`Tela.tsx`) — e um "‹ Voltar" daqui só levaria

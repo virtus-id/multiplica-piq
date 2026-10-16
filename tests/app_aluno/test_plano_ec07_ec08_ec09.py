@@ -88,6 +88,7 @@ from report.plano import (
     TextosCanonicosPlano,
     carregar_textos_canonicos,
     decidir_cenario_apresentacao,
+    formatar_dinheiro_br,
     montar_contexto_plano,
 )
 from tests.app_aluno.fixtures.caso_completo import (
@@ -133,6 +134,7 @@ def _renderizar_plano_html_com_contexto(
         pendencias_acionaveis=contexto.pendencias_acionaveis,
         MODO_ESTABILIZACAO=contexto.MODO_ESTABILIZACAO,
         RESULTADO_CAIXA_OBSERVADO=contexto.RESULTADO_CAIXA_OBSERVADO,
+        FALTA_CORTAR=contexto.FALTA_CORTAR,
         reserva_mobilizavel=contexto.reserva_mobilizavel,
         metodo=contexto.metodo,
         valor_mensal_destinado=contexto.valor_mensal_destinado,
@@ -411,7 +413,18 @@ def test_ec09_modo_estabilizacao_nunca_rotula_resultado_como_sobra() -> None:
     # `T-177`: o valor chega com `R$` do servidor (antes era `"200.00"` e o
     # template prefixava). O que este teste guarda é a REDAÇÃO — que o
     # resultado nunca seja chamado de "sobra" —, e isso continua abaixo.
-    assert contexto.RESULTADO_CAIXA_OBSERVADO == "R$ 200,00"
+    # `T-407` (RF-419): a tela mostra o resultado ESTRUTURAL (GAB-04: renda
+    # 8.000 − despesas 6.500 − não mensais 500 − devidas 2.000 = −1.000), o
+    # mesmo número do corte, e as linhas do ponto de partida fecham com ele.
+    assert contexto.RESULTADO_CAIXA_OBSERVADO == "R$ -1.000,00"
+    assert contexto.FALTA_CORTAR == "R$ 1.000,00"
+    assert contexto.ponto_de_partida is not None
+    assert (contexto.ponto_de_partida.renda, contexto.ponto_de_partida.gastos) == (
+        "R$ 8.000,00",
+        "R$ 6.500,00",
+    )
+    assert contexto.ponto_de_partida.gastos_ocasionais == "R$ 500,00"
+    assert contexto.ponto_de_partida.parcelas == "R$ 2.000,00"
 
     html = _renderizar_plano_html_com_contexto(contexto)
     html_minusculo = html.lower()
@@ -422,7 +435,26 @@ def test_ec09_modo_estabilizacao_nunca_rotula_resultado_como_sobra() -> None:
         )
     # Prova positiva de que o resultado de caixa efetivamente aparece — o
     # teste acima não passaria trivialmente por ausência total do valor.
-    assert "200.00" in html or "200,00" in html
+    assert "R$ -1.000,00" in html
+    assert "faltam cortar R$ 1.000,00 por mês" in html
     # Fase 2 condicional: nenhuma posição de ORDEM_QUITACAO é exibida no
     # bloco de estabilização.
     assert "Posição 1 de" not in html
+
+
+def test_t405_estabilizacao_mostra_quanto_falta_cortar_igual_ao_deficit_do_motor() -> None:
+    """`T-405`/`RF-418`: o valor "falta cortar" é o `DEFICIT_MENSAL` do motor
+    (valor absoluto do resultado do mês negativo), no contexto e no HTML."""
+    estado = _estado_gab04()
+    parametros = FonteParametrosArquivo().carregar(_VERSAO_PARAMETROS_REAL)
+    snapshot = calcular_plano(estado, parametros)
+    deficit = snapshot.diagnostico.DEFICIT_MENSAL
+    assert deficit > 0
+    assert snapshot.diagnostico.RESULTADO_MENSAL_ATUAL == -deficit
+
+    contexto = montar_contexto_plano(snapshot, carregar_textos_canonicos())
+
+    esperado = formatar_dinheiro_br(deficit)
+    assert contexto.FALTA_CORTAR == esperado
+    html = _renderizar_plano_html_com_contexto(contexto)
+    assert f"Para chegar a zero, faltam cortar {esperado} por mês." in html

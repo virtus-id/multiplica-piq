@@ -39,8 +39,6 @@ from typing import Final
 
 import yaml
 
-from collection.condicoes import avaliar
-from collection.opcoes_do_motor import sem_itens_para_escolher
 from collection.registro import EscopoRepeticao, RegistroPergunta
 from collection.respostas import RespostasCaso
 from persistencia.app_aluno.eventos import EventoCaso, RepositorioEventosCaso
@@ -53,9 +51,7 @@ _QUANTIDADE_DECLARADA: Final[str] = "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL"
 _FIM_DO_CADASTRO: Final[str] = "SYS (loop)"
 _ESTA_FOI_A_ULTIMA: Final[str] = "NAO_ESTA_FOI_A_ULTIMA"
 _SIM: Final[str] = "SIM"
-# T-324: os tipos declarados e o tipo/credor de cada ficha. Os `valor_interno`
-# da declaração e da ficha são os mesmos códigos (`T-208`).
-_TIPOS_DECLARADOS: Final[str] = "TIPOS_DIVIDA_DECLARADOS"
+# T-324: o tipo/credor de cada ficha.
 _TIPO_DA_FICHA: Final[str] = "TIPO_DIVIDA"
 _CREDOR: Final[str] = "CREDOR"
 
@@ -69,9 +65,7 @@ class TIPO_PENDENCIA_INVENTARIO(Enum):
     DIVIDAS_ACIMA = "DIVIDAS_ACIMA"
     DIVIDAS_SEM_CONFIRMACAO = "DIVIDAS_SEM_CONFIRMACAO"
     RENDA_EXTRA_SEM_ITEM = "RENDA_EXTRA_SEM_ITEM"
-    VINCULO_SEM_ITEM = "VINCULO_SEM_ITEM"
     NAO_MENSAL_SEM_ITEM = "NAO_MENSAL_SEM_ITEM"
-    CONSIGNADO_SEM_VINCULO = "CONSIGNADO_SEM_VINCULO"
 
 
 # RF-88 — declaração "Sim" → escopo em que ao menos um item é exigido.
@@ -84,29 +78,11 @@ _DECLARACOES_DE_ITEM: Final[
         EscopoRepeticao.RENDA_ADICIONAL_ID,
     ),
     (
-        TIPO_PENDENCIA_INVENTARIO.VINCULO_SEM_ITEM,
-        "VINCULO_CONSIGNAVEL",
-        EscopoRepeticao.VINCULO_ID,
-    ),
-    (
         TIPO_PENDENCIA_INVENTARIO.NAO_MENSAL_SEM_ITEM,
         "DESPESAS_NAO_MENSAIS_EXISTE",
         EscopoRepeticao.DESPESA_NAO_MENSAL_ID,
     ),
 )
-
-
-# T-282 (DE-04) — escopo das opções de uma pergunta `ITENS_DO_ESCOPO` que
-# ficou sem item para escolher → a pendência e a declaração a corrigir. A
-# pergunta em si (qual, e quando se aplica) vem do registro, nunca daqui.
-_REFERENCIAS_SEM_ITEM: Final[
-    Mapping[EscopoRepeticao, tuple[TIPO_PENDENCIA_INVENTARIO, str]]
-] = {
-    EscopoRepeticao.VINCULO_ID: (
-        TIPO_PENDENCIA_INVENTARIO.CONSIGNADO_SEM_VINCULO,
-        "VINCULO_CONSIGNAVEL",
-    ),
-}
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,11 +97,10 @@ class FichaDeDivida:
 
 @dataclass(frozen=True, slots=True)
 class DetalheDasDividas:
-    """T-324 — o que acompanha `DIVIDAS_FALTANDO`: rótulos dos tipos
-    declarados ainda sem ficha, as fichas cadastradas e a ficha criada e
-    ainda vazia (a reabrir antes de criar outra), se houver."""
+    """T-324 — o que acompanha `DIVIDAS_FALTANDO`: as fichas cadastradas e a
+    ficha criada e ainda vazia (a reabrir antes de criar outra), se houver.
+    `T-389`: `B5.00A` (tipos declarados) saiu; não há mais tipo sem ficha."""
 
-    tipos_sem_ficha: tuple[str, ...]
     fichas: tuple[FichaDeDivida, ...]
     ficha_vazia: str | None
 
@@ -215,7 +190,6 @@ def pendencias_de_inventario(
                     escopo=escopo,
                 )
             )
-    pendencias.extend(_referencias_sem_item(registros, respostas, itens_por_escopo))
     return tuple(pendencias)
 
 
@@ -225,14 +199,9 @@ def _detalhe_das_dividas(
     cadastradas: tuple[str, ...],
     todas: tuple[str, ...],
 ) -> DetalheDasDividas:
-    """T-324 — relaciona os tipos declarados com os tipos das fichas. Rótulos
-    vêm das opções do registro de cada variável; código sem opção (ou o
-    "não tenho certeza", que não é tipo) não aparece."""
-    rotulos_declarados = _rotulos(registros, _TIPOS_DECLARADOS)
+    """T-324 — as fichas cadastradas, com o tipo pelo rótulo das opções do
+    registro; código sem opção (ou o "não tenho certeza") não aparece."""
     rotulos_da_ficha = _rotulos(registros, _TIPO_DA_FICHA)
-    declarados = respostas.valor(_TIPOS_DECLARADOS)
-    marcados = declarados if isinstance(declarados, frozenset) else frozenset()
-    tipos_com_ficha = {respostas.valor_no_item(i, _TIPO_DA_FICHA) for i in cadastradas}
     fichas = []
     for item_id in cadastradas:
         tipo = respostas.valor_no_item(item_id, _TIPO_DA_FICHA)
@@ -244,11 +213,6 @@ def _detalhe_das_dividas(
             )
         )
     return DetalheDasDividas(
-        tipos_sem_ficha=tuple(
-            rotulo
-            for codigo, rotulo in rotulos_declarados.items()
-            if codigo in marcados and codigo not in tipos_com_ficha
-        ),
         fichas=tuple(fichas),
         ficha_vazia=next((i for i in todas if i not in cadastradas), None),
     )
@@ -274,43 +238,6 @@ def _rotulos(registros: tuple[RegistroPergunta, ...], variavel: str) -> dict[str
     }
 
 
-def _referencias_sem_item(
-    registros: tuple[RegistroPergunta, ...],
-    respostas: RespostasCaso,
-    itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]],
-) -> tuple[PendenciaInventario, ...]:
-    """T-282 (`DE-04`, `AC-139`) — a pergunta que aponta um item do caso
-    (`B5.A02V`, o vínculo da dívida consignada) se aplica a algum item, mas
-    o escopo apontado não tem item nenhum: a ficha segue (a pergunta nem é
-    exibida, `sem_itens_para_escolher`) e a falta bloqueia só o cálculo
-    final. Uma pendência por escopo, com atalho para cadastrar o item."""
-    faltando: dict[EscopoRepeticao, PendenciaInventario] = {}
-    for registro in registros:
-        escopo = registro.origem_opcoes.escopo
-        if (
-            escopo is None
-            or escopo not in _REFERENCIAS_SEM_ITEM
-            or escopo in faltando
-            or not sem_itens_para_escolher(registro, itens_por_escopo)
-        ):
-            continue
-        tipo, variavel = _REFERENCIAS_SEM_ITEM[escopo]
-        id_declaracao = _id_da_variavel(registros, variavel)
-        condicao = registro.condicao_exibicao
-        if id_declaracao is not None and any(
-            condicao is None or avaliar(condicao, respostas, item_id)
-            for item_id in itens_por_escopo.get(registro.escopo_repeticao, ())
-        ):
-            faltando[escopo] = PendenciaInventario(
-                tipo=tipo,
-                declaradas=None,
-                cadastradas=0,
-                ID_PARA_CORRIGIR=id_declaracao,
-                escopo=escopo,
-            )
-    return tuple(faltando.values())
-
-
 class ErroInventarioIncompleto(Exception):
     """RF-86 — o cálculo final foi recusado por inventário incompleto. Carrega
     as pendências para a porta que recusou montar a resposta ao aluno."""
@@ -328,7 +255,7 @@ def exigir_inventario_completo(
     agora: datetime | None = None,
 ) -> None:
     """RF-86 (`T-248`) — a guarda ÚNICA das duas portas do cálculo
-    (`rotas_calculo._preparar_calculo` e `acompanhamento.disparar_recalculo`),
+    (hoje só `rotas_calculo._preparar_calculo`),
     chamada ANTES de qualquer transição: o caso nunca fica em `CALCULANDO`.
     Com pendência, registra o motivo na trilha (sem valor) e levanta
     `ErroInventarioIncompleto`; sem pendência, não faz nada."""

@@ -82,13 +82,21 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
         </p>
       )}
 
+      {/* `RF-412` (`B5.00`): faltam fichas de dívida declaradas; não bloqueia. */}
+      {plano.avisos_gerais?.map((aviso) => (
+        <p key={aviso} className="aviso-atencao m-0" role="status">
+          {aviso}
+        </p>
+      ))}
+
       {plano.MODO_ESTABILIZACAO && (
         <div className="aviso-atencao" role="status">
           <div>
             <strong className="block">Primeiro, equilibrar o seu mês.</strong>
             Hoje, considerando o que entra e o que sai, o resultado do seu mês é de{' '}
             {plano.RESULTADO_CAIXA_OBSERVADO}. Esse valor ainda não pode ser usado para quitar
-            dívidas. Nesta fase, o objetivo é equilibrar as contas do mês.
+            dívidas. Nesta fase, o objetivo é equilibrar as contas do mês. Para chegar a zero,
+            faltam cortar {plano.FALTA_CORTAR} por mês.
           </div>
         </div>
       )}
@@ -142,6 +150,12 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
                       {posicao.aviso_incomodo && ` ${posicao.aviso_incomodo}`}
                     </p>
                   )}
+                  {/* `RF-412`: o que o aluno declarou (atraso, garantia), texto pronto. */}
+                  {posicao.avisos?.map((aviso) => (
+                    <p key={aviso} className="m-0 font-bold" role="note">
+                      {aviso}
+                    </p>
+                  ))}
                   {/* Revisão de design: os números de toda dívida ficam à
                       vista, inclusive o mês em que ela termina (`T-304`,
                       lido do cronograma gravado). */}
@@ -169,10 +183,6 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
                       visível por dívida. */}
                   {posicao.fonte && (
                     <p className="text-muted m-0 text-sm">Fonte das informações: {posicao.fonte}</p>
-                  )}
-                  {/* `RF-82` (T-245): só na dívida com seguro prestamista. */}
-                  {posicao.orientacao_seguro && (
-                    <p className="text-muted m-0 text-sm">{posicao.orientacao_seguro}</p>
                   )}
                   {/* Na tela, os demais números ficam a um toque; no PDF
                       eles aparecem abertos. */}
@@ -364,8 +374,8 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
         <div className="aviso-atencao" role="status">
           <div>
             <strong className="block">Este plano ainda é provisório.</strong>
-            Faltam algumas informações sobre as suas dívidas. Assim que você as informar, o plano é
-            refeito.
+            Faltam algumas informações sobre as suas dívidas. Assim que você as informar, o plano deixa de
+            ser provisório.
             {plano.pendencias?.inventario_incompleto &&
               ' O cadastro das suas dívidas ainda não foi confirmado como completo.'}
             <ul className="lista mt-2 list-none p-0">

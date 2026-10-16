@@ -24,13 +24,16 @@ from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from report.pdf import renderizar_html_do_plano
 from report.plano import (
     ContextoPlano,
+    VocabularioDoCaso,
     carregar_textos_canonicos,
+    formatar_dinheiro_br,
     montar_contexto_plano,
 )
 from tests.app_aluno.fixtures.caso_completo import (
     DATA_REFERENCIA,
     caso_completo,
     montar_respostas_caso,
+    sem_o_custo_da_divida,
 )
 
 _PARAMETROS_VERSAO = "1.0.1"
@@ -41,7 +44,9 @@ def _snapshot(renda: Decimal | None = None, peso_b: int | None = None) -> Snapsh
     """Duas dívidas (a segunda com a nota de incômodo pedida); `renda`
     sobrescreve `RENDA_PRINCIPAL`."""
     valores: dict[str, object] = {} if renda is None else {"RENDA_PRINCIPAL": renda}
-    caso_a = caso_completo(DIVIDA_ID="D-A", valores_caso=valores)
+    caso_a = caso_completo(
+        DIVIDA_ID="D-A", valores_caso=valores, valores_divida={"TAXA_DIVIDA": Decimal("0.05")}
+    )
     divida_b: dict[str, object] = {
         "TIPO_DIVIDA": "CONSIGNADO",
         "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("8.000,00"),
@@ -52,7 +57,11 @@ def _snapshot(renda: Decimal | None = None, peso_b: int | None = None) -> Snapsh
     respostas_b = montar_respostas_caso(
         valores_caso=valores, valores_divida=divida_b, DIVIDA_ID="D-B"
     )
-    respostas = RespostasCaso(respostas=caso_a.respostas.respostas + respostas_b.respostas)
+    # `T-393`: a segunda dívida sem o custo mantém o plano provisório ("O que
+    # falta informar"); o rotativo (D-A, 5% a.m.) vem primeiro, pelo custo.
+    respostas = sem_o_custo_da_divida(
+        RespostasCaso(respostas=caso_a.respostas.respostas + respostas_b.respostas), "D-B"
+    )
     estado = montar_estado_financeiro(
         respostas,
         DATA_REFERENCIA=DATA_REFERENCIA,
@@ -98,6 +107,54 @@ def test_sobra_exatamente_zero_gera_plano_normal_sem_valor_extra() -> None:
 def test_aviso_de_sem_valor_extra_nao_aparece_quando_ha_valor_extra() -> None:
     snapshot = _snapshot()
     assert _contexto(snapshot).aviso_sem_valor_extra == ""
+
+
+def test_numeros_do_mes_no_negativo_fecham_entre_si() -> None:
+    """RF-416/RF-419 — no mês negativo o resultado exibido é o estrutural
+    (`RESULTADO_MENSAL_ATUAL`) e as parcelas exibidas são as devidas:
+    renda − gastos − gastos ocasionais − parcelas = resultado, e o corte
+    mostrado (`DEFICIT_MENSAL`) é o oposto desse resultado."""
+    snapshot = _snapshot(renda=Decimal("1000.00"))
+    d, e = snapshot.diagnostico, snapshot.estado_inputs
+    assert d.RESULTADO_MENSAL_ATUAL < 0 and d.MODO_ESTABILIZACAO
+    contexto = _contexto(snapshot)
+    ponto = contexto.ponto_de_partida
+    assert ponto is not None
+    assert ponto.parcelas == formatar_dinheiro_br(d.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES)
+    assert d.RESULTADO_MENSAL_ATUAL == (
+        e.RENDA_TOTAL_RECORRENTE
+        - e.DESPESAS_OPERACIONAIS_ATUAIS
+        - e.DESPESAS_NAO_MENSAIS_NORMALIZADAS
+        - d.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
+    )
+    assert d.DEFICIT_MENSAL == -d.RESULTADO_MENSAL_ATUAL
+    assert contexto.RESULTADO_CAIXA_OBSERVADO == formatar_dinheiro_br(d.RESULTADO_MENSAL_ATUAL)
+    assert contexto.FALTA_CORTAR == formatar_dinheiro_br(d.DEFICIT_MENSAL)
+    html = _html(snapshot)
+    assert formatar_dinheiro_br(d.RESULTADO_MENSAL_ATUAL) in html
+    assert formatar_dinheiro_br(d.DEFICIT_MENSAL) in html
+
+
+def test_estabilizacao_mostra_avisos_de_atraso_e_garantia_com_responsabilidade() -> None:
+    """RF-416 — mês no negativo não tem cartão por dívida, mas o aluno ainda
+    vê o que declarou em `B5.E01` e `B5.F01`, sem cronograma."""
+    snapshot = _snapshot(renda=Decimal("1000.00"))
+    assert snapshot.diagnostico.MODO_ESTABILIZACAO
+    vocabulario = VocabularioDoCaso(
+        dividas_atrasadas=frozenset({"D-A"}), dividas_com_garantia=frozenset({"D-B"})
+    )
+    textos = carregar_textos_canonicos()
+    contexto = montar_contexto_plano(snapshot, textos, vocabulario)
+    responsabilidade = textos.avisos["responsabilidade"]
+    atrasada = [a for a in contexto.avisos_gerais if textos.avisos["atrasada"] in a]
+    garantia = [a for a in contexto.avisos_gerais if textos.avisos["garantia"] in a]
+    assert len(atrasada) == 1 and len(garantia) == 1
+    assert all(a.endswith(responsabilidade) for a in atrasada + garantia)
+    html = renderizar_html_do_plano(contexto, textos)
+    assert textos.avisos["atrasada"] in html and textos.avisos["garantia"] in html
+    # fora da estabilização os avisos seguem no cartão da dívida, não aqui
+    normal = montar_contexto_plano(_snapshot(), textos, vocabulario)
+    assert normal.avisos_gerais == ()
 
 
 # --------------------------------------------------------------------- curso

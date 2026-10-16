@@ -37,7 +37,7 @@ from fastapi.responses import JSONResponse
 from app.casos.maquina import ESTADO_CASO, ErroTransicaoNaoDeclarada
 from app.casos.progresso import transicionar_e_registrar
 from app.concorrencia import duas_em_paralelo
-from app.http.edicao import ESTADOS_COM_PLANO_LIBERADO, ESTADOS_SOMENTE_LEITURA
+from app.http.edicao import ESTADOS_SOMENTE_LEITURA
 from app.http.isolamento import exigir_caso_da_sessao, obter_repositorio_casos
 from app.http.jornada import PARTES
 from app.http.renderizacao import ErroPerguntaNaoExibivel, montar_contexto_pergunta
@@ -55,7 +55,7 @@ from persistencia.app_aluno.casos import RepositorioCasos
 from persistencia.app_aluno.eventos import RepositorioEventosCaso, RepositorioEventosCasoSupabase
 from persistencia.app_aluno.itens import RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
-from report.plano import formatar_dinheiro_br
+from report.plano import formatar_dinheiro_br, formatar_taxa_br
 
 REGRAS: Final[tuple[str, ...]] = ("RF-68", "RF-10", "AC-100", "AC-101")
 
@@ -151,7 +151,7 @@ def _valor_do_campo(
 ) -> str | None:
     """`T-303`: opção que abre campo (`abre_campo`) — a revisão mostra o
     rótulo E o valor digitado ("Sim. — R$ 8.000,00"). `DATA` (`T-213`) grava
-    a data na própria variável; `MOEDA` (`T-294`), em `variavel_do_campo`."""
+    a data na própria variável; `MOEDA` (`T-294`) e `TAXA` (`T-393`), em `variavel_do_campo`."""
     for opcao in registro.opcoes:
         if opcao.abre_campo is TipoResposta.DATA and isinstance(valor_atual, date):
             return f"{opcao.rotulo} — {valor_atual:%d/%m/%Y}"
@@ -162,6 +162,8 @@ def _valor_do_campo(
                 else respostas.valor(opcao.variavel_do_campo)
             )
             if isinstance(digitado, Decimal):
+                if opcao.abre_campo is TipoResposta.TAXA:  # `T-393`: "ao ano — 26,82%"
+                    return f"{opcao.rotulo} — {formatar_taxa_br(digitado).removesuffix(' a.m.')}"
                 return f"{opcao.rotulo} — {formatar_dinheiro_br(digitado)}"
     return None
 
@@ -244,8 +246,6 @@ def respostas_do_caso(
             "CASO_ID": CASO_ID,
             "editavel": estado not in ESTADOS_SOMENTE_LEITURA,
             "pode_retomar_edicao": estado is ESTADO_CASO.AGUARDANDO_REVISAO,
-            # `RF-118` (T-341): depois da liberação o aluno pode pedir plano novo.
-            "pode_refazer_plano": estado in ESTADOS_COM_PLANO_LIBERADO,
             "partes": partes,
         }
     )
@@ -258,7 +258,7 @@ def obter_repositorio_eventos_da_retomada() -> RepositorioEventosCaso:
 
 _MENSAGEM_NAO_EM_CONFERENCIA: Final[str] = "Seu plano não está em conferência."
 
-_MENSAGEM_AINDA_NAO_LIBERADO: Final[str] = "Seu plano ainda não foi liberado."
+_MENSAGEM_PLANO_DEFINITIVO: Final[str] = "O plano entregue é definitivo."
 
 
 @roteador.post("/{CASO_ID}/retomar-edicao")
@@ -300,34 +300,11 @@ def retomar_edicao(
 @roteador.post("/{CASO_ID}/refazer-plano")
 def refazer_plano(
     CASO_ID: Annotated[str, Depends(exigir_caso_da_sessao("CASO_ID"))],
-    repositorio_casos: Annotated[RepositorioCasos, Depends(obter_repositorio_casos)],
-    repositorio_eventos: Annotated[
-        RepositorioEventosCaso, Depends(obter_repositorio_eventos_da_retomada)
-    ],
 ) -> JSONResponse:
-    """`RF-118`, `AC-181`, `AC-182` — o aluno pede um plano novo depois da
-    liberação.
+    """`RF-401`, `RF-409` (T-387) — DESLIGADA: o plano entregue é definitivo.
 
-    `PLANO_LIBERADO`/`ACOMPANHAMENTO → COLETA_INICIAL` pela MÁQUINA e pela
-    trava condicional de `RF-31` (`transicionar_e_registrar`). Não toca no plano
-    liberado (`snapshot_liberado_id`) nem na cadeia de snapshots: o aluno segue
-    vendo o plano atual, e o reenvio (o cálculo de sempre) gera a versão
-    seguinte encadeada à anterior e a põe na fila. Só o aluno pede — o revisor
-    devolve com mensagem (`RF-113`), nunca reabre o plano. Fora desses dois
-    estados a rota recusa sem mexer em nada."""
-    caso = repositorio_casos.buscar(CASO_ID)
-    if caso is None or caso.estado not in ESTADOS_COM_PLANO_LIBERADO:
-        return JSONResponse({"erro": _MENSAGEM_AINDA_NAO_LIBERADO}, status_code=409)
-    try:
-        atualizado = transicionar_e_registrar(
-            repositorio_casos=repositorio_casos,
-            repositorio_eventos=repositorio_eventos,
-            caso_id=CASO_ID,
-            de=caso.estado,
-            para=ESTADO_CASO.COLETA_INICIAL,
-        )
-    except ErroTransicaoNaoDeclarada:  # pragma: no cover — a tabela as declara
-        return JSONResponse({"erro": _MENSAGEM_AINDA_NAO_LIBERADO}, status_code=409)
-    if atualizado is None:
-        return JSONResponse({"erro": _MENSAGEM_AINDA_NAO_LIBERADO}, status_code=409)
-    return JSONResponse({"CASO_ID": CASO_ID, "estado": ESTADO_CASO.COLETA_INICIAL.value})
+    Antes (`RF-118`, `AC-181`, `AC-182`) o aluno pedia plano novo depois da
+    liberação. A máquina não declara mais `aluno_refaz_plano`; a rota segue
+    registrada e recusa com `409` sem mexer em nada, para que um link ou aba
+    antiga receba resposta clara em vez de `404`."""
+    return JSONResponse({"erro": _MENSAGEM_PLANO_DEFINITIVO}, status_code=409)

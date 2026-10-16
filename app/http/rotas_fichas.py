@@ -111,10 +111,7 @@ def _campos_da_ficha(
     quem decide é `montar_contexto_pergunta`, no servidor (`RF-52`); o
     cliente recebe só o que deve desenhar.
 
-    `T-200`: só as perguntas da coleta inicial. Os Blocos 7 e 8 também são
-    `DIVIDA_ID`, mas são coleta dirigida, outra etapa (`RF-17`, `AC-92`) — o
-    filtro fica aqui, e não em `perguntas_da_ficha`, porque a coleta dirigida
-    usa aquela função justamente para chegar ao Bloco 7.
+    `T-200`: só as perguntas da coleta inicial.
 
     `T-211`: o filtro só vale para escopo que TEM registro na coleta inicial
     — derivado da coleção, sem nome de escopo aqui. Escopo todo pós-plano

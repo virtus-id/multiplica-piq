@@ -34,7 +34,8 @@ agregação de **entrada** para o motor, não leitura de **saída** dele):
 - `RENDA_TOTAL_RECORRENTE` = `RENDA_PRINCIPAL` (B3.01) + soma de todas as
   fichas REP de `RENDA_RECORRENTE_ADICIONAL` (B3.03A-C, escopo
   `RENDA_ADICIONAL_ID`) — lista aberta, sem limite de quantidade
-  codificado. `RECURSOS_EXTRAORDINARIOS` (B3.05) e a renda extra potencial
+  codificado, + `CONTRIBUICAO_FAMILIAR` (B3.04A, `RF-412`).
+  `RECURSOS_EXTRAORDINARIOS` (B3.05) e a renda extra potencial
   (B3.06) nunca entram (`_renda_total_recorrente`).
 - `DESPESAS_OPERACIONAIS_ATUAIS` = soma de todos os valores das fichas REP
   de `B3.D01` a `B3.D11` (as 10 categorias fixas mais a não listada,
@@ -59,7 +60,7 @@ VALOR_GASTOS_FANTASMAS elegível à economia potencial" (`B2.10A`, canônica).
 Por isso ESTA função monta `ECONOMIA_POTENCIAL_IMEDIATA` de verdade —
 `_economia_potencial_imediata`, abaixo — em vez de recebê-la como parâmetro:
 `ACEITA_REDUCAO_GASTOS_FANTASMAS = SIM` repassa `VALOR_GASTOS_FANTASMAS`
-(identidade, mesmo padrão de `_taxa_periodicidade_mensal_ou_desconhecido`);
+(identidade, não cálculo);
 qualquer outro caso — sem gasto fantasma identificado, sem aceite, aceite
 `NAO`/`TALVEZ`, ou resposta ausente — não tem nenhum valor monetário real
 disponível para o campo (o contrato exige `Dinheiro`, não
@@ -178,30 +179,16 @@ valor neutro que não afirma nenhuma pendência não observada diretamente
 resolva a derivação real. Isso é registrado como próxima tarefa de backlog
 (ver nota em `_CAMPOS_DE_GATE_FORA_DE_ESCOPO` abaixo), não uma estimativa.
 
-**`TAXA_EFETIVA_MENSAL_NORMALIZADA` — por que só passa quando `MENSAL`.** A
-própria canônica lista `TAXA_EFETIVA_MENSAL_NORMALIZADA` entre as variáveis
-"derivadas pelo motor, nunca perguntadas" (`piq-app-spec.md`, nota de
-`B5.FIM02`). O Bloco 5 coleta a taxa informada (`TAXA_INFORMADA`, B5.D01A) MAIS
-a periodicidade declarada como pergunta SEPARADA (`PERIODICIDADE_TAXA`,
-B5.D01B) — a conversão de periodicidade (ex. taxa anual → mensal) é fórmula
-financeira (juros compostos), que esta camada não pode calcular (Lei nº 3).
-Quando a periodicidade informada já É mensal, repassar o valor é identidade,
-não cálculo, e por isso é aceito aqui; em qualquer outro caso (`ANUAL`,
-`OUTRA`, `NAO_SEI`, ou periodicidade não respondida) o valor vai para
-`DESCONHECIDO` — nunca uma conversão estimada.
-
-**`CET` — por que é sempre `DESCONHECIDO` nesta tarefa.** Diferente da taxa
-informada, `B5.D03A` grava o CET e sua periodicidade numa ÚNICA resposta
-composta (`VARIAVEL_GRAVADA: "CET (+ PERIODICIDADE_CET)"` no registro real) —
-não existe, no Bloco 5, uma segunda pergunta/variável separada de
-periodicidade do CET (diferente de `PERIODICIDADE_TAXA`, que é `B5.D01B`,
-pergunta própria). Sem uma variável de periodicidade isolada para confirmar
-"é mensal" com a mesma segurança usada para `TAXA_EFETIVA_MENSAL_
-NORMALIZADA`, ler `CET` aqui exigiria adivinhar a periodicidade da resposta
-composta — o que violaria "nenhuma estimativa silenciosa". Por isso `CET`
-é sempre `DESCONHECIDO` nesta tarefa; decompor `B5.D03A` em percentual e
-periodicidade como duas variáveis próprias é decisão de formulário
-(`T-42`/`T-43`), fora do escopo de `T-49`.
+**`TAXA_EFETIVA_MENSAL_NORMALIZADA` e `CET` (`T-393`).** O Bloco 5 coleta UM
+valor de custo por dívida (`B5.D06`: o CET ou, se o aluno não souber, a taxa de
+juros) com a periodicidade, ao mês ou ao ano, na mesma resposta
+(`TAXA_DIVIDA` + `PERIODICIDADE_TAXA_DIVIDA`). A conversão ao ano para o mês é
+fórmula financeira e vive no motor (`engine/taxa.py`, regra `§16.1`): esta
+camada só a chama, nunca a calcula (Lei nº 3). Resposta ausente, periodicidade
+fora de `MENSAL`/`ANUAL` ou taxa negativa vão para `DESCONHECIDO` — nunca uma
+conversão estimada. `CET` fica sempre `DESCONHECIDO`: não se registra qual dos
+dois foi informado. As respostas das perguntas antigas (`B5.D01*`, `B5.D03*`)
+seguem no banco e não são lidas.
 
 REGRAS: `RF-12`, `RF-14`, `RF-15`, `AC-07`, `AC-08`, `AC-18`
 """
@@ -211,7 +198,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 from enum import Enum
-from typing import Final
+from typing import Any, Final
 
 from app.montagem.conversao import converter_para_dinheiro
 from collection.registro import EscopoRepeticao
@@ -225,7 +212,6 @@ from engine.estado import (
     DISPOSICAO_USO_RESERVA,
     FREQUENCIA_REGISTRO,
     GASTOS_NAO_IDENTIFICADOS,
-    JANELA_NOVA_DIVIDA,
     JANELA_RECURSO_EXTRAORDINARIO,
     REGISTRO_GASTOS,
     RESERVA_EXISTE,
@@ -238,6 +224,7 @@ from engine.estado import (
     RecursoExtraordinario,
     SinaisComportamentais,
 )
+from engine.taxa import derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA
 from engine.tipos import (
     CONFIABILIDADE_DADOS,
     DESCONHECIDO,
@@ -251,6 +238,7 @@ from engine.tipos import (
 )
 
 REGRAS: Final[tuple[str, ...]] = (
+    "§16.1",
     "RF-12",
     "RF-14",
     "RF-15",
@@ -318,8 +306,8 @@ type ValorTraduzido = str | int | Decimal | date | frozenset[str] | Desconhecido
 # estimativa. Público para que T-50/T-51/T-52 (mesmo arquivo) e os testes
 # saibam exatamente quais campos são provisórios por decisão registrada.
 _CAMPOS_DE_GATE_FORA_DE_ESCOPO: Final[tuple[str, ...]] = (
-    "RENEGOCIACAO_PENDENTE",  # Gate 3 — depende do Bloco 7, fora do escopo de T-49
-    "TROCA_PENDENTE",  # Gate 3 — depende do Bloco 8, fora do escopo de T-49
+    "RENEGOCIACAO_PENDENTE",  # Gate 3 — Bloco 7 removido (T-390); fica no neutro
+    "TROCA_PENDENTE",  # Gate 3 — Bloco 8 removido (T-390); fica no neutro
     "RISCO_MATERIAL_IMINENTE",  # Gate 2 — regra de gate, proibida nesta camada (Lei nº 3)
     "OPORTUNIDADE_VIGENTE",  # Gate 4 — regra de gate, proibida nesta camada (Lei nº 3)
 )
@@ -342,7 +330,6 @@ _CAMPOS_DE_GATE_FORA_DE_ESCOPO: Final[tuple[str, ...]] = (
 _VARIAVEL_PARCELA_CONTRATUAL: Final[str] = (
     "PARCELA_CONTRATUAL" + " (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
 )
-_VARIAVEL_CUSTO_SEGURO: Final[str] = "CUSTO_SEGURO" + " (+ base MENSAL/TOTAL)"
 
 
 class ErroRespostaAusente(Exception):
@@ -446,9 +433,9 @@ def _dinheiro_obrigatorio(
     return traduzido
 
 
-# `VARIAVEL_GRAVADA` de B5.C06A ("Nos últimos 3 meses, qual foi
-# aproximadamente a média mensal paga?") — string composta, mesmo padrão de
-# `_VARIAVEL_PARCELA_CONTRATUAL`/`_VARIAVEL_CUSTO_SEGURO`.
+# `VARIAVEL_GRAVADA` de B5.C06A ("Qual foi a média mensal paga nos últimos
+# 3 meses, conforme o extrato?") — string composta, mesmo padrão de
+# `_VARIAVEL_PARCELA_CONTRATUAL`.
 _VARIAVEL_PAGAMENTO_MEDIA_TRES_MESES: Final[str] = (
     "PAGAMENTO_MENSAL_EFETIVO" + " (média 3 meses)"
 )
@@ -506,94 +493,34 @@ def _dinheiro_estrutural_ou_desconhecido(
     return traduzido
 
 
-_SITUACAO_COBRADO_MENSAL_A_PARTE: Final[str] = "COBRADO_MENSAL_A_PARTE"
-_BASE_MENSAL: Final[str] = "MENSAL"
-
-
-def _custo_seguro_cobrado_a_parte(respostas: RespostasCaso, DIVIDA_ID: str) -> DinheiroTalvez:
-    """`T-231` (RF-81, RF-85, `AC-121`, `AC-155`, `EC-39`) — `CUSTO_SEGURO`
-    da dívida: `CUSTO_SEGURO_VALOR` (B5.D05V) só quando a situação
-    (`SITUACAO_SEGURO`, B5.D05S) é "cobrado mensalmente à parte" **e** a
-    base (B5.D05A) é `MENSAL`. Prêmio único, cancelado, "não sei", sem
-    seguro ou base `TOTAL` (nunca mensalizada, `RF-82`) → `DESCONHECIDO`.
-
-    Corrige o defeito de `R9.5`: `B5.D05A` grava a BASE (`MENSAL`/`TOTAL`)
-    na variável `_VARIAVEL_CUSTO_SEGURO`, e ler essa string como dinheiro
-    estourava o `assert` de `_dinheiro_estrutural_ou_desconhecido`."""
-    situacao = respostas.valor_no_item(DIVIDA_ID, "SITUACAO_SEGURO")
-    base = respostas.valor_no_item(DIVIDA_ID, _VARIAVEL_CUSTO_SEGURO)
-    if situacao != _SITUACAO_COBRADO_MENSAL_A_PARTE or base != _BASE_MENSAL:
+def _taxa_mensal_normalizada(respostas: RespostasCaso, DIVIDA_ID: str) -> TaxaTalvez:
+    """`TAXA_EFETIVA_MENSAL_NORMALIZADA` — `B5.D06` (`T-393`): lê o valor e a
+    periodicidade da resposta composta e chama a regra `§16.1` do motor. Esta
+    camada não converte nada. Sem os dois, ou com periodicidade fora do
+    domínio, ou taxa negativa: `DESCONHECIDO`."""
+    taxa = respostas.valor_no_item(DIVIDA_ID, "TAXA_DIVIDA")
+    periodicidade = respostas.valor_no_item(DIVIDA_ID, "PERIODICIDADE_TAXA_DIVIDA")
+    if not isinstance(taxa, Decimal) or taxa < 0:
         return DESCONHECIDO
-    return _dinheiro_estrutural_ou_desconhecido(respostas, DIVIDA_ID, "CUSTO_SEGURO_VALOR")
-
-
-def _seguros_mensais_a_parte(dividas: tuple[Divida, ...]) -> Dinheiro:
-    """`T-232` — decisão do produto `R9-1` (2026-09-30): o seguro cobrado
-    mensalmente à parte compõe as despesas mensais operacionais entregues
-    ao motor, **uma vez por dívida** — nunca a `PARCELA_CONTRATUAL`, nunca
-    a `B3.C00` (a fotografia só lê o Bloco 3). Já incluído na parcela
-    (`B5.D05B = Sim`, `AC-132`) não soma de novo. `CUSTO_SEGURO` só é
-    dinheiro na situação/base que o permite (`_custo_seguro_cobrado_a_
-    parte`). Meses restantes (`B5.D05P`) ficam registrados: o motor não
-    modela término de despesa — o valor sai no recálculo em que a situação
-    deixar de ser "cobrado à parte"."""
-    total = _ZERO
-    for divida in dividas:
-        if not divida.SEGURO_INCLUIDO_PARCELA and isinstance(divida.CUSTO_SEGURO, Decimal):
-            total += divida.CUSTO_SEGURO
-    return total
-
-
-def _taxa_periodicidade_mensal_ou_desconhecido(
-    respostas: RespostasCaso,
-    DIVIDA_ID: str,
-    variavel_taxa: str,
-    variavel_periodicidade: str,
-) -> TaxaTalvez:
-    """`TAXA_EFETIVA_MENSAL_NORMALIZADA` — ver docstring do módulo: esta
-    camada NUNCA converte periodicidade (isso é fórmula do motor,
-    "derivada", nunca perguntada). Só repassa o valor coletado quando a
-    periodicidade declarada já é `MENSAL` (identidade, não cálculo); em
-    qualquer outro caso — periodicidade `ANUAL`/`OUTRA`/`NAO_SEI`, não
-    respondida, ou a própria taxa desconhecida/ausente — o campo vai para
-    `DESCONHECIDO`, nunca uma conversão estimada."""
-    valor_taxa = respostas.valor_no_item(DIVIDA_ID, variavel_taxa)
-    if valor_taxa is None:
-        return DESCONHECIDO
-    valor_taxa_traduzido = _ou_desconhecido(valor_taxa)
-    if valor_taxa_traduzido is DESCONHECIDO:
-        return DESCONHECIDO
-
-    periodicidade = respostas.valor_no_item(DIVIDA_ID, variavel_periodicidade)
-    if periodicidade != "MENSAL":
-        return DESCONHECIDO
-
-    assert isinstance(valor_taxa_traduzido, Decimal)
-    return valor_taxa_traduzido
+    if periodicidade == "MENSAL":
+        return derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA(taxa, "MENSAL")
+    if periodicidade == "ANUAL":
+        return derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA(taxa, "ANUAL")
+    return DESCONHECIDO
 
 
 def _quitacao_consultada(valor: ValorResposta | None) -> SimNaoTalvez:
-    """`B5.B05` (`QUITACAO_CONSULTADA`) tem domínio `SIM · NAO · EXPIROU ·
-    NAO_SEI` na canônica, mas `Divida.QUITACAO_CONSULTADA` é tipado
-    `SimNaoTalvez` (`SIM/NAO/TALVEZ`, sem `Desconhecido`) — os dois domínios
-    não coincidem 1:1 (ambiguidade da canônica vs. contrato do motor,
-    mesma natureza das já registradas em T-17). Decisão desta tarefa,
-    documentada: `EXPIROU` significa "consultou, mas o valor venceu" — o
-    FATO relevante para `SimNaoTalvez` é que a consulta ocorreu, e a
-    invalidade é tratada à parte por `STATUS_VALIDADE_PROPOSTA`; por isso
-    `EXPIROU → SIM`. `NAO_SEI` é a única leitura de incerteza que o domínio
-    fechado `SimNaoTalvez` oferece, por isso `NAO_SEI → TALVEZ` (não é
-    idêntico semanticamente, mas é a opção não-inventada mais próxima dentro
-    do domínio fechado que o contrato do motor aceita para este campo
-    específico — `Divida.QUITACAO_CONSULTADA` não admite `DESCONHECIDO`)."""
+    """`B5.B05` (`QUITACAO_CONSULTADA`) tem domínio `SIM · NAO · EXPIROU`
+    (`T-405`, RF-418: sem "Não sei"). `Divida.QUITACAO_CONSULTADA` é tipado
+    `SimNaoTalvez`; `EXPIROU` significa "consultou, mas o valor venceu" — o
+    FATO relevante é que a consulta ocorreu, e a invalidade é tratada à
+    parte por `STATUS_VALIDADE_PROPOSTA`; por isso `EXPIROU → SIM`."""
     if valor is None:
         return SimNaoTalvez.NAO
     if valor == "SIM" or valor == "EXPIROU":
         return SimNaoTalvez.SIM
     if valor == "NAO":
         return SimNaoTalvez.NAO
-    if valor is NAO_SEI or valor == "NAO_SEI":
-        return SimNaoTalvez.TALVEZ
     raise ValueError(f"QUITACAO_CONSULTADA: valor inesperado {valor!r}")
 
 
@@ -645,8 +572,6 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         raise ErroRespostaAusente(DIVIDA_ID, "B5.H01", "PESO_EMOCIONAL")
     assert isinstance(peso_emocional_bruto, int) and not isinstance(peso_emocional_bruto, bool)
 
-    seguro_incluido_bruto = respostas.valor_no_item(DIVIDA_ID, "SEGURO_INCLUIDO_PARCELA")
-
     return Divida(
         DIVIDA_ID=DIVIDA_ID,
         TIPO_DIVIDA=TIPO_DIVIDA(tipo_divida_bruto),
@@ -669,18 +594,10 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
             respostas.valor_no_item(DIVIDA_ID, "QUITACAO_CONSULTADA"),
             respostas.valor_no_item(DIVIDA_ID, "DATA_VALIDADE_PROPOSTA"),
         ),
-        TAXA_EFETIVA_MENSAL_NORMALIZADA=_taxa_periodicidade_mensal_ou_desconhecido(
-            respostas, DIVIDA_ID, "TAXA_INFORMADA", "PERIODICIDADE_TAXA"
-        ),
-        # B5.D03A grava CET e periodicidade numa ÚNICA resposta composta
-        # (VARIAVEL_GRAVADA = "CET (+ PERIODICIDADE_CET)" no registro real,
-        # sem uma segunda pergunta/variável separada de periodicidade como
-        # B5.D01B faz para TAXA_INFORMADA). Sem uma variável própria de
-        # periodicidade para confirmar "é mensal", esta camada não tem como
-        # aplicar a mesma regra de identidade sem adivinhar — por isso CET
-        # é sempre DESCONHECIDO nesta tarefa, nunca uma leitura arriscada da
-        # resposta composta. Decompor B5.D03A em percentual + periodicidade
-        # é decisão de formulário (T-42/T-43), fora do escopo de T-49.
+        # B5.D06 — valor e periodicidade na mesma resposta; a conversão ao
+        # ano é do motor (`§16.1`). O CET não é lido: não há marca de qual dos
+        # dois o aluno informou (`T-393`).
+        TAXA_EFETIVA_MENSAL_NORMALIZADA=_taxa_mensal_normalizada(respostas, DIVIDA_ID),
         CET=DESCONHECIDO,
         # B5.C02 — COND (só quando POSSUI_PARCELA_DEFINIDA = SIM): ausência
         # estrutural também admite DESCONHECIDO, mesma lógica de B5.B05A.
@@ -693,11 +610,11 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         # (terceiro critério de aceite de T-49); "O valor varia muito." lê
         # B5.C06A (média de 3 meses) — ver `_pagamento_mensal_efetivo`.
         PAGAMENTO_MENSAL_EFETIVO=_pagamento_mensal_efetivo(respostas, DIVIDA_ID),
-        SEGURO_INCLUIDO_PARCELA=bool(seguro_incluido_bruto == "SIM"),
-        # `T-231` (RF-81, RF-85): só o seguro cobrado mensalmente à parte tem
-        # custo mensal; qualquer outra situação é DESCONHECIDO. GAB-01: o
-        # motor nunca soma este campo à parcela nem o estima.
-        CUSTO_SEGURO=_custo_seguro_cobrado_a_parte(respostas, DIVIDA_ID),
+        # `T-391` (`RF-410`): o seguro saiu do questionário e do cálculo. Os
+        # dois campos seguem declarados no motor (GAB-01: informativos), com
+        # o valor neutro fixo.
+        SEGURO_INCLUIDO_PARCELA=False,
+        CUSTO_SEGURO=DESCONHECIDO,
         PESO_EMOCIONAL=peso_emocional_bruto,
         # Ver docstring do módulo — campos de GATE fora do escopo de T-49,
         # fixados no valor neutro documentado, nunca inventados por fórmula.
@@ -705,7 +622,34 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         TROCA_PENDENTE=False,
         RISCO_MATERIAL_IMINENTE=False,
         OPORTUNIDADE_VIGENTE=None,
+        **_campos_prioridade_ordem(respostas, DIVIDA_ID),
     )
+
+
+def _campos_prioridade_ordem(respostas: RespostasCaso, DIVIDA_ID: str) -> dict[str, Any]:
+    """`§16.4` (`T-406`, `RF-418`): leitura das cinco respostas que o motor usa
+    na prioridade da ordem. Só traduz resposta em campo da `Divida`; o peso da
+    garantia, os 20% da urgência e a escolha do aluno são do motor. Ausente,
+    `NAO`, `NAO_SEI` ou qualquer valor fora do esperado = valor neutro (a regra
+    não se aplica). `B5.F02` e `B5.F03` só valem com `B5.F01 = SIM`, porque são
+    condicionais: resposta antiga de uma ficha que deixou de ter garantia é
+    ignorada."""
+    tem_garantia = respostas.valor_no_item(DIVIDA_ID, "POSSUI_GARANTIA") == "SIM"
+    tipo_garantia = respostas.valor_no_item(DIVIDA_ID, "TIPO_GARANTIA")
+    urgencia = respostas.valor_no_item(DIVIDA_ID, "URGENCIA_PERCEBIDA")
+    return {
+        "GARANTIA_ESSENCIAL": tem_garantia
+        and respostas.valor_no_item(DIVIDA_ID, "GARANTIA_ESSENCIAL") == "ESSENCIAL",
+        "NEGATIVADA": respostas.valor_no_item(DIVIDA_ID, "NEGATIVACAO") == "SIM",
+        "TIPO_GARANTIA": tipo_garantia
+        if tem_garantia and isinstance(tipo_garantia, str) and tipo_garantia != "NAO_SEI"
+        else None,
+        "URGENCIA_PERCEBIDA": urgencia
+        if isinstance(urgencia, int) and not isinstance(urgencia, bool)
+        else None,
+        "PREFERENCIA_QUITACAO": respostas.valor_no_item(DIVIDA_ID, "PREFERENCIA_QUITACAO")
+        == "SIM",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -734,41 +678,21 @@ def _membro_obrigatorio_nao_repetivel[TEnum: Enum](
 
 
 def montar_perfil_comportamental(respostas: RespostasCaso) -> PerfilComportamental:
-    """RF-14, AC-13 — monta `PerfilComportamental` a partir das 8 respostas
-    não repetíveis do Bloco 2 (`collection/registros/bloco-02.yaml`, T-17).
-
-    Mapeamento VARIAVEL_GRAVADA (ID da pergunta) → campo, todos `OBR`, lidos
-    por `respostas.valor` (não repetíveis): `REGISTRO_GASTOS` (B2.01),
-    `FREQUENCIA_REGISTRO` (B2.02), `DEFASAGEM_REGISTRO` (B2.03),
-    `COBERTURA_PEQUENOS_GASTOS` (B2.04), `COBERTURA_MEIOS_PAGAMENTO`
-    (B2.05), `CONHECIMENTO_GASTO` (B2.06), `GASTOS_NAO_IDENTIFICADOS`
-    (B2.07), `REVISAO_SEMANAL` (B2.12) — os 8 nomes de campo são IDÊNTICOS
-    aos 8 `VARIAVEL_GRAVADA` do registro. Cada chamada de
-    `_membro_obrigatorio_nao_repetivel` resolve o `valor_interno` para o
-    membro do enum pelo mecanismo genérico `_membro_do_enum`, nunca um `if`
-    por pergunta.
-    """
+    """RF-14, AC-13, RF-418 — monta `PerfilComportamental`. Só `B2.06`
+    (`CONHECIMENTO_GASTO`) e `B2.12` (`REVISAO_SEMANAL`) continuam sendo
+    perguntadas, lidas por `_membro_obrigatorio_nao_repetivel`. As outras seis
+    variáveis saíram do questionário (`T-404`) e entram com valores neutros (controle `PARCIAL` ou
+    `FRAGIL`, confiabilidade `MEDIA`). Respostas antigas ficam no banco e são
+    ignoradas."""
     return PerfilComportamental(
-        REGISTRO_GASTOS=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.01", "REGISTRO_GASTOS", REGISTRO_GASTOS
-        ),
-        FREQUENCIA_REGISTRO=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.02", "FREQUENCIA_REGISTRO", FREQUENCIA_REGISTRO
-        ),
-        DEFASAGEM_REGISTRO=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.03", "DEFASAGEM_REGISTRO", DEFASAGEM_REGISTRO
-        ),
-        COBERTURA_PEQUENOS_GASTOS=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.04", "COBERTURA_PEQUENOS_GASTOS", COBERTURA_PEQUENOS_GASTOS
-        ),
-        COBERTURA_MEIOS_PAGAMENTO=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.05", "COBERTURA_MEIOS_PAGAMENTO", COBERTURA_MEIOS_PAGAMENTO
-        ),
+        REGISTRO_GASTOS=REGISTRO_GASTOS.PARTE,
+        FREQUENCIA_REGISTRO=FREQUENCIA_REGISTRO.INDEFINIDA,
+        DEFASAGEM_REGISTRO=DEFASAGEM_REGISTRO.DIAS_DEPOIS,
+        COBERTURA_PEQUENOS_GASTOS=COBERTURA_PEQUENOS_GASTOS.ALGUNS,
+        COBERTURA_MEIOS_PAGAMENTO=COBERTURA_MEIOS_PAGAMENTO.QUASE_TOTAL,
+        GASTOS_NAO_IDENTIFICADOS=GASTOS_NAO_IDENTIFICADOS.ALGUMAS_MES,
         CONHECIMENTO_GASTO=_membro_obrigatorio_nao_repetivel(
             respostas, "B2.06", "CONHECIMENTO_GASTO", CONHECIMENTO_GASTO
-        ),
-        GASTOS_NAO_IDENTIFICADOS=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.07", "GASTOS_NAO_IDENTIFICADOS", GASTOS_NAO_IDENTIFICADOS
         ),
         REVISAO_SEMANAL=_membro_obrigatorio_nao_repetivel(
             respostas, "B2.12", "REVISAO_SEMANAL", REVISAO_SEMANAL
@@ -842,27 +766,6 @@ def _sim_nao_talvez_de_domino_fechado(
     return SimNaoTalvez[valor]
 
 
-def _historico_recaida(valor: ValorResposta | None) -> SimNaoTalvez:
-    """`B1.10` (`HISTORICO_RECAIDA`) tem domínio `MAIS_DE_UMA · UMA ·
-    NENHUMA · NAO_SEI` na canônica (`piq-app-spec.md`, linha 4951:
-    "HISTORICO_RECAIDA: SIM (A ou B) · NAO · NAO_SEI") — não é `SIM/TALVEZ/
-    NAO` direto, então precisa da mesma leitura por FATO já usada em
-    `_quitacao_consultada`: A ou B (`MAIS_DE_UMA`/`UMA`) → `SIM` (recaída
-    aconteceu, sem distinguir frequência aqui — `FREQUENCIA_RECAIDA_
-    RECENTE` é variável auxiliar fora do contrato de `SinaisComportamentais`);
-    `NENHUMA` → `NAO`; `NAO_SEI` → `TALVEZ` (única leitura de incerteza que
-    o domínio fechado oferece, mesmo padrão de `_quitacao_consultada`)."""
-    if valor is None:
-        raise ErroSinalComportamentalAusente("HISTORICO_RECAIDA")
-    if valor == "MAIS_DE_UMA" or valor == "UMA":
-        return SimNaoTalvez.SIM
-    if valor == "NENHUMA":
-        return SimNaoTalvez.NAO
-    if valor is NAO_SEI or valor == "NAO_SEI":
-        return SimNaoTalvez.TALVEZ
-    raise ErroSinalComportamentalAusente("HISTORICO_RECAIDA")
-
-
 def _necessidade_vitoria(valor: ValorResposta | None) -> int | Desconhecido:
     """`B9.02` (`NECESSIDADE_VITORIA`) é `int | Desconhecido` no contrato —
     escala 0-10, `OBR`, sem opção "não sei" no registro (`admite_nao_sei:
@@ -879,27 +782,6 @@ def _necessidade_vitoria(valor: ValorResposta | None) -> int | Desconhecido:
     ):
         raise ErroSinalComportamentalAusente("NECESSIDADE_VITORIA")
     return traduzido
-
-
-def _historico_abandono(valor: ValorResposta | None) -> SimNaoTalvez:
-    """`B9.04` (`HISTORICO_ABANDONO`) tem domínio `MAIS_DE_UMA · UMA · NAO ·
-    SEM_PLANO · NAO_SEI` na canônica (`piq-app-spec.md`, linha 4186:
-    "HISTORICO_ABANDONO = SIM para A ou B") — cinco valores, não `SIM/TALVEZ/
-    NAO` direto, mesmo formato de `_historico_recaida` (B1.10): A ou B
-    (`MAIS_DE_UMA`/`UMA`) → `SIM` (abandono aconteceu); `NAO`/`SEM_PLANO` →
-    `NAO` (nunca abandonou — seja porque completou, seja porque nunca
-    começou um plano); `NAO_SEI` → `TALVEZ` (única leitura de incerteza que
-    o domínio fechado `SimNaoTalvez` oferece, mesmo padrão de
-    `_historico_recaida`/`_quitacao_consultada`)."""
-    if valor is None:
-        raise ErroSinalComportamentalAusente("HISTORICO_ABANDONO")
-    if valor == "MAIS_DE_UMA" or valor == "UMA":
-        return SimNaoTalvez.SIM
-    if valor == "NAO" or valor == "SEM_PLANO":
-        return SimNaoTalvez.NAO
-    if valor is NAO_SEI or valor == "NAO_SEI":
-        return SimNaoTalvez.TALVEZ
-    raise ErroSinalComportamentalAusente("HISTORICO_ABANDONO")
 
 
 def _mecanismo_deficit(valor: ValorResposta | None) -> frozenset[str] | Desconhecido:
@@ -943,86 +825,30 @@ def _risco_impulso(valor: ValorResposta | None) -> str | Desconhecido:
     return traduzido
 
 
-def _linha_continua_sendo_utilizada(
-    respostas: RespostasCaso, DIVIDA_ID: str | None
-) -> str | Desconhecido:
-    """`B5.C07` (`LINHA_CONTINUA_SENDO_UTILIZADA`) é `COND, REP` do Bloco 5
-    — condicional a `TIPO_DIVIDA` ∈ {`CARTAO_ROTATIVO`, `CHEQUE_ESPECIAL`,
-    `CARTAO_PARCELADO`} e repetida por `DIVIDA_ID`. Diferente das outras 7
-    variáveis coletadas de `SinaisComportamentais` (Blocos 1/2, não
-    repetíveis), esta é do Bloco 5 e por item de dívida — o contrato de
-    `SinaisComportamentais`, porém, é um único campo `str | Desconhecido`,
-    não uma tupla por dívida. Sem uma regra normativa de "qual dívida"
-    disponível em nenhum artefato SDD (mesma lacuna documentada em T-49
-    para os campos de GATE), a leitura sem `DIVIDA_ID` explícito é
-    `DESCONHECIDO` — nunca inventar qual item representa o sinal agregado.
-    Quando um `DIVIDA_ID` é informado (uso pontual, ex. testes ou chamador
-    que já sabe o item relevante), a leitura por item usa
-    `valor_no_item`/`_ou_desconhecido` normalmente; ausência estrutural
-    (pergunta não exibida para o tipo de dívida) também é `DESCONHECIDO`,
-    nunca erro."""
-    if DIVIDA_ID is None:
-        return DESCONHECIDO
-    valor = respostas.valor_no_item(DIVIDA_ID, "LINHA_CONTINUA_SENDO_UTILIZADA")
-    if valor is None:
-        return DESCONHECIDO
-    traduzido = _ou_desconhecido(valor)
-    if not (isinstance(traduzido, str) or traduzido is DESCONHECIDO):
-        return DESCONHECIDO
-    return traduzido
-
-
-def montar_sinais_comportamentais(
-    respostas: RespostasCaso, DIVIDA_ID_PARA_LINHA_CONTINUA: str | None = None
-) -> SinaisComportamentais:
-    """RF-14, AC-13 — monta `SinaisComportamentais` a partir das respostas
-    dos Blocos 1, 2 e 5 (`collection/registros/bloco-0{1,2,5}.yaml`, T-17).
-
-    Mapeamento VARIAVEL_GRAVADA → campo (ver relatório da tarefa):
-    `NOVA_DIVIDA_PREVISTA` (B1.02), `MECANISMO_DEFICIT` (B1.09),
-    `HISTORICO_RECAIDA` (B1.10), `NOVO_PARCELAMENTO_PREVISTO` (B1.07),
-    `PACTO` (B1.01), `RISCO_IMPULSO` (B2.11), `LINHA_CONTINUA_SENDO_
-    UTILIZADA` (B5.C07, REP por `DIVIDA_ID` — ver
-    `_linha_continua_sendo_utilizada`), `JANELA_NOVA_DIVIDA` (B1.05,
-    `COND`, `None` estrutural — resolvido pelo mecanismo genérico
-    `_membro_do_enum` quando a resposta existe).
-
-    `NECESSIDADE_VITORIA` (B9.02) e `HISTORICO_ABANDONO` (B9.04), Bloco 9
-    (`collection/registros/bloco-09.yaml`, T-99): lidos do registro real por
-    `_necessidade_vitoria` (escala 0-10, `int | Desconhecido`, mesmo padrão
-    de `_risco_impulso`) e `_historico_abandono` (tradução de domínio de 5
-    valores para `SimNaoTalvez`, ver docstring do módulo).
+def montar_sinais_comportamentais(respostas: RespostasCaso) -> SinaisComportamentais:
+    """RF-14, AC-13, RF-418 — monta `SinaisComportamentais`. `B1.02`, `B1.05`,
+    `B1.10`, `B5.C07` e `B9.04` saíram do questionário (`T-404`): entram
+    `NOVA_DIVIDA_PREVISTA=NAO`, `HISTORICO_RECAIDA=TALVEZ`,
+    `HISTORICO_ABANDONO=TALVEZ`, `JANELA_NOVA_DIVIDA=None` e
+    `LINHA_CONTINUA_SENDO_UTILIZADA=DESCONHECIDO`. Respostas antigas são
+    ignoradas. Seguem perguntadas `B1.01`, `B1.07`, `B1.09`, `B2.11` e `B9.02`.
     """
-    janela_bruta = respostas.valor("JANELA_NOVA_DIVIDA")
-    janela: JANELA_NOVA_DIVIDA | None = None
-    if janela_bruta is not None:
-        if not isinstance(janela_bruta, str):
-            raise ValueError(f"JANELA_NOVA_DIVIDA: valor inesperado {janela_bruta!r}")
-        janela = _membro_do_enum(JANELA_NOVA_DIVIDA, janela_bruta)
-
     return SinaisComportamentais(
-        NOVA_DIVIDA_PREVISTA=_sim_nao_talvez_de_domino_fechado(
-            respostas.valor("NOVA_DIVIDA_PREVISTA"), "NOVA_DIVIDA_PREVISTA"
-        ),
+        NOVA_DIVIDA_PREVISTA=SimNaoTalvez.NAO,
         MECANISMO_DEFICIT=_mecanismo_deficit(respostas.valor("MECANISMO_DEFICIT")),
-        HISTORICO_RECAIDA=_historico_recaida(respostas.valor("HISTORICO_RECAIDA")),
+        HISTORICO_RECAIDA=SimNaoTalvez.TALVEZ,
         NOVO_PARCELAMENTO_PREVISTO=_sim_nao_talvez_de_domino_fechado(
             respostas.valor("NOVO_PARCELAMENTO_PREVISTO"), "NOVO_PARCELAMENTO_PREVISTO"
         ),
         PACTO=_pacto(respostas.valor("PACTO")),
         RISCO_IMPULSO=_risco_impulso(respostas.valor("RISCO_IMPULSO")),
-        LINHA_CONTINUA_SENDO_UTILIZADA=_linha_continua_sendo_utilizada(
-            respostas, DIVIDA_ID_PARA_LINHA_CONTINUA
-        ),
+        LINHA_CONTINUA_SENDO_UTILIZADA=DESCONHECIDO,
         # B9.02 — lido do registro real (collection/registros/bloco-09.yaml,
         # T-99): escala 0-10, por _necessidade_vitoria (mesmo padrão de
         # _risco_impulso: erro explícito se ausente).
         NECESSIDADE_VITORIA=_necessidade_vitoria(respostas.valor("NECESSIDADE_VITORIA")),
-        # B9.04 — lido do registro real (collection/registros/bloco-09.yaml,
-        # T-99): domínio de 5 valores traduzido para SimNaoTalvez por
-        # _historico_abandono (mesmo padrão de _historico_recaida).
-        HISTORICO_ABANDONO=_historico_abandono(respostas.valor("HISTORICO_ABANDONO")),
-        JANELA_NOVA_DIVIDA=janela,
+        HISTORICO_ABANDONO=SimNaoTalvez.TALVEZ,
+        JANELA_NOVA_DIVIDA=None,
     )
 
 
@@ -1106,6 +932,16 @@ def _renda_recorrente_adicional_total(respostas: RespostasCaso) -> Dinheiro:
     return total
 
 
+def _contribuicao_familiar(respostas: RespostasCaso) -> Dinheiro:
+    """`RF-412` (`B3.04A`, `CONTRIBUICAO_FAMILIAR`): quanto outra pessoa
+    coloca por mês nas despesas do orçamento soma à renda disponível. Sem
+    resposta, `NAO_SEI` ou pergunta que não abriu (`B3.04` = Não): zero — a
+    renda fica idêntica à de antes. Soma simples; nenhuma fórmula nova."""
+    valor = respostas.valor("CONTRIBUICAO_FAMILIAR")
+    traduzido = None if valor is None else _ou_desconhecido(valor)
+    return traduzido if isinstance(traduzido, Decimal) else _ZERO
+
+
 def _renda_total_recorrente(respostas: RespostasCaso) -> Dinheiro:
     """`OQ-16`: `RENDA_TOTAL_RECORRENTE` = `RENDA_PRINCIPAL` (B3.01) + soma
     de todas as fichas de `RENDA_RECORRENTE_ADICIONAL` (B3.03A-C, escopo
@@ -1114,7 +950,11 @@ def _renda_total_recorrente(respostas: RespostasCaso) -> Dinheiro:
     função nem por nenhuma outra deste módulo, então não há filtro a
     escrever: a exclusão é por simplesmente nunca ler essas duas
     variáveis."""
-    return _renda_principal(respostas) + _renda_recorrente_adicional_total(respostas)
+    return (
+        _renda_principal(respostas)
+        + _renda_recorrente_adicional_total(respostas)
+        + _contribuicao_familiar(respostas)
+    )
 
 
 def _despesas_operacionais_atuais(respostas: RespostasCaso) -> Dinheiro:
@@ -1178,9 +1018,6 @@ def _soma_dos_informados(linhas: tuple[tuple[str, DinheiroTalvez], ...]) -> Dinh
 
 
 
-_VALOR_JA_CONTABILIZADA_SIM: Final[str] = "SIM"
-
-
 def _despesas_nao_mensais_normalizadas(respostas: RespostasCaso) -> Dinheiro:
     """`OQ-16`/`OQ-19` (`T-105`) — corrigida por `T-107`:
     `DESPESAS_NAO_MENSAIS_NORMALIZADAS` = (soma dos valores anuais de todas
@@ -1207,14 +1044,13 @@ def _despesas_nao_mensais_normalizadas(respostas: RespostasCaso) -> Dinheiro:
     excluir a ficha errada. Por isso esta função descobre os `item_id` do
     escopo diretamente do snapshot em memória (`respostas.respostas`, campo
     público de `RespostasCaso` — mesmo padrão já usado por `app/http/
-    rotas_coleta.py`/`rotas_bloco11.py` para reconstruir uma `RespostasCaso`)
+    rotas_coleta.py` para reconstruir uma `RespostasCaso`)
     e, para cada item, lê as DUAS variáveis pelo mesmo mecanismo de
     `collection/validacao.py::validar_cruzada` — `respostas.valor_no_item
     (item_id, variavel)` — que já resolve exatamente este problema de "duas
     variáveis do mesmo item". `DESPESA_NAO_MENSAL_JA_CONTABILIZADA` é
-    `SIM_NAO_TALVEZ` com `valor_interno: null` no registro (mesmo padrão de
-    `SEGURO_INCLUIDO_PARCELA`/B5.D05B, já lido acima por comparação direta
-    com a string `"SIM"`): o valor gravado é a string crua do formulário
+    `SIM_NAO_TALVEZ` com `valor_interno: null` no registro: o valor
+    gravado é a string crua do formulário
     (`app/http/rotas_coleta.py::_resolver_valor`, que devolve `str` direto
     para `SIM_NAO_TALVEZ`), por isso a comparação é contra `_VALOR_JA_
     CONTABILIZADA_SIM = "SIM"`, nunca contra o rótulo em português. `Decimal`
@@ -1228,7 +1064,7 @@ def _despesas_nao_mensais_por_item(
 ) -> tuple[tuple[str, DinheiroTalvez], ...]:
     """`T-225` (RF-79, AC-119): a decomposição de
     `_despesas_nao_mensais_normalizadas` — um `(item_id, anual / 12)` por
-    ficha fora da exclusão de `JA_CONTABILIZADA = Sim`, `DESCONHECIDO`
+    ficha (`T-404`: sem `B3.NM02D`, nenhuma é excluída), `DESCONHECIDO`
     quando `NAO_SEI`. O total é a soma destas linhas (a divisão por 12 é
     por item, para que a soma das linhas seja o total EXATO, sem resíduo
     de arredondamento entre as duas formas)."""
@@ -1239,9 +1075,6 @@ def _despesas_nao_mensais_por_item(
     )
     linhas: list[tuple[str, DinheiroTalvez]] = []
     for item_id in itens:
-        ja_contabilizada = respostas.valor_no_item(item_id, "DESPESA_NAO_MENSAL_JA_CONTABILIZADA")
-        if ja_contabilizada == _VALOR_JA_CONTABILIZADA_SIM:
-            continue
         valor = respostas.valor_no_item(item_id, "VALOR_DESPESA_NAO_MENSAL")
         if valor is None:
             continue
@@ -1251,14 +1084,10 @@ def _despesas_nao_mensais_por_item(
 
 
 _VARIAVEIS_RECURSO_EXTRAORDINARIO: Final[tuple[str, ...]] = (
-    "TIPO_RECURSO_EXTRAORDINARIO",
     "VALOR_RECURSO_EXTRAORDINARIO",
     "JANELA_RECURSO_EXTRAORDINARIO",
     "CERTEZA_RECURSO_EXTRAORDINARIO",
 )
-# `B3.05BF` (`T-270`, `AC-151`): em Férias/abono o valor é o do acréscimo —
-# a pergunta a nomear quando ele falta é a dele, não `B3.05B`.
-_TIPO_FERIAS_ABONO: Final[str] = "FERIAS_ABONO"
 
 
 def _membro_por_valor[TEnum: Enum](enum_alvo: type[TEnum], valor: ValorResposta) -> TEnum:
@@ -1272,10 +1101,10 @@ def _membro_por_valor[TEnum: Enum](enum_alvo: type[TEnum], valor: ValorResposta)
 
 def _recursos_extraordinarios(respostas: RespostasCaso) -> tuple[RecursoExtraordinario, ...]:
     """`RF-98`, `AC-150`, `EC-38`, `DE-02` (`T-273`) — um
-    `RecursoExtraordinario` por item `EXT` respondido (`B3.05A`–`D`, escopo
+    `RecursoExtraordinario` por item `EXT` respondido (`B3.05B`–`D`, escopo
     `RECURSO_EXTRAORDINARIO_ID`), NUNCA somados: cada item leva o seu valor,
-    janela e certeza, lidos com `valor_no_item`. O tipo é lido só para
-    exigir a ficha completa — não é entregue (`motor-calculo:RF-72`).
+    janela e certeza, lidos com `valor_no_item`. `T-404`: `B3.05A` (tipo)
+    saiu; a ficha começa em `B3.05B` (`motor-calculo:RF-72`).
 
     Valor `NAO_SEI` → `DESCONHECIDO`; janela `NAO_SEI` é membro do enum —
     nenhum dos dois vira `0` nem janela presumida (`EC-38`): quem decide o
@@ -1291,12 +1120,8 @@ def _recursos_extraordinarios(respostas: RespostasCaso) -> tuple[RecursoExtraord
     )
     recursos: list[RecursoExtraordinario] = []
     for item_id in itens:
-        tipo = respostas.valor_no_item(item_id, "TIPO_RECURSO_EXTRAORDINARIO")
-        if tipo is None:
-            raise ErroRespostaAusente(item_id, "B3.05A", "TIPO_RECURSO_EXTRAORDINARIO")
-        pergunta_do_valor = "B3.05BF" if tipo == _TIPO_FERIAS_ABONO else "B3.05B"
         valor = _dinheiro_obrigatorio(
-            respostas, item_id, pergunta_do_valor, "VALOR_RECURSO_EXTRAORDINARIO"
+            respostas, item_id, "B3.05B", "VALOR_RECURSO_EXTRAORDINARIO"
         )
         janela = respostas.valor_no_item(item_id, "JANELA_RECURSO_EXTRAORDINARIO")
         if janela is None:
@@ -1320,23 +1145,6 @@ def _recursos_extraordinarios(respostas: RespostasCaso) -> tuple[RecursoExtraord
             )
         )
     return tuple(recursos)
-
-
-def _tipo_renda(respostas: RespostasCaso) -> TIPO_RENDA:
-    """`B3.02` (`TIPO_RENDA`) — OBR, não repetível, sem opção "não sei" no
-    registro (`admite_nao_sei: false`, `collection/registros/bloco-03.yaml`,
-    T-17) — e `EstadoFinanceiro.TIPO_RENDA` não admite `Desconhecido` (é
-    `TIPO_RENDA`, puro, não uma união com `Desconhecido`). Resposta ausente é
-    erro explícito, nunca um default (mesmo padrão de `ErroRespostaAusente`).
-    Resolvido pelo mecanismo genérico `_membro_do_enum` — mesmo padrão de
-    `_membro_obrigatorio_nao_repetivel`, mas sem passar por `_ou_desconhecido`
-    porque o campo não admite ausência de valor concreto."""
-    valor = respostas.valor("TIPO_RENDA")
-    if valor is None:
-        raise ErroRespostaAusente("", "B3.02", "TIPO_RENDA")
-    if not isinstance(valor, str):
-        raise ErroRespostaAusente("", "B3.02", "TIPO_RENDA")
-    return _membro_do_enum(TIPO_RENDA, valor)
 
 
 def _capacidade_ataque_declarada(respostas: RespostasCaso) -> DinheiroTalvez:
@@ -1370,9 +1178,9 @@ def _contribuicao_extra_mensal(respostas: RespostasCaso) -> Dinheiro | None:
 
 def _inventario_completo(respostas: RespostasCaso) -> bool:
     """`B5.FIM02` (`CONFIRMACAO_FIM_CADASTRO`) — `RF-15`, `AC-07`. Domínio
-    real de `valor_interno` (`collection/registros/bloco-05.yaml`, T-17):
-    `SIM · NAO · NAO_SEI`. Qualquer resposta diferente de `SIM` — incluindo
-    `NAO_SEI` e a própria ausência de resposta — produz `INVENTARIO_COMPLETO
+    real de `valor_interno` (`collection/registros/bloco-05.yaml`, T-405):
+    `SIM · NAO`. Qualquer resposta diferente de `SIM` — incluindo
+    a própria ausência de resposta — produz `INVENTARIO_COMPLETO
     = False`; só `SIM` produz `True`. Mapeamento por `valor_interno`, nunca
     por texto de enunciado (terceiro critério de aceite de T-52).
 
@@ -1557,9 +1365,9 @@ def _dinheiro_disponivel(respostas: RespostasCaso) -> Dinheiro:
     - `B4.01 = SIM` + `B4.01A` com `Decimal` → o próprio `Decimal` (`AC-57`).
     - `B4.01 = NAO` (`B4.01A` não exibida, `condicao_exibicao`, `:36`) →
       `_ZERO` (`AC-58`).
-    - `B4.01 = NAO_SEI` (`:18`) → erro nomeado (`EC-20`).
     - `B4.01` ausente → erro nomeado (`AC-59`).
     - `B4.01 = SIM` com `B4.01A` ausente ou `NAO_SEI` → erro nomeado.
+      (`B4.01` não tem mais "Não sei", `T-405`; resposta fora de SIM/NAO segue erro.)
 
     **O `_ZERO` do ramo `NAO` NÃO é default.** `sdd.config.md` §4 proíbe
     inventar dado; não proíbe transcrever um zero que o aluno declarou.
@@ -1581,8 +1389,7 @@ def _dinheiro_disponivel(respostas: RespostasCaso) -> Dinheiro:
     if existe == "NAO":
         return _ZERO
     if existe != "SIM":
-        # Sobra apenas `NAO_SEI` (`bloco-04.yaml:18`) — e qualquer
-        # `valor_interno` fora do domínio, que também não autoriza um valor.
+        # Qualquer `valor_interno` fora do domínio não autoriza um valor.
         raise ErroDinheiroDisponivelIndeterminado(
             "DINHEIRO_DISPONIVEL_EXISTE", "resposta não afirma valor conhecido"
         )
@@ -1601,9 +1408,8 @@ def _economia_potencial_imediata(
     """`B2.09`/`B2.10`/`B2.10A` — ver docstring do módulo. "Somente SIM
     torna `VALOR_GASTOS_FANTASMAS` elegível à economia potencial" (canônica,
     salto/consequência de `B2.10A`): quando `ACEITA_REDUCAO_GASTOS_
-    FANTASMAS = SIM`, repassa `VALOR_GASTOS_FANTASMAS` (identidade, mesmo
-    padrão de `_taxa_periodicidade_mensal_ou_desconhecido` para taxa
-    mensal) — e SÓ nesse ramo constrói `Dinheiro` a partir de uma resposta já
+    FANTASMAS = SIM`, repassa `VALOR_GASTOS_FANTASMAS` (identidade, não
+    cálculo) — e SÓ nesse ramo constrói `Dinheiro` a partir de uma resposta já
     convertida (RF-13: o valor já É `Decimal`, vindo da fronteira única). Em
     qualquer outro caso — sem gasto fantasma identificado (`GASTOS_
     FANTASMAS` ausente/`NAO`/`TALVEZ`), aceite `NAO`/`TALVEZ`/ausente, ou
@@ -1641,7 +1447,6 @@ def montar_estado_financeiro(
     dividas: tuple[Divida, ...],
     CONFIABILIDADE_DADOS: CONFIABILIDADE_DADOS,
     economia_nao_identificada: Dinheiro | None = None,
-    DIVIDA_ID_PARA_LINHA_CONTINUA: str | None = None,
 ) -> EstadoFinanceiro:
     """RF-14, AC-18 — monta o `EstadoFinanceiro` COMPLETO a partir das
     respostas do caso, com `DATA_REFERENCIA` vinda do `Caso` (`app/casos/
@@ -1738,10 +1543,8 @@ def montar_estado_financeiro(
     return EstadoFinanceiro(
         DATA_REFERENCIA=DATA_REFERENCIA,
         RENDA_TOTAL_RECORRENTE=_renda_total_recorrente(respostas),
-        TIPO_RENDA=_tipo_renda(respostas),
-        DESPESAS_OPERACIONAIS_ATUAIS=(
-            _despesas_operacionais_atuais(respostas) + _seguros_mensais_a_parte(dividas)
-        ),
+        TIPO_RENDA=TIPO_RENDA.RELATIVAMENTE_ESTAVEL,  # `T-404`: B3.02 saiu
+        DESPESAS_OPERACIONAIS_ATUAIS=_despesas_operacionais_atuais(respostas),
         DESPESAS_NAO_MENSAIS_NORMALIZADAS=_despesas_nao_mensais_normalizadas(respostas),
         CAPACIDADE_ATAQUE_DECLARADA=_capacidade_ataque_declarada(respostas),
         CONTRIBUICAO_EXTRA_MENSAL=_contribuicao_extra_mensal(respostas),
@@ -1751,9 +1554,7 @@ def montar_estado_financeiro(
         INVENTARIO_COMPLETO=_inventario_completo(respostas),
         dividas=dividas,
         perfil_comportamental=montar_perfil_comportamental(respostas),
-        sinais_comportamentais=montar_sinais_comportamentais(
-            respostas, DIVIDA_ID_PARA_LINHA_CONTINUA
-        ),
+        sinais_comportamentais=montar_sinais_comportamentais(respostas),
         CONFIABILIDADE_DADOS=CONFIABILIDADE_DADOS,
         AUTOPERCEPCAO_CONTROLE=_autopercepcao_controle(respostas),
         # --- Bloco 4 · reserva (`T-111`, `RF-36`, `RF-37`) ---

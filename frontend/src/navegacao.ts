@@ -65,11 +65,6 @@ export type Rota =
   | { tela: 'calculando' }
   | { tela: 'aguardando' }
   | { tela: 'plano' }
-  | { tela: 'bloco10' }
-  | { tela: 'coleta-dirigida'; bloco: 7 | 8 }
-  | { tela: 'acoes' }
-  | { tela: 'acao'; acaoId: string }
-  | { tela: 'recalculo' }
   | { tela: 'equipe-fila' }
   | { tela: 'equipe-caso'; casoId: string }
   | { tela: 'equipe-painel' }
@@ -143,10 +138,6 @@ export function rotaParaHash(rota: Rota): string {
       return [rota.tela, rota.escopo, ...(rota.seguintes ?? [])].filter(Boolean).join('/')
     case 'formulario':
       return `${rota.tela}/${rota.escopo}/${rota.itemId}`
-    case 'acao':
-      return `${rota.tela}/${rota.acaoId}`
-    case 'coleta-dirigida':
-      return `${rota.tela}/${rota.bloco}`
     case 'equipe-caso':
       return `${rota.tela}/${rota.casoId}`
     case 'definir-senha':
@@ -177,9 +168,6 @@ export function hashParaRota(hash: string): Rota {
     case 'calculando':
     case 'aguardando':
     case 'plano':
-    case 'bloco10':
-    case 'acoes':
-    case 'recalculo':
     case 'equipe-fila':
     case 'equipe-painel':
       return { tela }
@@ -196,14 +184,8 @@ export function hashParaRota(hash: string): Rota {
       if (!escopo) return { tela }
       return seguintes.length ? { tela, escopo, seguintes } : { tela, escopo }
     }
-    case 'coleta-dirigida': {
-      const bloco = Number(resto[0])
-      return bloco === 7 || bloco === 8 ? { tela, bloco } : ROTA_PADRAO
-    }
     case 'formulario':
       return resto[0] && resto[1] ? { tela, escopo: resto[0], itemId: resto[1] } : ROTA_PADRAO
-    case 'acao':
-      return resto[0] ? { tela, acaoId: resto[0] } : ROTA_PADRAO
     // Sem token não há o que definir: cai no padrão, que leva ao login.
     case 'definir-senha':
       return resto[0] ? { tela, token: resto[0] } : ROTA_PADRAO

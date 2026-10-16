@@ -543,10 +543,18 @@
     <section class="secao">
         {{ visuais.cabecalho_da_secao(ns.n, secoes.get("ponto_de_partida", "Seu ponto de partida"), "conferencia") }}
         <p class="intro">{{ textos.ponto_de_partida.get("introducao", "") }}</p>
+        {% for aviso in avisos_gerais %}<p class="muted"><strong>{{ aviso }}</strong></p>{% endfor %}
         <div class="linhas">
             <div class="linha entrada"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("renda", "") }}</span><span class="linha-sinal" title="{{ textos.ponto_de_partida.get("entrada_rotulo", "") }}">+</span><span class="linha-valor">{{ ponto_de_partida.renda }}</span></div>
+            {% if ponto_de_partida.contribuicao_familiar %}<div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("contribuicao_familiar", "") }}</span><span class="linha-valor">{{ ponto_de_partida.contribuicao_familiar }}</span></div>{% endif %}
             <div class="linha saida"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("gastos", "") }}</span><span class="linha-sinal" title="{{ textos.ponto_de_partida.get("saida_rotulo", "") }}">&minus;</span><span class="linha-valor">{{ ponto_de_partida.gastos }}</span></div>
             <div class="linha saida"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("gastos_ocasionais", "") }}</span><span class="linha-sinal" title="{{ textos.ponto_de_partida.get("saida_rotulo", "") }}">&minus;</span><span class="linha-valor">{{ ponto_de_partida.gastos_ocasionais }}</span></div>
+            {% if ponto_de_partida.despesas_tipo_fixo %}
+            <div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("despesas_tipo_fixo", "") }}</span><span class="linha-valor">{{ ponto_de_partida.despesas_tipo_fixo }}</span></div>
+            <div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("despesas_tipo_variavel", "") }}</span><span class="linha-valor">{{ ponto_de_partida.despesas_tipo_variavel }}</span></div>
+            {% if ponto_de_partida.despesas_nao_classificadas %}<div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("despesas_nao_classificadas", "") }}</span><span class="linha-valor">{{ ponto_de_partida.despesas_nao_classificadas }}</span></div>{% endif %}
+            <div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("despesas_mensais_totais", "") }}</span><span class="linha-valor">{{ ponto_de_partida.despesas_mensais_totais }}</span></div>
+            {% endif %}
             <div class="linha saida"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("parcelas", "") }}</span><span class="linha-sinal" title="{{ textos.ponto_de_partida.get("saida_rotulo", "") }}">&minus;</span><span class="linha-valor">{{ ponto_de_partida.parcelas }}</span></div>
             <div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("quantidade_dividas", "") }}</span><span class="linha-valor">{{ ponto_de_partida.quantidade_de_dividas }}</span></div>
             {% if not (cenario is defined and cenario.value in ("ESTABILIZACAO", "ORDEM_VAZIA")) %}

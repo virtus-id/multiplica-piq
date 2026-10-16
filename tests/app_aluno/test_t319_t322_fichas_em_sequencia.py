@@ -27,8 +27,6 @@ _DESPESA = "ITEM_DESPESA"
 _PREENCHER_DESPESA = (
     ("B3.DF01", "500"),
     ("B3.DF02", "FIXA"),
-    ("B3.DF03", "OBRIGATORIA"),
-    ("B3.DF04", "CONFIRMADA"),
 )
 
 
@@ -67,17 +65,11 @@ def _checklist_de_moradia(cliente: TestClient) -> list[str]:
 @pytest.mark.parametrize(
     ("gatilho", "valor", "escopo", "perguntas"),
     [
-        ("B3.03", "SIM", "RENDA_ADICIONAL_ID", ["B3.03A", "B3.03B", "B3.03C"]),
-        ("B3.05", "SIM", "RECURSO_EXTRAORDINARIO_ID", ["B3.05A", "B3.05C", "B3.05D"]),
-        ("B3.05", "TALVEZ", "RECURSO_EXTRAORDINARIO_ID", ["B3.05A", "B3.05C", "B3.05D"]),
-        (
-            "B3.NM01",
-            "SIM",
-            "DESPESA_NAO_MENSAL_ID",
-            ["B3.NM02A", "B3.NM02B", "B3.NM02C", "B3.NM02D"],
-        ),
-        ("B3.S01", "SIM", "VINCULO_ID", ["B3.S02", "B3.S03", "B3.S04", "B3.S04L"]),
-        ("B3.D11", "SIM", _DESPESA, ["B3.DF01", "B3.DF02", "B3.DF03", "B3.DF04"]),
+        ("B3.03", "SIM", "RENDA_ADICIONAL_ID", ["B3.03B"]),
+        ("B3.05", "SIM", "RECURSO_EXTRAORDINARIO_ID", ["B3.05B", "B3.05C", "B3.05D"]),
+        ("B3.05", "TALVEZ", "RECURSO_EXTRAORDINARIO_ID", ["B3.05B", "B3.05C", "B3.05D"]),
+        ("B3.NM01", "SIM", "DESPESA_NAO_MENSAL_ID", ["B3.NM02B"]),
+        ("B3.D11", "SIM", _DESPESA, ["B3.DF01", "B3.DF02"]),
     ],
 )
 def test_ac168_gatilho_traz_o_formulario_do_item_novo(
@@ -126,7 +118,7 @@ def test_ac168_mae_cria_o_item_e_os_campos_vao_para_ele(
     proxima = _responder(cliente, "B3.03", "SIM").json()["proxima"]["pergunta"]
     item_id = proxima["item_id"]
     assert (proxima["escopo_repeticao"], item_id) == ("RENDA_ADICIONAL_ID", "REND001")
-    for ID, valor in (("B3.03A", "ALUGUEL"), ("B3.03B", "800"), ("B3.03C", "FIXA")):
+    for ID, valor in (("B3.03B", "800"),):
         assert _responder(cliente, ID, valor, item_id).status_code == 200, ID
 
     resposta = _concluir(cliente, "RENDA_ADICIONAL_ID", item_id)
@@ -145,8 +137,7 @@ def test_ac169_resposta_em_branco_nao_conta_como_respondida(
     cliente = _cliente_real(monkeypatch, tmp_path)
     item = _checklist_de_moradia(cliente)[0]
     _responder(cliente, "B3.DF01", "500", item)
-    for ID in ("B3.DF02", "B3.DF03", "B3.DF04"):
-        _responder(cliente, ID, "", item)
+    _responder(cliente, "B3.DF02", "", item)
 
     assert _formulario(cliente, _DESPESA, item)["completa"] is False
 
@@ -159,20 +150,16 @@ def test_ac169_concluir_com_campo_em_branco_e_recusado_com_a_lista(
     cliente = _cliente_real(monkeypatch, tmp_path)
     item = _checklist_de_moradia(cliente)[0]
     _responder(cliente, "B3.DF01", "NAO_SEI", item)
-    _responder(cliente, "B3.DF02", "FIXA", item)
 
     recusa = _concluir(cliente, _DESPESA, item)
 
     assert recusa.status_code == 400
     corpo = recusa.json()
-    assert [(p["ID"], p["item_id"]) for p in corpo["pendencias"]] == [
-        ("B3.DF03", item),
-        ("B3.DF04", item),
-    ]
+    assert [(p["ID"], p["item_id"]) for p in corpo["pendencias"]] == [("B3.DF02", item)]
     assert corpo["erro"].startswith("Antes de salvar, responda nesta ficha:")
-    assert "obrigatório ou não obrigatório" in corpo["erro"]
+    assert "fixo ou variável" in corpo["erro"]
 
-    for ID, valor in _PREENCHER_DESPESA[2:]:
+    for ID, valor in _PREENCHER_DESPESA[1:]:
         _responder(cliente, ID, valor, item)
     assert _concluir(cliente, _DESPESA, item).status_code == 200
 
@@ -258,7 +245,6 @@ def test_ac171_item_seguinte_e_item_novo_abrem_sem_valores_de_outro_item(
         "RENDA_ADICIONAL_ID",
         "DESPESA_NAO_MENSAL_ID",
         "RECURSO_EXTRAORDINARIO_ID",
-        "VINCULO_ID",
     ],
 )
 def test_ac171_formulario_de_ficha_curta_so_tem_perguntas_do_proprio_escopo(
@@ -267,7 +253,7 @@ def test_ac171_formulario_de_ficha_curta_so_tem_perguntas_do_proprio_escopo(
     """Hipótese (b): nenhuma pergunta de outro escopo (ex.: `B5.A01`, "Para
     quem você deve") no formulário, nem nas complementares."""
     cliente = _cliente_real(monkeypatch, tmp_path)
-    for ID, valor in (("B3.03", "SIM"), ("B3.05", "SIM"), ("B3.NM01", "SIM"), ("B3.S01", "SIM")):
+    for ID, valor in (("B3.03", "SIM"), ("B3.05", "SIM"), ("B3.NM01", "SIM")):
         _responder(cliente, ID, valor)
     _responder(cliente, "B5.00", "2")
     _checklist_de_moradia(cliente)

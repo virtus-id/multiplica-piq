@@ -16,9 +16,7 @@ import pytest
 from fastapi import Request
 from fastapi.testclient import TestClient
 
-from app.casos.inventario import pendencias_de_inventario
 from app.casos.maquina import ESTADO_CASO, Caso
-from app.casos.progresso import pendencias_obrigatorias
 from app.http.aplicacao import criar_aplicacao
 from app.http.isolamento import obter_repositorio_casos
 from app.http.rotas_coleta import (
@@ -30,7 +28,7 @@ from app.http.sessao import iniciar_sessao_conta
 from app.montagem.conversao import converter_para_dinheiro
 from collection.carga import ColecaoDeRegistros, carregar_registros
 from collection.registro import EscopoRepeticao
-from collection.respostas import Resposta, RespostasCaso
+from collection.respostas import Resposta
 
 _CHAVE_TESTE = "chave-de-teste-para-assinatura-de-sessao-nao-usar-em-producao"
 _CONTA = "CONTA-FOTO-1"
@@ -186,33 +184,6 @@ def test_t229_ac119_correcao_pela_rota_de_rf69_reflete_no_painel(
     painel = cliente.get(f"/caso/{_CASO}/pergunta/B3.C00").json()["pergunta"]["painel"]
     assert painel["despesas_totais"] == "6500.00"
     assert painel["sobra_antes_das_dividas"] == "1500.00"
-
-
-def test_t229_ac120_nao_sei_segue_para_b3_c01_sem_acao_nem_pendencia(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """`AC-120`: sobre o trecho real do fluxo (`B3.C00` → `B3.C01`), a
-    resposta "Ainda não consigo avaliar" grava e a próxima é `B3.C01`; nenhuma
-    ficha é aberta, nenhuma pendência de cálculo nasce dela."""
-    reais = {r.ID: r for r in _colecao_real().registros}
-    trecho = ColecaoDeRegistros(
-        QUESTIONARIO_VERSION="1.0.3", registros=(reais["B3.C00"], reais["B3.C01"])
-    )
-    cliente, respostas = _cliente(monkeypatch, trecho)
-
-    gravada = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B3.C00", "nao_sei": "on"}
-    )
-
-    assert gravada.status_code == 200, gravada.text
-    corpo = gravada.json()
-    assert corpo["proxima"]["pergunta"]["ID"] == "B3.C01"
-    assert corpo["abrir_fichas"] == []
-    gravadas = RespostasCaso(respostas=tuple(respostas.respostas))
-    ids_pendentes = {p.ID for p in pendencias_obrigatorias(trecho.registros, gravadas, {})}
-    assert "B3.C00" not in ids_pendentes
-    itens = {EscopoRepeticao.DESPESA_NAO_MENSAL_ID: ("NM001",)}
-    assert pendencias_de_inventario(_colecao_real().registros, gravadas, itens) == ()
 
 
 def test_t290_proxima_do_post_e_identica_ao_get_da_mesma_pergunta(

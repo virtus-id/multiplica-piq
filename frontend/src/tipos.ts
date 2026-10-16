@@ -35,7 +35,7 @@ export interface Opcao {
   admite_nao_sei: boolean
   /**
    * `T-213`: a opção pede um valor digitado. `DATA` grava no lugar do
-   * código; `MOEDA` (`T-294`) grava o código e o R$ vai a outra variável.
+   * código; `MOEDA` (`T-294`) e `TAXA` (`T-393`) gravam o código e o valor vai a outra variável.
    */
   abre_campo?: TipoResposta | null
 }
@@ -122,6 +122,15 @@ export interface LinhaDaFotografia {
   corrigir: { ID_PERGUNTA: string | null; item_id: string }
 }
 
+/** `RF-412` — tudo calculado no servidor; `diferenca` nula = sem resultado calculado. */
+export interface ComparacaoSobraFalta {
+  sentido: 'SOBRA' | 'FALTA'
+  informado: string | null
+  calculado: string | null
+  /** Informado − calculado, sobra positiva e falta negativa. */
+  diferenca: string | null
+}
+
 /**
  * `B3.C00` — os três números, todos do servidor (`RF-79`). `null` = não
  * informado, nunca `0` (`EC-28`); `parcial` marca o total com item "não sei"
@@ -129,6 +138,8 @@ export interface LinhaDaFotografia {
  */
 export interface PainelFotografia {
   tipo: 'FOTOGRAFIA_DO_MES'
+  /** `RF-412` (`B3.C02C`): sobra ou falta informada × calculado. Só nessa pergunta. */
+  comparacao?: ComparacaoSobraFalta | null
   renda_total: string | null
   despesas_totais: string | null
   sobra_antes_das_dividas: string | null
@@ -287,11 +298,6 @@ export interface PosicaoDaOrdem {
    * `null` quando a dívida não tem ficha ativa.
    */
   fonte?: string | null
-  /**
-   * Orientação sobre o seguro prestamista — `RF-82`, `T-245`. Texto pronto
-   * do servidor (`textos-canonicos.yaml`); `null` na dívida sem seguro.
-   */
-  orientacao_seguro?: string | null
   valores_de_apoio: ValorDeApoio[]
   /**
    * Revisão de design (2026-10-03) — os números fixos de toda dívida,
@@ -306,6 +312,8 @@ export interface PosicaoDaOrdem {
    */
   incomodo?: string
   aviso_incomodo?: string
+  /** `RF-412` — avisos do que o aluno declarou (atraso, garantia), texto pronto. */
+  avisos?: string[]
   /**
    * `T-354` — só no payload do REVISOR: o que o aluno respondeu sobre
    * atraso, cobrança judicial e garantia. Respostas, nunca um selo.
@@ -358,6 +366,8 @@ export interface Plano {
   curso_ssd?: CursoSsd | null
   /** `T-352`: plano normal sem valor extra no mês; vazio nos demais casos. */
   aviso_sem_valor_extra?: string
+  /** `RF-412` — avisos do plano inteiro (faltam fichas de dívida declaradas). */
+  avisos_gerais?: string[]
   /** Redação vigente de `textos-canonicos.yaml` — vem do servidor, nunca reescrita aqui. */
   titulo: string
   corpo: string
@@ -383,6 +393,8 @@ export interface Plano {
   pendencias: Pendencias | null
   MODO_ESTABILIZACAO: boolean
   RESULTADO_CAIXA_OBSERVADO: string
+  /** `T-405`: quanto falta cortar por mês para chegar a zero (`DEFICIT_MENSAL`). */
+  FALTA_CORTAR: string
   reserva_mobilizavel: ReservaMobilizavel
   /**
    * `RF-98`, `AC-152` (`T-276`): a segunda projeção do motor, com os
@@ -444,6 +456,13 @@ export interface PontoDePartida {
   parcelas: string
   valor_extra: string
   quantidade_de_dividas: number
+  /** `RF-412` (`B3.DF02`) — vazios quando o servidor não envia o resumo. */
+  /** `RF-412` (`B3.04A`) — vazio sem contribuição familiar; a renda acima já a inclui. */
+  contribuicao_familiar?: string
+  despesas_tipo_fixo?: string
+  despesas_tipo_variavel?: string
+  despesas_nao_classificadas?: string
+  despesas_mensais_totais?: string
 }
 
 export interface CaminhoDoPrognostico {
@@ -586,20 +605,15 @@ export interface ItemDaFila {
   PARAMETROS_VERSION: string
 }
 
-export interface Etapas {
-  CASO_ID: string
-  blocos_7_8: boolean
-  bloco_10: boolean
-  bloco_11: boolean
-  ATAQUE_IMEDIATO_RECOMENDADO?: string
-}
-
 // ---------------------------------------------------------------------------
 // A tela Início — espelho de `app/http/rotas_inicio.py` (T-147)
 // ---------------------------------------------------------------------------
 
-/** As cinco fases de `app/casos/fases.py::FASE_INICIO`. */
-export type Fase = 'coleta' | 'revisao' | 'reprovado' | 'plano' | 'acompanhamento'
+/**
+ * As fases que o aluno vê, de `app/casos/fases.py::FASE_INICIO`. `acompanhamento`
+ * existe no servidor mas é inalcançável (`RF-409`); não tem tela aqui.
+ */
+export type Fase = 'coleta' | 'revisao' | 'reprovado' | 'plano'
 
 /**
  * Para onde a próxima etapa leva — espelho de
@@ -618,8 +632,6 @@ export type DestinoDaEtapa =
   | 'calculando'
   | 'aguardando'
   | 'progresso'
-  | 'bloco10'
-  | 'acoes'
   | 'plano'
 
 /**
@@ -690,8 +702,6 @@ export interface RespostasDoCaso {
   editavel?: boolean
   /** `RF-115`: só a conferência permite retirar o plano para editar. */
   pode_retomar_edicao?: boolean
-  /** `RF-118`: depois da liberação o aluno pode pedir um plano novo. */
-  pode_refazer_plano?: boolean
   partes: ParteDasRespostas[]
 }
 
@@ -718,15 +728,8 @@ export interface Inicio {
    * interna do revisor nunca vem para cá.
    */
   correcao_pedida?: CorrecaoPedida | null
-  /** `RF-120`: plano liberado — o aluno pode pedir um plano novo. */
-  pode_refazer_plano?: boolean
   /** `RF-120`: em conferência — o aluno pode retirar o plano para editar. */
   pode_retomar_edicao?: boolean
-  /**
-   * `RF-120`: as respostas mudaram desde o plano? `null` = o servidor não soube
-   * comparar (não se afirma nada); ausente = servidor antigo.
-   */
-  respostas_atualizadas?: boolean | null
 }
 
 /** Um dado a conferir — pendência de homologação (`RF-93`), por nome. */

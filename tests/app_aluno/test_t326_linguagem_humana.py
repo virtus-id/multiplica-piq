@@ -57,6 +57,7 @@ from engine.snapshot import SnapshotOrdem
 from engine.tipos import DESCONHECIDO, EVENTO_RECALCULO, METODO, ORDEM_STATUS, STATUS_METODO
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from report.plano import (
+    _CAMPOS_DO_SEGURO,
     CENARIO_APRESENTACAO,
     VocabularioDoCaso,
     carregar_textos_canonicos,
@@ -66,6 +67,7 @@ from tests.app_aluno.fixtures.caso_completo import (
     DATA_REFERENCIA,
     caso_completo,
     caso_completo_com_divida_gab03,
+    sem_o_custo_da_divida,
 )
 
 _CHAVE_TESTE = "chave-de-teste-para-assinatura-de-sessao-nao-usar-em-producao"
@@ -153,17 +155,20 @@ def _respostas_e_estado() -> tuple[RespostasCaso, EstadoFinanceiro]:
             "TIPO_DIVIDA": "CHEQUE_ESPECIAL",
             "CREDOR": _CAIXA,
             # Fração, como `converter_para_taxa` grava: 1,47% a.m.
-            "TAXA_INFORMADA": Decimal("0.0147"),
-            "PERIODICIDADE_TAXA": "MENSAL",
+            "TAXA_DIVIDA": Decimal("0.0147"),
+            "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
         },
     )
     consignado = caso_completo(
         DIVIDA_ID="D001",
         valores_divida={"TIPO_DIVIDA": "CONSIGNADO", "CREDOR": "BANCO DO BRASIL"},
     )
-    respostas = RespostasCaso(
-        respostas=cheque.respostas.respostas
-        + tuple(r for r in consignado.respostas.respostas if r.item_id == "D001")
+    respostas = sem_o_custo_da_divida(
+        RespostasCaso(
+            respostas=cheque.respostas.respostas
+            + tuple(r for r in consignado.respostas.respostas if r.item_id == "D001")
+        ),
+        "D001",  # `T-393`: só o consignado fica sem custo — é ele que torna o plano provisório
     )
     estado = montar_estado_financeiro(
         respostas,
@@ -401,7 +406,7 @@ def test_t306_acao_ao_aluno_vem_do_yaml_por_tipo_acao(monkeypatch: pytest.Monkey
 def test_ac174_pendencias_nomeiam_a_divida(monkeypatch: pytest.MonkeyPatch) -> None:
     """O plano provisório diz QUAL dívida tem dado faltando pelo nome."""
     corpo, snapshot = _conferencia(monkeypatch)
-    assert snapshot.ORDEM_STATUS is ORDEM_STATUS.PROVISORIA  # premissa: CET desconhecido
+    assert snapshot.ORDEM_STATUS is ORDEM_STATUS.PROVISORIA  # premissa: sem o custo (B5.D06)
 
     nomes = {
         p["DIVIDA_ID"]: p["nome"]
@@ -452,10 +457,26 @@ def test_t326_todo_dado_de_entrada_tem_rotulo() -> None:
             "perfil_comportamental",
             "sinais_comportamentais",
         }
+        # `T-391` (`RF-410`): campos do seguro não são mostrados.
+        and campo.name not in _CAMPOS_DO_SEGURO
         and campo.name not in rotulos
     ]
 
     assert sem_rotulo == [], "sem rótulo em rotulos_de_dados:\n" + "\n".join(sem_rotulo)
+
+
+# `T-404` (RF-418): variáveis cujas perguntas saíram. O aluno não escolhe mais;
+# só o valor assumido pela montagem (`app/montagem/estado.py`) aparece.
+_ASSUMIDOS: dict[str, str] = {
+    "TIPO_RENDA": "RELATIVAMENTE_ESTAVEL",
+    "REGISTRO_GASTOS": "PARTE",
+    "FREQUENCIA_REGISTRO": "INDEFINIDA",
+    "DEFASAGEM_REGISTRO": "DIAS_DEPOIS",
+    "COBERTURA_PEQUENOS_GASTOS": "ALGUNS",
+    "COBERTURA_MEIOS_PAGAMENTO": "QUASE_TOTAL",
+    "GASTOS_NAO_IDENTIFICADOS": "ALGUMAS_MES",
+    "JANELA_NOVA_DIVIDA": "",  # sempre None: aparece como "—"
+}
 
 
 def test_t326_todo_valor_de_dominio_tem_rotulo() -> None:
@@ -476,7 +497,9 @@ def test_t326_todo_valor_de_dominio_tem_rotulo() -> None:
         and issubclass(dominio, enum.Enum)
         and dominio.__name__ != "Desconhecido"
         for membro in dominio
-        if membro.value not in opcoes.get(nome, set()) and membro.value not in codigos
+        if membro.value not in opcoes.get(nome, set())
+        and membro.value not in codigos
+        and _ASSUMIDOS.get(nome, membro.value) == membro.value
     ]
 
     assert sem_rotulo == [], "sem rótulo no registro nem em rotulos_de_codigos:\n" + "\n".join(

@@ -383,18 +383,6 @@ class TestAC59EEC20DinheiroDisponivelIndeterminado:
                 }
             )
 
-    def test_ec20_nao_sei_com_b4_01a_nao_exibida_levanta_a_mesma_excecao(self) -> None:
-        """`EC-20` — `B4.01 = NAO_SEI` (`bloco-04.yaml:18`) com `B4.01A` não
-        exibida (`condicao_exibicao` exige `SIM`, `:36`) → a MESMA exceção
-        nomeada. "Não sei ao certo" não é "não possuo": colapsá-lo em zero
-        seria inventar a resposta que o aluno declarou não ter."""
-        with pytest.raises(ErroDinheiroDisponivelIndeterminado) as capturado:
-            _montar(
-                sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "NAO_SEI"},
-                remover=("DINHEIRO_DISPONIVEL",),
-            )
-        assert capturado.value.VARIAVEL_GRAVADA == "DINHEIRO_DISPONIVEL_EXISTE"
-
     def test_ec20_a_excecao_e_capturavel_distintamente_das_outras_duas(self) -> None:
         """`EC-20` — `ErroDinheiroDisponivelIndeterminado` é capturável
         DISTINTAMENTE de `ErroRespostaAusente` e de
@@ -414,7 +402,7 @@ class TestAC59EEC20DinheiroDisponivelIndeterminado:
 
         try:
             _montar(
-                sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "NAO_SEI"},
+                sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "TALVEZ"},
                 remover=("DINHEIRO_DISPONIVEL",),
             )
         except (ErroRespostaAusente, ErroCampoAgregadoDesconhecido) as erro:  # pragma: no cover
@@ -472,7 +460,7 @@ class TestEC16EEC17AusenciasEstruturais:
 # AC-60 — as três coleções são `()` mesmo com as fichas preenchidas.
 # ---------------------------------------------------------------------------
 # Fichas de patrimônio do Bloco 4 pelos `VARIAVEL_GRAVADA` REAIS do registro
-# (`collection/registros/bloco-04.yaml`): investimento (B4.04/B4.04B), imóvel
+# (`collection/registros/bloco-04.yaml`): investimento (B4.04), imóvel
 # (B4.I01/B4.I03), veículo (B4.V01/B4.V03) e outro ativo (B4.O01/B4.O03). Só
 # `INVESTIMENTOS_EXISTE` tem `valor_interno` no registro hoje; os `EXISTE` das
 # outras três gravam `null` — por isso as respostas afirmativas usam o rótulo
@@ -480,7 +468,6 @@ class TestEC16EEC17AusenciasEstruturais:
 # `montar_estado_financeiro`: é justamente o ponto do critério.
 _FICHAS_DE_PATRIMONIO: dict[str, object] = {
     "INVESTIMENTOS_EXISTE": "SIM",
-    "VALOR_ESTIMADO_ATIVO (investimento)": converter_para_dinheiro("25.000,00"),
     "IMOVEL_EXISTE": "Sim",
     "VALOR_IMOVEL (= VALOR_ESTIMADO_ATIVO)": converter_para_dinheiro("380.000,00"),
     "VEICULO_EXISTE": "Sim",

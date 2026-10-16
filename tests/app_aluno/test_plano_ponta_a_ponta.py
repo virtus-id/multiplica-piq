@@ -61,7 +61,6 @@ _T02_CASO: dict[str, object] = {
     "RESERVA_TOTAL": converter_para_dinheiro("1.000,00"),
     "VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO": converter_para_dinheiro("500,00"),
     "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 2,
-    "TIPOS_DIVIDA_DECLARADOS": frozenset({"CARTAO_ROTATIVO", "PESSOAL"}),
 }
 _T02_D001: dict[str, object] = {
     "TIPO_DIVIDA": "CARTAO_ROTATIVO",
@@ -69,9 +68,8 @@ _T02_D001: dict[str, object] = {
     "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("1.800,00"),
     "POSSUI_PARCELA_DEFINIDA": "NAO",
     "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("200,00"),
-    "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-    "TAXA_INFORMADA": converter_para_taxa("10"),
-    "PERIODICIDADE_TAXA": "MENSAL",
+    "TAXA_DIVIDA": converter_para_taxa("10"),
+    "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
     "PESO_EMOCIONAL": 5,
 }
 _T02_D002: dict[str, object] = {
@@ -81,9 +79,8 @@ _T02_D002: dict[str, object] = {
     "POSSUI_PARCELA_DEFINIDA": "SIM",
     _PARCELA_CONTRATUAL: converter_para_dinheiro("400,21"),
     "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("400,21"),
-    "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-    "TAXA_INFORMADA": converter_para_taxa("2"),
-    "PERIODICIDADE_TAXA": "MENSAL",
+    "TAXA_DIVIDA": converter_para_taxa("2"),
+    "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
     "PESO_EMOCIONAL": 5,
 }
 

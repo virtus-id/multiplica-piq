@@ -35,7 +35,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Final
 
-from app.montagem.conversao import converter_para_dinheiro
+from app.montagem.conversao import converter_para_dinheiro, converter_para_taxa
 from collection.respostas import NaoSei, Resposta, RespostasCaso
 from engine.tipos import CONFIABILIDADE_DADOS
 
@@ -108,28 +108,18 @@ def _resposta_item(ID_PERGUNTA: str, item_id: str, valor: object) -> Resposta:
 # _respostas_minimas_completas` — a fixture os centraliza para reúso.
 # ---------------------------------------------------------------------------
 _VALORES_CASO: Final[dict[str, object]] = {
-    # PerfilComportamental (Bloco 2, T-50)
-    "REGISTRO_GASTOS": "TUDO",
-    "FREQUENCIA_REGISTRO": "DIARIA",
-    "DEFASAGEM_REGISTRO": "NA_HORA",
-    "COBERTURA_PEQUENOS_GASTOS": "TODOS",
-    "COBERTURA_MEIOS_PAGAMENTO": "TOTAL",
+    # PerfilComportamental (Bloco 2, T-50). `T-404`: B2.01 a B2.05 e B2.07 saíram.
     "CONHECIMENTO_GASTO": "BOA_APROXIMACAO",
-    "GASTOS_NAO_IDENTIFICADOS": "NUNCA",
     "REVISAO_SEMANAL": "SEMPRE",
     # AUTOPERCEPCAO_CONTROLE (B2.13, escala 0-10)
     "AUTOPERCEPCAO_CONTROLE": 6,
     # SinaisComportamentais (Blocos 1/2/9, T-50/T-99)
-    "NOVA_DIVIDA_PREVISTA": "NAO",
     "MECANISMO_DEFICIT": frozenset({"CORTE"}),
-    "HISTORICO_RECAIDA": "NENHUMA",
     "NOVO_PARCELAMENTO_PREVISTO": "NAO",
     "PACTO": "ESTABELECIDO",
     "RISCO_IMPULSO": "NENHUMA",
     "NECESSIDADE_VITORIA": 5,
-    "HISTORICO_ABANDONO": "NAO",
     # EstadoFinanceiro propriamente dito (Bloco 3, T-51)
-    "TIPO_RENDA": "FIXA",
     "CAPACIDADE_ATAQUE_DECLARADA": converter_para_dinheiro("500,00"),
     # RENDA_TOTAL_RECORRENTE (T-103, OQ-16): B3.01, sem nenhuma ficha de
     # renda adicional no caso completo padrão — RENDA_TOTAL_RECORRENTE =
@@ -187,6 +177,8 @@ _VALORES_CASO: Final[dict[str, object]] = {
     "DISPOSICAO_USO_RESERVA": "PARTE",
     "VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO": converter_para_dinheiro("3.000,00"),
     # ---------------------------------------------------------------------
+    # `T-389`: as respostas das perguntas retiradas (RF-402) saíram daqui; as
+    # que o motor nunca lia estão em `tests/app_aluno/test_remocao_sem_efeito.py`.
     # T-214 (`AC-11`, `AC-12`) — as 30 perguntas `OBR` não repetíveis que o
     # registro atual exige e que a fixture não respondia (`pendencias_
     # obrigatorias` sobre a coleção real devolvia 30). Todos os valores são
@@ -195,14 +187,10 @@ _VALORES_CASO: Final[dict[str, object]] = {
     # fixture já tem a ficha (`DESPESAS_NAO_MENSAIS_EXISTE=SIM`, dívida de
     # cartão rotativo). Categorias de despesa: um item por categoria, só
     # como resposta de seleção — o total segue vindo da ficha `ITEM_DESPESA`.
-    "OBRIGACAO_FUTURA_INEVITAVEL": "NAO",  # B1.06
-    "USO_CREDITO_PREVISTO": frozenset({"NAO_PRETENDE"}),  # B1.08
-    "PARTICIPACAO_FAMILIAR": "NAO_APLICAVEL",  # B1.12
     "GASTOS_FANTASMAS": "NAO",  # B2.09
     "RENDA_RECORRENTE_ADICIONAL_EXISTE": "NAO",  # B3.03
     "CONTRIBUICAO_FAMILIAR_EXISTE": "NAO",  # B3.04
     "RECURSOS_EXTRAORDINARIOS_EXISTE": "NAO",  # B3.05
-    "RENDA_EXTRA_RECORRENTE_POTENCIAL_EXISTE": "NAO",  # B3.06
     "ITENS_DESPESA_MORADIA": frozenset({"ALUGUEL"}),  # B3.D01
     "ITENS_DESPESA_ALIMENTACAO": frozenset({"SUPERMERCADO"}),  # B3.D02
     "ITENS_DESPESA_TRANSPORTE": frozenset({"TRANSPORTE_PUBLICO"}),  # B3.D03
@@ -217,14 +205,11 @@ _VALORES_CASO: Final[dict[str, object]] = {
     "DESPESAS_NAO_MENSAIS_EXISTE": "SIM",  # B3.NM01 — a ficha NM já existe
     "CONFIRMACAO_MAPEAMENTO_DESPESAS": "SIM",  # B3.C00
     "PERCEPCAO_FECHAMENTO_MES": "SOBRA",  # B3.C02
-    "VINCULO_CONSIGNAVEL": "NAO",  # B3.S01
+    "SOBRA_PERCEBIDA": converter_para_dinheiro("100,00"),  # B3.C02A (RF-412)
+    "CONFERENCIA_SOBRA_FALTA": "ACEITAR_DIFERENCA",  # B3.C02C (RF-412)
     "INVESTIMENTOS_EXISTE": "NAO",  # B4.04
     "IMOVEL_EXISTE": "NAO",  # B4.I01
-    "VEICULO_EXISTE": "NAO",  # B4.V01
-    "OUTRO_ATIVO_EXISTE": "NAO",  # B4.O01
-    "CONFIRMACAO_MAPEAMENTO_PATRIMONIAL": "COMPLETO",  # B4.F01
     "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1,  # B5.00 — NUMERO grava int
-    "TIPOS_DIVIDA_DECLARADOS": frozenset({"CARTAO_ROTATIVO"}),  # B5.00A
 }
 
 # ---------------------------------------------------------------------------
@@ -252,6 +237,9 @@ _VALORES_DIVIDA_PADRAO: Final[dict[str, object]] = {
     "STATUS_DIVIDA": "ATIVA",
     "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("5.000,00"),
     "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("300,00"),
+    # `T-393`: B5.D06 é obrigatória (bloqueia o cálculo); 2% ao mês.
+    "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
+    "TAXA_DIVIDA": converter_para_taxa("2"),
     "PESO_EMOCIONAL": 5,
 }
 
@@ -361,4 +349,23 @@ def caso_completo_com_divida_gab03() -> CasoCompleto:
             "SALDO_DEVEDOR_ATUAL": NaoSei.NAO_SEI,
             "PAGAMENTO_MENSAL_EFETIVO": NaoSei.NAO_SEI,
         }
+    )
+
+
+def sem_o_custo_da_divida(
+    respostas: RespostasCaso, DIVIDA_ID: str | None = None
+) -> RespostasCaso:
+    """`T-393`: as respostas sem `B5.D06` (valor e periodicidade do custo) —
+    da dívida `DIVIDA_ID` ou de todas. A taxa fica `DESCONHECIDO` no estado
+    (o motor aceita; é a coleta que a exige, `OBR`), o que torna o plano
+    provisório: serve aos testes que precisam de informação pendente."""
+    return RespostasCaso(
+        respostas=tuple(
+            r
+            for r in respostas.respostas
+            if not (
+                r.ID_PERGUNTA in ("TAXA_DIVIDA", "PERIODICIDADE_TAXA_DIVIDA")
+                and (DIVIDA_ID is None or r.item_id == DIVIDA_ID)
+            )
+        )
     )

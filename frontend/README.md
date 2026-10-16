@@ -1,6 +1,6 @@
 # Frontend — App do Aluno (PIQ)
 
-A interface React do PIQ: coleta, plano, acompanhamento e as telas da equipe
+A interface React do PIQ: coleta, plano e as telas da equipe
 (fila de conferência, conferência do caso, painel do operador).
 
 Rastreia `RF-50` a `RF-78` de [`specs/app-aluno.spec.md`](../specs/app-aluno.spec.md).

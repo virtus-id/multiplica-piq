@@ -44,8 +44,6 @@ MENSAGEM_CORRECAO_PEDIDA: Final[str] = "Seu plano voltou para você conferir."
 # estados diziam "coleta em andamento" ou "em revisão", que já não é verdade
 # depois que a equipe libera o plano.
 _MENSAGEM_ESTADO_PLANO_LIBERADO: Final[str] = "Seu plano está liberado."
-_MENSAGEM_ESTADO_CONFIRMACAO_ATAQUE: Final[str] = "Falta confirmar sua decisão."
-_MENSAGEM_ESTADO_ACOMPANHAMENTO: Final[str] = "Seu plano está em acompanhamento."
 _MENSAGEM_ESTADO_ENCERRADO: Final[str] = "Seu caso foi encerrado."
 
 
@@ -70,12 +68,5 @@ def mensagem_do_estado_do_caso(estado: ESTADO_CASO) -> str:
             # `T-300`: o Início também lê esta mensagem COM plano liberado —
             # "coleta em andamento" aqui era falso.
             return _MENSAGEM_ESTADO_PLANO_LIBERADO
-        case ESTADO_CASO.COLETA_DIRIGIDA:
-            # Nova rodada de coleta pós-liberação (Blocos 7/8).
-            return _MENSAGEM_ESTADO_COLETA
-        case ESTADO_CASO.CONFIRMACAO_ATAQUE:
-            return _MENSAGEM_ESTADO_CONFIRMACAO_ATAQUE
-        case ESTADO_CASO.ACOMPANHAMENTO:
-            return _MENSAGEM_ESTADO_ACOMPANHAMENTO
         case ESTADO_CASO.ENCERRADO:
             return _MENSAGEM_ESTADO_ENCERRADO

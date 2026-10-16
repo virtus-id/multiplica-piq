@@ -373,7 +373,7 @@ def _percorrer_valores(no: object, caminho: str = "") -> list[tuple[str, object]
         (ESTADO_CASO.AGUARDANDO_REVISAO, FASE_INICIO.REVISAO, None),
         (ESTADO_CASO.REPROVADO_EM_REVISAO, FASE_INICIO.REPROVADO, None),
         (ESTADO_CASO.PLANO_LIBERADO, FASE_INICIO.PLANO, "3000.00"),
-        (ESTADO_CASO.ACOMPANHAMENTO, FASE_INICIO.ACOMPANHAMENTO, None),
+        (ESTADO_CASO.ENCERRADO, FASE_INICIO.ACOMPANHAMENTO, None),
     ],
 )
 def test_ac81_cada_fase_devolve_uma_unica_proxima_etapa(
@@ -413,7 +413,7 @@ def test_ac81_as_cinco_fases_sao_alcancaveis_pela_rota(
         _payload_da_fase(
             monkeypatch, ESTADO_CASO.PLANO_LIBERADO, ataque_recomendado="3000.00"
         )["fase"],
-        _payload_da_fase(monkeypatch, ESTADO_CASO.ACOMPANHAMENTO)["fase"],
+        _payload_da_fase(monkeypatch, ESTADO_CASO.ENCERRADO)["fase"],
     }
 
     assert fases_observadas == {fase.value for fase in FASE_INICIO}
@@ -537,7 +537,7 @@ def test_ac88_valor_em_destaque_e_nulo_fora_da_fase_plano(
     for estado in (
         ESTADO_CASO.COLETA_INICIAL,
         ESTADO_CASO.AGUARDANDO_REVISAO,
-        ESTADO_CASO.ACOMPANHAMENTO,
+        ESTADO_CASO.ENCERRADO,
     ):
         payload = _payload_da_fase(monkeypatch, estado)
 
@@ -588,32 +588,29 @@ def test_rf13_nenhuma_folha_do_payload_e_float(
     assert floats == []
 
 
-def test_plano_liberado_sem_ataque_recomendado_cai_em_acompanhamento(
+def test_plano_liberado_sem_ataque_recomendado_fica_na_fase_plano(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`RF-61` — `PLANO_LIBERADO` com `ATAQUE_IMEDIATO_RECOMENDADO = 0` é
-    fase `acompanhamento`, **não** `plano`: sem ataque a decidir não há
-    decisão nenhuma, e "Decidir agora" mandaria o aluno a uma tela que o
-    servidor fecha com `409`.
-
-    A guarda é `bloco_10_alcancavel`, a mesma de `rotas_etapas.py` — nenhum
-    limiar reescrito aqui."""
+    """`RF-401`, `RF-409` (T-387) — `PLANO_LIBERADO` é sempre fase `plano`, também
+    com `ATAQUE_IMEDIATO_RECOMENDADO = 0`: o plano entregue é definitivo, não
+    há acompanhamento para onde cair. (Antes, `RF-61`: caía em
+    `acompanhamento` por não haver ataque a decidir.) A próxima etapa é o
+    plano, nunca o Bloco 10, que a rota fecha com `409`."""
     payload = _payload_da_fase(
         monkeypatch, ESTADO_CASO.PLANO_LIBERADO, ataque_recomendado="0"
     )
 
     assert payload["estado"] == ESTADO_CASO.PLANO_LIBERADO.value
-    assert payload["fase"] == FASE_INICIO.ACOMPANHAMENTO.value
-    assert payload["valor_em_destaque"] is None
-    assert payload["proxima_etapa"]["destino"] != "bloco10"
+    assert payload["fase"] == FASE_INICIO.PLANO.value
+    assert payload["proxima_etapa"]["destino"] == "plano"
 
 
-def test_plano_liberado_sem_snapshot_encontrado_cai_em_acompanhamento(
+def test_plano_liberado_sem_snapshot_encontrado_fica_na_fase_plano(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Tolerância declarada: `snapshot_liberado_id` que o repositório não
-    encontra não derruba a tela. A ausência de snapshot é estado legítimo do
-    caso, não falha — e sem snapshot não há o que decidir."""
+    encontra não derruba a tela. `RF-409` (T-387): a fase não depende mais do
+    snapshot, `PLANO_LIBERADO` é `plano` (antes caía em `acompanhamento`)."""
     caso = _caso(
         ESTADO_CASO.PLANO_LIBERADO, snapshot_liberado_id=_SNAPSHOT_ID_INEXISTENTE
     )
@@ -623,7 +620,7 @@ def test_plano_liberado_sem_snapshot_encontrado_cai_em_acompanhamento(
 
     assert resposta.status_code == 200
     payload = resposta.json()
-    assert payload["fase"] == FASE_INICIO.ACOMPANHAMENTO.value
+    assert payload["fase"] == FASE_INICIO.PLANO.value
     assert payload["versao_do_plano"] is None
 
 
@@ -907,12 +904,6 @@ def test_t293_ficha_em_branco_marca_fichas_abertas(monkeypatch: pytest.MonkeyPat
         (ESTADO_CASO.AGUARDANDO_REVISAO, None, "Seu plano está em revisão."),
         (ESTADO_CASO.PLANO_LIBERADO, "0.00", "Seu plano está liberado."),
         (ESTADO_CASO.PLANO_LIBERADO, "3000.00", "Seu plano está liberado."),
-        (
-            ESTADO_CASO.CONFIRMACAO_ATAQUE,
-            "3000.00",
-            "Falta confirmar sua decisão.",
-        ),
-        (ESTADO_CASO.ACOMPANHAMENTO, "0.00", "Seu plano está em acompanhamento."),
         (ESTADO_CASO.ENCERRADO, "0.00", "Seu caso foi encerrado."),
     ],
 )
@@ -941,7 +932,7 @@ def _inicio_com_declaracao_de_dividas(
     reais = {r.ID: r for r in _colecao_real().registros}
     trecho = ColecaoDeRegistros(
         QUESTIONARIO_VERSION="1.0.0",
-        registros=tuple(reais[i] for i in ("B5.00", "B5.00A", "B5.A01", "B5.FIM02")),
+        registros=tuple(reais[i] for i in ("B5.00", "B5.A01", "B5.FIM02")),
     )
     respostas = tuple(
         Resposta(
@@ -954,7 +945,6 @@ def _inicio_com_declaracao_de_dividas(
         )
         for variavel, valor in (
             ("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 2),
-            ("TIPOS_DIVIDA_DECLARADOS", "PESSOAL"),
         )
     )
     cliente = _montar_cliente(

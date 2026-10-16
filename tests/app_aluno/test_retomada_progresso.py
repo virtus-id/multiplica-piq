@@ -163,22 +163,22 @@ def test_retomada_e_pura_mesmo_par_registros_respostas_produz_o_mesmo_resultado(
 
 
 def test_pergunta_cond_respondida_cuja_condicao_virou_falsa_nao_e_reexibida() -> None:
-    """`B3.S02` real (`COND`, escopo `VINCULO_ID`, `REGIME_MARGEM`):
-    condicionada a `VINCULO_CONSIGNAVEL != NAO`. Respondida para o item
-    `V001` enquanto a condição valia (vínculo consignável); depois disso,
-    `VINCULO_CONSIGNAVEL` muda para `NAO` (condição vira falsa). A retomada
-    NUNCA aponta de volta para `B3.S02`/`V001` — nem a resposta antiga é
+    """`B3.NM02B` real (`COND`, escopo `DESPESA_NAO_MENSAL_ID`,
+    `VALOR_DESPESA_NAO_MENSAL`): condicionada a `DESPESAS_NAO_MENSAIS_EXISTE
+    = SIM`. Respondida para o item `N001` enquanto a condição valia; depois
+    disso, `DESPESAS_NAO_MENSAIS_EXISTE` muda para `NAO` (condição vira
+    falsa). A retomada NUNCA aponta de volta para `B3.NM02B`/`N001` — nem a resposta antiga é
     apagada (ela continua presente em `respostas`, e o teste verifica isso
     explicitamente)."""
     registros = _colecao_real()
-    registro_b3_s02 = next(r for r in registros if r.ID == "B3.S02")
-    assert registro_b3_s02.escopo_repeticao == EscopoRepeticao.VINCULO_ID
-    assert registro_b3_s02.VARIAVEL_GRAVADA == "REGIME_MARGEM"
+    registro_item = next(r for r in registros if r.ID == "B3.NM02B")
+    assert registro_item.escopo_repeticao == EscopoRepeticao.DESPESA_NAO_MENSAL_ID
+    assert registro_item.VARIAVEL_GRAVADA == "VALOR_DESPESA_NAO_MENSAL"
 
-    resposta_antiga = _resposta("REGIME_MARGEM", "CLT", item_id="V001")
+    resposta_antiga = _resposta("VALOR_DESPESA_NAO_MENSAL", "100", item_id="N001")
     respostas = RespostasCaso(
         respostas=(
-            _resposta("VINCULO_CONSIGNAVEL", "NAO", item_id="V001"),  # condição agora falsa
+            _resposta("DESPESAS_NAO_MENSAIS_EXISTE", "NAO"),  # condição agora falsa
             resposta_antiga,
         )
     )
@@ -187,7 +187,7 @@ def test_pergunta_cond_respondida_cuja_condicao_virou_falsa_nao_e_reexibida() ->
     assert resposta_antiga in respostas.respostas
 
     proxima = proxima_pergunta_nao_respondida(
-        (registro_b3_s02,), respostas, {EscopoRepeticao.VINCULO_ID: ("V001",)}
+        (registro_item,), respostas, {EscopoRepeticao.DESPESA_NAO_MENSAL_ID: ("N001",)}
     )
 
     assert proxima is None
@@ -195,22 +195,22 @@ def test_pergunta_cond_respondida_cuja_condicao_virou_falsa_nao_e_reexibida() ->
 
 def test_pergunta_cond_ainda_verdadeira_e_nao_respondida_e_apontada() -> None:
     """Controle do teste acima: com a MESMA condição ainda verdadeira
-    (`VINCULO_CONSIGNAVEL=SIM`) e sem nenhuma resposta para `B3.S02`/`V001`,
+    (`DESPESAS_NAO_MENSAIS_EXISTE=SIM`) e sem nenhuma resposta para `B3.NM02B`/`N001`,
     a retomada aponta para ela — a ausência de reexibição do teste anterior
     é por causa da condição falsa, não de algum bug que sempre a
     esconderia."""
     registros = _colecao_real()
-    registro_b3_s02 = next(r for r in registros if r.ID == "B3.S02")
+    registro_item = next(r for r in registros if r.ID == "B3.NM02B")
 
     respostas = RespostasCaso(
-        respostas=(_resposta("VINCULO_CONSIGNAVEL", "SIM", item_id="V001"),)
+        respostas=(_resposta("DESPESAS_NAO_MENSAIS_EXISTE", "SIM"),)
     )
 
     proxima = proxima_pergunta_nao_respondida(
-        (registro_b3_s02,), respostas, {EscopoRepeticao.VINCULO_ID: ("V001",)}
+        (registro_item,), respostas, {EscopoRepeticao.DESPESA_NAO_MENSAL_ID: ("N001",)}
     )
 
-    assert proxima == PendenciaObrigatoria(ID="B3.S02", item_id="V001")
+    assert proxima == PendenciaObrigatoria(ID="B3.NM02B", item_id="N001")
 
 
 # ---------------------------------------------------------------------------
@@ -225,53 +225,52 @@ def test_retomada_respeita_ordem_dos_blocos_nao_pula_para_bloco_posterior() -> N
     posterior enquanto um anterior tem pendência aberta."""
     registros = _colecao_real()
     registro_b1_01 = next(r for r in registros if r.ID == "B1.01")
-    registro_b2_01 = next(r for r in registros if r.ID == "B2.01")
+    registro_b2_06 = next(r for r in registros if r.ID == "B2.06")
     assert registro_b1_01.VARIAVEL_GRAVADA is not None
-    assert registro_b2_01.VARIAVEL_GRAVADA is not None
+    assert registro_b2_06.VARIAVEL_GRAVADA is not None
 
     respostas = RespostasCaso(
-        respostas=(_resposta(registro_b2_01.VARIAVEL_GRAVADA, "X"),)
+        respostas=(_resposta(registro_b2_06.VARIAVEL_GRAVADA, "X"),)
     )
 
-    proxima = proxima_pergunta_nao_respondida((registro_b1_01, registro_b2_01), respostas)
+    proxima = proxima_pergunta_nao_respondida((registro_b1_01, registro_b2_06), respostas)
 
     assert proxima == PendenciaObrigatoria(ID="B1.01", item_id=None)
 
 
 def test_retomada_escopo_de_repeticao_aponta_o_primeiro_item_ja_criado_em_branco() -> None:
-    """Registro `COND`/`VINCULO_ID` (`B3.S02`) com dois vínculos já criados
-    (`V001`, `V002`), ambos consignáveis: `V001` respondido, `V002` ainda em
-    branco. A retomada aponta `V002` — o escopo de repetição dos itens JÁ
+    """Registro `COND`/`DESPESA_NAO_MENSAL_ID` (`B3.NM02B`) com duas despesas
+    já criadas (`N001`, `N002`): `N001` respondido, `N002` ainda em
+    branco. A retomada aponta `N002` — o escopo de repetição dos itens JÁ
     CRIADOS é respeitado (nenhum item inventado, nenhum item ignorado)."""
     registros = _colecao_real()
-    registro_b3_s02 = next(r for r in registros if r.ID == "B3.S02")
+    registro_item = next(r for r in registros if r.ID == "B3.NM02B")
 
     respostas = RespostasCaso(
         respostas=(
-            _resposta("VINCULO_CONSIGNAVEL", "SIM", item_id="V001"),
-            _resposta("REGIME_MARGEM", "CLT", item_id="V001"),
-            _resposta("VINCULO_CONSIGNAVEL", "SIM", item_id="V002"),
+            _resposta("DESPESAS_NAO_MENSAIS_EXISTE", "SIM"),
+            _resposta("VALOR_DESPESA_NAO_MENSAL", "100", item_id="N001"),
         )
     )
 
     proxima = proxima_pergunta_nao_respondida(
-        (registro_b3_s02,),
+        (registro_item,),
         respostas,
-        {EscopoRepeticao.VINCULO_ID: ("V001", "V002")},
+        {EscopoRepeticao.DESPESA_NAO_MENSAL_ID: ("N001", "N002")},
     )
 
-    assert proxima == PendenciaObrigatoria(ID="B3.S02", item_id="V002")
+    assert proxima == PendenciaObrigatoria(ID="B3.NM02B", item_id="N002")
 
 
 def test_retomada_sem_itens_por_escopo_nao_aponta_pergunta_rep() -> None:
     """Sem `itens_por_escopo` (nenhum item cadastrado ainda), um registro
     repetível por item nunca é apontado como próxima pergunta — não há
     ficha para responder, e a função não inventa item."""
-    registro_b3_s02 = next(r for r in _colecao_real() if r.ID == "B3.S02")
-    respostas = RespostasCaso(respostas=(_resposta("VINCULO_CONSIGNAVEL", "SIM", item_id="V001"),))
+    registro_item = next(r for r in _colecao_real() if r.ID == "B3.NM02B")
+    respostas = RespostasCaso(respostas=(_resposta("DESPESAS_NAO_MENSAIS_EXISTE", "SIM"),))
 
-    assert proxima_pergunta_nao_respondida((registro_b3_s02,), respostas) is None
-    assert proxima_pergunta_nao_respondida((registro_b3_s02,), respostas, {}) is None
+    assert proxima_pergunta_nao_respondida((registro_item,), respostas) is None
+    assert proxima_pergunta_nao_respondida((registro_item,), respostas, {}) is None
 
 
 # ---------------------------------------------------------------------------
@@ -281,15 +280,10 @@ def test_retomada_sem_itens_por_escopo_nao_aponta_pergunta_rep() -> None:
 
 
 def test_retomada_devolve_none_quando_nao_ha_nenhuma_pergunta_aberta_em_branco() -> None:
-    """Conjunto reduzido a uma única pergunta `OPT` (`B1.03A`, condicionada a
-    `FINALIDADE_NOVA_DIVIDA=OUTRA`), já respondida: nada pendente, `None`."""
-    registro_b1_03a = next(r for r in _colecao_real() if r.ID == "B1.03A")
-    assert registro_b1_03a.VARIAVEL_GRAVADA == "FINALIDADE_NOVA_DIVIDA_OUTRA"
-    respostas = RespostasCaso(
-        respostas=(
-            _resposta("FINALIDADE_NOVA_DIVIDA", "OUTRA"),
-            _resposta("FINALIDADE_NOVA_DIVIDA_OUTRA", "X"),
-        )
-    )
+    """Conjunto reduzido a uma única pergunta `OPT` (`B3.C01A`), já
+    respondida: nada pendente, `None`. (`T-389`: era `B1.03A`.)"""
+    registro_opt = next(r for r in _colecao_real() if r.ID == "B3.C01A")
+    assert registro_opt.VARIAVEL_GRAVADA == "CONTRIBUICAO_EXTRA_MENSAL"
+    respostas = RespostasCaso(respostas=(_resposta("CONTRIBUICAO_EXTRA_MENSAL", "X"),))
 
-    assert proxima_pergunta_nao_respondida((registro_b1_03a,), respostas) is None
+    assert proxima_pergunta_nao_respondida((registro_opt,), respostas) is None

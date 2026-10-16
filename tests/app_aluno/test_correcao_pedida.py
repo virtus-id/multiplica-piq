@@ -53,7 +53,7 @@ from app.http.rotas_revisao import (
     obter_repositorio_snapshots_da_fila,
 )
 from app.http.sessao import iniciar_sessao_conta
-from app.montagem.conversao import converter_para_dinheiro, converter_para_taxa
+from app.montagem.conversao import converter_para_dinheiro
 from app.revisao.fila import DECISAO_REVISAO, RegistroRevisao
 from collection.carga import carregar_registros
 from collection.respostas import Resposta, ValorResposta
@@ -78,21 +78,23 @@ _REVISOR = "conta-revisor-t333"
 _MENSAGEM = "Informe a taxa do cheque especial"
 _OBSERVACAO = "OBS-INTERNA-taxa-zerada-no-motor"
 
+_ENUNCIADO_B5_B03 = next(
+    r.enunciado for r in carregar_registros().registros if r.ID == "B5.B03"
+)
+# `T-393`: sem o custo (`B5.D06`, obrigatória) o cálculo nem roda; o dado a
+# conferir passa a ser o saldo, com a fonte em nível 3 (`PENDENTE_DE_CONFIRMACAO`).
 _D001_CHEQUE_SEM_TAXA: dict[str, object] = {
-    **{k: v for k, v in _T02_D001.items() if k not in ("TAXA_INFORMADA", "PERIODICIDADE_TAXA")},
+    **_T02_D001,
     "TIPO_DIVIDA": "CHEQUE_ESPECIAL",
     "CREDOR": "CAIXA ECONOMICA FEDERAL",
     "LINHA_CONTINUA_SENDO_UTILIZADA": "NAO",
-    "QUALIDADE_TAXA_INFORMADA": "DESCONHECIDA",
+    "FONTE_DADO": "ATENDIMENTO_CREDOR",
 }
 
 
 def _respostas() -> list[Resposta]:
     base = caso_completo(
-        valores_caso={
-            **_T02_CASO,
-            "TIPOS_DIVIDA_DECLARADOS": frozenset({"CHEQUE_ESPECIAL", "PESSOAL"}),
-        },
+        valores_caso=_T02_CASO,
         valores_divida=_D001_CHEQUE_SEM_TAXA,
         valores_item_despesa={"VALOR_DESPESA": converter_para_dinheiro("3.500,00")},
         valores_despesa_nao_mensal={
@@ -298,8 +300,8 @@ def test_ac175_pedir_correcao_devolve_ao_aluno_e_reenvio_volta_a_fila_como_v2(
             "dados_a_conferir": [
                 {
                     "nome": "Cheque especial (CAIXA ECONOMICA FEDERAL)",
-                    "enunciado": "Você sabe qual é a taxa de juros desta operação?",
-                    "ID_PERGUNTA": "B5.D01",
+                    "enunciado": _ENUNCIADO_B5_B03,
+                    "ID_PERGUNTA": "B5.B03",
                     "item_id": "D001",
                 }
             ],
@@ -308,15 +310,8 @@ def test_ac175_pedir_correcao_devolve_ao_aluno_e_reenvio_volta_a_fila_como_v2(
         for rota in ("inicio", "calculo/progresso", "api/plano"):
             assert _OBSERVACAO not in cliente.get(f"/caso/{CASO_ID}/{rota}").text
 
-        # 4. O aluno informa a taxa (RF-69): a lista esvazia, o aviso fica.
-        respostas.corrigir_no_item(
-            "D001",
-            {
-                "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-                "TAXA_INFORMADA": converter_para_taxa("8"),
-                "PERIODICIDADE_TAXA": "MENSAL",
-            },
-        )
+        # 4. O aluno corrige a fonte (RF-69): a lista esvazia, o aviso fica.
+        respostas.corrigir_no_item("D001", {"FONTE_DADO": "DOCUMENTO_CONTRATO"})
         corpo = cliente.get(f"/caso/{CASO_ID}/inicio").json()
         assert corpo["correcao_pedida"]["dados_a_conferir"] == []
         assert corpo["correcao_pedida"]["mensagem"] == _MENSAGEM

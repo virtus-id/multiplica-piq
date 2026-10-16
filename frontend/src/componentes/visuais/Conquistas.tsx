@@ -3,7 +3,7 @@
  *
  * Uma prateleira de selos, um por dívida do plano, em contorno (ainda não
  * conquistados). Nenhum selo aparece preenchido: a confirmação de
- * quitação (Bloco 11/acompanhamento) é fora do escopo desta tarefa.
+ * quitação não existe: o plano entregue é definitivo (`RF-409`).
  *
  * Desenhado em HTML/CSS (não SVG), reaproveitando `.marca`/`.conquista` de
  * `index.css` — mais simples que um SVG para uma grade que já responde ao

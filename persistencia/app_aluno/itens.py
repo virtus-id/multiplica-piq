@@ -28,7 +28,7 @@ Duas camadas de identificador, deliberadamente distintas:
 
 1. **Identificador LEGÍVEL** (`Dnnn`, `Mnnn`, ...) — o que
    `proximo_identificador` DEVOLVE ao chamador, o que aparece como `[Dxxx]`
-   em `collection/interpolacao.py::Marcador` (`B11.Q01`) e o que um revisor
+   em `collection/interpolacao.py::Marcador` e o que um revisor
    humano lê na tela. É sequencial e monotônico por `(CASO_ID, escopo)`.
 2. **Chave PERSISTIDA** (`f"{CASO_ID}:{identificador_legível}"`) — o valor
    que de fato ocupa a coluna `item_id text PRIMARY KEY`. Como a PK é
@@ -60,7 +60,7 @@ Alternativas descartadas e por quê: (1) `GENERATED ALWAYS AS IDENTITY`/
 formatado), não um contador auxiliar; adicionar uma coluna de contador só
 para isso duplicaria a fonte de verdade do número sem necessidade. (2) UUID
 — descartado no design de T-15 (`collection/repeticao.py`) por não ser o
-formato `[Dxxx]` que o plano usa como marcador de interpolação (`B11.Q01`)
+formato `[Dxxx]` que o plano usa como marcador de interpolação
 e por ser ilegível numa tela de revisão humana; esta tarefa não reabre essa
 decisão. (3) Alterar a migração para PK composta `(CASO_ID, item_id)` —
 descartado porque T-21 já está concluída e revisar seu schema está fora do

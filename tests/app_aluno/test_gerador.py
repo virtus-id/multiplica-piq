@@ -28,14 +28,14 @@ from collection.interpolacao import ContextoItem, interpolar
 from collection.opcoes_do_motor import opcoes_efetivas
 from collection.registro import EscopoRepeticao, RegistroPergunta
 from collection.repeticao import GeradorDeIdentificadorEmMemoria, perguntas_da_ficha
-from collection.validacao import validar_cruzada
+from collection.validacao import ValidacaoCruzada, validar_cruzada
 
 _DIRETORIO_REGISTROS_REAIS = Path(__file__).resolve().parents[2] / "collection" / "registros"
 
 
 @pytest.fixture(scope="module")
 def _colecao_real() -> ColecaoDeRegistros:
-    """Os registros reais dos Blocos 1-5, 7, 8, 10, 11 **mais** os três casos
+    """Os registros reais dos Blocos 1-5 e 9 **mais** os três casos
     de prova do Bloco 12 (`T-16`..`T-19`).
 
     `incluir_casos_de_prova=True` desde `T-172`: o Bloco 12 saiu da coleção
@@ -113,7 +113,7 @@ def test_ac04_tres_dividas_produzem_tres_fichas_independentes_responder_ficha_2_
 def test_t105_renda_adicional_id_e_despesa_nao_mensal_id_tem_perguntas_reais_no_bloco_03(
     _colecao_real: ColecaoDeRegistros,
 ) -> None:
-    """T-105 (`OQ-19`): `B3.03A-C`/`B3.NM02A-D`, carregados do YAML real,
+    """T-105 (`OQ-19`): `B3.03B`/`B3.NM02B`, carregados do YAML real,
     aparecem nas fichas de `RENDA_ADICIONAL_ID`/`DESPESA_NAO_MENSAL_ID` —
     prova de que a edição do registro e a carga (`collection/carga.py`)
     continuam funcionando juntas sem erro após a mudança de escopo."""
@@ -121,69 +121,64 @@ def test_t105_renda_adicional_id_e_despesa_nao_mensal_id_tem_perguntas_reais_no_
         _colecao_real.registros, EscopoRepeticao.RENDA_ADICIONAL_ID
     )
     ids_renda_adicional = {registro.ID for registro in perguntas_de_renda_adicional}
-    # `T-315`: + `B3.03AO`, a descrição de "Outra renda recorrente".
-    assert ids_renda_adicional == {"B3.03A", "B3.03AO", "B3.03B", "B3.03C"}
+    # `T-389`: `B3.03A`, `B3.03AO` e `B3.03C` saíram; fica o valor.
+    assert ids_renda_adicional == {"B3.03B"}
 
     perguntas_de_despesa_nao_mensal = perguntas_da_ficha(
         _colecao_real.registros, EscopoRepeticao.DESPESA_NAO_MENSAL_ID
     )
     ids_despesa_nao_mensal = {registro.ID for registro in perguntas_de_despesa_nao_mensal}
-    assert ids_despesa_nao_mensal == {
-        "B3.NM02A",
-        "B3.NM02AO",
-        "B3.NM02B",
-        "B3.NM02C",
-        "B3.NM02CO",
-        "B3.NM02D",
-    }
+    # `T-389`: `B3.NM02A`, `B3.NM02AO`, `B3.NM02C`, `B3.NM02CO` e (`T-404`) `B3.NM02D` saíram.
+    assert ids_despesa_nao_mensal == {"B3.NM02B"}
 
 
 # ---------------------------------------------------------------------------
-# AC-05 — B11.Q01 para D003 exibe D003 no lugar de [Dxxx].
+# AC-05 — B3.DF01 para o item corrente exibe o item no lugar de [despesa].
 # ---------------------------------------------------------------------------
 
 
 class _RespostasVazias:
     """Dublê de `Respostas` (`Protocol` de `collection/interpolacao.py`) sem
-    nenhuma variável coletada — `B11.Q01` só usa a origem `ID_DO_ITEM`."""
+    nenhuma variável coletada — `B3.DF01` só usa a origem `ID_DO_ITEM`."""
 
     def valor(self, variavel: str) -> ValorResposta | None:
         return None
 
 
-def test_ac05_b11_q01_para_d003_exibe_d003_no_lugar_de_dxxx(
+def test_ac05_b3_df01_para_o_item_exibe_o_item_no_lugar_do_marcador(
     _colecao_real: ColecaoDeRegistros,
 ) -> None:
-    """`B11.Q01` real, transcrito por `T-18`, declara o marcador `[Dxxx]`
-    com origem `ID_DO_ITEM` (RF-06). Interpolado com o item corrente `D003`,
-    o enunciado final exibe `D003` — nunca o marcador literal."""
-    registro = _registro(_colecao_real, "B11.Q01")
-    assert "[Dxxx]" in registro.enunciado
+    """`B3.DF01` real declara o marcador `[despesa]` com origem `ID_DO_ITEM`
+    (RF-06). Interpolado com o item corrente `I003`, o enunciado final exibe
+    `I003` — nunca o marcador literal. (`B11.Q01`, que usava `[Dxxx]`, saiu
+    em `T-390`.)"""
+    registro = _registro(_colecao_real, "B3.DF01")
+    assert "[despesa]" in registro.enunciado
 
-    ctx = ContextoItem(item_id="D003", respostas=_RespostasVazias(), snapshot=None)
+    ctx = ContextoItem(item_id="I003", respostas=_RespostasVazias(), snapshot=None)
     resultado = interpolar(registro.enunciado, registro.interpolacoes, ctx)
 
-    assert "D003" in resultado
-    assert "[Dxxx]" not in resultado
+    assert "I003" in resultado
+    assert "[despesa]" not in resultado
 
 
 # ---------------------------------------------------------------------------
-# AC-06 — VALOR_UTILIZADO_MARGEM = 1200 com VALOR_TOTAL_MARGEM = 1000 é
-# recusado, com mensagem, e nenhum dos dois é gravado.
+# AC-06 — um valor que supera o limite da validação cruzada é recusado, com
+# mensagem, e nenhum dos dois é gravado.
 #
-# A validação cruzada normativa (VALOR_UTILIZADO_MARGEM <= VALOR_TOTAL_MARGEM,
-# por MARGEM_ID) foi transcrita em collection/registros/bloco-03.yaml (B3.S06B
-# e B3.S06C) — o Bloco 3 (Renda e Margem), não o Bloco 5 como a descrição da
-# tarefa cogitava; T-17 não tinha essa validação porque ela pertence ao Bloco
-# 3, fora do escopo de T-17 (Blocos 1-5). Este teste usa o registro real
-# equivalente mais próximo: B3.S06C, que carrega literalmente essa
-# ValidacaoCruzada no YAML real.
+# A validação cruzada normativa original (VALOR_UTILIZADO_MARGEM <=
+# VALOR_TOTAL_MARGEM, por MARGEM_ID, B3.S06B/C) saiu do questionário em `T-389`
+# (RF-402), e a equivalente por dívida (B7.13C, `PROPOSTA_DESCONTO_VALOR <=
+# VALOR_QUITACAO_ANTES_DESCONTO`) saiu com o Bloco 7 em `T-390`. Nenhum
+# registro real declara hoje validação cruzada; o teste usa uma
+# `ValidacaoCruzada` sintética com a MESMA forma da B7.13C, avaliada pelo
+# mesmo comparador (`validar_cruzada`).
 # ---------------------------------------------------------------------------
 
 
-class _RespostasDeMargem:
+class _RespostasDeItem:
     """Dublê mínimo de `Respostas` (`Protocol` de `collection/validacao.py`),
-    restrito a um único item de `MARGEM_ID` — o suficiente para exercitar
+    restrito a um único item — o suficiente para exercitar
     `validar_cruzada` sem depender de `collection/respostas.py` (T-22, ainda
     não implementada)."""
 
@@ -194,41 +189,38 @@ class _RespostasDeMargem:
         return self._valores.get(variavel)
 
 
-def test_ac06_valor_utilizado_maior_que_valor_total_da_margem_e_recusado_com_mensagem(
-    _colecao_real: ColecaoDeRegistros,
-) -> None:
-    """`B3.S06C` (VALOR_UTILIZADO_MARGEM) carrega, no registro real, a
-    validação cruzada normativa `VALOR_UTILIZADO_MARGEM <= VALOR_TOTAL_MARGEM`
-    por `MARGEM_ID`. Aplicada a `VALOR_UTILIZADO_MARGEM=1200` e
-    `VALOR_TOTAL_MARGEM=1000` no mesmo item, a validação é recusada e carrega
-    a mensagem do próprio registro — nunca uma redação composta em código."""
-    registro = _registro(_colecao_real, "B3.S06C")
-    assert len(registro.validacoes_cruzadas) == 1
-    validacao = registro.validacoes_cruzadas[0]
-    assert validacao.variavel_esquerda == "VALOR_UTILIZADO_MARGEM"
-    assert validacao.variavel_direita == "VALOR_TOTAL_MARGEM"
-    assert validacao.escopo == EscopoRepeticao.MARGEM_ID
-
-    respostas = _RespostasDeMargem(
-        {"VALOR_UTILIZADO_MARGEM": 1200, "VALOR_TOTAL_MARGEM": 1000}
+def test_ac06_desconto_maior_que_valor_de_quitacao_e_recusado_com_mensagem() -> None:
+    """Validação cruzada `PROPOSTA_DESCONTO_VALOR <= VALOR_QUITACAO_ANTES_DESCONTO`
+    por `DIVIDA_ID` (a forma da antiga `B7.13C`). Aplicada a
+    `PROPOSTA_DESCONTO_VALOR=1200` e `VALOR_QUITACAO_ANTES_DESCONTO=1000` no
+    mesmo item, a validação é recusada e carrega a mensagem da própria
+    declaração — nunca uma redação composta em código."""
+    validacao = ValidacaoCruzada(
+        variavel_esquerda="PROPOSTA_DESCONTO_VALOR",
+        operador="<=",
+        variavel_direita="VALOR_QUITACAO_ANTES_DESCONTO",
+        escopo=EscopoRepeticao.DIVIDA_ID,
+        mensagem="O desconto não pode superar o valor de quitação antes do desconto.",
     )
 
-    resultado = validar_cruzada(validacao, item_id="M001", respostas=respostas)
+    respostas = _RespostasDeItem(
+        {"PROPOSTA_DESCONTO_VALOR": 1200, "VALOR_QUITACAO_ANTES_DESCONTO": 1000}
+    )
+
+    resultado = validar_cruzada(validacao, item_id="D001", respostas=respostas)
 
     assert resultado.valida is False
-    assert resultado.variavel_esquerda == "VALOR_UTILIZADO_MARGEM"
-    assert resultado.variavel_direita == "VALOR_TOTAL_MARGEM"
+    assert resultado.variavel_esquerda == "PROPOSTA_DESCONTO_VALOR"
+    assert resultado.variavel_direita == "VALOR_QUITACAO_ANTES_DESCONTO"
     assert resultado.mensagem == validacao.mensagem
     assert resultado.mensagem is not None and len(resultado.mensagem) > 0
 
-    # "nenhum dos dois é gravado": este módulo não persiste nada (a
-    # persistência real é T-22, fora de escopo) — a prova disponível aqui é
-    # que o dublê de respostas usado para a COMPARAÇÃO nunca foi mutado por
-    # `validar_cruzada`: os valores continuam exatamente os fornecidos, e
-    # `ResultadoValidacao.valida=False` é o sinal que a camada de gravação
-    # (fora de escopo) usa para recusar a escrita.
-    assert respostas.valor_no_item("M001", "VALOR_UTILIZADO_MARGEM") == 1200
-    assert respostas.valor_no_item("M001", "VALOR_TOTAL_MARGEM") == 1000
+    # "nenhum dos dois é gravado": este módulo não persiste nada — a prova
+    # disponível aqui é que o dublê de respostas usado para a COMPARAÇÃO nunca
+    # foi mutado por `validar_cruzada`, e `ResultadoValidacao.valida=False` é o
+    # sinal que a camada de gravação usa para recusar a escrita.
+    assert respostas.valor_no_item("D001", "PROPOSTA_DESCONTO_VALOR") == 1200
+    assert respostas.valor_no_item("D001", "VALOR_QUITACAO_ANTES_DESCONTO") == 1000
 
 
 # ---------------------------------------------------------------------------
@@ -440,26 +432,26 @@ def test_ac36_editar_enunciado_no_yaml_e_recarregar_muda_o_texto_sem_tocar_py(
     tmp_path: Path,
 ) -> None:
     """Copia os registros reais para um diretório temporário, edita o
-    enunciado de `B11.Q01` no YAML copiado e recarrega com
+    enunciado de `B2.10A` no YAML copiado e recarrega com
     `carregar_registros(diretorio=...)`: o novo texto aparece na coleção
     recarregada, sem que nenhum `.py` do repositório tenha sido tocado."""
     diretorio_copia = tmp_path / "registros"
     shutil.copytree(_DIRETORIO_REGISTROS_REAIS, diretorio_copia)
 
     colecao_original = carregar_registros(diretorio_copia)
-    registro_original = _registro(colecao_original, "B11.Q01")
+    registro_original = _registro(colecao_original, "B2.10A")
     enunciado_original = registro_original.enunciado
 
-    caminho_bloco_11 = diretorio_copia / "bloco-11.yaml"
-    conteudo = caminho_bloco_11.read_text(encoding="utf-8")
-    novo_enunciado = "A dívida [Dxxx] foi TOTALMENTE quitada, sem sombra de dúvida?"
+    caminho_bloco = diretorio_copia / "bloco-02.yaml"
+    conteudo = caminho_bloco.read_text(encoding="utf-8")
+    novo_enunciado = "Sem sombra de dúvida, você aceita considerar essa redução no seu PIQ?"
     assert enunciado_original in conteudo
     conteudo_editado = conteudo.replace(enunciado_original, novo_enunciado)
     assert conteudo_editado != conteudo
-    caminho_bloco_11.write_text(conteudo_editado, encoding="utf-8")
+    caminho_bloco.write_text(conteudo_editado, encoding="utf-8")
 
     colecao_recarregada = carregar_registros(diretorio_copia)
-    registro_recarregado = _registro(colecao_recarregada, "B11.Q01")
+    registro_recarregado = _registro(colecao_recarregada, "B2.10A")
 
     assert registro_recarregado.enunciado == novo_enunciado
     assert registro_recarregado.enunciado != enunciado_original
@@ -468,7 +460,7 @@ def test_ac36_editar_enunciado_no_yaml_e_recarregar_muda_o_texto_sem_tocar_py(
     # foi tocado — só o YAML copiado em tmp_path. A prova é que os registros
     # REAIS (fora de tmp_path) continuam com o enunciado original.
     colecao_real_intacta = carregar_registros()
-    assert _registro(colecao_real_intacta, "B11.Q01").enunciado == enunciado_original
+    assert _registro(colecao_real_intacta, "B2.10A").enunciado == enunciado_original
 
 
 def _bruto_com_perguntas(*, versao: str, perguntas: list[dict[str, object]]) -> dict[str, object]:

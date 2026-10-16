@@ -29,9 +29,28 @@ export default function PontoDePartida({
   // leitor de tela ouve "Entra" ou "Sai".
   const linhas: [string, string | number, Sentido][] = [
     [textos.renda || 'Sua renda no mês', ponto.renda, 'entra'],
+    // `RF-412` (`B3.04A`): a renda acima já inclui a contribuição familiar.
+    ...(ponto.contribuicao_familiar
+      ? ([[textos.contribuicao_familiar || 'Desta renda, contribuição de outra pessoa da família', ponto.contribuicao_familiar, 'neutra']] as [string, string, Sentido][])
+      : []),
     [textos.gastos || 'Seus gastos do dia a dia', ponto.gastos, 'sai'],
     [textos.gastos_ocasionais || 'Gastos que não acontecem todo mês', ponto.gastos_ocasionais, 'sai'],
     [textos.parcelas || 'Parcelas de dívidas que você já paga', ponto.parcelas, 'sai'],
+    // `RF-412` (`B3.DF02`): servidor envia vazio quando não há resumo.
+    ...(ponto.despesas_tipo_fixo
+      ? ([
+          [textos.despesas_tipo_fixo || 'Despesas do tipo fixo', ponto.despesas_tipo_fixo, 'neutra'],
+          [textos.despesas_tipo_variavel || 'Despesas do tipo variável', ponto.despesas_tipo_variavel ?? '', 'neutra'],
+          ...(ponto.despesas_nao_classificadas
+            ? ([[textos.despesas_nao_classificadas || 'Despesas sem classificação', ponto.despesas_nao_classificadas, 'neutra']] as [string, string, Sentido][])
+            : []),
+          [
+            textos.despesas_mensais_totais || 'Despesas mensais totais (receitas totais − despesas totais)',
+            ponto.despesas_mensais_totais ?? '',
+            'neutra',
+          ],
+        ] as [string, string, Sentido][])
+      : []),
     [textos.quantidade_dividas || 'Dívidas incluídas neste plano', ponto.quantidade_de_dividas, 'neutra'],
   ]
   const etiqueta = { entra: textos.entrada_rotulo || 'Entra', sai: textos.saida_rotulo || 'Sai' }

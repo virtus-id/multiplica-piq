@@ -1,11 +1,14 @@
-"""`AC-181`, `AC-182`, `AC-183` — o aluno pede um plano novo depois da
-liberação (`RF-118`, `RF-119`, `T-341`).
+"""`AC-181`, `AC-182`, `AC-183` — o aluno pedia um plano novo depois da
+liberação (`RF-118`, `RF-119`, `T-341`). DESLIGADO em `T-387` (`RF-401`, `RF-409`):
+o plano entregue é definitivo; as rotas e o Início recusam/escondem o pedido.
 
-O fluxo inteiro pelas rotas reais (a mesma montagem de `test_correcao_pedida.py`,
-`AC-175`): cálculo → liberação → pedido de plano novo → correção de uma taxa →
-reenvio → v2 na fila, com a v1 intacta.
+Pelas rotas reais (a mesma montagem de `test_correcao_pedida.py`, `AC-175`):
+depois da liberação, `refazer-plano` recusa com `409`,
+o caso fica em `PLANO_LIBERADO` e a v1 segue intacta. A v2 continua
+nascendo pelo caminho de antes da entrega (`retomar-edicao`), visto do lado do
+revisor em `AC-192`.
 
-REGRAS: `RF-118`, `RF-119`, `AC-181`, `AC-182`, `AC-183`
+REGRAS: `RF-118`, `RF-119`, `AC-181`, `AC-182`, `AC-183`, `RF-401`, `RF-409`
 
 No fim: a conferência do revisor sobre o plano liberado e sobre a v2 (`AC-189`,
 `AC-192`, `T-345`) — o mesmo cenário, visto do lado de quem confere.
@@ -56,7 +59,7 @@ from tests.app_aluno.test_correcao_pedida import (
     cenario,  # noqa: F401 — fixture reutilizada
 )
 
-_MENSAGEM_NAO_LIBERADO = "Seu plano ainda não foi liberado."
+_MENSAGEM_PLANO_DEFINITIVO = "O plano entregue é definitivo."
 
 
 class _SemContas:
@@ -113,59 +116,40 @@ def _taxa_da_divida(snapshot: Any, divida_id: str) -> Any:
     return divida.TAXA_EFETIVA_MENSAL_NORMALIZADA
 
 
-def test_ac181_e_ac183_plano_novo_depois_da_liberacao_reflete_a_resposta_editada(
+def test_ac181_plano_entregue_e_definitivo_nao_se_pede_plano_novo(
     cenario: Cenario,  # noqa: F811
 ) -> None:
+    """`RF-409` (T-387) — antes (`AC-181`/`AC-183`) o pedido levava a
+    `COLETA_INICIAL` e a v2 nascia encadeada; agora é `409` e nada muda."""
     cliente, casos, snapshots, respostas, _ = cenario
     with cliente:
         _liberar_v1(cliente, casos, cenario)
         liberado = _caso(casos)
         assert liberado.estado is ESTADO_CASO.PLANO_LIBERADO
-        assert liberado.snapshot_liberado_id is not None
         raiz = liberado.snapshot_raiz_id
         assert raiz is not None
         (v1,) = snapshots.historico(raiz)
-        taxa_v1 = _taxa_da_divida(v1, "D001")
 
-        # `AC-181`: a lista diz que dá para pedir o plano novo.
-        assert cliente.get(f"/caso/{CASO_ID}/respostas").json()["pode_refazer_plano"] is True
 
-        # O aluno corrige a taxa DEPOIS da liberação: o dado muda, o plano não.
+        # O dado muda depois da liberação: o plano não.
         respostas.corrigir_no_item(
             "D001",
             {
-                "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-                "TAXA_INFORMADA": converter_para_taxa("8"),
-                "PERIODICIDADE_TAXA": "MENSAL",
+                "TAXA_DIVIDA": converter_para_taxa("8"),
+                "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
             },
         )
-        assert snapshots.historico(raiz) == (v1,), "editar a resposta não gera plano"
 
-        # Pede o plano novo: coleta, plano liberado intacto e ainda servido.
         pedido = cliente.post(f"/caso/{CASO_ID}/refazer-plano")
-        assert pedido.status_code == 200
-        assert pedido.json()["estado"] == "COLETA_INICIAL"
-        caso = _caso(casos)
-        assert caso.estado is ESTADO_CASO.COLETA_INICIAL
-        assert caso.snapshot_liberado_id == liberado.snapshot_liberado_id
-        assert caso.snapshot_raiz_id == raiz
-        inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
-        assert inicio["plano_liberado"] is True, "o aluno segue vendo o plano atual"
-        assert cliente.get(f"/caso/{CASO_ID}/api/plano").status_code == 200
 
-        # `AC-183`: o reenvio é o cálculo de sempre; a v2 nasce encadeada, com a taxa nova.
-        assert cliente.post(f"/caso/{CASO_ID}/calculo").status_code == 200
-        caso = _esperar_sair_de_calculando(casos)
-        assert caso.estado is ESTADO_CASO.AGUARDANDO_REVISAO
-        historico = snapshots.historico(raiz)
-        assert [s.versao for s in historico] == [1, 2]
-        assert historico[0] == v1, "a v1 continua exatamente como estava"
-        assert historico[1].snapshot_anterior_id == v1.SNAPSHOT_ID
-        assert _taxa_da_divida(historico[0], "D001") == taxa_v1
-        assert _taxa_da_divida(historico[1], "D001") == converter_para_taxa("8")
-        assert _taxa_da_divida(historico[1], "D001") != taxa_v1
-        # A v1 segue sendo o plano liberado até a v2 ser liberada (`OQ-09`).
-        assert caso.snapshot_liberado_id == liberado.snapshot_liberado_id
+        assert pedido.status_code == 409
+        assert pedido.json()["erro"] == _MENSAGEM_PLANO_DEFINITIVO
+        assert _caso(casos) == liberado, "o caso não mudou"
+        assert snapshots.historico(raiz) == (v1,), "nenhum plano novo"
+        inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
+        assert inicio["plano_liberado"] is True
+        assert inicio["fase"] == "plano"
+        assert cliente.get(f"/caso/{CASO_ID}/api/plano").status_code == 200
 
 
 @pytest.mark.parametrize(
@@ -185,75 +169,64 @@ def test_ac182_antes_da_liberacao_pedir_plano_novo_e_recusado(
         resposta = cliente.post(f"/caso/{CASO_ID}/refazer-plano")
 
         assert resposta.status_code == 409
-        assert resposta.json()["erro"] == _MENSAGEM_NAO_LIBERADO
+        assert resposta.json()["erro"] == _MENSAGEM_PLANO_DEFINITIVO
         assert _caso(casos).estado is estado
-        assert cliente.get(f"/caso/{CASO_ID}/respostas").json()["pode_refazer_plano"] is False
 
 
-def test_ac181_de_acompanhamento_tambem_pode_refazer(cenario: Cenario) -> None:  # noqa: F811
+def test_etapas_pos_plano_nao_existem_mais(cenario: Cenario) -> None:  # noqa: F811
+    """`RF-401`, `RF-409` (T-387, T-390) — depois da entrega não há rota de
+    abertura de etapa nem do Bloco 10: o caso fica em `PLANO_LIBERADO`."""
     cliente, casos, _, _, _ = cenario
     with cliente:
-        for destino in (
-            ESTADO_CASO.CALCULANDO,
-            ESTADO_CASO.AGUARDANDO_REVISAO,
-            ESTADO_CASO.PLANO_LIBERADO,
-            ESTADO_CASO.ACOMPANHAMENTO,
-        ):
-            casos.transicionar_estado(CASO_ID, destino)
-
-        assert cliente.get(f"/caso/{CASO_ID}/respostas").json()["pode_refazer_plano"] is True
-        assert cliente.post(f"/caso/{CASO_ID}/refazer-plano").status_code == 200
-        assert _caso(casos).estado is ESTADO_CASO.COLETA_INICIAL
+        _liberar_v1(cliente, casos, cenario)
+        for rota in ("etapas/blocos-7-8", "etapas/bloco-10", "etapas/bloco-11"):
+            assert cliente.post(f"/caso/{CASO_ID}/{rota}").status_code in (404, 405), rota
+        assert cliente.get(f"/caso/{CASO_ID}/bloco-10").status_code == 404
+        assert cliente.get(f"/caso/{CASO_ID}/etapas").status_code == 404
+        assert _caso(casos).estado is ESTADO_CASO.PLANO_LIBERADO
 
 
 # --------------------------------------------------------------------------- AC-185 · AC-188
 
 
-def test_ac185_inicio_diz_se_as_respostas_mudaram_desde_o_plano(
+def test_ac185_plano_entregue_nao_afirma_mudanca_nem_oferece_plano_novo(
     cenario: Cenario,  # noqa: F811
 ) -> None:
+    """`RF-409` (T-387) — com o plano definitivo não há plano novo a oferecer, e
+    a comparação "respostas mudaram desde o plano" (`AC-185`) deixa de ser
+    feita (`T-390` removeu o campo `respostas_atualizadas`) mesmo se a
+    resposta mudar."""
     cliente, casos, _, respostas, _ = cenario
     with cliente:
         _liberar_v1(cliente, casos, cenario)
 
-        # Recém-liberado: o estado montado de agora é o do plano.
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
-        assert inicio["pode_refazer_plano"] is True
         assert inicio["pode_retomar_edicao"] is False
-        assert inicio["respostas_atualizadas"] is False
+        assert "respostas_atualizadas" not in inicio
 
-        # Regravar o MESMO valor não é mudança.
-        respostas.corrigir_no_item("D001", {"QUALIDADE_TAXA_INFORMADA": "DESCONHECIDA"})
-        assert cliente.get(f"/caso/{CASO_ID}/inicio").json()["respostas_atualizadas"] is False
-
-        # Mudar o que o plano lê é.
         respostas.corrigir_no_item(
             "D001",
             {
-                "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-                "TAXA_INFORMADA": converter_para_taxa("8"),
-                "PERIODICIDADE_TAXA": "MENSAL",
+                "TAXA_DIVIDA": converter_para_taxa("8"),
+                "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
             },
         )
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
-        assert inicio["respostas_atualizadas"] is True
-        assert inicio["pode_refazer_plano"] is True
+        assert "respostas_atualizadas" not in inicio
 
 
 def test_ac185_fora_do_plano_liberado_nao_afirma_nada(cenario: Cenario) -> None:  # noqa: F811
     cliente, casos, _, _, _ = cenario
     with cliente:
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()  # COLETA_INICIAL, sem plano
-        assert inicio["respostas_atualizadas"] is None
-        assert inicio["pode_refazer_plano"] is False
+        assert "respostas_atualizadas" not in inicio
         assert inicio["pode_retomar_edicao"] is False
 
         casos.transicionar_estado(CASO_ID, ESTADO_CASO.CALCULANDO)
         casos.transicionar_estado(CASO_ID, ESTADO_CASO.AGUARDANDO_REVISAO)
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
         assert inicio["pode_retomar_edicao"] is True  # `AC-187`
-        assert inicio["pode_refazer_plano"] is False
-        assert inicio["respostas_atualizadas"] is None
+        assert "respostas_atualizadas" not in inicio
 
 
 def test_ac188_se_a_comparacao_e_impossivel_o_inicio_responde_e_nao_afirma_mudanca(
@@ -269,8 +242,7 @@ def test_ac188_se_a_comparacao_e_impossivel_o_inicio_responde_e_nao_afirma_mudan
 
         assert resposta.status_code == 200, "a falha da comparação nunca derruba o Início"
         corpo = resposta.json()
-        assert corpo["respostas_atualizadas"] is None
-        assert corpo["pode_refazer_plano"] is True, "a ação neutra continua oferecida"
+        assert "respostas_atualizadas" not in corpo
 
 
 # --------------------------------------------------------------------------- AC-189 · AC-192
@@ -329,19 +301,21 @@ def test_ac192_o_revisor_ve_o_que_mudou_desde_a_versao_anterior(
 ) -> None:
     cliente, casos, snapshots, respostas, _ = cenario
     with cliente:
-        _liberar_v1(cliente, casos, cenario)
+        # v1 em conferência (`RF-409`: depois da entrega não há v2; a v2 nasce
+        # quando o aluno retira o plano da conferência, `RF-115`).
+        assert cliente.post(f"/caso/{CASO_ID}/calculo").status_code == 200
+        assert _esperar_sair_de_calculando(casos).estado is ESTADO_CASO.AGUARDANDO_REVISAO
         # v1: nada com que comparar.
         assert cliente.get(f"/api/revisao/caso/{CASO_ID}").json()["mudancas"] is None
 
         respostas.corrigir_no_item(
             "D001",
             {
-                "QUALIDADE_TAXA_INFORMADA": "CONFIRMADA",
-                "TAXA_INFORMADA": converter_para_taxa("8"),
-                "PERIODICIDADE_TAXA": "MENSAL",
+                "TAXA_DIVIDA": converter_para_taxa("8"),
+                "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
             },
         )
-        assert cliente.post(f"/caso/{CASO_ID}/refazer-plano").status_code == 200
+        assert cliente.post(f"/caso/{CASO_ID}/retomar-edicao").status_code == 200
         assert cliente.post(f"/caso/{CASO_ID}/calculo").status_code == 200
         assert _esperar_sair_de_calculando(casos).estado is ESTADO_CASO.AGUARDANDO_REVISAO
 

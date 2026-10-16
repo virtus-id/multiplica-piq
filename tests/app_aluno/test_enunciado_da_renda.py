@@ -11,11 +11,11 @@ from __future__ import annotations
 from collection.carga import carregar_registros
 
 _ENUNCIADO = (
-    "Quanto você recebe por mês, em média, depois do imposto de renda e da "
-    "previdência, mas antes de empréstimos e consignados? (Não desconte "
-    "parcelas de empréstimo nem consignado: você cadastra essas dívidas mais "
-    "adiante. Plano de saúde, sindicato e outros descontos de folha entram "
-    "nas despesas.)"
+    "Qual é o valor líquido que você recebe por mês, conforme seu contracheque "
+    "(depois do imposto de renda e da previdência, antes de empréstimos e "
+    "consignados)? (Não desconte parcelas de empréstimo nem consignado: você "
+    "cadastra essas dívidas mais adiante. Plano de saúde, sindicato e outros "
+    "descontos de folha entram nas despesas.)"
 )
 
 

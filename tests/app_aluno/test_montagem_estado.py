@@ -104,7 +104,9 @@ class TestAC08ReproducaoDeGab03PelaViaDaColeta:
                 VALOR_QUITACAO_HOJE=DESCONHECIDO,
                 QUITACAO_CONSULTADA=SimNaoTalvez.NAO,
                 STATUS_VALIDADE_PROPOSTA=STATUS_VALIDADE_PROPOSTA.VALIDADE_DESCONHECIDA,
-                TAXA_EFETIVA_MENSAL_NORMALIZADA=DESCONHECIDO,
+                # `T-393`: pela coleta a taxa é obrigatória (B5.D06, 2% a.m. na
+                # ficha-padrão); `GAB-03` no motor segue com ela desconhecida.
+                TAXA_EFETIVA_MENSAL_NORMALIZADA=Decimal("0.02"),
                 CET=DESCONHECIDO,
                 PARCELA_CONTRATUAL=DESCONHECIDO,
                 PAGAMENTO_MENSAL_EFETIVO=DESCONHECIDO,
@@ -175,13 +177,14 @@ class TestAC13ContratoDoMotorPorIntrospeccao:
         }
         assert campos_da_instancia == campos_do_contrato
 
-    def test_contrato_de_divida_tem_exatamente_dezoito_campos(self) -> None:
+    def test_contrato_de_divida_tem_exatamente_vinte_e_tres_campos(self) -> None:
         """Trava de regressão explícita citada no plano/docstrings de
         `app/montagem/estado.py` ("18 campos EXATOS do contrato real") — se
         um campo for adicionado ou removido de `Divida` sem que a contagem
         aqui seja revisada, este teste falha primeiro, antes mesmo da
         comparação de conjuntos acima."""
-        assert len(dataclasses.fields(Divida)) == 18
+        # 18 originais + 5 de `§16.4` (`T-406`), estes com valor neutro padrão.
+        assert len(dataclasses.fields(Divida)) == 23
 
     def test_contrato_de_sinais_comportamentais_tem_exatamente_dez_campos(self) -> None:
         assert len(dataclasses.fields(SinaisComportamentais)) == 10
@@ -207,14 +210,6 @@ class TestAC07InventarioCompletoNoEstadoDePontaAPonta:
     def test_confirmacao_fim_cadastro_nao_produz_inventario_completo_falso(self) -> None:
         """"Não. Ainda falta pelo menos uma dívida.", valor_interno NAO."""
         caso = caso_completo(valores_caso={"CONFIRMACAO_FIM_CADASTRO": "NAO"})
-
-        estado = _montar_estado_do_caso(caso)
-
-        assert estado.INVENTARIO_COMPLETO is False
-
-    def test_confirmacao_fim_cadastro_nao_sei_produz_inventario_completo_falso(self) -> None:
-        """"Não tenho certeza.", valor_interno NAO_SEI."""
-        caso = caso_completo(valores_caso={"CONFIRMACAO_FIM_CADASTRO": "NAO_SEI"})
 
         estado = _montar_estado_do_caso(caso)
 
