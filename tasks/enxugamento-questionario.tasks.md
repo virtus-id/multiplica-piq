@@ -221,3 +221,11 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Perguntas `B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04` ligadas na montagem e no motor, com hash congelado e testes por critério
 
 **Status:** `[x] concluída`
+
+### `T-407` — Limpeza antes da publicação e resultado do mês no negativo
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-406` · **Rastreia:** `RF-419`
+- [x] Resultado do mês no plano de estabilização usa o valor estrutural, com teste de que os números fecham
+- [x] Remover código/testes de vínculo sem origem; atualizar os dois testes de banco desatualizados
+
+**Status:** `[x] concluída`

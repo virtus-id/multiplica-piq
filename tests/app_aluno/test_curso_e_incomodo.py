@@ -110,22 +110,29 @@ def test_aviso_de_sem_valor_extra_nao_aparece_quando_ha_valor_extra() -> None:
 
 
 def test_numeros_do_mes_no_negativo_fecham_entre_si() -> None:
-    """RF-416 — o teste de mesa mostrava parcelas devidas (R$ 400) ao lado de
-    um resultado que desconta as efetivas (R$ 600). Renda − gastos − gastos
-    ocasionais − parcelas exibidas = resultado exibido do mês."""
+    """RF-416/RF-419 — no mês negativo o resultado exibido é o estrutural
+    (`RESULTADO_MENSAL_ATUAL`) e as parcelas exibidas são as devidas:
+    renda − gastos − gastos ocasionais − parcelas = resultado, e o corte
+    mostrado (`DEFICIT_MENSAL`) é o oposto desse resultado."""
     snapshot = _snapshot(renda=Decimal("1000.00"))
     d, e = snapshot.diagnostico, snapshot.estado_inputs
-    assert d.RESULTADO_CAIXA_OBSERVADO < 0 and d.MODO_ESTABILIZACAO
-    ponto = _contexto(snapshot).ponto_de_partida
+    assert d.RESULTADO_MENSAL_ATUAL < 0 and d.MODO_ESTABILIZACAO
+    contexto = _contexto(snapshot)
+    ponto = contexto.ponto_de_partida
     assert ponto is not None
-    assert ponto.parcelas == formatar_dinheiro_br(d.PAGAMENTOS_EFETIVOS_DIVIDAS)
-    assert d.RESULTADO_CAIXA_OBSERVADO == (
+    assert ponto.parcelas == formatar_dinheiro_br(d.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES)
+    assert d.RESULTADO_MENSAL_ATUAL == (
         e.RENDA_TOTAL_RECORRENTE
         - e.DESPESAS_OPERACIONAIS_ATUAIS
         - e.DESPESAS_NAO_MENSAIS_NORMALIZADAS
-        - d.PAGAMENTOS_EFETIVOS_DIVIDAS
+        - d.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
     )
-    assert formatar_dinheiro_br(d.RESULTADO_CAIXA_OBSERVADO) in _html(snapshot)
+    assert d.DEFICIT_MENSAL == -d.RESULTADO_MENSAL_ATUAL
+    assert contexto.RESULTADO_CAIXA_OBSERVADO == formatar_dinheiro_br(d.RESULTADO_MENSAL_ATUAL)
+    assert contexto.FALTA_CORTAR == formatar_dinheiro_br(d.DEFICIT_MENSAL)
+    html = _html(snapshot)
+    assert formatar_dinheiro_br(d.RESULTADO_MENSAL_ATUAL) in html
+    assert formatar_dinheiro_br(d.DEFICIT_MENSAL) in html
 
 
 def test_estabilizacao_mostra_avisos_de_atraso_e_garantia_com_responsabilidade() -> None:

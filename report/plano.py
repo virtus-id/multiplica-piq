@@ -294,12 +294,10 @@ class VocabularioDoCaso:
     rotulos_de_opcao: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
     credores: Mapping[str, str] = field(default_factory=dict)
     #: `RF-412` — respostas lidas pela aplicação, só transportadas: dívidas
-    #: atrasadas (`B5.E01`) e com garantia (`B5.F01`), o vínculo de cada
-    #: dívida consignada (`B5.A02V`), se há ficha declarada em `B5.00` sem
-    #: cadastro e o resumo das despesas. Nenhuma regra de ordem.
+    #: atrasadas (`B5.E01`) e com garantia (`B5.F01`), se há ficha declarada
+    #: em `B5.00` sem cadastro e o resumo das despesas. Nenhuma regra de ordem.
     dividas_atrasadas: frozenset[str] = frozenset()
     dividas_com_garantia: frozenset[str] = frozenset()
-    vinculos: Mapping[str, str] = field(default_factory=dict)
     fichas_faltando: bool = False
     resumo_das_despesas: ResumoDasDespesas | None = None
 
@@ -1738,7 +1736,7 @@ def _contexto_do_curso(
 
 
 def _fatos_da_divida(
-    divida: Divida | None, textos: TextosCanonicosPlano, vinculo: str | None = None
+    divida: Divida | None, textos: TextosCanonicosPlano
 ) -> tuple[tuple[str, str], ...]:
     """Os números fixos do cartão de cada dívida, LIDOS de `Divida` —
     mesmos rótulos de `rotulos_de_apoio`, para que o documento possa omitir
@@ -1759,8 +1757,6 @@ def _fatos_da_divida(
         else:
             texto = formatar_dinheiro_br(valor)
         fatos.append((textos.rotulos_de_apoio.get(campo, campo), texto))
-    if vinculo:  # `RF-412` (`B5.A02V`): só exibição
-        fatos.append((textos.rotulos_de_apoio.get("VINCULO_DA_DIVIDA", "Vínculo"), vinculo))
     return tuple(fatos)
 
 
@@ -1867,7 +1863,13 @@ def _ponto_de_partida(
         renda=formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE),
         gastos=formatar_dinheiro_br(estado.DESPESAS_OPERACIONAIS_ATUAIS),
         gastos_ocasionais=formatar_dinheiro_br(estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS),
-        parcelas=formatar_dinheiro_br(diagnostico.PAGAMENTOS_EFETIVOS_DIVIDAS),
+        # `T-407` (RF-419): em estabilização as parcelas são as devidas, para
+        # fechar com o resultado estrutural exibido; no modo normal, as efetivas.
+        parcelas=formatar_dinheiro_br(
+            diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
+            if diagnostico.MODO_ESTABILIZACAO
+            else diagnostico.PAGAMENTOS_EFETIVOS_DIVIDAS
+        ),
         valor_extra=formatar_dinheiro_br(diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA),
         quantidade_de_dividas=len(estado.dividas),
     )
@@ -1967,11 +1969,7 @@ def montar_contexto_plano(
                 snapshot.METODO_RECOMENDADO_PIQ.value, {}
             ).get("primeira" if indice == 1 else "seguintes", ""),
             mes_de_quitacao=quitacoes.get(posicao_do_snapshot.DIVIDA_ID),
-            fatos=_fatos_da_divida(
-                dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID),
-                textos,
-                (vocabulario.vinculos if vocabulario else {}).get(posicao_do_snapshot.DIVIDA_ID),
-            ),
+            fatos=_fatos_da_divida(dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID), textos),
             avisos=_avisos_da_divida(
                 posicao_do_snapshot.DIVIDA_ID, vocabulario or VocabularioDoCaso(), textos
             ),
@@ -2006,8 +2004,11 @@ def montar_contexto_plano(
         MODO_ESTABILIZACAO=snapshot.diagnostico.MODO_ESTABILIZACAO,
         # `T-177`: com `R$`. O template de estabilização deixou de
         # prefixá-lo — o valor chega pronto.
+        # `T-407` (RF-419): o nome do campo ficou, o valor é o resultado
+        # ESTRUTURAL (`RESULTADO_MENSAL_ATUAL`), o mesmo que ativa o modo e
+        # gera `FALTA_CORTAR`; só é exibido em estabilização.
         RESULTADO_CAIXA_OBSERVADO=formatar_dinheiro_br(
-            snapshot.diagnostico.RESULTADO_CAIXA_OBSERVADO
+            snapshot.diagnostico.RESULTADO_MENSAL_ATUAL
         ),
         FALTA_CORTAR=formatar_dinheiro_br(snapshot.diagnostico.DEFICIT_MENSAL),
         reserva_mobilizavel=_reserva_mobilizavel(snapshot),

@@ -15,15 +15,16 @@ consentimento.py`/T-37 para a transição que ainda não tem rota própria):
    retornar (mesmo ângulo de `tests/app_aluno/integracao/
    test_persistencia_app_aluno.py::test_ac02_...`, agora atrás da rota).
 2. Responder pergunta cuja condição de exibição é falsa é recusado (`400`),
-   sem gravação — usa `B3.S06A`, real, condicionada a
-   `VINCULO_CONSIGNAVEL != NAO`.
-3. `NAO_SEI` grava sem passar pela conversão decimal — usa `B3.S06B`
+   sem gravação — usa `B3.03B`, real, condicionada a
+   `RENDA_RECORRENTE_ADICIONAL_EXISTE = SIM`.
+3. `NAO_SEI` grava sem passar pela conversão decimal — usa `B3.03B`
    (`MOEDA`), com `nao_sei=on`; se a rota tentasse converter, uma string
    vazia seria recusada por `EC-01` e o teste falharia por status errado.
-4. `EC-01`/`EC-02` recusam sem gravar, com a mensagem apontando o(s)
-   campo(s): `EC-01` sobre `B3.S06B` (`MOEDA`) com entrada não numérica;
-   `EC-02` sobre `B3.S06B`/`B3.S06C` (validação cruzada normativa
-   `VALOR_UTILIZADO_MARGEM <= VALOR_TOTAL_MARGEM`, real, por `MARGEM_ID`).
+4. `EC-01` recusa sem gravar, com a mensagem apontando o campo: sobre
+   `B3.03B` (`MOEDA`) com entrada não numérica. `EC-02` (validação cruzada)
+   não tem mais pergunta real no registro (`validacoes_cruzadas` vazio em
+   todos, depois da saída de `B3.S06*`); o caminho segue coberto por
+   `tests/app_aluno/test_validacao.py`.
 5. `EC-05`: falha de banco devolve a mensagem fixa de falha de gravação e a
    linha nunca chega a existir — via `app.dependency_overrides` sobre
    `obter_repositorio_respostas`, com um dublê que sempre levanta
@@ -91,8 +92,8 @@ def aplicacao_real(
     pelo caminho de produção contra o Postgres de `DATABASE_URL`, mesmo
     padrão de `test_consentimento.py::cliente_http_real` (T-37). A coleção
     de registros também é a REAL (`collection/carga.py::
-    carregar_registros()`, sem override), para exercitar `B3.S06A`/`B3.S06B`/
-    `B3.S06C` como o questionário de verdade os declara. Exposta separada do
+    carregar_registros()`, sem override), para exercitar `B3.03`/`B3.03B`
+    como o questionário de verdade os declara. Exposta separada do
     `TestClient` para que o teste de `EC-05` possa aplicar seu próprio
     `dependency_overrides` sobre a MESMA instância antes de instanciar o
     cliente (mesmo padrão de `tests/app_aluno/test_rotas_conta.py::cliente`)."""
@@ -202,31 +203,24 @@ def test_ac02_resposta_persistida_antes_do_retorno_http(cliente_http_real: TestC
 def test_pergunta_com_condicao_de_exibicao_falsa_e_recusada_sem_gravacao(
     cliente_http_real: TestClient,
 ) -> None:
-    """`B3.S06A` real só está aberta quando `VINCULO_CONSIGNAVEL != NAO`
-    (`condicao_exibicao: {tipo: NAO, termo: {tipo: IGUAL, ...}}`). Sem
-    nenhuma resposta prévia de `VINCULO_CONSIGNAVEL`, a condição avalia como
-    falsa (variável ausente ⇒ `avaliar` devolve falso para `CondicaoIgual`,
-    logo `CondicaoNao` do falso é verdadeiro... — usamos aqui o caso em que
-    `VINCULO_CONSIGNAVEL=NAO` é respondido antes, fechando explicitamente a
-    condição, para testar exatamente a recusa, não a ambiguidade da
-    ausência)."""
+    """`B3.03B` real só está aberta quando `RENDA_RECORRENTE_ADICIONAL_EXISTE
+    = SIM` (`condicao_exibicao: {tipo: IGUAL, ...}`). O teste fecha a
+    condição explicitamente (`B3.03 = NAO`) para exercitar exatamente a
+    recusa, não a ambiguidade da ausência."""
     caso_id = _caso_pronto_para_coleta(cliente_http_real)
 
-    # Fecha a condição explicitamente: B3.S01 grava VINCULO_CONSIGNAVEL=NAO,
-    # o que faz CondicaoNao(CondicaoIgual(VINCULO_CONSIGNAVEL, NAO)) avaliar
-    # falso — B3.S06A não está aberta.
     resposta_fechamento = cliente_http_real.post(
         f"/caso/{caso_id}/resposta",
-        data={"ID_PERGUNTA": "B3.S01", "valor": "NAO"},
+        data={"ID_PERGUNTA": "B3.03", "valor": "NAO"},
     )
     assert resposta_fechamento.status_code == 200
 
     resposta = cliente_http_real.post(
         f"/caso/{caso_id}/resposta",
-        data={"ID_PERGUNTA": "B3.S06A", "valor": "EMPRESTIMO"},
+        data={"ID_PERGUNTA": "B3.03B", "item_id": "REND001", "valor": "500,00"},
     )
     assert resposta.status_code == 400
-    assert _total_de_respostas(caso_id, "TIPO_MARGEM") == 0
+    assert _total_de_respostas(caso_id, "RENDA_RECORRENTE_ADICIONAL") == 0
 
 
 # ---------------------------------------------------------------------------
@@ -235,26 +229,30 @@ def test_pergunta_com_condicao_de_exibicao_falsa_e_recusada_sem_gravacao(
 
 
 def test_nao_sei_grava_sem_passar_pela_conversao_decimal(cliente_http_real: TestClient) -> None:
-    """`B3.S06B` é `MOEDA` — se a rota tentasse converter antes de checar
+    """`B3.03B` é `MOEDA` — se a rota tentasse converter antes de checar
     `nao_sei`, uma string vazia de `valor` seria recusada por `EC-01`
     (`ErroConversaoInvalida`) e a resposta HTTP seria `400`, não `200`. O
     `200` aqui, combinado com a leitura de `NAO_SEI` de volta, prova que o
     passo 3 (NAO_SEI pula a conversão) roda antes do passo 4."""
     caso_id = _caso_pronto_para_coleta(cliente_http_real)
+    abertura = cliente_http_real.post(
+        f"/caso/{caso_id}/resposta", data={"ID_PERGUNTA": "B3.03", "valor": "SIM"}
+    )
+    assert abertura.status_code == 200
 
     resposta = cliente_http_real.post(
         f"/caso/{caso_id}/resposta",
-        data={"ID_PERGUNTA": "B3.S06B", "item_id": "M001", "nao_sei": "on"},
+        data={"ID_PERGUNTA": "B3.03B", "item_id": "REND001", "nao_sei": "on"},
     )
     assert resposta.status_code == 200
 
     leitura = RepositorioRespostasSupabase().listar_do_caso(caso_id)
     from collection.respostas import NAO_SEI
 
-    valores_margem = {
-        (r.ID_PERGUNTA, r.item_id): r.valor for r in leitura if r.item_id == "M001"
+    valores_renda = {
+        (r.ID_PERGUNTA, r.item_id): r.valor for r in leitura if r.item_id == "REND001"
     }
-    assert valores_margem.get(("VALOR_TOTAL_MARGEM", "M001")) is NAO_SEI
+    assert valores_renda.get(("RENDA_RECORRENTE_ADICIONAL", "REND001")) is NAO_SEI
 
 
 # ---------------------------------------------------------------------------
@@ -265,59 +263,23 @@ def test_nao_sei_grava_sem_passar_pela_conversao_decimal(cliente_http_real: Test
 def test_ec01_entrada_monetaria_invalida_recusa_sem_gravar_apontando_o_campo(
     cliente_http_real: TestClient,
 ) -> None:
-    """`B3.S06B` (`MOEDA`) com `"mil reais"` — `app/montagem/conversao.py`
-    recusa (`EC-01`) antes de qualquer gravação; a mensagem devolvida cita a
-    variável do campo (`VALOR_TOTAL_MARGEM`)."""
+    """`B3.03B` (`MOEDA`) com `"mil reais"` — `app/montagem/conversao.py`
+    recusa (`EC-01`) antes de qualquer gravação; a mensagem devolvida não
+    cita a variável do campo (`RENDA_RECORRENTE_ADICIONAL`)."""
     caso_id = _caso_pronto_para_coleta(cliente_http_real)
+    abertura = cliente_http_real.post(
+        f"/caso/{caso_id}/resposta", data={"ID_PERGUNTA": "B3.03", "valor": "SIM"}
+    )
+    assert abertura.status_code == 200
 
     resposta = cliente_http_real.post(
         f"/caso/{caso_id}/resposta",
-        data={"ID_PERGUNTA": "B3.S06B", "item_id": "M002", "valor": "mil reais"},
+        data={"ID_PERGUNTA": "B3.03B", "item_id": "REND002", "valor": "mil reais"},
     )
 
     assert resposta.status_code == 400
-    assert "VALOR_TOTAL_MARGEM" not in resposta.text  # T-205: variável só no log
-    assert _total_de_respostas(caso_id, "VALOR_TOTAL_MARGEM") == 0
-
-
-# ---------------------------------------------------------------------------
-# EC-02 — validação cruzada falha recusa sem gravar, apontando os DOIS
-# campos.
-# ---------------------------------------------------------------------------
-
-
-def test_ec02_validacao_cruzada_falha_recusa_sem_gravar_apontando_os_dois_campos(
-    cliente_http_real: TestClient,
-) -> None:
-    """`VALOR_UTILIZADO_MARGEM <= VALOR_TOTAL_MARGEM`, validação cruzada
-    normativa real de `B3.S06B`/`B3.S06C`, por `MARGEM_ID`: grava
-    `VALOR_TOTAL_MARGEM=1000` primeiro, depois tenta
-    `VALOR_UTILIZADO_MARGEM=1200` no MESMO item — a segunda gravação é
-    recusada (`EC-02`), com a mensagem do próprio registro, e NENHUMA das
-    duas variáveis fica com o valor da tentativa recusada."""
-    caso_id = _caso_pronto_para_coleta(cliente_http_real)
-    item_id = "M003"
-
-    resposta_total = cliente_http_real.post(
-        f"/caso/{caso_id}/resposta",
-        data={"ID_PERGUNTA": "B3.S06B", "item_id": item_id, "valor": "1000,00"},
-    )
-    assert resposta_total.status_code == 200
-
-    resposta_utilizado = cliente_http_real.post(
-        f"/caso/{caso_id}/resposta",
-        data={"ID_PERGUNTA": "B3.S06C", "item_id": item_id, "valor": "1200,00"},
-    )
-
-    assert resposta_utilizado.status_code == 400
-    # `T-209`: só a `mensagem` do registro; os nomes das variáveis vão para o log.
-    assert "O valor utilizado não pode superar o valor total da margem." in (
-        resposta_utilizado.text
-    )
-    assert "VALOR_UTILIZADO_MARGEM" not in resposta_utilizado.text
-    # A resposta recusada nunca chegou a ser gravada — só a primeira
-    # (VALOR_TOTAL_MARGEM=1000) está no banco para este item.
-    assert _total_de_respostas(caso_id, "VALOR_UTILIZADO_MARGEM") == 0
+    assert "RENDA_RECORRENTE_ADICIONAL" not in resposta.text  # T-205: variável só no log
+    assert _total_de_respostas(caso_id, "RENDA_RECORRENTE_ADICIONAL") == 0
 
 
 # ---------------------------------------------------------------------------

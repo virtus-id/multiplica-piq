@@ -144,17 +144,6 @@ def test_ac_despesa_sem_classificacao_aparece_a_parte() -> None:
     assert ponto.despesas_nao_classificadas == formatar_dinheiro_br(Decimal("6500"))
 
 
-def test_ac_vinculo_da_divida_aparece_como_fato() -> None:
-    extras = (
-        _item("VINCULO_DA_DIVIDA", "V-1"),
-        _item("ORGAO_FONTE_PAGADORA", "Prefeitura de Teste", "V-1"),
-    )
-    contexto, _ = _plano(extras)
-    assert ("Vínculo em que é descontada", "Prefeitura de Teste") in contexto.ordem[0].fatos
-    sem, _ = _plano()
-    assert all(rotulo != "Vínculo em que é descontada" for rotulo, _ in sem.ordem[0].fatos)
-
-
 def test_ac_sem_vocabulario_nada_muda() -> None:
     caso = caso_completo()
     estado = montar_estado_financeiro(

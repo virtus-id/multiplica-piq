@@ -413,7 +413,18 @@ def test_ec09_modo_estabilizacao_nunca_rotula_resultado_como_sobra() -> None:
     # `T-177`: o valor chega com `R$` do servidor (antes era `"200.00"` e o
     # template prefixava). O que este teste guarda é a REDAÇÃO — que o
     # resultado nunca seja chamado de "sobra" —, e isso continua abaixo.
-    assert contexto.RESULTADO_CAIXA_OBSERVADO == "R$ 200,00"
+    # `T-407` (RF-419): a tela mostra o resultado ESTRUTURAL (GAB-04: renda
+    # 8.000 − despesas 6.500 − não mensais 500 − devidas 2.000 = −1.000), o
+    # mesmo número do corte, e as linhas do ponto de partida fecham com ele.
+    assert contexto.RESULTADO_CAIXA_OBSERVADO == "R$ -1.000,00"
+    assert contexto.FALTA_CORTAR == "R$ 1.000,00"
+    assert contexto.ponto_de_partida is not None
+    assert (contexto.ponto_de_partida.renda, contexto.ponto_de_partida.gastos) == (
+        "R$ 8.000,00",
+        "R$ 6.500,00",
+    )
+    assert contexto.ponto_de_partida.gastos_ocasionais == "R$ 500,00"
+    assert contexto.ponto_de_partida.parcelas == "R$ 2.000,00"
 
     html = _renderizar_plano_html_com_contexto(contexto)
     html_minusculo = html.lower()
@@ -424,7 +435,8 @@ def test_ec09_modo_estabilizacao_nunca_rotula_resultado_como_sobra() -> None:
         )
     # Prova positiva de que o resultado de caixa efetivamente aparece — o
     # teste acima não passaria trivialmente por ausência total do valor.
-    assert "200.00" in html or "200,00" in html
+    assert "R$ -1.000,00" in html
+    assert "faltam cortar R$ 1.000,00 por mês" in html
     # Fase 2 condicional: nenhuma posição de ORDEM_QUITACAO é exibida no
     # bloco de estabilização.
     assert "Posição 1 de" not in html

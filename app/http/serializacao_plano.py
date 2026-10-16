@@ -98,13 +98,6 @@ def vocabulario_do_caso(
     # `RF-412`: só respostas, transportadas; o texto e a frase de
     # responsabilidade são montados em `report/`.
     declaradas = respostas.valor("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL")
-    vinculos = {
-        divida: str(nome)
-        for divida in dividas
-        if (vinculo := respostas.valor_no_item(divida, "VINCULO_DA_DIVIDA")) is not None
-        and isinstance(vinculo, str)
-        and (nome := respostas.valor_no_item(vinculo, "ORGAO_FONTE_PAGADORA")) is not None
-    }
     return VocabularioDoCaso(
         rotulos_de_opcao=rotulos,
         credores=credores,
@@ -116,7 +109,6 @@ def vocabulario_do_caso(
         dividas_com_garantia=frozenset(
             d for d in dividas if respostas.valor_no_item(d, "POSSUI_GARANTIA") == "SIM"
         ),
-        vinculos=vinculos,
         fichas_faltando=isinstance(declaradas, int) and declaradas > len(dividas),
         # as mesmas respostas que o motor leu (`B3.04A` só vale com `B3.04` = Sim)
         resumo_das_despesas=resumo_das_despesas(_respostas_do_calculo(registros, respostas)),

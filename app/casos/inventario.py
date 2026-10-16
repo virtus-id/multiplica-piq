@@ -39,8 +39,6 @@ from typing import Final
 
 import yaml
 
-from collection.condicoes import avaliar
-from collection.opcoes_do_motor import sem_itens_para_escolher
 from collection.registro import EscopoRepeticao, RegistroPergunta
 from collection.respostas import RespostasCaso
 from persistencia.app_aluno.eventos import EventoCaso, RepositorioEventosCaso
@@ -67,9 +65,7 @@ class TIPO_PENDENCIA_INVENTARIO(Enum):
     DIVIDAS_ACIMA = "DIVIDAS_ACIMA"
     DIVIDAS_SEM_CONFIRMACAO = "DIVIDAS_SEM_CONFIRMACAO"
     RENDA_EXTRA_SEM_ITEM = "RENDA_EXTRA_SEM_ITEM"
-    VINCULO_SEM_ITEM = "VINCULO_SEM_ITEM"
     NAO_MENSAL_SEM_ITEM = "NAO_MENSAL_SEM_ITEM"
-    CONSIGNADO_SEM_VINCULO = "CONSIGNADO_SEM_VINCULO"
 
 
 # RF-88 — declaração "Sim" → escopo em que ao menos um item é exigido.
@@ -82,29 +78,11 @@ _DECLARACOES_DE_ITEM: Final[
         EscopoRepeticao.RENDA_ADICIONAL_ID,
     ),
     (
-        TIPO_PENDENCIA_INVENTARIO.VINCULO_SEM_ITEM,
-        "VINCULO_CONSIGNAVEL",
-        EscopoRepeticao.VINCULO_ID,
-    ),
-    (
         TIPO_PENDENCIA_INVENTARIO.NAO_MENSAL_SEM_ITEM,
         "DESPESAS_NAO_MENSAIS_EXISTE",
         EscopoRepeticao.DESPESA_NAO_MENSAL_ID,
     ),
 )
-
-
-# T-282 (DE-04) — escopo das opções de uma pergunta `ITENS_DO_ESCOPO` que
-# ficou sem item para escolher → a pendência e a declaração a corrigir. A
-# pergunta em si (qual, e quando se aplica) vem do registro, nunca daqui.
-_REFERENCIAS_SEM_ITEM: Final[
-    Mapping[EscopoRepeticao, tuple[TIPO_PENDENCIA_INVENTARIO, str]]
-] = {
-    EscopoRepeticao.VINCULO_ID: (
-        TIPO_PENDENCIA_INVENTARIO.CONSIGNADO_SEM_VINCULO,
-        "VINCULO_CONSIGNAVEL",
-    ),
-}
 
 
 @dataclass(frozen=True, slots=True)
@@ -212,7 +190,6 @@ def pendencias_de_inventario(
                     escopo=escopo,
                 )
             )
-    pendencias.extend(_referencias_sem_item(registros, respostas, itens_por_escopo))
     return tuple(pendencias)
 
 
@@ -259,43 +236,6 @@ def _rotulos(registros: tuple[RegistroPergunta, ...], variavel: str) -> dict[str
         for o in registro.opcoes
         if o.valor_interno is not None and not o.admite_nao_sei
     }
-
-
-def _referencias_sem_item(
-    registros: tuple[RegistroPergunta, ...],
-    respostas: RespostasCaso,
-    itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]],
-) -> tuple[PendenciaInventario, ...]:
-    """T-282 (`DE-04`, `AC-139`) — a pergunta que aponta um item do caso
-    (`B5.A02V`, o vínculo da dívida consignada) se aplica a algum item, mas
-    o escopo apontado não tem item nenhum: a ficha segue (a pergunta nem é
-    exibida, `sem_itens_para_escolher`) e a falta bloqueia só o cálculo
-    final. Uma pendência por escopo, com atalho para cadastrar o item."""
-    faltando: dict[EscopoRepeticao, PendenciaInventario] = {}
-    for registro in registros:
-        escopo = registro.origem_opcoes.escopo
-        if (
-            escopo is None
-            or escopo not in _REFERENCIAS_SEM_ITEM
-            or escopo in faltando
-            or not sem_itens_para_escolher(registro, itens_por_escopo)
-        ):
-            continue
-        tipo, variavel = _REFERENCIAS_SEM_ITEM[escopo]
-        id_declaracao = _id_da_variavel(registros, variavel)
-        condicao = registro.condicao_exibicao
-        if id_declaracao is not None and any(
-            condicao is None or avaliar(condicao, respostas, item_id)
-            for item_id in itens_por_escopo.get(registro.escopo_repeticao, ())
-        ):
-            faltando[escopo] = PendenciaInventario(
-                tipo=tipo,
-                declaradas=None,
-                cadastradas=0,
-                ID_PARA_CORRIGIR=id_declaracao,
-                escopo=escopo,
-            )
-    return tuple(faltando.values())
 
 
 class ErroInventarioIncompleto(Exception):

@@ -514,3 +514,8 @@ O responsável do produto aprovou, sem ajustes, as redações propostas na tabel
 **Regras de ordem das dívidas** (decisão do especialista, com a leitura do produto): a prioridade é bem essencial (`B5.F03`), dívida negativada (`B5.E03`), peso por tipo de garantia (`B5.F02`, imóvel 3, veículo 2, outros 1), urgência soma 20% ao peso emocional (`B5.H03`) e, se a diferença de custo for de até 5%, o aluno escolhe a primeira (`B5.H04`). Exige regra normativa nova na spec do motor.
 
 **Mês no negativo:** o plano mostra o passo de equilibrar o mês e quanto falta cortar para chegar a zero.
+
+### RF-419. Limpeza antes da publicação e resultado do mês no negativo (2026-10-16)
+- No plano de estabilização, "o resultado do seu mês é de" usa o resultado estrutural do motor (`RESULTADO_MENSAL_ATUAL`, o mesmo que ativa o modo e que gera "quanto falta cortar"), e os números da tela fecham entre si.
+- Limpeza: código e testes sem origem depois da saída de `B3.S01` e `B5.A02V` (pendências de vínculo no inventário, exibição do vínculo no plano, escopo `VINCULO_ID` se não houver outro uso) e testes de banco desatualizados (`test_retomada.py`, `test_rota_resposta.py`) que citam perguntas removidas.
+- Casos de teste que aguardam revisão no banco ficam como estão (decisão do produto).
