@@ -36,6 +36,7 @@ const CASO = {
     pendencias: null,
     MODO_ESTABILIZACAO: false,
     RESULTADO_CAIXA_OBSERVADO: "",
+    FALTA_CORTAR: "",
     reserva_mobilizavel: { pendente_de_decisao: false, valor: null },
   },
   estado_inputs: {

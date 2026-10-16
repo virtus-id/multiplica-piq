@@ -214,14 +214,6 @@ class TestAC07InventarioCompletoNoEstadoDePontaAPonta:
 
         assert estado.INVENTARIO_COMPLETO is False
 
-    def test_confirmacao_fim_cadastro_nao_sei_produz_inventario_completo_falso(self) -> None:
-        """"Não tenho certeza.", valor_interno NAO_SEI."""
-        caso = caso_completo(valores_caso={"CONFIRMACAO_FIM_CADASTRO": "NAO_SEI"})
-
-        estado = _montar_estado_do_caso(caso)
-
-        assert estado.INVENTARIO_COMPLETO is False
-
 
 # ---------------------------------------------------------------------------
 # AC-18 — duas montagens com a mesma DATA_REFERENCIA produzem estados iguais.

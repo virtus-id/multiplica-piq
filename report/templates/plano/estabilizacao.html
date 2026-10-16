@@ -18,5 +18,8 @@
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.estabilizacao.get("titulo", "Primeiro, equilibrar o seu mês"), "conferencia") }}
     <div class="aviso">
         <p style="margin: 0;">{{ textos.estabilizacao.get("texto", "").format(valor=RESULTADO_CAIXA_OBSERVADO) }}</p>
+        {% if FALTA_CORTAR is defined and textos.estabilizacao.get("falta_cortar") %}
+        <p style="margin: 8px 0 0 0;">{{ textos.estabilizacao.falta_cortar.format(valor=FALTA_CORTAR) }}</p>
+        {% endif %}
     </div>
 </section>

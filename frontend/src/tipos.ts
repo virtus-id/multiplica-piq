@@ -393,6 +393,8 @@ export interface Plano {
   pendencias: Pendencias | null
   MODO_ESTABILIZACAO: boolean
   RESULTADO_CAIXA_OBSERVADO: string
+  /** `T-405`: quanto falta cortar por mês para chegar a zero (`DEFICIT_MENSAL`). */
+  FALTA_CORTAR: string
   reserva_mobilizavel: ReservaMobilizavel
   /**
    * `RF-98`, `AC-152` (`T-276`): a segunda projeção do motor, com os

@@ -209,10 +209,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 ### `T-405` — Textos de reserva, "Sim ou Não direto" e quanto falta cortar
 
 - **Tipo:** `CHANGE` · **Dependências:** `T-404` · **Rastreia:** `RF-418`, `RF-411`
-- [ ] `B4.03` e `B4.03A` com os textos diretos; sai o "Não sei" de `B4.01`, `B4.04`, `B5.B05`, `B5.FIM02`
-- [ ] Plano de quem fecha o mês no negativo mostra quanto falta cortar para chegar a zero
+- [x] `B4.03` e `B4.03A` com os textos diretos; sai o "Não sei" de `B4.01`, `B4.04`, `B5.B05`, `B5.FIM02`
+- [x] Plano de quem fecha o mês no negativo mostra quanto falta cortar para chegar a zero
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída`
 
 ### `T-406` — Regras de ordem das dívidas
 

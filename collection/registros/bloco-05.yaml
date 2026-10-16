@@ -125,13 +125,12 @@ perguntas:
       - {rotulo: "Sim.", valor_interno: SIM}
       - {rotulo: "Não.", valor_interno: NAO}
       - {rotulo: "Consultei, mas o valor já venceu/expirou.", valor_interno: EXPIROU}
-      - {rotulo: Não sei., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: QUITACAO_CONSULTADA
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
       SIM → B5.B05A e B5.B05B. EXPIROU → B5.B05A como histórico
       (STATUS_VALIDADE_PROPOSTA = EXPIRADA). NAO → ação de consulta (Bloco
@@ -644,13 +643,12 @@ perguntas:
     opcoes:
       - {rotulo: Sim. O inventário está completo., valor_interno: SIM}
       - {rotulo: Não. Ainda falta pelo menos uma dívida., valor_interno: NAO}
-      - {rotulo: Não tenho certeza., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: CONFIRMACAO_FIM_CADASTRO
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
       ≠ SIM → INVENTARIO_COMPLETO = falso → bloqueio global da Ordem
       Definitiva; diagnóstico parcial permitido. SYS:

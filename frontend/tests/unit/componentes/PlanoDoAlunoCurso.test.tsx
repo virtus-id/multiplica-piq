@@ -61,6 +61,7 @@ function plano(extra: Partial<Plano> = {}, incomodo = '', aviso = ''): Plano {
     pendencias: null,
     MODO_ESTABILIZACAO: false,
     RESULTADO_CAIXA_OBSERVADO: '',
+    FALTA_CORTAR: "",
     reserva_mobilizavel: { pendente_de_decisao: false, valor: '' },
     cenario_adicional: null,
     nao_projetados: [],

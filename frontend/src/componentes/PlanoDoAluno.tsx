@@ -95,7 +95,8 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
             <strong className="block">Primeiro, equilibrar o seu mês.</strong>
             Hoje, considerando o que entra e o que sai, o resultado do seu mês é de{' '}
             {plano.RESULTADO_CAIXA_OBSERVADO}. Esse valor ainda não pode ser usado para quitar
-            dívidas. Nesta fase, o objetivo é equilibrar as contas do mês.
+            dívidas. Nesta fase, o objetivo é equilibrar as contas do mês. Para chegar a zero,
+            faltam cortar {plano.FALTA_CORTAR} por mês.
           </div>
         </div>
       )}

@@ -148,6 +148,7 @@ def renderizar_html_do_plano(
         pendencias=contexto.pendencias,
         MODO_ESTABILIZACAO=contexto.MODO_ESTABILIZACAO,
         RESULTADO_CAIXA_OBSERVADO=contexto.RESULTADO_CAIXA_OBSERVADO,
+        FALTA_CORTAR=contexto.FALTA_CORTAR,
         # T-116 (RF-43) — `reserva_mobilizavel.html` é incluído por
         # `plano.html` e precisa do contexto tanto na tela quanto no PDF:
         # esta é a ÚNICA função de renderização das duas apresentações.

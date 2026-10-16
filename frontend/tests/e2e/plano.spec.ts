@@ -69,6 +69,7 @@ const PLANO_LIBERADO = {
     pendencias: null,
     MODO_ESTABILIZACAO: false,
     RESULTADO_CAIXA_OBSERVADO: '7700.00',
+    FALTA_CORTAR: "",
     reserva_mobilizavel: { pendente_de_decisao: false, valor: '3000.00' },
   },
 }

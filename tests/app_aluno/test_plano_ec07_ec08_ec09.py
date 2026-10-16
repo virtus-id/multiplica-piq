@@ -88,6 +88,7 @@ from report.plano import (
     TextosCanonicosPlano,
     carregar_textos_canonicos,
     decidir_cenario_apresentacao,
+    formatar_dinheiro_br,
     montar_contexto_plano,
 )
 from tests.app_aluno.fixtures.caso_completo import (
@@ -133,6 +134,7 @@ def _renderizar_plano_html_com_contexto(
         pendencias_acionaveis=contexto.pendencias_acionaveis,
         MODO_ESTABILIZACAO=contexto.MODO_ESTABILIZACAO,
         RESULTADO_CAIXA_OBSERVADO=contexto.RESULTADO_CAIXA_OBSERVADO,
+        FALTA_CORTAR=contexto.FALTA_CORTAR,
         reserva_mobilizavel=contexto.reserva_mobilizavel,
         metodo=contexto.metodo,
         valor_mensal_destinado=contexto.valor_mensal_destinado,
@@ -426,3 +428,21 @@ def test_ec09_modo_estabilizacao_nunca_rotula_resultado_como_sobra() -> None:
     # Fase 2 condicional: nenhuma posição de ORDEM_QUITACAO é exibida no
     # bloco de estabilização.
     assert "Posição 1 de" not in html
+
+
+def test_t405_estabilizacao_mostra_quanto_falta_cortar_igual_ao_deficit_do_motor() -> None:
+    """`T-405`/`RF-418`: o valor "falta cortar" é o `DEFICIT_MENSAL` do motor
+    (valor absoluto do resultado do mês negativo), no contexto e no HTML."""
+    estado = _estado_gab04()
+    parametros = FonteParametrosArquivo().carregar(_VERSAO_PARAMETROS_REAL)
+    snapshot = calcular_plano(estado, parametros)
+    deficit = snapshot.diagnostico.DEFICIT_MENSAL
+    assert deficit > 0
+    assert snapshot.diagnostico.RESULTADO_MENSAL_ATUAL == -deficit
+
+    contexto = montar_contexto_plano(snapshot, carregar_textos_canonicos())
+
+    esperado = formatar_dinheiro_br(deficit)
+    assert contexto.FALTA_CORTAR == esperado
+    html = _renderizar_plano_html_com_contexto(contexto)
+    assert f"Para chegar a zero, faltam cortar {esperado} por mês." in html

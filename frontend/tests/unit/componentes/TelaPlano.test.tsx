@@ -58,6 +58,7 @@ function plano(cenario_adicional: CenarioAdicional | null): Plano {
     pendencias: null,
     MODO_ESTABILIZACAO: false,
     RESULTADO_CAIXA_OBSERVADO: "",
+    FALTA_CORTAR: "",
     reserva_mobilizavel: { pendente_de_decisao: true, valor: "" },
     cenario_adicional,
     nao_projetados: [],

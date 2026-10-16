@@ -383,18 +383,6 @@ class TestAC59EEC20DinheiroDisponivelIndeterminado:
                 }
             )
 
-    def test_ec20_nao_sei_com_b4_01a_nao_exibida_levanta_a_mesma_excecao(self) -> None:
-        """`EC-20` — `B4.01 = NAO_SEI` (`bloco-04.yaml:18`) com `B4.01A` não
-        exibida (`condicao_exibicao` exige `SIM`, `:36`) → a MESMA exceção
-        nomeada. "Não sei ao certo" não é "não possuo": colapsá-lo em zero
-        seria inventar a resposta que o aluno declarou não ter."""
-        with pytest.raises(ErroDinheiroDisponivelIndeterminado) as capturado:
-            _montar(
-                sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "NAO_SEI"},
-                remover=("DINHEIRO_DISPONIVEL",),
-            )
-        assert capturado.value.VARIAVEL_GRAVADA == "DINHEIRO_DISPONIVEL_EXISTE"
-
     def test_ec20_a_excecao_e_capturavel_distintamente_das_outras_duas(self) -> None:
         """`EC-20` — `ErroDinheiroDisponivelIndeterminado` é capturável
         DISTINTAMENTE de `ErroRespostaAusente` e de
@@ -414,7 +402,7 @@ class TestAC59EEC20DinheiroDisponivelIndeterminado:
 
         try:
             _montar(
-                sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "NAO_SEI"},
+                sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "TALVEZ"},
                 remover=("DINHEIRO_DISPONIVEL",),
             )
         except (ErroRespostaAusente, ErroCampoAgregadoDesconhecido) as erro:  # pragma: no cover

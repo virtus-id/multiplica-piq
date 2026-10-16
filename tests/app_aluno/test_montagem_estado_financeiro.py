@@ -698,23 +698,6 @@ class TestAC07InventarioCompleto:
 
         assert estado.INVENTARIO_COMPLETO is False
 
-    def test_nao_sei_produz_inventario_completo_falso(self) -> None:
-        """AC-07: "Não tenho certeza" produz False."""
-        respostas = _respostas_minimas_completas(CONFIRMACAO_FIM_CADASTRO="NAO_SEI")
-
-        estado = _montar(respostas)
-
-        assert estado.INVENTARIO_COMPLETO is False
-
-    def test_nao_sei_como_sentinela_nao_sei_tambem_produz_falso(self) -> None:
-        """O sentinela NAO_SEI (collection.respostas) também não é SIM —
-        mesmo resultado do valor_interno "NAO_SEI" gravado como string."""
-        respostas = _respostas_minimas_completas(CONFIRMACAO_FIM_CADASTRO=NAO_SEI)
-
-        estado = _montar(respostas)
-
-        assert estado.INVENTARIO_COMPLETO is False
-
     def test_ausencia_de_resposta_produz_inventario_completo_falso_nunca_true(self) -> None:
         """Segundo critério de aceite de T-52: B5.FIM02 não respondida
         produz False, nunca True por omissão."""

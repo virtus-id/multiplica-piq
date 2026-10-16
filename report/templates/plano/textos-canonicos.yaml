@@ -631,6 +631,8 @@ estabilizacao:
     fase, o objetivo é equilibrar as contas do mês. Quando isso acontecer,
     começa a segunda fase do plano, em que as dívidas passam a ser quitadas
     uma a uma.
+  # T-405 (RF-418): o quanto falta cortar é `DEFICIT_MENSAL` do motor.
+  falta_cortar: "Para chegar a zero, faltam cortar {valor} por mês."
 
 # ---------------------------------------------------------------------------
 # Curso de entrada (Servidor Sem Dívidas) — T-352 a T-354.

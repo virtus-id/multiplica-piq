@@ -1099,6 +1099,9 @@ class ContextoPlano:
     pendencias: ContextoPendencias | None
     MODO_ESTABILIZACAO: bool
     RESULTADO_CAIXA_OBSERVADO: str
+    #: `T-405` (RF-418): `Diagnostico.DEFICIT_MENSAL` formatado, quanto falta
+    #: cortar por mês para chegar a zero; só é exibido em estabilização.
+    FALTA_CORTAR: str
     reserva_mobilizavel: ContextoReservaMobilizavel
     #: `RF-98`/`AC-152` (`T-276`): seção à parte, NUNCA misturada aos campos
     #: acima — que continuam lidos só do cenário recomendado.
@@ -2006,6 +2009,7 @@ def montar_contexto_plano(
         RESULTADO_CAIXA_OBSERVADO=formatar_dinheiro_br(
             snapshot.diagnostico.RESULTADO_CAIXA_OBSERVADO
         ),
+        FALTA_CORTAR=formatar_dinheiro_br(snapshot.diagnostico.DEFICIT_MENSAL),
         reserva_mobilizavel=_reserva_mobilizavel(snapshot),
         cenario_adicional=_cenario_adicional(snapshot, textos, nomes),
         nao_projetados=tuple(

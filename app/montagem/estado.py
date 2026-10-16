@@ -510,27 +510,17 @@ def _taxa_mensal_normalizada(respostas: RespostasCaso, DIVIDA_ID: str) -> TaxaTa
 
 
 def _quitacao_consultada(valor: ValorResposta | None) -> SimNaoTalvez:
-    """`B5.B05` (`QUITACAO_CONSULTADA`) tem domínio `SIM · NAO · EXPIROU ·
-    NAO_SEI` na canônica, mas `Divida.QUITACAO_CONSULTADA` é tipado
-    `SimNaoTalvez` (`SIM/NAO/TALVEZ`, sem `Desconhecido`) — os dois domínios
-    não coincidem 1:1 (ambiguidade da canônica vs. contrato do motor,
-    mesma natureza das já registradas em T-17). Decisão desta tarefa,
-    documentada: `EXPIROU` significa "consultou, mas o valor venceu" — o
-    FATO relevante para `SimNaoTalvez` é que a consulta ocorreu, e a
-    invalidade é tratada à parte por `STATUS_VALIDADE_PROPOSTA`; por isso
-    `EXPIROU → SIM`. `NAO_SEI` é a única leitura de incerteza que o domínio
-    fechado `SimNaoTalvez` oferece, por isso `NAO_SEI → TALVEZ` (não é
-    idêntico semanticamente, mas é a opção não-inventada mais próxima dentro
-    do domínio fechado que o contrato do motor aceita para este campo
-    específico — `Divida.QUITACAO_CONSULTADA` não admite `DESCONHECIDO`)."""
+    """`B5.B05` (`QUITACAO_CONSULTADA`) tem domínio `SIM · NAO · EXPIROU`
+    (`T-405`, RF-418: sem "Não sei"). `Divida.QUITACAO_CONSULTADA` é tipado
+    `SimNaoTalvez`; `EXPIROU` significa "consultou, mas o valor venceu" — o
+    FATO relevante é que a consulta ocorreu, e a invalidade é tratada à
+    parte por `STATUS_VALIDADE_PROPOSTA`; por isso `EXPIROU → SIM`."""
     if valor is None:
         return SimNaoTalvez.NAO
     if valor == "SIM" or valor == "EXPIROU":
         return SimNaoTalvez.SIM
     if valor == "NAO":
         return SimNaoTalvez.NAO
-    if valor is NAO_SEI or valor == "NAO_SEI":
-        return SimNaoTalvez.TALVEZ
     raise ValueError(f"QUITACAO_CONSULTADA: valor inesperado {valor!r}")
 
 
@@ -1161,9 +1151,9 @@ def _contribuicao_extra_mensal(respostas: RespostasCaso) -> Dinheiro | None:
 
 def _inventario_completo(respostas: RespostasCaso) -> bool:
     """`B5.FIM02` (`CONFIRMACAO_FIM_CADASTRO`) — `RF-15`, `AC-07`. Domínio
-    real de `valor_interno` (`collection/registros/bloco-05.yaml`, T-17):
-    `SIM · NAO · NAO_SEI`. Qualquer resposta diferente de `SIM` — incluindo
-    `NAO_SEI` e a própria ausência de resposta — produz `INVENTARIO_COMPLETO
+    real de `valor_interno` (`collection/registros/bloco-05.yaml`, T-405):
+    `SIM · NAO`. Qualquer resposta diferente de `SIM` — incluindo
+    a própria ausência de resposta — produz `INVENTARIO_COMPLETO
     = False`; só `SIM` produz `True`. Mapeamento por `valor_interno`, nunca
     por texto de enunciado (terceiro critério de aceite de T-52).
 
@@ -1348,9 +1338,9 @@ def _dinheiro_disponivel(respostas: RespostasCaso) -> Dinheiro:
     - `B4.01 = SIM` + `B4.01A` com `Decimal` → o próprio `Decimal` (`AC-57`).
     - `B4.01 = NAO` (`B4.01A` não exibida, `condicao_exibicao`, `:36`) →
       `_ZERO` (`AC-58`).
-    - `B4.01 = NAO_SEI` (`:18`) → erro nomeado (`EC-20`).
     - `B4.01` ausente → erro nomeado (`AC-59`).
     - `B4.01 = SIM` com `B4.01A` ausente ou `NAO_SEI` → erro nomeado.
+      (`B4.01` não tem mais "Não sei", `T-405`; resposta fora de SIM/NAO segue erro.)
 
     **O `_ZERO` do ramo `NAO` NÃO é default.** `sdd.config.md` §4 proíbe
     inventar dado; não proíbe transcrever um zero que o aluno declarou.
@@ -1372,8 +1362,7 @@ def _dinheiro_disponivel(respostas: RespostasCaso) -> Dinheiro:
     if existe == "NAO":
         return _ZERO
     if existe != "SIM":
-        # Sobra apenas `NAO_SEI` (`bloco-04.yaml:18`) — e qualquer
-        # `valor_interno` fora do domínio, que também não autoriza um valor.
+        # Qualquer `valor_interno` fora do domínio não autoriza um valor.
         raise ErroDinheiroDisponivelIndeterminado(
             "DINHEIRO_DISPONIVEL_EXISTE", "resposta não afirma valor conhecido"
         )

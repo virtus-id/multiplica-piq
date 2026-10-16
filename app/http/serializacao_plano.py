@@ -242,6 +242,7 @@ def serializar_plano(
         },
         "MODO_ESTABILIZACAO": contexto.MODO_ESTABILIZACAO,
         "RESULTADO_CAIXA_OBSERVADO": contexto.RESULTADO_CAIXA_OBSERVADO,
+        "FALTA_CORTAR": contexto.FALTA_CORTAR,
         "reserva_mobilizavel": {
             # `AC-70`: reserva desconhecida é ESTADO explícito, nunca
             # `R$ 0,00` e nunca campo omitido.
