@@ -335,6 +335,13 @@ def _divida(bruto: dict[str, Any]) -> Divida:
         TROCA_PENDENTE=bruto["TROCA_PENDENTE"],
         RISCO_MATERIAL_IMINENTE=bruto["RISCO_MATERIAL_IMINENTE"],
         OPORTUNIDADE_VIGENTE=_oportunidade(bruto["OPORTUNIDADE_VIGENTE"]),
+        # `§16.4` (`T-406`): snapshot gravado antes da regra não tem os cinco
+        # campos; ausentes valem o neutro (a regra não se aplica).
+        GARANTIA_ESSENCIAL=bruto.get("GARANTIA_ESSENCIAL", False),
+        NEGATIVADA=bruto.get("NEGATIVADA", False),
+        TIPO_GARANTIA=bruto.get("TIPO_GARANTIA"),
+        URGENCIA_PERCEBIDA=bruto.get("URGENCIA_PERCEBIDA"),
+        PREFERENCIA_QUITACAO=bruto.get("PREFERENCIA_QUITACAO", False),
     )
 
 

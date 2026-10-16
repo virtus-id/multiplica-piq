@@ -532,7 +532,7 @@ def formatar_escala_br(valor: Decimal | int) -> str:
 
 #: `T-326` — dados inteiros que são `ESCALA_0_10`: "6 de 10", não "6".
 _ESCALAS: Final[frozenset[str]] = frozenset(
-    {"PESO_EMOCIONAL", "NECESSIDADE_VITORIA", "AUTOPERCEPCAO_CONTROLE"}
+    {"PESO_EMOCIONAL", "NECESSIDADE_VITORIA", "AUTOPERCEPCAO_CONTROLE", "URGENCIA_PERCEBIDA"}
 )
 
 #: `T-326` — identificadores dos itens: vão ao revisor como detalhe

@@ -217,7 +217,7 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 ### `T-406` — Regras de ordem das dívidas
 
 - **Tipo:** `FEATURE` · **Dependências:** `T-404` · **Rastreia:** `RF-418`, `RF-404`
-- [ ] Spec do motor: regra normativa de ordem (essencial, negativada, peso da garantia 3/2/1, urgência +20%, escolha do aluno com diferença de custo de até 5%) com critérios de aceite
-- [ ] Perguntas `B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04` ligadas na montagem e no motor, com hash congelado e testes por critério
+- [x] Spec do motor: regra normativa de ordem (essencial, negativada, peso da garantia 3/2/1, urgência +20%, escolha do aluno com diferença de custo de até 5%) com critérios de aceite
+- [x] Perguntas `B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04` ligadas na montagem e no motor, com hash congelado e testes por critério
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída`

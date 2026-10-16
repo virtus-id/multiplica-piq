@@ -198,7 +198,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 from enum import Enum
-from typing import Final
+from typing import Any, Final
 
 from app.montagem.conversao import converter_para_dinheiro
 from collection.registro import EscopoRepeticao
@@ -622,7 +622,34 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         TROCA_PENDENTE=False,
         RISCO_MATERIAL_IMINENTE=False,
         OPORTUNIDADE_VIGENTE=None,
+        **_campos_prioridade_ordem(respostas, DIVIDA_ID),
     )
+
+
+def _campos_prioridade_ordem(respostas: RespostasCaso, DIVIDA_ID: str) -> dict[str, Any]:
+    """`§16.4` (`T-406`, `RF-418`): leitura das cinco respostas que o motor usa
+    na prioridade da ordem. Só traduz resposta em campo da `Divida`; o peso da
+    garantia, os 20% da urgência e a escolha do aluno são do motor. Ausente,
+    `NAO`, `NAO_SEI` ou qualquer valor fora do esperado = valor neutro (a regra
+    não se aplica). `B5.F02` e `B5.F03` só valem com `B5.F01 = SIM`, porque são
+    condicionais: resposta antiga de uma ficha que deixou de ter garantia é
+    ignorada."""
+    tem_garantia = respostas.valor_no_item(DIVIDA_ID, "POSSUI_GARANTIA") == "SIM"
+    tipo_garantia = respostas.valor_no_item(DIVIDA_ID, "TIPO_GARANTIA")
+    urgencia = respostas.valor_no_item(DIVIDA_ID, "URGENCIA_PERCEBIDA")
+    return {
+        "GARANTIA_ESSENCIAL": tem_garantia
+        and respostas.valor_no_item(DIVIDA_ID, "GARANTIA_ESSENCIAL") == "ESSENCIAL",
+        "NEGATIVADA": respostas.valor_no_item(DIVIDA_ID, "NEGATIVACAO") == "SIM",
+        "TIPO_GARANTIA": tipo_garantia
+        if tem_garantia and isinstance(tipo_garantia, str) and tipo_garantia != "NAO_SEI"
+        else None,
+        "URGENCIA_PERCEBIDA": urgencia
+        if isinstance(urgencia, int) and not isinstance(urgencia, bool)
+        else None,
+        "PREFERENCIA_QUITACAO": respostas.valor_no_item(DIVIDA_ID, "PREFERENCIA_QUITACAO")
+        == "SIM",
+    }
 
 
 # ---------------------------------------------------------------------------

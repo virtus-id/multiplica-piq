@@ -254,6 +254,12 @@ rotulos_de_dados:
   TROCA_PENDENTE: "Troca de dívida pendente"
   RISCO_MATERIAL_IMINENTE: "Risco material iminente"
   OPORTUNIDADE_VIGENTE: "Oportunidade de quitação vigente"
+  # `T-406` (`§16.4`): respostas que reordenam a quitação.
+  GARANTIA_ESSENCIAL: "Bem da garantia é essencial"
+  NEGATIVADA: "Está negativada"
+  TIPO_GARANTIA: "Tipo de garantia"
+  URGENCIA_PERCEBIDA: "Urgência para resolver"
+  PREFERENCIA_QUITACAO: "Seria uma das primeiras a quitar"
   beneficio: "Benefício"
   recurso_disponivel: "Recurso disponível"
   prazo: "Prazo"

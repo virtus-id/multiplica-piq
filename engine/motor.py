@@ -141,6 +141,7 @@ from engine.metodos.hibrido import criar_selecionar_alvo_hibrido
 from engine.ordem import consolidar_ORDEM_STATUS, publicar_ORDEM_QUITACAO
 from engine.parametros import Parametros
 from engine.precisao import CONTEXTO_MOTOR, dinheiro
+from engine.prioridade_ordem import aplicar_prioridade_ordem
 from engine.prognostico import calcular_prognostico
 from engine.snapshot import SnapshotOrdem, montar_SnapshotOrdem
 from engine.status_metodo import derivar_METODO_RECOMENDADO_PIQ
@@ -460,7 +461,9 @@ def calcular_plano(
         # ErroInvariante de qualquer executar_mes() PROPAGA sem ser
         # capturado (critério de aceite 5) — nenhum try/except envolve estas
         # três chamadas.
-        sel_avalanche = criar_selecionar_alvo_avalanche(dividas, parametros)
+        sel_avalanche = aplicar_prioridade_ordem(
+            criar_selecionar_alvo_avalanche(dividas, parametros), dividas, parametros
+        )
         cenario_avalanche = dataclasses.replace(
             simular_cenario(
                 estado, diagnostico_pre, dividas, sel_avalanche, parametros, aportes_base_por_mes
@@ -468,7 +471,9 @@ def calcular_plano(
             metodo=METODO.AVALANCHE,
         )
 
-        sel_bola_de_neve = criar_selecionar_alvo_bola_de_neve(dividas, parametros)
+        sel_bola_de_neve = aplicar_prioridade_ordem(
+            criar_selecionar_alvo_bola_de_neve(dividas, parametros), dividas, parametros
+        )
         cenario_bola_de_neve = dataclasses.replace(
             simular_cenario(
                 estado, diagnostico_pre, dividas, sel_bola_de_neve, parametros, aportes_base_por_mes
@@ -489,7 +494,9 @@ def calcular_plano(
                     estado,
                     diagnostico_pre,
                     dividas,
-                    resultado_hibrido.selecionar_alvo,
+                    aplicar_prioridade_ordem(
+                        resultado_hibrido.selecionar_alvo, dividas, parametros
+                    ),
                     parametros,
                     aportes_base_por_mes,
                 ),

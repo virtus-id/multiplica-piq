@@ -555,6 +555,13 @@ class Divida:
     TROCA_PENDENTE: bool  # Gate 3
     RISCO_MATERIAL_IMINENTE: bool  # Gate 2
     OPORTUNIDADE_VIGENTE: Oportunidade | None  # Gate 4
+    # `§16.4` (`T-406`): prioridade na ordem de quitação. Todos com valor neutro
+    # (regra não se aplica): carteira sem essas respostas ordena como antes.
+    GARANTIA_ESSENCIAL: bool = False  # B5.F03 = ESSENCIAL
+    NEGATIVADA: bool = False  # B5.E03 = SIM
+    TIPO_GARANTIA: str | None = None  # B5.F02 (IMOVEL, VEICULO, ...)
+    URGENCIA_PERCEBIDA: int | None = None  # B5.H03 · 0–10
+    PREFERENCIA_QUITACAO: bool = False  # B5.H04 = SIM
 
     def __post_init__(self) -> None:
         _recusar_float(self)

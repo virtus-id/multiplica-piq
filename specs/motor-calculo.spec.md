@@ -1539,6 +1539,10 @@ Atende: `RF-70`, `RF-71`, `RF-72`, `RF-73`, `RF-74`, `RF-75`, `RF-76`
 | `OQ-48` | Como se **quantifica** a preservação de `RF-74`? Quais "parâmetros de reserva já existentes" e como tratar despesas sazonais que já estão em `DESPESAS_NAO_MENSAIS_NORMALIZADAS` (preservar de novo seria dupla contagem)? | Sem regra, o valor destinado às dívidas não é determinístico | `RF-74`, `AC-126` | `resolvida` (2026-09-30) — decisão da equipe técnica com base em `DE-02`/obs de `q2_1`: a preservação usa as regras de mobilização/reserva já existentes (§13.3, `RESERVA_MOBILIZAVEL`), aplicadas no mês em que o recurso é projetado; sem parâmetro novo (`RF-74`, `AC-126`). **Nota (2026-09-30, `T-155`/`T-167`):** leitura de `RF-74` confirmada pelo responsável do produto — a preservação é a trava de déficit já existente do §13.4: com `RESULTADO_MENSAL_ATUAL < 0` nenhum aporte é destinado; fora dela `VALOR_DESTINADO = VALOR_RECURSO_EXTRAORDINARIO` (valor líquido). Nenhuma dedução de essenciais/sazonais (já fora da capacidade — seria dupla contagem). Reversível: uma expressão em `engine/extraordinarios.py::selecionar_aportes` (plano `R9M.10` #1) |
 | `OQ-49` | Qual é a **forma do cenário adicional** de `PROVAVEL`/`POSSIVEL`: só a lista dos itens, ou uma projeção alternativa completa (prazo e custo com os itens)? Um cenário por item ou um conjunto? | Define o campo novo de saída e o que o relatório mostra | `RF-71`, `AC-120` | `resolvida` (2026-09-30, revista no mesmo dia) — segunda projeção incluindo `PROVAVEL` **e** `POSSIVEL`, apresentada à parte e rotulada; forma de exibição a critério do plano. Base: `DE-02` ("Prováveis e Possíveis aparecem só como cenário adicional"), **confirmado pelo responsável do produto em nome do especialista em 30/09/2026** ("é isso mesmo"). A divergência com o `obs` de `q2_3` ("(3) Incerto — não considerar até confirmação") fica **superada** por essa confirmação posterior (`RF-71`, `AC-120`, `AC-131`) |
 | `OQ-50` | Recurso `CONFIRMADO` projetado precisa de **aprovação do aluno** (como `ATAQUE_IMEDIATO_APROVADO`, §13.6) antes de entrar na projeção? E `CONFIRMADO` em `ATE_30D` ainda não recebido é ataque de hoje ou aporte no mês 1? | §13.6 diz que só o aprovado entra no cronograma como ataque imediato; `DE-02` diz que confirmados entram na projeção | `RF-70`, `RF-73`, `EC-54` | `resolvida` (2026-09-30, mantida após revisão) — decisão da equipe técnica com base em `DE-02`: não exige aprovação do aluno; `ATE_30D` `CONFIRMADO` segue a regra **atual** do §13.3 (ataque de hoje), inalterada, e não é duplicado na projeção. **Justificativa:** `DE-02` declara expressamente "Ataque de hoje (§13.3, `EXTRAORDINARIOS_RECOMENDADOS`): só o que já está disponível no momento — **regra atual mantida**"; esta resolução não reinterpreta o §13.3, apenas o preserva como está, e evita contar o item duas vezes (§13.8) (`RF-73`, `AC-130`, `EC-54`) |
+| `OQ-51` | Como se lê "urgência soma 20% ao peso emocional" (`B5.H03`, regra `§16.4`)? Soma de `0,20 × urgência` ao peso, mistura ponderada ou multiplicador? | Define a escala do peso efetivo e quem desempata | — | `resolvida` (2026-10-16, interpretação conservadora, a confirmar com o especialista) — `peso + 0,20 × urgência`, só nos desempates onde o peso emocional já atuava |
+| `OQ-52` | "Negativada passa na frente das demais atrasadas": também passa na frente de dívida não atrasada? | `STATUS_DIVIDA` não tem "atrasada" | — | `resolvida` (2026-10-16, a confirmar) — passa na frente das demais do mesmo nível do passo 1 |
+| `OQ-53` | Qual é a "diferença de custo" de 5% e entre quais candidatas? | Define quando a escolha do aluno (`B5.H04`) vale | — | `resolvida` (2026-10-16, a confirmar) — relativa à maior `TAXA_EFETIVA_MENSAL_NORMALIZADA` entre as duas primeiras do grupo; o 5% é `P_DIFERENCA_CUSTO_EQUIVALENTE` |
+| `OQ-54` | "Outros 1": entram aval/fiança e saldo/aplicação financeira como garantia de peso 1? | Define o peso de tipos que não são bem físico | — | `resolvida` (2026-10-16, a confirmar) — sim, todo tipo declarado diferente de imóvel e veículo pesa 1 |
 
 ## 11. Definições incorporadas
 
@@ -2993,3 +2997,119 @@ nenhuma das duas                            → desconhecido
 | `§16.3-C3` | sobra 0,01 e calculado 0,00; sobra 10 e calculado 10 | `0,01` (sem tolerância); `0` |
 | `§16.3-C4` | calculado desconhecido com sobra 1; ou nenhum valor percebido com calculado 1 | `DESCONHECIDO` nos dois casos (nunca `0`) |
 | `§16.3-C5` | sobra e falta informadas ao mesmo tempo | usa a sobra; a falta é ignorada (ainda sem teste dedicado: acompanhar na `T-403`) |
+
+---
+
+### 16.4. Prioridade na ordem de quitação — regra `§16.4`
+
+> **Origem.** Decisão do especialista (levantamento do produto de 2026-10-16),
+> feature `enxugamento-questionario`, requisito 418, tarefa `T-406`. As
+> cinco perguntas por dívida já existem no Bloco 5 (`B5.E03`, `B5.F02`,
+> `B5.F03`, `B5.H03`, `B5.H04`); o que faltava era a regra de ordem. **Mudança
+> de motor:** uma função pura nova (`engine/prioridade_ordem.py`), cinco campos
+> opcionais em `Divida` (com valor neutro) e a troca do peso emocional pelo peso
+> emocional efetivo nas duas cadeias de desempate que já o usam (`O-05`, nível 3,
+> e `H-04`, nível 4). Nenhum `P_*` é criado.
+
+**ID normativo: `§16.4`** (mesmo motivo de `§16.1`: os IDs `LETRA-NN` são a lista
+fechada da canônica). Atenção a um falso amigo: o `H-04` citado acima é o
+desempate do Híbrido; a pergunta do aluno é `B5.H04` (variável
+`PREFERENCIA_QUITACAO`).
+
+```
+Entrada por dívida (todas opcionais; ausente, NAO, NAO_SEI ou DESCONHECIDO = ausente):
+  GARANTIA_ESSENCIAL      bool   B5.F03 = ESSENCIAL        (só lida se B5.F01 = SIM)
+  NEGATIVADA              bool   B5.E03 = SIM
+  TIPO_GARANTIA           str    B5.F02                     (só lida se B5.F01 = SIM)
+  URGENCIA_PERCEBIDA      0..10  B5.H03
+  PREFERENCIA_QUITACAO    bool   B5.H04 = SIM
+Saída: o alvo escolhido a cada chamada de SelecionarAlvo (Avalanche, Bola de Neve ou Híbrido)
+```
+
+Prioridade, da mais forte para a mais fraca (decisão do especialista):
+
+1. **Bem essencial sobe ao topo.** Dívida com `GARANTIA_ESSENCIAL` entra antes de
+   toda dívida sem ele.
+2. **Dívida negativada passa na frente das demais.** Entre as dívidas de mesmo
+   nível no passo 1, a `NEGATIVADA` entra antes das que não são.
+3. **Peso por tipo de garantia.** `IMOVEL` = 3; `VEICULO` = 2; qualquer outro tipo
+   declarado (`OUTRO_BEM`, `AVAL_FIANCA`, `SALDO_APLICACAO_FINANCEIRA`, `OUTRA`)
+   = 1; sem garantia, `NAO_SEI` ou ausente = 0. Entre as dívidas de mesmo nível
+   nos passos 1 e 2, entra antes a de maior peso.
+4. **Urgência soma 20% ao peso emocional.** `PESO_EMOCIONAL_EFETIVO =
+   PESO_EMOCIONAL + 0,20 × URGENCIA_PERCEBIDA`. Sem urgência informada, ou com
+   `PESO_EMOCIONAL` desconhecido, o peso efetivo é o próprio `PESO_EMOCIONAL`
+   (desconhecido continua a perder o desempate). O peso efetivo substitui o
+   `PESO_EMOCIONAL` nas duas cadeias de desempate em que ele já existe.
+5. **Escolha do aluno dentro de 5% de custo.** Sejam `A` a primeira e `B` a
+   segunda candidatas do método vigente dentro do grupo dos passos 1 a 3. Se a
+   diferença de custo entre `A` e `B` for de até 5% e só `B` tiver
+   `PREFERENCIA_QUITACAO`, `B` entra primeiro.
+
+- **Os passos 1 a 3 formam uma chave lexicográfica `(essencial, negativada,
+  peso_garantia)`.** O grupo é o conjunto das dívidas ainda não quitadas com a
+  maior chave. Dentro do grupo, quem decide é o método vigente (Avalanche, Bola de
+  Neve, Híbrido), com seus desempates. Nenhum passo reordena dívidas de grupos
+  diferentes.
+- **Diferença de custo (passo 5).** O custo da dívida é
+  `TAXA_EFETIVA_MENSAL_NORMALIZADA`: é o "maior custo financeiro" que a cadeia
+  `O-05` já usa, o fallback do benefício marginal (`§11.1`) e a única medida de
+  custo que existe por dívida, sem depender do ataque do mês. A diferença é
+  relativa e simétrica: `|custo(A) − custo(B)| ≤ T × máx(custo(A), custo(B))`, com
+  `T = P_DIFERENCA_CUSTO_EQUIVALENTE ÷ 100` (hoje 5). Reaproveitar o parâmetro
+  evita número solto no código e usa a mesma tolerância de custo "equivalente" do
+  Híbrido (`H-03`). Custo desconhecido em `A` ou em `B`: a regra do passo 5 não se
+  aplica. Os dois custos iguais a zero: diferença zero, a regra se aplica.
+- **Empate e preferência.** Se `A` e `B` têm ambas `PREFERENCIA_QUITACAO`, ou
+  nenhuma, a ordem do método vigente permanece. A preferência nunca atravessa
+  grupos dos passos 1 a 3 e nunca é aplicada a uma terceira candidata: a
+  comparação é só entre as duas primeiras.
+- **Ausência de respostas = regra não se aplica.** Se nenhuma dívida da carteira
+  tem qualquer dos cinco campos informados, `SelecionarAlvo` devolvido é o próprio
+  do método (identidade), e a ordem é idêntica à anterior à regra. Dentro de uma
+  carteira com algumas dívidas respondidas, cada passo só distingue dívidas quando
+  o campo difere; campo ausente conta como o valor neutro (falso, `0`).
+- **Alvo fixo (`O-02`, `H-06`).** A regra só escolhe quando o método escolheria
+  (bootstrap ou cascata de resíduo); um alvo vigente não quitado nunca é trocado.
+- **Fallback.** Se o método não devolve candidata dentro do grupo (valor relevante
+  desconhecido, por exemplo), vale a escolha do método sobre a carteira inteira:
+  a regra nunca deixa a carteira sem alvo.
+- **Determinismo.** Sem relógio, sem aleatoriedade, sem I/O; mesma entrada, mesma
+  saída; o desempate final continua sendo `DIVIDA_ID`. Precisão decimal integral
+  (`RF-12`, `G-01`). Nenhum `P_*` novo (os pesos 3/2/1 e o 20% são decisão do
+  especialista, fixos em constantes nomeadas do módulo).
+
+**Critérios de aceite da regra `§16.4`** (cada teste de
+`tests/regras/test_prioridade_ordem.py` cita o critério):
+
+| ID | Critério | Resultado esperado |
+| --- | --- | --- |
+| `§16.4-C1` | nenhuma dívida com os cinco campos (carteira dos gabaritos) | `SelecionarAlvo` é o do método; `ORDEM_QUITACAO` dos três métodos idêntica à de antes, inclusive nos gabaritos `GAB-A`, `GAB-B` e `GAB-C` |
+| `§16.4-C2` | campos presentes porém neutros (`NAO`, `NAO_SEI`, urgência ausente, sem garantia) | mesma ordem do método |
+| `§16.4-C3` | uma dívida com bem essencial entre outras mais caras | a essencial é o primeiro alvo, nos três métodos |
+| `§16.4-C4` | uma negativada contra uma não negativada, sem bem essencial | a negativada entra primeiro |
+| `§16.4-C5` | imóvel, veículo e outra garantia, sem essencial nem negativada | ordem `IMOVEL` (3), `VEICULO` (2), outra (1), depois sem garantia (0) |
+| `§16.4-C6` | essencial sem negativação contra negativada sem bem essencial | a essencial entra primeiro (passo 1 acima do 2) |
+| `§16.4-C7` | negativada de garantia 1 contra não negativada de garantia 3 | a negativada entra primeiro (passo 2 acima do 3) |
+| `§16.4-C8` | duas dívidas empatadas no método (Bola de Neve: mesmo valor relevante, fluxo e custo), pesos emocionais 5 e 4, urgências 0 e 10 | com urgência, `5 + 0 = 5` contra `4 + 2 = 6`: a de peso efetivo 6 entra primeiro; sem urgência, entra a de peso 5 |
+| `§16.4-C9` | duas primeiras candidatas com custos 2,00% e 1,95% a.m. (diferença 2,5%); só a segunda com `PREFERENCIA_QUITACAO` | a segunda entra primeiro |
+| `§16.4-C10` | custos 2,00% e 1,80% a.m. (diferença 10%); só a segunda com preferência | a ordem do método permanece |
+| `§16.4-C11` | custos 2,00% e 1,90% a.m. (diferença exatamente 5%) | a preferência vale (até 5%, inclusive) |
+| `§16.4-C12` | as duas com preferência, ou nenhuma | a ordem do método permanece |
+| `§16.4-C13` | preferência numa dívida de grupo inferior (sem bem essencial, contra uma essencial) | a preferência não atravessa o grupo; a essencial entra primeiro |
+| `§16.4-C14` | custo desconhecido em uma das duas primeiras | o passo 5 não se aplica |
+| `§16.4-C15` | alvo vigente não quitado | devolvido sem nova decisão |
+| `§16.4-C16` | mesma entrada duas vezes | mesma saída; `ORDEM_QUITACAO` determinística |
+
+**Pontos de interpretação** (a leitura mais conservadora foi adotada; ver `OQ-51`
+a `OQ-54` na seção 10):
+
+- "Urgência soma 20% ao peso emocional" foi lida como
+  `peso + 0,20 × urgência` (a urgência de 0 a 10 vale até 2 pontos na mesma
+  escala do peso), e não como mistura ponderada nem como multiplicador do peso.
+  O peso efetivo atua só onde o peso emocional já atuava (desempate): não passa a
+  ordenar acima do custo.
+- "Passa na frente das demais atrasadas" foi lida como passa na frente das demais
+  do mesmo nível do passo 1: o domínio de `STATUS_DIVIDA` não tem "atrasada", e uma
+  dívida negativada é, por definição, atrasada.
+- "Outros 1" abrange todo tipo de garantia declarado diferente de imóvel e veículo.
