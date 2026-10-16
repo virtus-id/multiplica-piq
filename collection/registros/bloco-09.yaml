@@ -31,29 +31,3 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
     salto_consequencia: null
-
-  - ID: B9.04
-    bloco: 9
-    enunciado: >-
-      Nos últimos dois anos, você começou algum plano para organizar as
-      finanças, quitar dívidas, economizar ou investir e depois abandonou
-      antes de alcançar o objetivo?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [OBR]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: "Sim, isso aconteceu mais de uma vez.", valor_interno: MAIS_DE_UMA}
-      - {rotulo: "Sim, aconteceu uma vez.", valor_interno: UMA}
-      - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: Não comecei nenhum plano desse tipo nesse período., valor_interno: SEM_PLANO}
-      - {rotulo: Não lembro / não sei avaliar., valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: HISTORICO_ABANDONO
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Sim → B9.04A (fora do escopo desta transcrição — B9.04A não tem campo
-      correspondente em SinaisComportamentais hoje). HISTORICO_ABANDONO =
-      SIM para A ou B.

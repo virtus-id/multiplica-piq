@@ -465,6 +465,20 @@ def test_t326_todo_dado_de_entrada_tem_rotulo() -> None:
     assert sem_rotulo == [], "sem rótulo em rotulos_de_dados:\n" + "\n".join(sem_rotulo)
 
 
+# `T-404` (RF-418): variáveis cujas perguntas saíram. O aluno não escolhe mais;
+# só o valor assumido pela montagem (`app/montagem/estado.py`) aparece.
+_ASSUMIDOS: dict[str, str] = {
+    "TIPO_RENDA": "RELATIVAMENTE_ESTAVEL",
+    "REGISTRO_GASTOS": "PARTE",
+    "FREQUENCIA_REGISTRO": "INDEFINIDA",
+    "DEFASAGEM_REGISTRO": "DIAS_DEPOIS",
+    "COBERTURA_PEQUENOS_GASTOS": "ALGUNS",
+    "COBERTURA_MEIOS_PAGAMENTO": "QUASE_TOTAL",
+    "GASTOS_NAO_IDENTIFICADOS": "ALGUMAS_MES",
+    "JANELA_NOVA_DIVIDA": "",  # sempre None: aparece como "—"
+}
+
+
 def test_t326_todo_valor_de_dominio_tem_rotulo() -> None:
     codigos = carregar_textos_canonicos().rotulos_de_codigos
     opcoes: dict[str, set[str]] = {}
@@ -483,7 +497,9 @@ def test_t326_todo_valor_de_dominio_tem_rotulo() -> None:
         and issubclass(dominio, enum.Enum)
         and dominio.__name__ != "Desconhecido"
         for membro in dominio
-        if membro.value not in opcoes.get(nome, set()) and membro.value not in codigos
+        if membro.value not in opcoes.get(nome, set())
+        and membro.value not in codigos
+        and _ASSUMIDOS.get(nome, membro.value) == membro.value
     ]
 
     assert sem_rotulo == [], "sem rótulo no registro nem em rotulos_de_codigos:\n" + "\n".join(

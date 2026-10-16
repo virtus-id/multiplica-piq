@@ -48,30 +48,21 @@ def _resposta(ID_PERGUNTA: str, valor: object, item_id: str | None = None) -> Re
 
 # As respostas mínimas para montar um EstadoFinanceiro completo: os 8
 # VARIAVEL_GRAVADA de PerfilComportamental (Bloco 2), os 8 de
-# SinaisComportamentais lidos por `respostas.valor` (Blocos 1/2/9), TIPO_RENDA
-# (B3.02) e CAPACIDADE_ATAQUE_DECLARADA (B3.C01).
+# SinaisComportamentais lidos por `respostas.valor` (Blocos 1/2/9) e
+# CAPACIDADE_ATAQUE_DECLARADA (B3.C01). `T-404`: B2.01 a B2.05, B2.07, B1.02,
+# B1.10, B9.04 e B3.02 saíram e entram como valores neutros.
 def _respostas_minimas_completas(**sobrescritas: object) -> RespostasCaso:
     valores: dict[str, object] = {
         # PerfilComportamental (Bloco 2, T-50)
-        "REGISTRO_GASTOS": "TUDO",
-        "FREQUENCIA_REGISTRO": "DIARIA",
-        "DEFASAGEM_REGISTRO": "NA_HORA",
-        "COBERTURA_PEQUENOS_GASTOS": "TODOS",
-        "COBERTURA_MEIOS_PAGAMENTO": "TOTAL",
         "CONHECIMENTO_GASTO": "BOA_APROXIMACAO",
-        "GASTOS_NAO_IDENTIFICADOS": "NUNCA",
         "REVISAO_SEMANAL": "SEMPRE",
         # SinaisComportamentais (Blocos 1/2/9, T-50/T-99)
-        "NOVA_DIVIDA_PREVISTA": "NAO",
         "MECANISMO_DEFICIT": frozenset({"CORTE"}),
-        "HISTORICO_RECAIDA": "NENHUMA",
         "NOVO_PARCELAMENTO_PREVISTO": "NAO",
         "PACTO": "ESTABELECIDO",
         "RISCO_IMPULSO": "NENHUMA",
         "NECESSIDADE_VITORIA": 5,
-        "HISTORICO_ABANDONO": "NAO",
         # EstadoFinanceiro propriamente dito (Bloco 3, T-51)
-        "TIPO_RENDA": "FIXA",
         "CAPACIDADE_ATAQUE_DECLARADA": converter_para_dinheiro("500,00"),
         # RENDA_TOTAL_RECORRENTE (T-103, OQ-16): B3.01, sem nenhuma ficha de
         # renda adicional por padrão — RENDA_TOTAL_RECORRENTE =
@@ -186,7 +177,7 @@ class TestTodosOsCamposObrigatoriosPreenchidos:
         # RENDA_TOTAL_RECORRENTE (T-103, OQ-16): RENDA_PRINCIPAL das
         # respostas mínimas, sem nenhuma ficha de renda adicional.
         assert estado.RENDA_TOTAL_RECORRENTE == Decimal("8000.00")
-        assert estado.TIPO_RENDA is TIPO_RENDA.FIXA
+        assert estado.TIPO_RENDA is TIPO_RENDA.RELATIVAMENTE_ESTAVEL  # `T-404`: B3.02 saiu
         # DESPESAS_OPERACIONAIS_ATUAIS/DESPESAS_NAO_MENSAIS_NORMALIZADAS
         # (T-103, OQ-16): nenhuma ficha de ITEM_DESPESA/DESPESA_NAO_MENSAL_ID
         # nas respostas mínimas — soma de zero itens é zero, nunca erro
@@ -202,13 +193,11 @@ class TestTodosOsCamposObrigatoriosPreenchidos:
         assert estado.CONFIABILIDADE_DADOS is CONFIABILIDADE_DADOS.ALTA
         assert estado.AUTOPERCEPCAO_CONTROLE is DESCONHECIDO  # não respondida
 
-    def test_tipo_renda_sem_resposta_levanta_erro_explicito(self) -> None:
-        respostas = _respostas_minimas_completas(TIPO_RENDA=_OMITIR)
+    def test_tipo_renda_antigo_e_ignorado(self) -> None:
+        """`T-404` (RF-418): `B3.02` saiu; resposta antiga não muda o tipo."""
+        respostas = _respostas_minimas_completas(TIPO_RENDA="VARIAVEL")
 
-        with pytest.raises(ErroRespostaAusente) as excecao:
-            _montar(respostas)
-
-        assert excecao.value.VARIAVEL_GRAVADA == "TIPO_RENDA"
+        assert _montar(respostas).TIPO_RENDA is TIPO_RENDA.RELATIVAMENTE_ESTAVEL
 
     def test_capacidade_ataque_declarada_sem_resposta_levanta_erro_explicito(self) -> None:
         respostas = _respostas_minimas_completas(CAPACIDADE_ATAQUE_DECLARADA=_OMITIR)
@@ -366,7 +355,6 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_3() -> None:
     }
 
     variaveis_usadas_do_bloco_3 = {
-        "TIPO_RENDA",
         "CAPACIDADE_ATAQUE_DECLARADA",
         # T-103 (OQ-16): os três campos agregados, agora calculados.
         "RENDA_PRINCIPAL",
@@ -670,103 +658,23 @@ class TestT103CamposAgregadosDoBloco3:
         assert estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS == Decimal("1000.00") / Decimal("12")
         assert isinstance(estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS, Decimal)
 
-    # -- T-107 (OQ-16, correção de registro): exclusão de dupla contagem
-    # quando DESPESA_NAO_MENSAL_JA_CONTABILIZADA (B3.NM02D) = Sim.
-    def test_ficha_ja_contabilizada_sim_nao_contribui_ao_total_anual(self) -> None:
-        """Primeiro critério de aceite de `T-107`: uma ficha com
-        `DESPESA_NAO_MENSAL_JA_CONTABILIZADA = Sim` é EXCLUÍDA da soma —
-        sozinha, o total normalizado é zero, não `6000/12`."""
+    # -- T-404 (RF-418): `B3.NM02D` saiu; nenhuma ficha é excluída da soma.
+    def test_resposta_antiga_de_ja_contabilizada_e_ignorada(self) -> None:
         respostas_minimas = _respostas_minimas_completas()
-        ficha_ja_contabilizada = (
+        fichas = (
             _resposta(
                 "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("6.000,00"), item_id="NM001"
             ),
             _resposta("DESPESA_NAO_MENSAL_JA_CONTABILIZADA", "SIM", item_id="NM001"),
-        )
-        respostas = RespostasCaso(
-            respostas=(*respostas_minimas.respostas, *ficha_ja_contabilizada)
-        )
-
-        estado = _montar(respostas)
-
-        assert estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS == Decimal("0")
-
-    def test_ficha_ja_contabilizada_nao_ou_nao_sei_contribui_normalmente(self) -> None:
-        """Segundo critério de aceite de `T-107`: `Não` ou `Não sei`
-        (`NAO`/`NAO_SEI`) continuam entrando normalmente na soma — só
-        exclusão explícita por `Sim`, nunca por incerteza."""
-        respostas_minimas = _respostas_minimas_completas()
-        fichas = (
             _resposta(
-                "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("1.200,00"), item_id="NM001"
+                "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("3.600,00"), item_id="NM002"
             ),
-            _resposta("DESPESA_NAO_MENSAL_JA_CONTABILIZADA", "NAO", item_id="NM001"),
-            _resposta(
-                "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("2.400,00"), item_id="NM002"
-            ),
-            _resposta("DESPESA_NAO_MENSAL_JA_CONTABILIZADA", NAO_SEI, item_id="NM002"),
-        )
-        respostas = RespostasCaso(respostas=(*respostas_minimas.respostas, *fichas))
-
-        estado = _montar(respostas)
-
-        assert estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS == Decimal("3600.00") / Decimal("12")
-
-    def test_tres_fichas_uma_ja_contabilizada_exclui_so_essa_do_total(self) -> None:
-        """Terceiro critério de aceite de `T-107` — teste numérico exato: 3
-        fichas (`6.000,00`, `1.200,00`, `3.600,00`), a do meio com
-        `DESPESA_NAO_MENSAL_JA_CONTABILIZADA = Sim`.
-        `DESPESAS_NAO_MENSAIS_NORMALIZADAS` deve ser a soma das OUTRAS
-        DUAS dividida por 12 — (6000 + 3600) / 12 = 800,00 exato — nunca a
-        soma das três (`900,00`)."""
-        respostas_minimas = _respostas_minimas_completas()
-        fichas = (
-            _resposta(
-                "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("6.000,00"), item_id="NM001"
-            ),
-            _resposta("DESPESA_NAO_MENSAL_JA_CONTABILIZADA", "NAO", item_id="NM001"),
-            _resposta(
-                "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("1.200,00"), item_id="NM002"
-            ),
-            _resposta("DESPESA_NAO_MENSAL_JA_CONTABILIZADA", "SIM", item_id="NM002"),
-            _resposta(
-                "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("3.600,00"), item_id="NM003"
-            ),
-            _resposta("DESPESA_NAO_MENSAL_JA_CONTABILIZADA", "NAO", item_id="NM003"),
         )
         respostas = RespostasCaso(respostas=(*respostas_minimas.respostas, *fichas))
 
         estado = _montar(respostas)
 
         assert estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS == Decimal("9600.00") / Decimal("12")
-        assert estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS == Decimal("800.00")
-
-    def test_leitura_correlaciona_por_item_nao_por_ordem_das_respostas(self) -> None:
-        """Quarto critério de aceite de `T-107`: a exclusão é lida por
-        ITEM (`valor_no_item`), nunca por índice posicional entre duas
-        listas separadas — a ordem em que as respostas de cada variável
-        aparecem em `RespostasCaso.respostas` é embaralhada (a ficha
-        `Sim` é a PRIMEIRA a gravar `VALOR_DESPESA_NAO_MENSAL`, mas a
-        ÚLTIMA a gravar `DESPESA_NAO_MENSAL_JA_CONTABILIZADA`); um
-        mecanismo por índice posicional excluiria o item errado."""
-        respostas_minimas = _respostas_minimas_completas()
-        fichas = (
-            _resposta(
-                "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("1.200,00"), item_id="NM001"
-            ),
-            _resposta(
-                "VALOR_DESPESA_NAO_MENSAL", converter_para_dinheiro("3.600,00"), item_id="NM002"
-            ),
-            _resposta("DESPESA_NAO_MENSAL_JA_CONTABILIZADA", "NAO", item_id="NM002"),
-            _resposta("DESPESA_NAO_MENSAL_JA_CONTABILIZADA", "SIM", item_id="NM001"),
-        )
-        respostas = RespostasCaso(respostas=(*respostas_minimas.respostas, *fichas))
-
-        estado = _montar(respostas)
-
-        # Só NM002 (3.600,00) deve contribuir — NM001 é a ficha "Sim",
-        # mesmo sendo a primeira a gravar VALOR_DESPESA_NAO_MENSAL.
-        assert estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS == Decimal("3600.00") / Decimal("12")
 
 
 # ---------------------------------------------------------------------------

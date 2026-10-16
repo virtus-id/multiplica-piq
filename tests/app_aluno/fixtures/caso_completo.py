@@ -108,28 +108,18 @@ def _resposta_item(ID_PERGUNTA: str, item_id: str, valor: object) -> Resposta:
 # _respostas_minimas_completas` — a fixture os centraliza para reúso.
 # ---------------------------------------------------------------------------
 _VALORES_CASO: Final[dict[str, object]] = {
-    # PerfilComportamental (Bloco 2, T-50)
-    "REGISTRO_GASTOS": "TUDO",
-    "FREQUENCIA_REGISTRO": "DIARIA",
-    "DEFASAGEM_REGISTRO": "NA_HORA",
-    "COBERTURA_PEQUENOS_GASTOS": "TODOS",
-    "COBERTURA_MEIOS_PAGAMENTO": "TOTAL",
+    # PerfilComportamental (Bloco 2, T-50). `T-404`: B2.01 a B2.05 e B2.07 saíram.
     "CONHECIMENTO_GASTO": "BOA_APROXIMACAO",
-    "GASTOS_NAO_IDENTIFICADOS": "NUNCA",
     "REVISAO_SEMANAL": "SEMPRE",
     # AUTOPERCEPCAO_CONTROLE (B2.13, escala 0-10)
     "AUTOPERCEPCAO_CONTROLE": 6,
     # SinaisComportamentais (Blocos 1/2/9, T-50/T-99)
-    "NOVA_DIVIDA_PREVISTA": "NAO",
     "MECANISMO_DEFICIT": frozenset({"CORTE"}),
-    "HISTORICO_RECAIDA": "NENHUMA",
     "NOVO_PARCELAMENTO_PREVISTO": "NAO",
     "PACTO": "ESTABELECIDO",
     "RISCO_IMPULSO": "NENHUMA",
     "NECESSIDADE_VITORIA": 5,
-    "HISTORICO_ABANDONO": "NAO",
     # EstadoFinanceiro propriamente dito (Bloco 3, T-51)
-    "TIPO_RENDA": "FIXA",
     "CAPACIDADE_ATAQUE_DECLARADA": converter_para_dinheiro("500,00"),
     # RENDA_TOTAL_RECORRENTE (T-103, OQ-16): B3.01, sem nenhuma ficha de
     # renda adicional no caso completo padrão — RENDA_TOTAL_RECORRENTE =
@@ -217,7 +207,6 @@ _VALORES_CASO: Final[dict[str, object]] = {
     "PERCEPCAO_FECHAMENTO_MES": "SOBRA",  # B3.C02
     "SOBRA_PERCEBIDA": converter_para_dinheiro("100,00"),  # B3.C02A (RF-412)
     "CONFERENCIA_SOBRA_FALTA": "ACEITAR_DIFERENCA",  # B3.C02C (RF-412)
-    "VINCULO_CONSIGNAVEL": "NAO",  # B3.S01
     "INVESTIMENTOS_EXISTE": "NAO",  # B4.04
     "IMOVEL_EXISTE": "NAO",  # B4.I01
     "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1,  # B5.00 — NUMERO grava int

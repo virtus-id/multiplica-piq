@@ -817,8 +817,8 @@ def escopos_abertos_pela_resposta(
     deixou abertos: a cabeça tem condição, a condição lê `variavel` e vale
     agora. Cabeça sem condição (nada a abrir) nunca aparece aqui.
 
-    É "lê a variável", e não "estava fechada antes": `NAO(VINCULO_CONSIGNAVEL
-    = NAO)` já vale sem resposta, e o "Sim" em `B3.S01` precisa apontar a
+    É "lê a variável", e não "estava fechada antes": uma condição como
+    `NAO(X = NAO)` já vale sem resposta, e o "Sim" em `X` precisa apontar a
     ficha mesmo assim."""
     return tuple(
         escopo

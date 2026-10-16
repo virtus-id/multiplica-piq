@@ -497,3 +497,20 @@ O responsável do produto aprovou, sem ajustes, as redações propostas na tabel
 - No modo estabilização (mês no negativo), o plano mostra também os avisos de dívida atrasada (`B5.E01` vencida ou parcial) e de garantia (`B5.F01`), cada um com "A responsabilidade pela informação é do aluno.", sem cronograma.
 - `B3.C00` deixa de aceitar "Ainda não consigo avaliar": só Sim, "falta despesa" ou "valor errado".
 - O resultado do mês exibido no plano usa as parcelas efetivamente pagas, de modo que os números da tela fecham entre si.
+
+### RF-418. Última rodada do especialista e decisões do produto (2026-10-16)
+**Saem do questionário e do cálculo** (decisão do especialista, levantamento do efeito no motor feito antes): `B1.02`, `B1.05`, `B1.10`, `B9.04`, `B2.01`, `B2.02`, `B2.03`, `B2.04`, `B2.05`, `B2.07`, `B3.02`, `B3.02A`, `B3.05A`, `B3.NM02D`, `B3.S01` (com as perguntas que só existem por causa dela) e `B5.C07`. A montagem (`app/montagem/`) passa a entregar valores neutros no lugar das respostas, sem alterar `engine/`:
+- Risco de recaída e abandono: `B1.02` → `NAO`; `B1.10` e `B9.04` → `TALVEZ`; janela da nova dívida → `None`.
+- Perfil de controle: `REGISTRO_GASTOS=PARTE`, `FREQUENCIA_REGISTRO=INDEFINIDA`, `DEFASAGEM_REGISTRO=DIAS_DEPOIS`, `COBERTURA_PEQUENOS_GASTOS=ALGUNS`, `COBERTURA_MEIOS_PAGAMENTO=QUASE_TOTAL`, `GASTOS_NAO_IDENTIFICADOS=ALGUMAS_MES`. Com isso o nível de controle fica `PARCIAL` (ou `FRAGIL` se `B2.06` ou `B2.12` indicarem) e a confiabilidade dos dados fica `MEDIA`; "forte" e "alta" deixam de existir. Corrige de passagem o erro de quem responde que não registra gastos.
+- Tipo de renda: `RELATIVAMENTE_ESTAVEL` para todos (aceito pelo produto: quem tem renda variável perde a redução de 20% na margem de segurança).
+- Extraordinário: sem tipo, a ficha vira sempre `B3.05B` e o aluno informa o valor total esperado (aceito pelo produto).
+- Despesa não mensal: a proteção contra dupla contagem passa para o texto de `B3.NM02A` e `B3.NM02B` ("só inclua despesas que não estão nas despesas mensais já informadas"); o comportamento do código passa a ser sempre "não contabilizada" (decisão do produto, risco de dupla contagem fica com o aluno).
+- Linha de crédito contínua (`B5.C07`): permanece `DESCONHECIDO`, sem efeito.
+
+**Ficam** (decisão do produto): `B4.03` e `B4.03A`, com texto direto: "Aceitaria usar parte da reserva para quitar as dívidas?" e "Qual valor?". `B4.I01` fica como está até o especialista enviar o texto de orientação.
+
+**Sim ou Não direto:** sai o "Não sei" de `B4.01`, `B4.04`, `B5.B05` e `B5.FIM02` (decisão do especialista).
+
+**Regras de ordem das dívidas** (decisão do especialista, com a leitura do produto): a prioridade é bem essencial (`B5.F03`), dívida negativada (`B5.E03`), peso por tipo de garantia (`B5.F02`, imóvel 3, veículo 2, outros 1), urgência soma 20% ao peso emocional (`B5.H03`) e, se a diferença de custo for de até 5%, o aluno escolhe a primeira (`B5.H04`). Exige regra normativa nova na spec do motor.
+
+**Mês no negativo:** o plano mostra o passo de equilibrar o mês e quanto falta cortar para chegar a zero.

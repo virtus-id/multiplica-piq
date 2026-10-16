@@ -212,7 +212,6 @@ from engine.estado import (
     DISPOSICAO_USO_RESERVA,
     FREQUENCIA_REGISTRO,
     GASTOS_NAO_IDENTIFICADOS,
-    JANELA_NOVA_DIVIDA,
     JANELA_RECURSO_EXTRAORDINARIO,
     REGISTRO_GASTOS,
     RESERVA_EXISTE,
@@ -662,41 +661,21 @@ def _membro_obrigatorio_nao_repetivel[TEnum: Enum](
 
 
 def montar_perfil_comportamental(respostas: RespostasCaso) -> PerfilComportamental:
-    """RF-14, AC-13 — monta `PerfilComportamental` a partir das 8 respostas
-    não repetíveis do Bloco 2 (`collection/registros/bloco-02.yaml`, T-17).
-
-    Mapeamento VARIAVEL_GRAVADA (ID da pergunta) → campo, todos `OBR`, lidos
-    por `respostas.valor` (não repetíveis): `REGISTRO_GASTOS` (B2.01),
-    `FREQUENCIA_REGISTRO` (B2.02), `DEFASAGEM_REGISTRO` (B2.03),
-    `COBERTURA_PEQUENOS_GASTOS` (B2.04), `COBERTURA_MEIOS_PAGAMENTO`
-    (B2.05), `CONHECIMENTO_GASTO` (B2.06), `GASTOS_NAO_IDENTIFICADOS`
-    (B2.07), `REVISAO_SEMANAL` (B2.12) — os 8 nomes de campo são IDÊNTICOS
-    aos 8 `VARIAVEL_GRAVADA` do registro. Cada chamada de
-    `_membro_obrigatorio_nao_repetivel` resolve o `valor_interno` para o
-    membro do enum pelo mecanismo genérico `_membro_do_enum`, nunca um `if`
-    por pergunta.
-    """
+    """RF-14, AC-13, RF-418 — monta `PerfilComportamental`. Só `B2.06`
+    (`CONHECIMENTO_GASTO`) e `B2.12` (`REVISAO_SEMANAL`) continuam sendo
+    perguntadas, lidas por `_membro_obrigatorio_nao_repetivel`. As outras seis
+    variáveis saíram do questionário (`T-404`) e entram com valores neutros (controle `PARCIAL` ou
+    `FRAGIL`, confiabilidade `MEDIA`). Respostas antigas ficam no banco e são
+    ignoradas."""
     return PerfilComportamental(
-        REGISTRO_GASTOS=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.01", "REGISTRO_GASTOS", REGISTRO_GASTOS
-        ),
-        FREQUENCIA_REGISTRO=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.02", "FREQUENCIA_REGISTRO", FREQUENCIA_REGISTRO
-        ),
-        DEFASAGEM_REGISTRO=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.03", "DEFASAGEM_REGISTRO", DEFASAGEM_REGISTRO
-        ),
-        COBERTURA_PEQUENOS_GASTOS=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.04", "COBERTURA_PEQUENOS_GASTOS", COBERTURA_PEQUENOS_GASTOS
-        ),
-        COBERTURA_MEIOS_PAGAMENTO=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.05", "COBERTURA_MEIOS_PAGAMENTO", COBERTURA_MEIOS_PAGAMENTO
-        ),
+        REGISTRO_GASTOS=REGISTRO_GASTOS.PARTE,
+        FREQUENCIA_REGISTRO=FREQUENCIA_REGISTRO.INDEFINIDA,
+        DEFASAGEM_REGISTRO=DEFASAGEM_REGISTRO.DIAS_DEPOIS,
+        COBERTURA_PEQUENOS_GASTOS=COBERTURA_PEQUENOS_GASTOS.ALGUNS,
+        COBERTURA_MEIOS_PAGAMENTO=COBERTURA_MEIOS_PAGAMENTO.QUASE_TOTAL,
+        GASTOS_NAO_IDENTIFICADOS=GASTOS_NAO_IDENTIFICADOS.ALGUMAS_MES,
         CONHECIMENTO_GASTO=_membro_obrigatorio_nao_repetivel(
             respostas, "B2.06", "CONHECIMENTO_GASTO", CONHECIMENTO_GASTO
-        ),
-        GASTOS_NAO_IDENTIFICADOS=_membro_obrigatorio_nao_repetivel(
-            respostas, "B2.07", "GASTOS_NAO_IDENTIFICADOS", GASTOS_NAO_IDENTIFICADOS
         ),
         REVISAO_SEMANAL=_membro_obrigatorio_nao_repetivel(
             respostas, "B2.12", "REVISAO_SEMANAL", REVISAO_SEMANAL
@@ -770,27 +749,6 @@ def _sim_nao_talvez_de_domino_fechado(
     return SimNaoTalvez[valor]
 
 
-def _historico_recaida(valor: ValorResposta | None) -> SimNaoTalvez:
-    """`B1.10` (`HISTORICO_RECAIDA`) tem domínio `MAIS_DE_UMA · UMA ·
-    NENHUMA · NAO_SEI` na canônica (`piq-app-spec.md`, linha 4951:
-    "HISTORICO_RECAIDA: SIM (A ou B) · NAO · NAO_SEI") — não é `SIM/TALVEZ/
-    NAO` direto, então precisa da mesma leitura por FATO já usada em
-    `_quitacao_consultada`: A ou B (`MAIS_DE_UMA`/`UMA`) → `SIM` (recaída
-    aconteceu, sem distinguir frequência aqui — `FREQUENCIA_RECAIDA_
-    RECENTE` é variável auxiliar fora do contrato de `SinaisComportamentais`);
-    `NENHUMA` → `NAO`; `NAO_SEI` → `TALVEZ` (única leitura de incerteza que
-    o domínio fechado oferece, mesmo padrão de `_quitacao_consultada`)."""
-    if valor is None:
-        raise ErroSinalComportamentalAusente("HISTORICO_RECAIDA")
-    if valor == "MAIS_DE_UMA" or valor == "UMA":
-        return SimNaoTalvez.SIM
-    if valor == "NENHUMA":
-        return SimNaoTalvez.NAO
-    if valor is NAO_SEI or valor == "NAO_SEI":
-        return SimNaoTalvez.TALVEZ
-    raise ErroSinalComportamentalAusente("HISTORICO_RECAIDA")
-
-
 def _necessidade_vitoria(valor: ValorResposta | None) -> int | Desconhecido:
     """`B9.02` (`NECESSIDADE_VITORIA`) é `int | Desconhecido` no contrato —
     escala 0-10, `OBR`, sem opção "não sei" no registro (`admite_nao_sei:
@@ -807,27 +765,6 @@ def _necessidade_vitoria(valor: ValorResposta | None) -> int | Desconhecido:
     ):
         raise ErroSinalComportamentalAusente("NECESSIDADE_VITORIA")
     return traduzido
-
-
-def _historico_abandono(valor: ValorResposta | None) -> SimNaoTalvez:
-    """`B9.04` (`HISTORICO_ABANDONO`) tem domínio `MAIS_DE_UMA · UMA · NAO ·
-    SEM_PLANO · NAO_SEI` na canônica (`piq-app-spec.md`, linha 4186:
-    "HISTORICO_ABANDONO = SIM para A ou B") — cinco valores, não `SIM/TALVEZ/
-    NAO` direto, mesmo formato de `_historico_recaida` (B1.10): A ou B
-    (`MAIS_DE_UMA`/`UMA`) → `SIM` (abandono aconteceu); `NAO`/`SEM_PLANO` →
-    `NAO` (nunca abandonou — seja porque completou, seja porque nunca
-    começou um plano); `NAO_SEI` → `TALVEZ` (única leitura de incerteza que
-    o domínio fechado `SimNaoTalvez` oferece, mesmo padrão de
-    `_historico_recaida`/`_quitacao_consultada`)."""
-    if valor is None:
-        raise ErroSinalComportamentalAusente("HISTORICO_ABANDONO")
-    if valor == "MAIS_DE_UMA" or valor == "UMA":
-        return SimNaoTalvez.SIM
-    if valor == "NAO" or valor == "SEM_PLANO":
-        return SimNaoTalvez.NAO
-    if valor is NAO_SEI or valor == "NAO_SEI":
-        return SimNaoTalvez.TALVEZ
-    raise ErroSinalComportamentalAusente("HISTORICO_ABANDONO")
 
 
 def _mecanismo_deficit(valor: ValorResposta | None) -> frozenset[str] | Desconhecido:
@@ -871,86 +808,30 @@ def _risco_impulso(valor: ValorResposta | None) -> str | Desconhecido:
     return traduzido
 
 
-def _linha_continua_sendo_utilizada(
-    respostas: RespostasCaso, DIVIDA_ID: str | None
-) -> str | Desconhecido:
-    """`B5.C07` (`LINHA_CONTINUA_SENDO_UTILIZADA`) é `COND, REP` do Bloco 5
-    — condicional a `TIPO_DIVIDA` ∈ {`CARTAO_ROTATIVO`, `CHEQUE_ESPECIAL`,
-    `CARTAO_PARCELADO`} e repetida por `DIVIDA_ID`. Diferente das outras 7
-    variáveis coletadas de `SinaisComportamentais` (Blocos 1/2, não
-    repetíveis), esta é do Bloco 5 e por item de dívida — o contrato de
-    `SinaisComportamentais`, porém, é um único campo `str | Desconhecido`,
-    não uma tupla por dívida. Sem uma regra normativa de "qual dívida"
-    disponível em nenhum artefato SDD (mesma lacuna documentada em T-49
-    para os campos de GATE), a leitura sem `DIVIDA_ID` explícito é
-    `DESCONHECIDO` — nunca inventar qual item representa o sinal agregado.
-    Quando um `DIVIDA_ID` é informado (uso pontual, ex. testes ou chamador
-    que já sabe o item relevante), a leitura por item usa
-    `valor_no_item`/`_ou_desconhecido` normalmente; ausência estrutural
-    (pergunta não exibida para o tipo de dívida) também é `DESCONHECIDO`,
-    nunca erro."""
-    if DIVIDA_ID is None:
-        return DESCONHECIDO
-    valor = respostas.valor_no_item(DIVIDA_ID, "LINHA_CONTINUA_SENDO_UTILIZADA")
-    if valor is None:
-        return DESCONHECIDO
-    traduzido = _ou_desconhecido(valor)
-    if not (isinstance(traduzido, str) or traduzido is DESCONHECIDO):
-        return DESCONHECIDO
-    return traduzido
-
-
-def montar_sinais_comportamentais(
-    respostas: RespostasCaso, DIVIDA_ID_PARA_LINHA_CONTINUA: str | None = None
-) -> SinaisComportamentais:
-    """RF-14, AC-13 — monta `SinaisComportamentais` a partir das respostas
-    dos Blocos 1, 2 e 5 (`collection/registros/bloco-0{1,2,5}.yaml`, T-17).
-
-    Mapeamento VARIAVEL_GRAVADA → campo (ver relatório da tarefa):
-    `NOVA_DIVIDA_PREVISTA` (B1.02), `MECANISMO_DEFICIT` (B1.09),
-    `HISTORICO_RECAIDA` (B1.10), `NOVO_PARCELAMENTO_PREVISTO` (B1.07),
-    `PACTO` (B1.01), `RISCO_IMPULSO` (B2.11), `LINHA_CONTINUA_SENDO_
-    UTILIZADA` (B5.C07, REP por `DIVIDA_ID` — ver
-    `_linha_continua_sendo_utilizada`), `JANELA_NOVA_DIVIDA` (B1.05,
-    `COND`, `None` estrutural — resolvido pelo mecanismo genérico
-    `_membro_do_enum` quando a resposta existe).
-
-    `NECESSIDADE_VITORIA` (B9.02) e `HISTORICO_ABANDONO` (B9.04), Bloco 9
-    (`collection/registros/bloco-09.yaml`, T-99): lidos do registro real por
-    `_necessidade_vitoria` (escala 0-10, `int | Desconhecido`, mesmo padrão
-    de `_risco_impulso`) e `_historico_abandono` (tradução de domínio de 5
-    valores para `SimNaoTalvez`, ver docstring do módulo).
+def montar_sinais_comportamentais(respostas: RespostasCaso) -> SinaisComportamentais:
+    """RF-14, AC-13, RF-418 — monta `SinaisComportamentais`. `B1.02`, `B1.05`,
+    `B1.10`, `B5.C07` e `B9.04` saíram do questionário (`T-404`): entram
+    `NOVA_DIVIDA_PREVISTA=NAO`, `HISTORICO_RECAIDA=TALVEZ`,
+    `HISTORICO_ABANDONO=TALVEZ`, `JANELA_NOVA_DIVIDA=None` e
+    `LINHA_CONTINUA_SENDO_UTILIZADA=DESCONHECIDO`. Respostas antigas são
+    ignoradas. Seguem perguntadas `B1.01`, `B1.07`, `B1.09`, `B2.11` e `B9.02`.
     """
-    janela_bruta = respostas.valor("JANELA_NOVA_DIVIDA")
-    janela: JANELA_NOVA_DIVIDA | None = None
-    if janela_bruta is not None:
-        if not isinstance(janela_bruta, str):
-            raise ValueError(f"JANELA_NOVA_DIVIDA: valor inesperado {janela_bruta!r}")
-        janela = _membro_do_enum(JANELA_NOVA_DIVIDA, janela_bruta)
-
     return SinaisComportamentais(
-        NOVA_DIVIDA_PREVISTA=_sim_nao_talvez_de_domino_fechado(
-            respostas.valor("NOVA_DIVIDA_PREVISTA"), "NOVA_DIVIDA_PREVISTA"
-        ),
+        NOVA_DIVIDA_PREVISTA=SimNaoTalvez.NAO,
         MECANISMO_DEFICIT=_mecanismo_deficit(respostas.valor("MECANISMO_DEFICIT")),
-        HISTORICO_RECAIDA=_historico_recaida(respostas.valor("HISTORICO_RECAIDA")),
+        HISTORICO_RECAIDA=SimNaoTalvez.TALVEZ,
         NOVO_PARCELAMENTO_PREVISTO=_sim_nao_talvez_de_domino_fechado(
             respostas.valor("NOVO_PARCELAMENTO_PREVISTO"), "NOVO_PARCELAMENTO_PREVISTO"
         ),
         PACTO=_pacto(respostas.valor("PACTO")),
         RISCO_IMPULSO=_risco_impulso(respostas.valor("RISCO_IMPULSO")),
-        LINHA_CONTINUA_SENDO_UTILIZADA=_linha_continua_sendo_utilizada(
-            respostas, DIVIDA_ID_PARA_LINHA_CONTINUA
-        ),
+        LINHA_CONTINUA_SENDO_UTILIZADA=DESCONHECIDO,
         # B9.02 — lido do registro real (collection/registros/bloco-09.yaml,
         # T-99): escala 0-10, por _necessidade_vitoria (mesmo padrão de
         # _risco_impulso: erro explícito se ausente).
         NECESSIDADE_VITORIA=_necessidade_vitoria(respostas.valor("NECESSIDADE_VITORIA")),
-        # B9.04 — lido do registro real (collection/registros/bloco-09.yaml,
-        # T-99): domínio de 5 valores traduzido para SimNaoTalvez por
-        # _historico_abandono (mesmo padrão de _historico_recaida).
-        HISTORICO_ABANDONO=_historico_abandono(respostas.valor("HISTORICO_ABANDONO")),
-        JANELA_NOVA_DIVIDA=janela,
+        HISTORICO_ABANDONO=SimNaoTalvez.TALVEZ,
+        JANELA_NOVA_DIVIDA=None,
     )
 
 
@@ -1120,9 +1001,6 @@ def _soma_dos_informados(linhas: tuple[tuple[str, DinheiroTalvez], ...]) -> Dinh
 
 
 
-_VALOR_JA_CONTABILIZADA_SIM: Final[str] = "SIM"
-
-
 def _despesas_nao_mensais_normalizadas(respostas: RespostasCaso) -> Dinheiro:
     """`OQ-16`/`OQ-19` (`T-105`) — corrigida por `T-107`:
     `DESPESAS_NAO_MENSAIS_NORMALIZADAS` = (soma dos valores anuais de todas
@@ -1169,7 +1047,7 @@ def _despesas_nao_mensais_por_item(
 ) -> tuple[tuple[str, DinheiroTalvez], ...]:
     """`T-225` (RF-79, AC-119): a decomposição de
     `_despesas_nao_mensais_normalizadas` — um `(item_id, anual / 12)` por
-    ficha fora da exclusão de `JA_CONTABILIZADA = Sim`, `DESCONHECIDO`
+    ficha (`T-404`: sem `B3.NM02D`, nenhuma é excluída), `DESCONHECIDO`
     quando `NAO_SEI`. O total é a soma destas linhas (a divisão por 12 é
     por item, para que a soma das linhas seja o total EXATO, sem resíduo
     de arredondamento entre as duas formas)."""
@@ -1180,9 +1058,6 @@ def _despesas_nao_mensais_por_item(
     )
     linhas: list[tuple[str, DinheiroTalvez]] = []
     for item_id in itens:
-        ja_contabilizada = respostas.valor_no_item(item_id, "DESPESA_NAO_MENSAL_JA_CONTABILIZADA")
-        if ja_contabilizada == _VALOR_JA_CONTABILIZADA_SIM:
-            continue
         valor = respostas.valor_no_item(item_id, "VALOR_DESPESA_NAO_MENSAL")
         if valor is None:
             continue
@@ -1192,14 +1067,10 @@ def _despesas_nao_mensais_por_item(
 
 
 _VARIAVEIS_RECURSO_EXTRAORDINARIO: Final[tuple[str, ...]] = (
-    "TIPO_RECURSO_EXTRAORDINARIO",
     "VALOR_RECURSO_EXTRAORDINARIO",
     "JANELA_RECURSO_EXTRAORDINARIO",
     "CERTEZA_RECURSO_EXTRAORDINARIO",
 )
-# `B3.05BF` (`T-270`, `AC-151`): em Férias/abono o valor é o do acréscimo —
-# a pergunta a nomear quando ele falta é a dele, não `B3.05B`.
-_TIPO_FERIAS_ABONO: Final[str] = "FERIAS_ABONO"
 
 
 def _membro_por_valor[TEnum: Enum](enum_alvo: type[TEnum], valor: ValorResposta) -> TEnum:
@@ -1213,10 +1084,10 @@ def _membro_por_valor[TEnum: Enum](enum_alvo: type[TEnum], valor: ValorResposta)
 
 def _recursos_extraordinarios(respostas: RespostasCaso) -> tuple[RecursoExtraordinario, ...]:
     """`RF-98`, `AC-150`, `EC-38`, `DE-02` (`T-273`) — um
-    `RecursoExtraordinario` por item `EXT` respondido (`B3.05A`–`D`, escopo
+    `RecursoExtraordinario` por item `EXT` respondido (`B3.05B`–`D`, escopo
     `RECURSO_EXTRAORDINARIO_ID`), NUNCA somados: cada item leva o seu valor,
-    janela e certeza, lidos com `valor_no_item`. O tipo é lido só para
-    exigir a ficha completa — não é entregue (`motor-calculo:RF-72`).
+    janela e certeza, lidos com `valor_no_item`. `T-404`: `B3.05A` (tipo)
+    saiu; a ficha começa em `B3.05B` (`motor-calculo:RF-72`).
 
     Valor `NAO_SEI` → `DESCONHECIDO`; janela `NAO_SEI` é membro do enum —
     nenhum dos dois vira `0` nem janela presumida (`EC-38`): quem decide o
@@ -1232,12 +1103,8 @@ def _recursos_extraordinarios(respostas: RespostasCaso) -> tuple[RecursoExtraord
     )
     recursos: list[RecursoExtraordinario] = []
     for item_id in itens:
-        tipo = respostas.valor_no_item(item_id, "TIPO_RECURSO_EXTRAORDINARIO")
-        if tipo is None:
-            raise ErroRespostaAusente(item_id, "B3.05A", "TIPO_RECURSO_EXTRAORDINARIO")
-        pergunta_do_valor = "B3.05BF" if tipo == _TIPO_FERIAS_ABONO else "B3.05B"
         valor = _dinheiro_obrigatorio(
-            respostas, item_id, pergunta_do_valor, "VALOR_RECURSO_EXTRAORDINARIO"
+            respostas, item_id, "B3.05B", "VALOR_RECURSO_EXTRAORDINARIO"
         )
         janela = respostas.valor_no_item(item_id, "JANELA_RECURSO_EXTRAORDINARIO")
         if janela is None:
@@ -1261,23 +1128,6 @@ def _recursos_extraordinarios(respostas: RespostasCaso) -> tuple[RecursoExtraord
             )
         )
     return tuple(recursos)
-
-
-def _tipo_renda(respostas: RespostasCaso) -> TIPO_RENDA:
-    """`B3.02` (`TIPO_RENDA`) — OBR, não repetível, sem opção "não sei" no
-    registro (`admite_nao_sei: false`, `collection/registros/bloco-03.yaml`,
-    T-17) — e `EstadoFinanceiro.TIPO_RENDA` não admite `Desconhecido` (é
-    `TIPO_RENDA`, puro, não uma união com `Desconhecido`). Resposta ausente é
-    erro explícito, nunca um default (mesmo padrão de `ErroRespostaAusente`).
-    Resolvido pelo mecanismo genérico `_membro_do_enum` — mesmo padrão de
-    `_membro_obrigatorio_nao_repetivel`, mas sem passar por `_ou_desconhecido`
-    porque o campo não admite ausência de valor concreto."""
-    valor = respostas.valor("TIPO_RENDA")
-    if valor is None:
-        raise ErroRespostaAusente("", "B3.02", "TIPO_RENDA")
-    if not isinstance(valor, str):
-        raise ErroRespostaAusente("", "B3.02", "TIPO_RENDA")
-    return _membro_do_enum(TIPO_RENDA, valor)
 
 
 def _capacidade_ataque_declarada(respostas: RespostasCaso) -> DinheiroTalvez:
@@ -1581,7 +1431,6 @@ def montar_estado_financeiro(
     dividas: tuple[Divida, ...],
     CONFIABILIDADE_DADOS: CONFIABILIDADE_DADOS,
     economia_nao_identificada: Dinheiro | None = None,
-    DIVIDA_ID_PARA_LINHA_CONTINUA: str | None = None,
 ) -> EstadoFinanceiro:
     """RF-14, AC-18 — monta o `EstadoFinanceiro` COMPLETO a partir das
     respostas do caso, com `DATA_REFERENCIA` vinda do `Caso` (`app/casos/
@@ -1678,7 +1527,7 @@ def montar_estado_financeiro(
     return EstadoFinanceiro(
         DATA_REFERENCIA=DATA_REFERENCIA,
         RENDA_TOTAL_RECORRENTE=_renda_total_recorrente(respostas),
-        TIPO_RENDA=_tipo_renda(respostas),
+        TIPO_RENDA=TIPO_RENDA.RELATIVAMENTE_ESTAVEL,  # `T-404`: B3.02 saiu
         DESPESAS_OPERACIONAIS_ATUAIS=_despesas_operacionais_atuais(respostas),
         DESPESAS_NAO_MENSAIS_NORMALIZADAS=_despesas_nao_mensais_normalizadas(respostas),
         CAPACIDADE_ATAQUE_DECLARADA=_capacidade_ataque_declarada(respostas),
@@ -1689,9 +1538,7 @@ def montar_estado_financeiro(
         INVENTARIO_COMPLETO=_inventario_completo(respostas),
         dividas=dividas,
         perfil_comportamental=montar_perfil_comportamental(respostas),
-        sinais_comportamentais=montar_sinais_comportamentais(
-            respostas, DIVIDA_ID_PARA_LINHA_CONTINUA
-        ),
+        sinais_comportamentais=montar_sinais_comportamentais(respostas),
         CONFIABILIDADE_DADOS=CONFIABILIDADE_DADOS,
         AUTOPERCEPCAO_CONTROLE=_autopercepcao_controle(respostas),
         # --- Bloco 4 · reserva (`T-111`, `RF-36`, `RF-37`) ---

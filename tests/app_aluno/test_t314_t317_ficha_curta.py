@@ -40,8 +40,8 @@ def _ids(perguntas: list[dict[str, Any]]) -> list[str]:
 def test_ac164_formulario_traz_as_perguntas_exibiveis_do_item_com_as_complementares(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """`T-314`: as perguntas do item numa lista só; as que uma opção abre vêm
-    em `complementares` da mãe (não na lista), decididas no servidor."""
+    """`T-314`: as perguntas do item numa lista só, decididas no servidor (as que
+    uma opção abre vêm em `complementares` da mãe: ver `test_complementares.py`)."""
     cliente = _cliente_real(monkeypatch, tmp_path)
     _responder(cliente, "B3.05", "SIM")
 
@@ -49,15 +49,12 @@ def test_ac164_formulario_traz_as_perguntas_exibiveis_do_item_com_as_complementa
 
     assert corpo["item_id"] == "EXT001"
     assert corpo["completa"] is False
-    assert _ids(corpo["perguntas"]) == ["B3.05A", "B3.05C", "B3.05D"]
+    assert _ids(corpo["perguntas"]) == ["B3.05B", "B3.05C", "B3.05D"]
     assert all(p["item_id"] == "EXT001" for p in corpo["perguntas"])
-    tipo = corpo["perguntas"][0]
-    assert _ids(tipo["complementares"]["OUTRO"]) == ["B3.05B"]
-    assert _ids(tipo["complementares"]["FERIAS_ABONO"]) == ["B3.05BF"]
-    assert _ids(tipo["complementares"]["13O_SALARIO"]) == ["B3.05B"]
+    # `T-404`: sem `B3.05A` e `B3.05BF` a ficha não tem complementares.
+    assert all("complementares" not in p for p in corpo["perguntas"])
 
     for ID, valor in (
-        ("B3.05A", "OUTRO"),
         ("B3.05B", "1000"),
         ("B3.05C", "ATE_30D"),
         ("B3.05D", "CONFIRMADO"),
@@ -66,7 +63,7 @@ def test_ac164_formulario_traz_as_perguntas_exibiveis_do_item_com_as_complementa
 
     depois = _formulario(cliente, _EXT, "EXT001")
     assert depois["completa"] is True
-    assert depois["perguntas"][0]["valor_atual"] == "OUTRO"
+    assert depois["perguntas"][0]["ID"] == "B3.05B"
 
 
 def test_ac164_escopo_invalido_e_item_de_outro_escopo_sao_recusados(
@@ -107,7 +104,6 @@ def test_ac167_posicao_do_item_e_itens_concluidos_vem_do_servidor(
     cliente = _cliente_real(monkeypatch, tmp_path)
     _responder(cliente, "B3.05", "SIM")
     for ID, valor in (
-        ("B3.05A", "13O_SALARIO"),
         ("B3.05B", "1000"),
         ("B3.05C", "ATE_30D"),
         ("B3.05D", "CONFIRMADO"),

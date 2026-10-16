@@ -462,21 +462,21 @@ def test_t297_total_conta_por_ficha_como_as_respondidas(
 def test_t297_respostas_do_bloco_9_aparecem_na_revisao(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`AC-100`: `B9.02`/`B9.04` são respondidas na coleta inicial e sumiam
+    """`AC-100`: `B9.02` (`B9.04` saiu na `T-404`) é respondida na coleta inicial e sumiam
     da revisão — nenhuma das cinco partes listava o Bloco 9. Ficam em "Seu
     compromisso" (perseverança no plano), sem criar sexta parte (`RF-68`)."""
     cliente = _montar_cliente(
         monkeypatch,
-        respostas=(_resposta("B9.02", 7), _resposta("B9.04", "NAO")),
+        respostas=(_resposta("B9.02", 7),),
     )
 
     partes = _partes(cliente)
     ids = [r["ID"] for p in partes for r in p["respondidas"]]
 
     assert [p["bloco"] for p in partes] == [1, 2, 3, 4, 5]
-    assert {"B9.02", "B9.04"} <= set(ids)
+    assert "B9.02" in ids
     parte_1 = next(p for p in partes if p["bloco"] == 1)
-    assert {"B9.02", "B9.04"} <= {r["ID"] for r in parte_1["respondidas"]}
+    assert "B9.02" in {r["ID"] for r in parte_1["respondidas"]}
 
 
 # ---------------------------------------------------------------------------

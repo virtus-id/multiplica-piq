@@ -4,7 +4,7 @@ O especialista retirou 87 perguntas dos Blocos 1 a 5 que o motor não lê, o pro
 retirou `B4.V01` na `T-396`, e os dois retiraram mais 15 na `T-398` (Blocos 4, 5 e
 `B11.01`)
 (`specs/enxugamento-questionario.spec.md`, RF-402; a lista é a de `T-389`,
-menos `B3.S03` e `B5.I01`, que ficaram porque outras perguntas dependem
+menos `B3.S03` (que saiu na `T-404`) e `B5.I01`, que ficaram porque outras perguntas dependem
 delas). Este arquivo prova duas coisas:
 
 1. nenhuma delas existe mais nos registros (e os IDs não são reaproveitados);
@@ -187,10 +187,33 @@ _REMOVIDAS: tuple[tuple[str, str, str | None, ValorResposta], ...] = (
     ("B5.E04", "COBRANCA_ATIVA", "DIVIDA_ID", "SIM"),
     ("B5.F04", "CONSEQUENCIA_INADIMPLEMENTO", "DIVIDA_ID", "Texto"),
     ("B11.01", "ACAO_STATUS", "ACAO_ID", "CONCLUIDA"),
+    # `T-404` (RF-418): saem do cálculo, que passa a usar valores neutros
+    # (`tests/app_aluno/test_neutros_das_perguntas_removidas.py`).
+    ("B1.02", "NOVA_DIVIDA_PREVISTA", None, "SIM"),
+    ("B1.05", "JANELA_NOVA_DIVIDA", None, "ATE_30D"),
+    ("B1.10", "HISTORICO_RECAIDA", None, "MAIS_DE_UMA"),
+    ("B9.04", "HISTORICO_ABANDONO", None, "MAIS_DE_UMA"),
+    ("B2.01", "REGISTRO_GASTOS", None, "TUDO"),
+    ("B2.02", "FREQUENCIA_REGISTRO", None, "DIARIA"),
+    ("B2.03", "DEFASAGEM_REGISTRO", None, "NA_HORA"),
+    ("B2.04", "COBERTURA_PEQUENOS_GASTOS", None, "TODOS"),
+    ("B2.05", "COBERTURA_MEIOS_PAGAMENTO", None, "TOTAL"),
+    ("B2.07", "GASTOS_NAO_IDENTIFICADOS", None, "NUNCA"),
+    ("B3.02", "TIPO_RENDA", None, "VARIAVEL"),
+    ("B3.02A", "RENDA_VARIAVEL_MEDIA_HISTORICA", None, Decimal("123.45")),
+    ("B3.05A", "TIPO_RECURSO_EXTRAORDINARIO", "RECURSO_EXTRAORDINARIO_ID", "FERIAS_ABONO"),
+    ("B3.NM02D", "DESPESA_NAO_MENSAL_JA_CONTABILIZADA", "DESPESA_NAO_MENSAL_ID", "SIM"),
+    ("B3.S01", "VINCULO_CONSIGNAVEL", None, "SIM"),
+    ("B3.S03", "ORGAO_FONTE_PAGADORA", "VINCULO_ID", "Prefeitura"),
+    ("B5.A02V", "VINCULO_DA_DIVIDA", "DIVIDA_ID", "V001"),
+    ("B5.C07", "LINHA_CONTINUA_SENDO_UTILIZADA", "DIVIDA_ID", "SIM"),
 )
 
+# `T-404`: `B3.05BF` grava a mesma variável de `B3.05B` (que continua); sai sem
+# par na lista acima, para a resposta de teste não criar uma ficha.
+_REMOVIDA_COM_VARIAVEL_DE_OUTRA: tuple[str, ...] = ("B3.05BF",)
+
 _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = (
-    "B3.S03",  # `origem_opcoes` de B5.A02V (vínculo da dívida consignada)
     "B5.I01",  # `nivel_comprovacao_se` de B5.I02 (comprovação da fonte)
     "B3.C02",  # pai de B3.C02A/B3.C02B, que o especialista quer ligar ao motor
     "B4.04",  # o responsável do produto decidiu manter
@@ -200,9 +223,10 @@ _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = (
 def test_perguntas_removidas_nao_existem_e_as_mantidas_continuam() -> None:
     ids = {r.ID for r in carregar_registros().registros}
 
-    assert len(_REMOVIDAS) == 108
-    assert len({ID for ID, *_ in _REMOVIDAS}) == 108
+    assert len(_REMOVIDAS) == 126
+    assert len({ID for ID, *_ in _REMOVIDAS}) == 126
     assert {ID for ID, *_ in _REMOVIDAS} & ids == set()
+    assert set(_REMOVIDA_COM_VARIAVEL_DE_OUTRA) & ids == set()
     assert set(_MANTIDAS_QUE_OUTRAS_USAM) <= ids
 
 

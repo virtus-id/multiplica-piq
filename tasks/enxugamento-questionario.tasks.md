@@ -197,3 +197,27 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Sincronizar plano, tarefas e spec; regras normativas das funções novas do motor; limpar restos de texto
 
 **Status:** `[x] concluída` — 2026-10-16 (inclui RF-417)
+
+### `T-404` — Tirar do questionário e do cálculo as perguntas decididas (T-392)
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-403` · **Rastreia:** `RF-418`, `RF-403`
+- [ ] Remover as 16 perguntas dos registros (e as que dependem só delas); montagem com valores neutros no lugar das respostas; textos de `B3.NM02A` e `B3.NM02B`; sem alterar `engine/`
+- [x] Testes: o plano e o snapshot não quebram sem essas respostas; a mudança de nível de controle, confiabilidade e margem de segurança está provada em teste; ajustar os testes que exigiam as respostas
+
+**Status:** `[x] concluída` — 2026-10-16 (19 perguntas saíram, não 16: também `B3.05BF`, `B3.S03` e `B5.A02V`, que só existiam por causa de `B3.05A` e `B3.S01`. `B3.02B` e `B3.NM02A` já não existiam; o texto novo entrou só em `B3.NM02B`. Fica como débito o código de vínculo que não tem mais origem: `VINCULO_SEM_ITEM`/`CONSIGNADO_SEM_VINCULO` em `app/casos/inventario.py` e a exibição do vínculo em `report/plano.py` e `app/http/serializacao_plano.py`.)
+
+### `T-405` — Textos de reserva, "Sim ou Não direto" e quanto falta cortar
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-404` · **Rastreia:** `RF-418`, `RF-411`
+- [ ] `B4.03` e `B4.03A` com os textos diretos; sai o "Não sei" de `B4.01`, `B4.04`, `B5.B05`, `B5.FIM02`
+- [ ] Plano de quem fecha o mês no negativo mostra quanto falta cortar para chegar a zero
+
+**Status:** `[ ] pendente`
+
+### `T-406` — Regras de ordem das dívidas
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-404` · **Rastreia:** `RF-418`, `RF-404`
+- [ ] Spec do motor: regra normativa de ordem (essencial, negativada, peso da garantia 3/2/1, urgência +20%, escolha do aluno com diferença de custo de até 5%) com critérios de aceite
+- [ ] Perguntas `B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04` ligadas na montagem e no motor, com hash congelado e testes por critério
+
+**Status:** `[ ] pendente`

@@ -66,10 +66,9 @@ def _checklist_de_moradia(cliente: TestClient) -> list[str]:
     ("gatilho", "valor", "escopo", "perguntas"),
     [
         ("B3.03", "SIM", "RENDA_ADICIONAL_ID", ["B3.03B"]),
-        ("B3.05", "SIM", "RECURSO_EXTRAORDINARIO_ID", ["B3.05A", "B3.05C", "B3.05D"]),
-        ("B3.05", "TALVEZ", "RECURSO_EXTRAORDINARIO_ID", ["B3.05A", "B3.05C", "B3.05D"]),
-        ("B3.NM01", "SIM", "DESPESA_NAO_MENSAL_ID", ["B3.NM02B", "B3.NM02D"]),
-        ("B3.S01", "SIM", "VINCULO_ID", ["B3.S03"]),
+        ("B3.05", "SIM", "RECURSO_EXTRAORDINARIO_ID", ["B3.05B", "B3.05C", "B3.05D"]),
+        ("B3.05", "TALVEZ", "RECURSO_EXTRAORDINARIO_ID", ["B3.05B", "B3.05C", "B3.05D"]),
+        ("B3.NM01", "SIM", "DESPESA_NAO_MENSAL_ID", ["B3.NM02B"]),
         ("B3.D11", "SIM", _DESPESA, ["B3.DF01", "B3.DF02"]),
     ],
 )
@@ -246,7 +245,6 @@ def test_ac171_item_seguinte_e_item_novo_abrem_sem_valores_de_outro_item(
         "RENDA_ADICIONAL_ID",
         "DESPESA_NAO_MENSAL_ID",
         "RECURSO_EXTRAORDINARIO_ID",
-        "VINCULO_ID",
     ],
 )
 def test_ac171_formulario_de_ficha_curta_so_tem_perguntas_do_proprio_escopo(
@@ -255,7 +253,7 @@ def test_ac171_formulario_de_ficha_curta_so_tem_perguntas_do_proprio_escopo(
     """Hipótese (b): nenhuma pergunta de outro escopo (ex.: `B5.A01`, "Para
     quem você deve") no formulário, nem nas complementares."""
     cliente = _cliente_real(monkeypatch, tmp_path)
-    for ID, valor in (("B3.03", "SIM"), ("B3.05", "SIM"), ("B3.NM01", "SIM"), ("B3.S01", "SIM")):
+    for ID, valor in (("B3.03", "SIM"), ("B3.05", "SIM"), ("B3.NM01", "SIM")):
         _responder(cliente, ID, valor)
     _responder(cliente, "B5.00", "2")
     _checklist_de_moradia(cliente)

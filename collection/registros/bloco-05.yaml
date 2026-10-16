@@ -70,31 +70,6 @@ perguntas:
       Define modelo da engine, exibição de B5.C07 (linhas reutilizáveis) e
       de B5.G03 (modalidades portáveis).
 
-  # RF-90, AC-139 (parte CONSIGNADO), DE-05, canônica v1.0.2 E-09 — T-256.
-  # Nome técnico a critério do plano (OQ-59); enunciado: aprovado pelo
-  # produto (T-289, 2026-09-30). Cartão consignado/benefício NÃO entra
-  # nesta rodada (decisão do produto R9-4, 2026-09-30 — T-279).
-  - ID: B5.A02V
-    bloco: 5
-    enunciado: Em qual vínculo esta dívida é descontada?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes: []
-    VARIAVEL_GRAVADA: VINCULO_DA_DIVIDA
-    condicao_exibicao: {tipo: IGUAL, variavel: TIPO_DIVIDA, valor: CONSIGNADO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes:
-      fonte: ITENS_DO_ESCOPO
-      campo_do_snapshot: null
-      escopo: VINCULO_ID
-      variavel_rotulo: ORGAO_FONTE_PAGADORA
-    admite_nao_sei: false
-    salto_consequencia: >-
-      SYS: a dívida consignada aponta o VINCULO_ID em que é descontada;
-      opções = vínculos ativos do caso.
-
   - ID: B5.A04
     bloco: 5
     enunciado: Qual destas opções descreve melhor esta operação hoje?
@@ -278,32 +253,6 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: true
     salto_consequencia: null
-
-  - ID: B5.C07
-    bloco: 5
-    enunciado: >-
-      Mesmo enquanto paga essa dívida, você continua usando esse limite ou
-      linha de crédito?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "Sim, com frequência.", valor_interno: SIM}
-      - {rotulo: Às vezes., valor_interno: AS_VEZES}
-      - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: Não se aplica., valor_interno: NAO_APLICA}
-    VARIAVEL_GRAVADA: LINHA_CONTINUA_SENDO_UTILIZADA
-    condicao_exibicao:
-      tipo: OU
-      termos:
-        - {tipo: IGUAL, variavel: TIPO_DIVIDA, valor: CARTAO_ROTATIVO}
-        - {tipo: IGUAL, variavel: TIPO_DIVIDA, valor: CHEQUE_ESPECIAL}
-        - {tipo: IGUAL, variavel: TIPO_DIVIDA, valor: CARTAO_PARCELADO}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "SIM/AS_VEZES → B5.C07A."
 
   # Grupo D — Custo
   # `T-393` (RF-407): um só valor de custo da dívida, CET ou taxa de juros,

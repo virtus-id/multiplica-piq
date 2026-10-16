@@ -15,7 +15,6 @@ Bloco 5.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from functools import cache
 
 import pytest
@@ -25,7 +24,7 @@ from app.http.renderizacao import montar_contexto_pergunta
 from app.http.serializacao import serializar_pergunta
 from collection.carga import ColecaoDeRegistros, carregar_registros
 from collection.registro import EscopoRepeticao, RegistroPergunta
-from collection.respostas import Resposta, RespostasCaso
+from collection.respostas import RespostasCaso
 
 CASO_ID = "CASO-POSICAO"
 
@@ -75,7 +74,7 @@ def test_ac92_a_posicao_acompanha_a_ordem_das_perguntas_abertas() -> None:
     assert quarta.posicao == 4
 
 
-@pytest.mark.parametrize("indice", [0, 3, 8])
+@pytest.mark.parametrize("indice", [0, 3, 7])
 def test_ac92_o_denominador_e_o_mesmo_para_toda_a_ficha(indice: int) -> None:
     """O total não pode variar entre perguntas da MESMA ficha — senão a barra
     de progresso do `.top` andaria para trás sozinha."""
@@ -181,31 +180,3 @@ def test_rf63_dataclass_de_posicao_e_imutavel() -> None:
 
     with pytest.raises(AttributeError):
         posicao.posicao = 5  # type: ignore[misc]
-
-
-def test_t285_sem_vinculo_o_total_da_ficha_consignada_nao_conta_b5_a02v() -> None:
-    """`T-285` (`DE-04`, `T-282`): sem vínculo ativo, `B5.A02V` não é exibida
-    — logo não entra no "pergunta X de Y"; com vínculo, entra."""
-    respostas = RespostasCaso(
-        respostas=(
-            Resposta(
-                CASO_ID=CASO_ID,
-                ID_PERGUNTA="TIPO_DIVIDA",
-                item_id="D001",
-                valor="CONSIGNADO",
-                QUESTIONARIO_VERSION="1.0.3",
-                respondida_em=datetime(2026, 9, 30, tzinfo=UTC),
-            ),
-        )
-    )
-    cabeca = _registros_do_escopo(EscopoRepeticao.DIVIDA_ID, bloco=5)[0]
-
-    def total(vinculos: tuple[str, ...]) -> int:
-        itens = {EscopoRepeticao.DIVIDA_ID: ("D001",), EscopoRepeticao.VINCULO_ID: vinculos}
-        posicao = posicao_na_ficha(
-            cabeca, _colecao().registros, respostas, "D001", itens_por_escopo=itens
-        )
-        assert posicao is not None
-        return posicao.total_na_ficha
-
-    assert total(("V001",)) == total(()) + 1

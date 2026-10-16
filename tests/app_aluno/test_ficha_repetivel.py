@@ -491,8 +491,6 @@ def _responder(
 _GATILHOS_QUE_ABREM: Final = [
     ("B3.03", "SIM", ["RENDA_ADICIONAL_ID"]),
     ("B3.NM01", "SIM", ["DESPESA_NAO_MENSAL_ID"]),
-    ("B3.S01", "SIM", ["VINCULO_ID"]),
-    ("B3.S01", "NAO_SEI", ["VINCULO_ID"]),
 ]
 
 
@@ -523,7 +521,7 @@ def test_t212_gatilho_aponta_a_ficha_e_o_item_criado_abre_a_cabeca(
 
 @pytest.mark.parametrize(
     ("gatilho", "valor"),
-    [("B3.03", "NAO"), ("B3.03", "NAO_SEI"), ("B3.NM01", "NAO"), ("B3.S01", "NAO")],
+    [("B3.03", "NAO"), ("B3.03", "NAO_SEI"), ("B3.NM01", "NAO")],
 )
 def test_t212_gatilho_que_nao_abre_nao_aponta_ficha(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, gatilho: str, valor: str
@@ -568,13 +566,11 @@ def test_t212_escopos_informa_se_cada_um_esta_aberto(
 
     antes = abertos()
     _responder(cliente, "B3.03", "SIM")
-    _responder(cliente, "B3.S01", "NAO")
     depois = abertos()
 
     assert antes["RENDA_ADICIONAL_ID"] is False
     assert depois["RENDA_ADICIONAL_ID"] is True
     assert depois["DESPESA_NAO_MENSAL_ID"] is False
-    assert depois["VINCULO_ID"] is False
 
 
 def test_t212_fichas_de_um_escopo_nao_alteram_as_de_outro(
@@ -599,8 +595,8 @@ def test_t212_fichas_de_um_escopo_nao_alteram_as_de_outro(
 
 
 # ---------------------------------------------------------------------------
-# T-254/T-256/T-257 — consignado aponta vínculo (`T-389`: sem margem por vínculo)
-# (RF-90, AC-137, AC-139, EC-35, DE-05).
+# Auxiliares das fichas. `T-404` (RF-418): `B3.S01`, `B3.S03` e `B5.A02V` saíram,
+# e com elas os testes de vínculo (T-254, T-256, T-257).
 # ---------------------------------------------------------------------------
 
 
@@ -612,99 +608,3 @@ def _fichas(cliente: TestClient, escopo: str) -> list[dict[str, Any]]:
     corpo: dict[str, Any] = cliente.get(f"/caso/{_CASO_ID}/fichas/{escopo}").json()
     fichas: list[dict[str, Any]] = corpo["fichas"]
     return fichas
-
-
-def test_t254_vinculo_lista_os_dependentes(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """`EC-35`: a dívida consignada que aponta o vínculo é dependente dele.
-    `T-389`: sem margens (`B3.S06*` saíram), a lista de margens é vazia."""
-    cliente = _cliente_real(monkeypatch, tmp_path)
-    _responder(cliente, "B3.S01", "SIM")
-    v1 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    v2 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    divida = _criar_em(cliente, "DIVIDA_ID").json()["ficha"]["item_id"]
-    _responder(cliente, "B5.A02", "CONSIGNADO", divida)
-    assert _responder(cliente, "B5.A02V", v2, divida).status_code == 200
-
-    corpo = cliente.get(f"/caso/{_CASO_ID}/fichas/VINCULO_ID").json()
-    por_id = {ficha["item_id"]: ficha for ficha in corpo["fichas"]}
-
-    assert por_id[v1]["dependentes"] == {"margens": [], "dividas": []}
-    assert por_id[v2]["dependentes"] == {"margens": [], "dividas": [divida]}
-    assert corpo["escopo_pai"] is None
-
-
-def test_t256_vinculo_da_divida_so_para_consignado_com_os_vinculos_do_caso(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """`AC-139` (parte `CONSIGNADO`, `R9-4`): `B5.A02V` só aparece para
-    `CONSIGNADO`; as opções são os vínculos ATIVOS deste caso, rotulados
-    pelo órgão pagador."""
-    cliente = _cliente_real(monkeypatch, tmp_path)
-    RepositorioItensArquivo(tmp_path / "itens.jsonl").proximo_identificador(
-        "OUTRO-CASO", EscopoRepeticao.VINCULO_ID
-    )
-    _responder(cliente, "B3.S01", "SIM")
-    v1 = _fichas(cliente, "VINCULO_ID")[0]["item_id"]  # `T-311`: nasce com o "Sim"
-    v2 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    v3 = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    cliente.delete(f"/caso/{_CASO_ID}/fichas/VINCULO_ID/{v3}")
-    _responder(cliente, "B3.S03", "Prefeitura", v1)
-    divida = _criar_em(cliente, "DIVIDA_ID").json()["ficha"]["item_id"]
-
-    def campo_vinculo() -> dict[str, Any] | None:
-        (ficha,) = _fichas(cliente, "DIVIDA_ID")
-        return next((c for c in ficha["campos"] if c["ID"] == "B5.A02V"), None)
-
-    _responder(cliente, "B5.A02", "PESSOAL", divida)
-    assert campo_vinculo() is None
-
-    _responder(cliente, "B5.A02", "CONSIGNADO", divida)
-    campo = campo_vinculo()
-    assert campo is not None
-    assert [(o["valor_interno"], o["rotulo"]) for o in campo["opcoes"]] == [
-        (v1, "Prefeitura"),
-        (v2, v2),
-    ]
-
-
-def test_t257_referencia_a_vinculo_removido_volta_a_ficar_em_aberto(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    """`EC-35`: removido o vínculo, a dívida que o apontava fica em aberto;
-    as respostas continuam gravadas (auditoria). `T-282`: resta outro
-    vínculo — sem nenhum, a dívida não trava (pendência de inventário,
-    `test_vinculos.py`)."""
-    cliente = _cliente_real(monkeypatch, tmp_path)
-    _responder(cliente, "B3.S01", "SIM")
-    vinculo = _criar_em(cliente, "VINCULO_ID").json()["ficha"]["item_id"]
-    _criar_em(cliente, "VINCULO_ID")
-    divida = _criar_em(cliente, "DIVIDA_ID").json()["ficha"]["item_id"]
-    _responder(cliente, "B5.A01", "Banco", divida)
-    _responder(cliente, "B5.A02", "CONSIGNADO", divida)
-    _responder(cliente, "B5.A02V", vinculo, divida)
-
-    def proxima_da_divida() -> str:
-        corpo = cliente.get(f"/caso/{_CASO_ID}/pergunta", params={"item_id": divida}).json()
-        ID: str = corpo["pergunta"]["ID"]
-        return ID
-
-    assert proxima_da_divida() != "B5.A02V"
-    cliente.delete(f"/caso/{_CASO_ID}/fichas/VINCULO_ID/{vinculo}")
-
-    assert proxima_da_divida() == "B5.A02V"
-    gravadas = RepositorioRespostasArquivo(tmp_path / "respostas.jsonl").listar_do_caso(_CASO_ID)
-    assert any(
-        r.ID_PERGUNTA == "VINCULO_DA_DIVIDA" and r.valor == vinculo for r in gravadas
-    )
-
-
-def test_t256_condicao_de_b5a02v_nao_menciona_cartao() -> None:
-    """`R9-4` (decisão do produto, 2026-09-30): cartão consignado/benefício
-    fica fora desta rodada (`T-279`)."""
-    from collection.carga import carregar_registros
-
-    (registro,) = [r for r in carregar_registros().registros if r.ID == "B5.A02V"]
-    assert registro.condicao_exibicao is not None
-    assert "CARTAO" not in repr(registro.condicao_exibicao)

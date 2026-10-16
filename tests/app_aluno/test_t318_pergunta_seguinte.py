@@ -55,12 +55,12 @@ def test_t318_seguinte_so_depois_de_uma_respondida() -> None:
 def test_t318_voltar_e_avancar_chega_a_pergunta_certa(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """Responde a ficha `EXT001` (Férias/abono: `B3.05A`, `B3.05BF`, `B3.05C`)
-    até a fronteira `B3.05D`, volta três com `anterior` e
+    """Responde a ficha `EXT001` (`B3.05B`, `B3.05C`)
+    até a fronteira `B3.05D`, volta duas com `anterior` e
     avança um com `seguinte`: chega à pergunta logo depois, com o item."""
     cliente = _cliente_real(monkeypatch, tmp_path)
     proxima = _responder(cliente, "B3.05", "SIM").json()["proxima"]["pergunta"]
-    for valor in ("FERIAS_ABONO", "1000", "ATE_30D"):
+    for valor in ("1000", "ATE_30D"):
         corpo = _responder(cliente, proxima["ID"], valor, "EXT001").json()
         assert "seguinte" in corpo["proxima"]["pergunta"]  # a do `POST` também traz
         # A `proxima` global seria `B1.01` (em branco); seguimos no item.
@@ -71,12 +71,12 @@ def test_t318_voltar_e_avancar_chega_a_pergunta_certa(
     assert fronteira["seguinte"] is None
 
     atual = fronteira
-    for _ in range(3):
+    for _ in range(2):
         anterior = _par(atual["anterior"])
         assert anterior is not None
         atual = _pergunta(cliente, *anterior)
-    assert _par(atual) == ("B3.05A", "EXT001")
-    assert _par(atual["seguinte"]) == ("B3.05BF", "EXT001")
+    assert _par(atual) == ("B3.05B", "EXT001")
+    assert _par(atual["seguinte"]) == ("B3.05C", "EXT001")
     # Da última respondida, a seguinte é a pendente; e do gatilho entra no item.
     assert _par(_pergunta(cliente, "B3.05C", "EXT001")["seguinte"]) == ("B3.05D", "EXT001")
-    assert _par(_pergunta(cliente, "B3.05", None)["seguinte"]) == ("B3.05A", "EXT001")
+    assert _par(_pergunta(cliente, "B3.05", None)["seguinte"]) == ("B3.05B", "EXT001")

@@ -376,6 +376,15 @@ rotulos_de_codigos:
   IMPORTANTE: "Importante"
   PARCIAL: "Parcialmente essencial"
   NAO_ESSENCIAL: "Não essencial"
+  # Valores assumidos pelo PIQ no lugar das perguntas retiradas (T-404, RF-418):
+  # o revisor lê que o aluno não respondeu isto.
+  RELATIVAMENTE_ESTAVEL: "Relativamente estável (assumido, não perguntado)"
+  PARTE: "Parte dos gastos (assumido, não perguntado)"
+  INDEFINIDA: "Sem regularidade definida (assumido, não perguntado)"
+  DIAS_DEPOIS: "Dias depois (assumido, não perguntado)"
+  ALGUNS: "Alguns (assumido, não perguntado)"
+  QUASE_TOTAL: "Quase todos (assumido, não perguntado)"
+  ALGUMAS_MES: "Algumas vezes por mês (assumido, não perguntado)"
 
 # ---------------------------------------------------------------------------
 # Critério do método — T-330 (RF-111), relato do produto 2026-10-02.
