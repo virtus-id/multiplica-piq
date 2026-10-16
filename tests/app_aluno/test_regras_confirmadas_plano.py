@@ -76,6 +76,19 @@ def test_ac_em_dia_nao_avisa() -> None:
     assert contexto.ordem[0].avisos == ()
 
 
+def test_rf_414_situacao_do_pagamento_nao_aceita_nao_sei() -> None:
+    from collection.carga import carregar_registros
+
+    (b5e01,) = [r for r in carregar_registros().registros if r.ID == "B5.E01"]
+    assert [o.valor_interno for o in b5e01.opcoes] == [
+        "EM_DIA",
+        "VENCIDO",
+        "PARCIAL",
+        "SEM_PAGAMENTO_REGULAR",
+    ]
+    assert b5e01.admite_nao_sei is False
+
+
 def test_ac_divida_com_garantia_avisa_com_a_responsabilidade() -> None:
     contexto, html = _plano((_item("POSSUI_GARANTIA", "SIM"),))
     (aviso,) = contexto.ordem[0].avisos

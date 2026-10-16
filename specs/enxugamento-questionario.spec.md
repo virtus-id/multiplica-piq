@@ -472,3 +472,6 @@ Entram só as regras que o especialista escolheu com instrução clara. Tudo o q
 
 ### RF-413. Excluir de vez o pós-entrega do plano (decisão de 2026-10-15)
 Os estados `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` saem do código (enum `ESTADO_CASO`, testes, textos e tipos do frontend). `PLANO_LIBERADO` segue terminal. Antes de apagar, conferir (somente leitura) que nenhum caso está nesses estados. Também: `QUESTIONARIO_VERSION` sobe para `1.3.0` (perguntas novas B3.C00A e B3.C02C) e o rótulo faltante de `ItemInvestimento.LIQUIDEZ_INVESTIMENTOS` é corrigido (falha antiga de teste, resquício da remoção do Bloco 4).
+
+### RF-414. Situação do pagamento da dívida sem "Não sei" (decisão de 2026-10-16)
+A pergunta `B5.E01` ("Como está o pagamento desta dívida hoje?") deixa de aceitar "Não sei": ou a dívida está atrasada ou não está. A opção `NAO_SEI` sai do registro e a pergunta passa a ser obrigatória sem exceção. As demais opções ficam como estão (`EM_DIA`, `VENCIDO`, `PARCIAL`, `SEM_PAGAMENTO_REGULAR`). O aviso de dívida atrasada (RF-412) segue valendo para `VENCIDO` e `PARCIAL`. Decisões confirmadas na mesma data: publicar já, sem esperar o especialista; manter o bloqueio de "fichas faltando"; aprovados os textos propostos na entrega de RF-412; o formulário único segue para o especialista.

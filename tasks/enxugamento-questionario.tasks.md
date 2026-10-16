@@ -165,3 +165,11 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] `QUESTIONARIO_VERSION` 1.3.0 em todos os registros; rótulo de `LIQUIDEZ_INVESTIMENTOS`
 
 **Status:** `[x] concluída` — conferência no banco novo (somente leitura): AGUARDANDO_REVISAO 4, CADASTRADO 7, COLETA_INICIAL 1, nenhum nos três estados. Estados apagados de `ESTADO_CASO`, `fases.py`, `mensagens_de_estado.py`, `textos-canonicos.yaml` e testes; `QUESTIONARIO_VERSION` 1.3.0; rótulos `D0`..`BLOQUEADO` (liquidez do investimento) em `rotulos_de_codigos` (o enum é do motor, em uso, não removido).
+
+### `T-401` — Situação do pagamento (`B5.E01`) sem "Não sei"
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-399` · **Rastreia:** `RF-414`, `RF-411`
+- [ ] Remover a opção "Não sei" de `B5.E01` em `collection/registros/bloco-05.yaml`; ajustar montagem, telas, conferências e testes que tratavam `NAO_SEI` nessa pergunta, sem mudar o motor
+- [ ] Teste: estado do motor idêntico para as respostas que continuam válidas
+
+**Status:** `[ ] pendente`

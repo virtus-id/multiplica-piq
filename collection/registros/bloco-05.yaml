@@ -346,13 +346,12 @@ perguntas:
       - {rotulo: Existe parcela/valor vencido., valor_interno: VENCIDO}
       - {rotulo: Estou pagando parcialmente., valor_interno: PARCIAL}
       - {rotulo: Não existe pagamento regular definido atualmente., valor_interno: SEM_PAGAMENTO_REGULAR}
-      - {rotulo: Não sei., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: "DIVIDA_EM_DIA / DIVIDA_ATRASADA"
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: "VENCIDO/PARCIAL → B5.E02."
 
   - ID: B5.E02
