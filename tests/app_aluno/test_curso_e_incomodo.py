@@ -24,7 +24,9 @@ from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from report.pdf import renderizar_html_do_plano
 from report.plano import (
     ContextoPlano,
+    VocabularioDoCaso,
     carregar_textos_canonicos,
+    formatar_dinheiro_br,
     montar_contexto_plano,
 )
 from tests.app_aluno.fixtures.caso_completo import (
@@ -105,6 +107,47 @@ def test_sobra_exatamente_zero_gera_plano_normal_sem_valor_extra() -> None:
 def test_aviso_de_sem_valor_extra_nao_aparece_quando_ha_valor_extra() -> None:
     snapshot = _snapshot()
     assert _contexto(snapshot).aviso_sem_valor_extra == ""
+
+
+def test_numeros_do_mes_no_negativo_fecham_entre_si() -> None:
+    """RF-416 — o teste de mesa mostrava parcelas devidas (R$ 400) ao lado de
+    um resultado que desconta as efetivas (R$ 600). Renda − gastos − gastos
+    ocasionais − parcelas exibidas = resultado exibido do mês."""
+    snapshot = _snapshot(renda=Decimal("1000.00"))
+    d, e = snapshot.diagnostico, snapshot.estado_inputs
+    assert d.RESULTADO_CAIXA_OBSERVADO < 0 and d.MODO_ESTABILIZACAO
+    ponto = _contexto(snapshot).ponto_de_partida
+    assert ponto is not None
+    assert ponto.parcelas == formatar_dinheiro_br(d.PAGAMENTOS_EFETIVOS_DIVIDAS)
+    assert d.RESULTADO_CAIXA_OBSERVADO == (
+        e.RENDA_TOTAL_RECORRENTE
+        - e.DESPESAS_OPERACIONAIS_ATUAIS
+        - e.DESPESAS_NAO_MENSAIS_NORMALIZADAS
+        - d.PAGAMENTOS_EFETIVOS_DIVIDAS
+    )
+    assert formatar_dinheiro_br(d.RESULTADO_CAIXA_OBSERVADO) in _html(snapshot)
+
+
+def test_estabilizacao_mostra_avisos_de_atraso_e_garantia_com_responsabilidade() -> None:
+    """RF-416 — mês no negativo não tem cartão por dívida, mas o aluno ainda
+    vê o que declarou em `B5.E01` e `B5.F01`, sem cronograma."""
+    snapshot = _snapshot(renda=Decimal("1000.00"))
+    assert snapshot.diagnostico.MODO_ESTABILIZACAO
+    vocabulario = VocabularioDoCaso(
+        dividas_atrasadas=frozenset({"D-A"}), dividas_com_garantia=frozenset({"D-B"})
+    )
+    textos = carregar_textos_canonicos()
+    contexto = montar_contexto_plano(snapshot, textos, vocabulario)
+    responsabilidade = textos.avisos["responsabilidade"]
+    atrasada = [a for a in contexto.avisos_gerais if textos.avisos["atrasada"] in a]
+    garantia = [a for a in contexto.avisos_gerais if textos.avisos["garantia"] in a]
+    assert len(atrasada) == 1 and len(garantia) == 1
+    assert all(a.endswith(responsabilidade) for a in atrasada + garantia)
+    html = renderizar_html_do_plano(contexto, textos)
+    assert textos.avisos["atrasada"] in html and textos.avisos["garantia"] in html
+    # fora da estabilização os avisos seguem no cartão da dívida, não aqui
+    normal = montar_contexto_plano(_snapshot(), textos, vocabulario)
+    assert normal.avisos_gerais == ()
 
 
 # --------------------------------------------------------------------- curso

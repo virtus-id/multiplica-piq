@@ -11,7 +11,29 @@ Derivado de `specs/enxugamento-questionario.spec.md`. Cada item rastreia para um
 | 3. Reduzir o motor | **Parcial.** Feita a pergunta única de custo da dívida (T-393) e a regra de normalização da taxa no motor. As 24 perguntas do motor seguem à espera da aprovação das regras substitutas | T-393 (feita), T-392 (pendente) |
 | 4. Ligar ao motor | **Não iniciada.** Depende das regras do especialista | a criar |
 
-Questionário: 267 perguntas, depois 180 (T-389), 125 (T-390), 118 (T-391), 117 (T-396) e **113** com a pergunta única de custo da dívida (T-393). Versão **`1.2.0`**.
+### Andamento (2026-10-15)
+
+| Etapa | Situação | Tarefas |
+|---|---|---|
+| 1 e 2 | Seguem concluídas. Estados pós-entrega **apagados do código** (T-400), no lugar de apenas desligados | T-400 |
+| 4. Ligar ao motor | **Parcial.** Feitas as regras já confirmadas pelo especialista (RF-412); ficam fora as regras de ordem (`B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04`), `B3.02A` e as dúvidas | T-399 (parcial), T-395 (pendente) |
+| Textos de valor exato | Aprovados e aplicados (RF-415); faltam `B5.C06A` em 3 campos e `B3.02A` | T-402, T-394 (parcial) |
+| Ajustes finais | `B5.E01` sem "Não sei" (T-401), `B5.I03` ao revisor (T-402); correções do teste de mesa e sincronização dos artefatos (T-403, em andamento) | T-401, T-402, T-403 |
+
+Questionário: 267 perguntas, depois 180 (T-389), 125 (T-390), 118 (T-391), 117 (T-396), 113 com a pergunta única de custo da dívida (T-393), **98** após a T-398 e, com as perguntas novas `B3.C00A` e `B3.C02C` (T-399), versão **`1.3.0`** (T-400).
+
+### Decisões técnicas (2026-10-15)
+
+| # | Decisão | Por quê (requisito) | Tarefa |
+|---|---|---|---|
+| D1 | Fórmulas novas são **funções puras em `engine/`**, uma por módulo: `engine/taxa.py` (normalização ao mês), `engine/despesas.py` (soma de fixas e variáveis) e `engine/percepcao.py` (diferença percebida × calculada). A montagem só chama; não calcula (Lei nº 3 do `app-aluno`). Sem `P_*` novo | RF-407, RF-412 | T-393, T-399 |
+| D2 | Regras normativas em `specs/motor-calculo.spec.md` §16.1, §16.2 e §16.3, citadas pela seção (os IDs `LETRA-NN` são a lista fechada da canônica). A spec do motor não cita `RF-NN` desta feature, para não exigir tarefa nova em `tasks/motor-calculo.tasks.md` | RF-403, RF-404 | T-393, T-399, T-403 |
+| D3 | `engine/percepcao.py`: sobra positiva, falta negativa; se vierem as duas, vale a sobra; sem limite de tolerância; sem valor ou sem calculado, `DESCONHECIDO` | RF-412 | T-399 |
+| D4 | `B3.C00A` (quais itens não conferem) e `B3.C02C` (aceita ou revisa a diferença) são perguntas novas do registro, o que sobe o `QUESTIONARIO_VERSION` para `1.3.0` | RF-412, RF-413 | T-399, T-400 |
+| D5 | `B5.I03` (data da informação) aparece **só na tela do revisor**, como informação, sem efeito no cálculo | RF-412, RF-415 | T-402 |
+| D6 | Os estados `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` saem do enum `ESTADO_CASO`, de `fases.py`, das mensagens, dos textos canônicos, dos testes e do frontend, depois de conferir por leitura que nenhum caso está neles. `PLANO_LIBERADO` segue terminal. Sem migração de dados | RF-413, RF-409 | T-400 |
+| D7 | `B5.E01` perde a opção `NAO_SEI` e `admite_nao_sei` vira falso. O bloqueio por fichas faltando (`B5.00`, `RF-87`) é mantido; o aviso de RF-412 se soma a ele | RF-414, RF-412 | T-401 |
+| D8 | Rótulo faltante de `LIQUIDEZ_INVESTIMENTOS` entra em `rotulos_de_codigos`; o enum é do motor e está em uso, não é removido | RF-413 | T-400 |
 
 ## 1. Estratégia
 
@@ -138,11 +160,11 @@ Sem componente novo. A mudança remove partes da aplicação (rotas e telas de c
 
 ## 10. Tech Stack
 
-Sem mudança: Python 3 com FastAPI, Postgres no Supabase, React com Vite no frontend, `pytest` e `vitest` para testes, `ruff` e `mypy` para qualidade. Nenhuma dependência nova.
+Sem mudança (as funções puras novas do motor estão na seção 0, D1): Python 3 com FastAPI, Postgres no Supabase, React com Vite no frontend, `pytest` e `vitest` para testes, `ruff` e `mypy` para qualidade. Nenhuma dependência nova.
 
 ## 11. Data Model
 
-Registros YAML em `collection/registros/` (versão `1.2.0`, 113 perguntas após a T-393). Respostas em `app_aluno.respostas` seguem a chave `(caso, variável, item)`; as de perguntas removidas ficam órfãs. A coluna `casos.estado` é texto sem restrição, por isso os três estados removidos do fluxo continuam no enum.
+Registros YAML em `collection/registros/` (versão `1.3.0`; 98 perguntas após a T-398, mais `B3.C00A` e `B3.C02C` da T-399). Respostas em `app_aluno.respostas` seguem a chave `(caso, variável, item)`; as de perguntas removidas ficam órfãs, sem leitura. A coluna `casos.estado` é texto sem restrição; os três estados pós-entrega saíram do enum na T-400, depois de conferir por leitura que nenhum caso estava neles.
 
 ## 12. Data Flow
 
@@ -166,4 +188,12 @@ Teste de sensibilidade (estado e snapshot idênticos com e sem as respostas remo
 | RF-403 | 3 | T-392 |
 | RF-407 | 3 | T-393 |
 | RF-408 | 1 (textos) | T-394 |
-| RF-404, RF-406 | 4 | T-395 |
+| RF-404, RF-406 | 4 | T-395 (pendente), T-399 (parte já confirmada) |
+| RF-411 | 1 (extra) | T-397, T-401 |
+| RF-412 | 4 (parcial) | T-399, T-402 (`B5.I03`) |
+| RF-413 | 2 (extra) | T-400 |
+| RF-414 | 4 (extra) | T-401 |
+| RF-415 | 1 (textos) | T-402, T-394 (parcial) |
+| RF-416 | Fechamento | T-403 |
+
+Tarefas T-396 a T-403: T-396 (RF-402), T-397 (RF-411), T-398 (RF-402), T-399 (RF-412, RF-404), T-400 (RF-413, RF-409), T-401 (RF-414, RF-411), T-402 (RF-415, RF-408), T-403 (RF-416, RF-409). Regras do motor: spec do motor §16.1 (RF-407, T-393), §16.2 e §16.3 (RF-412, T-399).

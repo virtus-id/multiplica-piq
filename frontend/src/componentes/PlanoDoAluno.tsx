@@ -373,8 +373,8 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
         <div className="aviso-atencao" role="status">
           <div>
             <strong className="block">Este plano ainda é provisório.</strong>
-            Faltam algumas informações sobre as suas dívidas. Assim que você as informar, o plano é
-            refeito.
+            Faltam algumas informações sobre as suas dívidas. Assim que você as informar, o plano deixa de
+            ser provisório.
             {plano.pendencias?.inventario_incompleto &&
               ' O cadastro das suas dívidas ainda não foi confirmado como completo.'}
             <ul className="lista mt-2 list-none p-0">

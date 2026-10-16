@@ -11,7 +11,14 @@
 
 ## Progresso
 
-`9/12 tarefas concluídas`
+`13/17 tarefas concluídas` (T-387 a T-403), mais `T-399` concluída em parte e `T-394` e `T-395` em parte. Pendentes: `T-392`, e o que falta de `T-394`, `T-395`.
+
+| Situação | Tarefas |
+| --- | --- |
+| Concluídas (12) | T-387, T-388, T-389, T-390, T-391, T-393, T-396, T-397, T-398, T-400, T-401, T-402 |
+| Concluída em parte (1) | T-399 |
+| Parciais (2) | T-394, T-395 |
+| Pendentes (2) | T-392, T-403 |
 
 ### `T-387` — Plano entregue é definitivo: desligar acompanhamento e "refazer plano" (backend)
 
@@ -110,7 +117,7 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [ ] Reescrever as perguntas que ficam e pedem valor, conforme a tabela da spec (seção 6); verificar o impacto nos testes que comparam textos com a spec canônica
 - [x] Aplicar as sugestões de texto já aprovadas (os quatro itens abaixo feitos; as demais perguntas de valor exato seguem pendentes): `B5.D04` ("Além dos juros, existe alguma tarifa, encargo ou custo sendo cobrado nessa operação?"), `B5.D04A` ("Qual valor?"), `B5.00` ("Quantas dívidas ou operações financeiras diferentes você tem hoje?") e `B4.04B` ("Qual o valor?"). `B3.NM01` entra na T-397
 
-**Status:** `[ ] pendente`
+**Status:** `[ ] parcial` — feitos os quatro textos acima (três deles, `B5.D04`, `B5.D04A` e `B4.04B`, saíram depois do questionário na `T-398`) e, na `T-402`, as redações aprovadas de `B3.01`, `B3.03B`, `B3.04A`, `B3.C01`, `B3.C02A`, `B3.C02B`, `B2.10`, `B4.01A`, `B4.02A` e o texto novo de `B5.C06A`. **Falta:** `B5.C06A` em três campos de valor (muda o motor, agregação de entrada a especificar), `B3.02A` (em suspenso, depende de `B3.02`), validações cruzadas e a lista de perguntas sem "não sei" (OQ-11).
 
 ### `T-395` — Etapa 4: ligar ao motor as perguntas decididas pelo especialista
 
@@ -118,7 +125,7 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [ ] Para cada pergunta ligada: variável no estado, leitura na montagem, regra no motor com ID normativo e teste com critério de aceite; as regras vêm da segunda rodada com o especialista
 - [ ] Pedidos novos: campo de resultado mensal e textos de orientação ao aluno
 
-**Status:** `[ ] pendente`
+**Status:** `[ ] parcial` — a parte com regra clara do especialista foi feita na `T-399` (avisos de `B5.E01`, `B5.F01`, `B5.00`; `B3.C00`; `B3.C02A`/`B3.C02B`; `B3.04A`; `B3.DF02`; campo "Despesas mensais totais"; exibição de `B5.A01`, `B5.A02V`, `B5.I03`). **Falta:** regras de ordem (`B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04`), `B3.02A`, as notas orientativas ao aluno (imóvel, reserva acima de 6 meses, aula) e a reescrita de regra de qualquer pergunta em dúvida; depende da segunda rodada com o especialista (OQ-5). A dependência de `T-392` segue valendo para o que mexe no motor.
 
 ### `T-396` — Remover a pergunta de veículo (`B4.V01`)
 
@@ -153,9 +160,9 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] (parte B) `B3.C00` bloqueia e exige indicar quais itens não conferem (`B3.C00A`); `B3.C02A`/`B3.C02B` comparam com o resultado calculado (`B3.C02C`, `engine/percepcao.py`) e o aluno aceita ou revisa
 - [x] (parte B) `B3.04A` soma à renda disponível (`_contribuicao_familiar`) e o plano avisa (tela e PDF)
 - [x] (parte A) plano mostra fixo × variável (`B3.DF02`) e "Despesas mensais totais"
-- [x] (parte A) Credor (já no nome da dívida) e vínculo (`B5.A02V`, fato do cartão) só exibidos; `B5.I03` (só revisor) pendente; testes por critério de aceite; fora: regras de ordem, `B3.02A` e dúvidas
+- [x] (parte A) Credor (já no nome da dívida) e vínculo (`B5.A02V`, fato do cartão) só exibidos; `B5.I03` (só revisor) feita na `T-402`; testes por critério de aceite; fora: regras de ordem, `B3.02A` e dúvidas
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída em parte` — 2026-10-15 (commits `b17ae78` e `dfb0e11`). Todos os itens acima estão feitos. **Ficou fora, por decisão de RF-412 ("Fora desta entrega"):** regras de ordem `B5.E03`, `B5.F02`, `B5.F03`, `B5.H03`, `B5.H04` (faltam precedência e pesos), `B3.02A` (conflita com `B3.02`) e tudo marcado como dúvida. Por isso a `RF-404` não está inteira; o resto fica na `T-395`. Funções puras novas do motor: `engine/despesas.py` (`B3.DF02`) e `engine/percepcao.py` (`B3.C02C`); regras normativas na spec do motor §16.2 e §16.3.
 
 ### `T-400` — Excluir o pós-entrega do plano e fechar pendências técnicas
 
@@ -169,10 +176,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 ### `T-401` — Situação do pagamento (`B5.E01`) sem "Não sei"
 
 - **Tipo:** `CHANGE` · **Dependências:** `T-399` · **Rastreia:** `RF-414`, `RF-411`
-- [ ] Remover a opção "Não sei" de `B5.E01` em `collection/registros/bloco-05.yaml`; ajustar montagem, telas, conferências e testes que tratavam `NAO_SEI` nessa pergunta, sem mudar o motor
-- [ ] Teste: estado do motor idêntico para as respostas que continuam válidas
+- [x] Remover a opção "Não sei" de `B5.E01` em `collection/registros/bloco-05.yaml`; ajustar montagem, telas, conferências e testes que tratavam `NAO_SEI` nessa pergunta, sem mudar o motor
+- [x] Teste: estado do motor idêntico para as respostas que continuam válidas
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída` — commit `559717b`. A pergunta tem `admite_nao_sei: false` e as quatro opções `EM_DIA`, `VENCIDO`, `PARCIAL`, `SEM_PAGAMENTO_REGULAR`. O bloqueio de "fichas faltando" (`B5.00`) foi mantido (`RF-87`) e o aviso foi acrescentado.
 
 ### `T-402` — Textos de valor exato aprovados (T-394) e `B5.I03` na tela do revisor
 
@@ -181,3 +188,12 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] `B5.I03` aparece na tela do revisor como informação, sem efeito no cálculo; teste de regressão do estado do motor
 
 **Status:** `[x] concluída`
+
+### `T-403` — Correções do teste de mesa e da revisão final
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-402` · **Rastreia:** `RF-416`, `RF-409`
+- [x] Tirar do plano/FAQ/PDF o texto sobre refazer plano, "Gerar um novo plano" e acompanhar
+- [x] Investigar e corrigir a diferença de números no plano de quem fecha o mês no negativo
+- [x] Sincronizar plano, tarefas e spec; regras normativas das funções novas do motor; limpar restos de texto
+
+**Status:** `[x] concluída` — 2026-10-16 (inclui RF-417)

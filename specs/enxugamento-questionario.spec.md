@@ -3,7 +3,8 @@
 > Fonte única deste documento: as decisões que o especialista registrou no formulário de revisão
 > (https://claude.ai/artifact/UAkEhMLLqjzspsfmggSSav), lidas em 2026-10-14 (229 registros).
 > Foram tratadas como **oficiais**, conforme orientação do responsável do produto. Observação em branco
-> não é pendência. Nada neste documento foi implementado.
+> não é pendência. A situação de cada requisito está na própria seção e no backlog
+> (`tasks/enxugamento-questionario.tasks.md`).
 
 ## 1. Overview (contexto e objetivo)
 
@@ -37,7 +38,7 @@ dirigidas pelo motor, sem confirmação do ataque pelo aluno e sem recálculo po
 ### RF-409. O plano entregue é definitivo (confirmado em 2026-10-14)
 Depois que o aluno recebe o plano (`PLANO_LIBERADO`), o caso não segue para coleta dirigida, confirmação do ataque nem acompanhamento, e o aluno **não pode pedir plano novo**. O especialista não quer o plano "indo e voltando". Valem as exceções que acontecem **antes** da entrega: o aluno retirar o plano da conferência para editar (`aluno_retoma_edicao`) e o revisor devolver o caso (`devolve_ao_aluno`) continuam como estão.
 
-Decisão de implementação (OQ-1, parte final): **desligar** o fluxo, sem apagar o código das telas e das regras dos Blocos 7, 8, 10 e 11. Os estados `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` ficam na máquina e deixam de ser alcançáveis. A remoção do código é uma etapa futura, se o produto se confirmar sem acompanhamento.
+Decisão de implementação (OQ-1, parte final): em 2026-10-14 o fluxo foi **desligado** e, em seguida, o código das telas e das regras dos Blocos 7, 8, 10 e 11 foi apagado (T-390). Os estados `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` ficaram no enum, sem transição, para não quebrar a leitura de casos gravados. **Superado por RF-413 (2026-10-15):** conferido que nenhum caso estava nesses estados, eles foram removidos do código (T-400). `PLANO_LIBERADO` é terminal.
 
 ### RF-402. Remover do questionário o que o motor não usa (Blocos 1 a 5)
 
@@ -293,7 +294,7 @@ Leitura de engenharia, a validar com ele: (a) acrescentar um campo de **resultad
 
 ## 5. Questões em aberto (nada abaixo foi presumido)
 
-- **OQ-1 (respondida em 2026-10-14: o produto não tem acompanhamento).** O destino do código foi decidido em 2026-10-14 (RF-409): desligar, sem remover. Antes estava em aberto: os estados `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` e o gatilho de recálculo por quitação (V-01) ficam inalcançáveis. Remover esse código ou apenas desligar a coleta?
+- **OQ-1 (respondida em 2026-10-14: o produto não tem acompanhamento).** O destino do código foi decidido primeiro como desligar (RF-409) e, em 2026-10-15, como **remover** (RF-413): os estados `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` e o gatilho de recálculo por quitação (V-01) saíram do código.
 - **OQ-2 (respondida em 2026-10-14, ver seção 6, RF-407).** `B5.D01B` (periodicidade da taxa) saiu, e o CET também (`B5.D03`/`B5.D03A`). A montagem só converte a taxa para mensal quando a periodicidade é mensal, e o CET está fixo como desconhecido. **Sem as duas, nenhuma dívida tem juros utilizável e o ranking por juros fica sem dado.** Qual regra substitui? (Opção: pedir a taxa já em "% ao mês".)
 - **OQ-3 (respondida: remoção aceita, ver seção 6; falta a regra substituta).** Hábitos de controle: saíram 6 de 8 variáveis do perfil (`B2.01` a `B2.05` e `B2.07`); ficam `B2.06` e `B2.12`. O nível de controle e a confiabilidade dos dados dependem das 8. Qual a nova regra com 2?
 - **OQ-4 (respondida: remoção aceita, ver seção 6).** Risco de recaída e abandono: saíram `B1.02`, `B1.05`, `B1.10`, `B9.04` e `B5.C07`. O estado exige os sinais comportamentais completos. Como o risco de recaída é calculado agora?
@@ -419,13 +420,20 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | ID | Rastreia | Critério | Situação |
 |---|---|---|---|
 | AC-401 | RF-401, RF-409 | Dado um caso em `PLANO_LIBERADO`, quando qualquer transição é pedida, então é recusada; as rotas pós-plano não existem; a tela do aluno não oferece refazer plano nem acompanhamento | verificado (T-387, T-388, T-390) |
-| AC-402 | RF-402 | Dado o registro do questionário, quando carregado, então nenhuma das 87 perguntas removidas existe e a versão é a mesma em todos os arquivos | verificado (T-389) |
+| AC-402 | RF-402 | Dado o registro do questionário, quando carregado, então nenhuma das perguntas removidas existe (87 na T-389, `B4.V01` na T-396, 15 na T-398) e a versão (`1.3.0`) é a mesma em todos os arquivos | verificado (T-389, T-396, T-398, T-400) |
 | AC-403 | RF-402, RF-410 | Dado um caso de prova, quando as respostas das perguntas removidas são retiradas, então o `EstadoFinanceiro` e o `SnapshotOrdem` são idênticos | verificado (T-389, T-391) |
 | AC-404 | RF-410 | Dado um plano, então o PDF e a tela do revisor não mencionam seguro da dívida nem o apontam como informação pendente | verificado (T-391) |
-| AC-405 | RF-407 | Dada uma dívida sem CET e sem taxa, quando o cálculo é pedido, então ele é bloqueado | a implementar (T-393) |
-| AC-406 | RF-408 | Dada qualquer pergunta que continua pedindo valor, então o enunciado não contém "aproximadamente", "estima", "em média" nem "acredita" | a implementar (T-394) |
-| AC-407 | RF-403, RF-404 | Para cada pergunta removida do motor ou ligada a ele existe regra normativa na spec do motor e teste com critério de aceite | a implementar (T-392, T-395) |
+| AC-405 | RF-407 | Dada uma dívida sem CET e sem taxa, quando o cálculo é pedido, então ele é bloqueado; a taxa ao ano é normalizada para o mês pela regra `§16.1` do motor | verificado (T-393) |
+| AC-406 | RF-408, RF-415 | Dada qualquer pergunta que continua pedindo valor, então o enunciado não contém "aproximadamente", "estima", "em média" nem "acredita" | parcial: verificado nas perguntas de valor aprovadas (T-402); faltam `B3.02A` (em suspenso) e os três campos de `B5.C06A` (T-394) |
+| AC-407 | RF-403, RF-404 | Para cada pergunta removida do motor ou ligada a ele existe regra normativa na spec do motor e teste com critério de aceite | parcial: as regras novas de `B3.DF02` (§16.2) e `B3.C02A`/`B3.C02B` (§16.3) têm critérios e testes (T-399, T-403); o restante depende de T-392 e T-395 |
 | AC-408 | RF-405 | As 6 perguntas indispensáveis para liberar o plano continuam no registro | verificado (T-389) |
+| AC-409 | RF-411 | Dadas `B5.E05`, `B5.G01` e `B3.NM01`, então cada uma aceita só Sim ou Não | verificado (T-397) |
+| AC-410 | RF-413, RF-409 | Dado o enum de estados do caso, então não contém `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` nem `ACOMPANHAMENTO`; `PLANO_LIBERADO` não aceita transição | verificado (T-400) |
+| AC-411 | RF-412 | Dado um caso com `B5.E01` atrasada, `B5.F01` com garantia ou `B5.00` maior que as fichas, então o plano mostra o aviso com a frase de responsabilidade do aluno, a ordem não muda e o bloqueio por fichas faltando continua | verificado (T-399) |
+| AC-412 | RF-412 | Dadas `B3.C02A`/`B3.C02B` e o resultado mensal calculado, então a tela mostra a diferença e o aluno aceita ou revisa; despesas fixas e variáveis e "Despesas mensais totais" aparecem no plano | verificado (T-399; regras §16.2 e §16.3 do motor) |
+| AC-413 | RF-414 | Dada `B5.E01`, então não oferece "Não sei" e é obrigatória | verificado (T-401) |
+| AC-414 | RF-415 | Dado o revisor, então vê `B5.I03` como informação, sem efeito no cálculo | verificado (T-402) |
+| AC-415 | RF-416 | Dado o plano, a FAQ e o anexo, então nenhum menciona refazer o plano, "Gerar um novo plano" nem acompanhamento; os números do plano de quem fecha o mês no negativo fecham entre si | a implementar (T-403) |
 
 ## 9. Non-Functional Requirements
 
@@ -438,7 +446,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 ## 10. Edge Cases
 
 - Caso em andamento com respostas a perguntas removidas: as linhas ficam, o código não as lê.
-- Caso gravado nos estados removidos (`COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE`, `ACOMPANHAMENTO`): os estados continuam no enum, sem transição, para não quebrar a leitura.
+- Caso gravado nos estados removidos (`COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE`, `ACOMPANHAMENTO`): os estados saíram do código (RF-413) depois de conferido, só por leitura, que nenhum caso estava neles. Caso apareça um, a leitura recusa com erro claro; exigiria migração de dados.
 - Aluno com link antigo para etapas removidas: resposta clara de recusa, sem erro.
 - Dívida sem CET e sem taxa: cálculo bloqueado (RF-407).
 - Pergunta pai removida e filha mantida: a filha nunca aparece (conflitos listados na seção 5).
@@ -454,14 +462,14 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 - Reduzir o motor (24 perguntas) pode degradar confiabilidade, risco e ranking de juros.
 - Ligar 32 perguntas amplia o escopo do motor, contra o objetivo de reduzir.
 - Juntar CET e taxa em um valor compara medidas diferentes (risco aceito).
-- Estados legados no banco impedem remover os três estados sem migração.
+- Estados legados no banco impediriam remover os três estados sem migração; mitigado por RF-413 (conferência de leitura antes de apagar: nenhum caso neles).
 
 ## 13. Out of Scope (fora de escopo desta spec)
 Implementação de código, edição dos YAML e mudança de parâmetros `P_*`.
 
 ### RF-412. Regras do especialista já confirmadas, ligadas ao motor (decisão de 2026-10-15)
 Entram só as regras que o especialista escolheu com instrução clara. Tudo o que ficou em dúvida ou sem instrução **não é implementado** (ver "Fora desta entrega").
-- **Avisos com responsabilidade do aluno:** `B5.E01` (dívida atrasada: "Esta dívida está atrasada. Procure o credor para negociar antes de qualquer outra coisa."), `B5.F01` (dívida com garantia) e `B5.00` (faltam fichas de dívida; não bloqueia). Todo aviso termina com "A responsabilidade pela informação é do aluno." A ordem do plano não muda.
+- **Avisos com responsabilidade do aluno:** `B5.E01` (dívida atrasada: "Esta dívida está atrasada. Procure o credor para negociar antes de qualquer outra coisa."), `B5.F01` (dívida com garantia) e `B5.00` (faltam fichas de dívida; o aviso é acrescentado e o **bloqueio já existente por fichas faltando é mantido**, `RF-87` do `app-aluno`, conforme RF-414). Todo aviso termina com "A responsabilidade pela informação é do aluno." A ordem do plano não muda.
 - **Conferência do mês (`B3.C00`):** se a resposta não confere, bloqueia o avanço e exige indicar quais rendas ou despesas não estão condizentes.
 - **Sobra e falta (`B3.C02A` e `B3.C02B`):** compara com o resultado mensal calculado; qualquer diferença é mostrada ao aluno, que aceita a diferença ou revisa. Etapa didática, sem limite.
 - **Contribuição familiar (`B3.04A`):** soma à renda disponível e o plano mostra ao aluno que essa renda está sendo considerada.
@@ -474,7 +482,18 @@ Entram só as regras que o especialista escolheu com instrução clara. Tudo o q
 Os estados `COLETA_DIRIGIDA`, `CONFIRMACAO_ATAQUE` e `ACOMPANHAMENTO` saem do código (enum `ESTADO_CASO`, testes, textos e tipos do frontend). `PLANO_LIBERADO` segue terminal. Antes de apagar, conferir (somente leitura) que nenhum caso está nesses estados. Também: `QUESTIONARIO_VERSION` sobe para `1.3.0` (perguntas novas B3.C00A e B3.C02C) e o rótulo faltante de `ItemInvestimento.LIQUIDEZ_INVESTIMENTOS` é corrigido (falha antiga de teste, resquício da remoção do Bloco 4).
 
 ### RF-414. Situação do pagamento da dívida sem "Não sei" (decisão de 2026-10-16)
-A pergunta `B5.E01` ("Como está o pagamento desta dívida hoje?") deixa de aceitar "Não sei": ou a dívida está atrasada ou não está. A opção `NAO_SEI` sai do registro e a pergunta passa a ser obrigatória sem exceção. As demais opções ficam como estão (`EM_DIA`, `VENCIDO`, `PARCIAL`, `SEM_PAGAMENTO_REGULAR`). O aviso de dívida atrasada (RF-412) segue valendo para `VENCIDO` e `PARCIAL`. Decisões confirmadas na mesma data: publicar já, sem esperar o especialista; manter o bloqueio de "fichas faltando"; aprovados os textos propostos na entrega de RF-412; o formulário único segue para o especialista.
+A pergunta `B5.E01` ("Como está o pagamento desta dívida hoje?") deixa de aceitar "Não sei": ou a dívida está atrasada ou não está. A opção `NAO_SEI` sai do registro e a pergunta passa a ser obrigatória sem exceção. As demais opções ficam como estão (`EM_DIA`, `VENCIDO`, `PARCIAL`, `SEM_PAGAMENTO_REGULAR`). O aviso de dívida atrasada (RF-412) segue valendo para `VENCIDO` e `PARCIAL`. Decisões confirmadas na mesma data: publicar já, sem esperar o especialista; manter o bloqueio de "fichas faltando" (`RF-87`; o aviso de RF-412 se soma a ele, não o substitui); aprovados os textos propostos na entrega de RF-412; o formulário único segue para o especialista.
 
 ### RF-415. Textos de valor exato aprovados e data da informação ao revisor (decisão de 2026-10-16)
 O responsável do produto aprovou, sem ajustes, as redações propostas na tabela de RF-408 para `B3.01`, `B3.03B`, `B3.04A`, `B3.C01`, `B3.C02A`, `B3.C02B`, `B2.10`, `B4.01A` e `B4.02A`. `B5.C06A` troca só o texto, para "Qual foi a média mensal paga nos últimos 3 meses, conforme o extrato?"; os três campos de valor ficam para depois, por mudar o motor. `B3.02A` segue em suspenso. A pergunta `B5.I03` (data da informação) passa a aparecer na tela do revisor, só como informação. O teste de acessibilidade com navegador roda depois, no ambiente do servidor. Autorizados: teste de mesa e revisão final da branch.
+
+### RF-416. Correções do teste de mesa e da revisão final (2026-10-16)
+- O plano e a FAQ não mencionam refazer o plano, "Gerar um novo plano" nem acompanhamento (RF-409); o texto "para você acompanhar e guardar" do anexo mês a mês vira "para você consultar e guardar".
+- Os números do plano de quem fecha o mês no negativo fecham entre si (resultado do mês, despesas, parcelas de dívida, incluída a do cartão rotativo); se a causa for de cálculo, vira ocorrência separada e não é corrigida no motor sem decisão.
+- Artefatos SDD em dia: plano (rastreabilidade RF-411 a RF-416, T-396 a T-403), contador e status das tarefas, contradições da spec (RF-409 × RF-413, B5.00, AC-402/405/406, datas) e regras normativas das funções novas do motor na spec do motor (§16.2 despesas, §16.3 percepção).
+- Restos de texto dos blocos 7, 8, 10 e 11 e de "acompanhamento" são limpos onde não têm efeito em execução.
+
+### RF-417. Decisões do teste de mesa (2026-10-16)
+- No modo estabilização (mês no negativo), o plano mostra também os avisos de dívida atrasada (`B5.E01` vencida ou parcial) e de garantia (`B5.F01`), cada um com "A responsabilidade pela informação é do aluno.", sem cronograma.
+- `B3.C00` deixa de aceitar "Ainda não consigo avaliar": só Sim, "falta despesa" ou "valor errado".
+- O resultado do mês exibido no plano usa as parcelas efetivamente pagas, de modo que os números da tela fecham entre si.

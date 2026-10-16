@@ -94,13 +94,13 @@ resposta gravada (nem valor concreto, nem `NAO_SEI` — mesmo critério de
 
 **Ordem da varredura**: `registros` é percorrido na ordem em que a coleção
 chega (`collection/carga.py::carregar_registros`, que preserva a ordem dos
-arquivos YAML por nome — `bloco-01.yaml` .. `bloco-11.yaml` — e a ordem de
+arquivos YAML por nome — `bloco-01.yaml` .. `bloco-09.yaml` — e a ordem de
 aparição de cada pergunta dentro do arquivo, T-16/T-17..T-19); esta função
 NÃO reordena por `RegistroPergunta.bloco` nem por `ID`: reordenar inventaria
 uma ordem própria que poderia divergir da ordem real de exibição declarada
 pelo registro (a mesma ordem que `T-43`/HTMX usa para andar de pergunta em
 pergunta). Como os arquivos de registro nascem nomeados na ordem normativa
-dos blocos (`bloco-01` < `bloco-02` < ... < `bloco-11`, T-17/T-18) e cada
+dos blocos (`bloco-01` < `bloco-02` < ... < `bloco-09`, T-17/T-18) e cada
 arquivo lista suas perguntas na ordem da §11, a ordem de carga JÁ É a ordem
 de blocos exigida por `AC-01` — sem duplicar esse conhecimento aqui.
 
@@ -751,8 +751,8 @@ def posicao_na_ficha(
     cai no rótulo do bloco (`serializacao.py`).
 
     **A ficha é por escopo E por BLOCO.** Filtrar só por `escopo_repeticao` parece
-    natural e está errado: um escopo pode ter registros em mais de um bloco
-    (os Blocos 7 e 8, de coleta dirigida, saíram em `T-390`). Somar blocos no
+    natural e está errado: um escopo pode ter registros em mais de um bloco.
+    Somar blocos no
     mesmo denominador diria "pergunta 4 de 37" a quem está cadastrando a
     primeira dívida, contando contra ele perguntas de outra etapa. A ficha que
     o aluno percebe é a do bloco em que está.

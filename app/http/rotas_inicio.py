@@ -454,8 +454,6 @@ def inicio_do_caso(
             "versao_do_plano": snapshot.versao if snapshot is not None else None,
             # `T-333` (RF-113): `null` fora da correção pedida.
             "correcao_pedida": correcao_pedida,
-            # `RF-409` (T-387): o plano entregue é definitivo.
-            "pode_refazer_plano": False,
             "pode_retomar_edicao": caso.estado is ESTADO_CASO.AGUARDANDO_REVISAO,
         }
     )

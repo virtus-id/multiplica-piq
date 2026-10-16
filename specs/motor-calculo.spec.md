@@ -2828,7 +2828,7 @@ proteção mínima, aplicando as regras de mobilização/reserva **já existente
 
 ---
 
-## 16. Definições incorporadas — Rodada 6 (normalização da taxa da dívida)
+## 16. Definições incorporadas — Rodada 6 (normalização da taxa da dívida, soma de despesas, percepção)
 
 > **Origem.** Decisão do responsável do produto de 2026-10-14, na feature
 > `enxugamento-questionario` (pergunta única de custo da dívida, `T-393`, fonte
@@ -2901,3 +2901,95 @@ critério):
 **Tolerância.** A tolerância de `± R$ 0,05` (`G-02`, `sdd.config.md` §5) vale só
 para dinheiro acumulado. Taxa **não** tem tolerância: a igualdade é exata contra
 o valor de referência calculado de forma independente.
+
+---
+
+### 16.2. Soma das despesas por classificação (fixas e variáveis) — regra `§16.2`
+
+> **Origem.** Decisão do especialista confirmada pelo responsável do produto em
+> 2026-10-15, feature `enxugamento-questionario` (requisito 412, tarefa `T-399`):
+> o aluno classifica cada item de despesa como **fixo** ou **variável**
+> (`B3.DF02`) e o plano mostra quanto das despesas é fixo e quanto é variável. A
+> soma é fórmula e, pela Lei nº 3 do backlog de `app-aluno`, pertence ao motor,
+> não à camada de aplicação. **Mudança de motor:** uma função pura nova
+> (`engine/despesas.py`); nenhuma regra existente muda e nenhum `P_*` é criado.
+
+**ID normativo: `§16.2`** (mesmo motivo de `§16.1`: os IDs `LETRA-NN` são a lista
+fechada da canônica).
+
+```
+Entrada:  lista de itens (CLASSIFICACAO, VALOR_MENSAL)
+Saída:    (DESPESAS_FIXAS, DESPESAS_VARIAVEIS, DESPESAS_NAO_CLASSIFICADAS)
+
+CLASSIFICACAO = FIXA      → soma em DESPESAS_FIXAS
+CLASSIFICACAO = VARIAVEL  → soma em DESPESAS_VARIAVEIS
+qualquer outra            → soma em DESPESAS_NAO_CLASSIFICADAS
+VALOR_MENSAL desconhecido → o item não contribui para nenhum grupo
+```
+
+- **Sem inferência.** Item sem classificação (`NAO_SEI`, ausente ou qualquer valor
+  fora de `FIXA`/`VARIAVEL`) **não** é classificado pela categoria da despesa: vai
+  para o terceiro grupo. O motor não adivinha.
+- **Valor desconhecido não contribui, nunca vira `0` inventado:** é o mesmo
+  critério da soma dos itens informados da fotografia do mês. A soma das três
+  saídas é a soma dos itens com valor informado.
+- **Precisão decimal integral (`RF-12`, `G-01`):** aritmética `Decimal` no
+  contexto único do motor; nenhum arredondamento (só na exibição).
+- **Sem parâmetro:** nenhum `P_*` novo. Função pura, sem I/O nem relógio; não
+  importa de `app/`, `persistencia/` nem `collection/`.
+
+**Critérios de aceite da regra `§16.2`** (cada teste de
+`tests/regras/test_despesas.py` cita o critério):
+
+| ID | Critério | Resultado esperado |
+| --- | --- | --- |
+| `§16.2-C1` | itens `FIXA` 1000,10 e 200,05; `VARIAVEL` 300,20; sem classificação 50 e 7 | `(1200,15; 300,20; 57)` |
+| `§16.2-C2` | item `FIXA` com valor desconhecido e item `VARIAVEL` de 9 | `(0; 9; 0)`: o desconhecido não contribui |
+| `§16.2-C3` | nenhum item | `(0; 0; 0)` |
+
+---
+
+### 16.3. Diferença entre o percebido e o calculado — regra `§16.3`
+
+> **Origem.** Mesma decisão e feature (requisito 412, `T-399`): o aluno diz
+> quanto costuma **sobrar** (`B3.C02A`) ou **faltar** (`B3.C02B`) no mês; o
+> resultado mensal calculado (`renda − despesas`) vem da montagem; a tela mostra
+> ao aluno qualquer diferença entre os dois (`B3.C02C`), que aceita a diferença
+> ou revisa as respostas. **Mudança de motor:** uma função pura nova
+> (`engine/percepcao.py`); nenhuma regra existente muda e nenhum `P_*` é criado.
+
+**ID normativo: `§16.3`.**
+
+```
+Entrada:  SOBRA_PERCEBIDA (ou ausente), FALTA_PERCEBIDA (ou ausente),
+          RESULTADO_CALCULADO (dinheiro ou desconhecido)
+Saída:    DIFERENCA_PERCEBIDA_CALCULADA (dinheiro ou desconhecido)
+
+RESULTADO_CALCULADO desconhecido            → desconhecido
+SOBRA_PERCEBIDA informada                   → SOBRA_PERCEBIDA − RESULTADO_CALCULADO
+senão, FALTA_PERCEBIDA informada            → −FALTA_PERCEBIDA − RESULTADO_CALCULADO
+nenhuma das duas                            → desconhecido
+```
+
+- **Convenção de sinal.** A sobra é positiva e a falta é negativa. Diferença
+  positiva = o aluno percebe mais folga do que as respostas dão; negativa = menos.
+- **Se vierem as duas, vale a sobra.** A falta é ignorada; o motor não soma nem
+  escolhe a de maior valor.
+- **Sem limite de tolerância.** Qualquer diferença, inclusive de um centavo, é
+  devolvida e mostrada ao aluno (etapa didática, decisão do especialista). A
+  tolerância de `± R$ 0,05` (`G-02`) **não** se aplica aqui.
+- **Não inventar dado:** sem valor percebido, ou com resultado calculado
+  desconhecido, a saída é `DESCONHECIDO`, nunca `0`.
+- **Precisão decimal integral (`RF-12`, `G-01`);** sem parâmetro `P_*`; função
+  pura, sem I/O nem relógio.
+
+**Critérios de aceite da regra `§16.3`** (cada teste de
+`tests/regras/test_percepcao.py` cita o critério):
+
+| ID | Critério | Resultado esperado |
+| --- | --- | --- |
+| `§16.3-C1` | sobra percebida 500; calculado 200,50 | `299,50` |
+| `§16.3-C2` | falta percebida 300; calculado −100 | `−200` (a falta conta como negativa) |
+| `§16.3-C3` | sobra 0,01 e calculado 0,00; sobra 10 e calculado 10 | `0,01` (sem tolerância); `0` |
+| `§16.3-C4` | calculado desconhecido com sobra 1; ou nenhum valor percebido com calculado 1 | `DESCONHECIDO` nos dois casos (nunca `0`) |
+| `§16.3-C5` | sobra e falta informadas ao mesmo tempo | usa a sobra; a falta é ignorada (ainda sem teste dedicado: acompanhar na `T-403`) |

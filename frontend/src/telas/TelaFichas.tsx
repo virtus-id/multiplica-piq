@@ -30,7 +30,7 @@ import type { Ficha, ParteDaTrilha } from '../tipos'
 /**
  * Os nomes de cada escopo que tem tela — `T-212`, títulos da §11. É o ÚNICO
  * lugar do frontend que os lista. Um escopo fora daqui não tem tela:
- * `ACAO_ID` é do acompanhamento (Bloco 11), não da coleta inicial.
+ * `ACAO_ID` (plano de ação) não tem ficha na coleta.
  * `ITEM_DESPESA` (`T-217`): as fichas nascem do checklist; a lista serve
  * para dar nome a "Outro" e adicionar despesa não listada.
  */

@@ -657,13 +657,12 @@ perguntas:
       - {rotulo: "Sim.", valor_interno: SIM}
       - {rotulo: "Não, acho que alguma despesa ficou de fora.", valor_interno: FALTA_DESPESA}
       - {rotulo: "Não, algum valor parece errado.", valor_interno: VALOR_ERRADO}
-      - {rotulo: Ainda não consigo avaliar., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: CONFIRMACAO_MAPEAMENTO_DESPESAS
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
       FALTA_DESPESA → retorna a B3.D11; VALOR_ERRADO → permite editar
       fichas.

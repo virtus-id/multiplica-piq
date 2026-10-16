@@ -246,8 +246,6 @@ def respostas_do_caso(
             "CASO_ID": CASO_ID,
             "editavel": estado not in ESTADOS_SOMENTE_LEITURA,
             "pode_retomar_edicao": estado is ESTADO_CASO.AGUARDANDO_REVISAO,
-            # `RF-409` (T-387): o plano entregue é definitivo.
-            "pode_refazer_plano": False,
             "partes": partes,
         }
     )

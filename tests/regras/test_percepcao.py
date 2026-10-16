@@ -1,5 +1,7 @@
-"""Testes de `engine/percepcao.py` — `RF-412` (`B3.C02A`/`B3.C02B`).
-Cada teste cita o critério `RF-412-Cn`.
+"""Testes de `engine/percepcao.py` — regra `§16.3` (`specs/motor-calculo.spec.md`,
+`B3.C02A`/`B3.C02B`). Cada teste cita o critério `§16.3-Cn`: `test_c1_*` =
+`§16.3-C1` a `test_c4_*` = `§16.3-C4`. O critério `§16.3-C5` (sobra e falta
+juntas: vale a sobra) ainda não tem teste dedicado.
 """
 
 from __future__ import annotations

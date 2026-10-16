@@ -70,7 +70,6 @@ describe("Início — plano entregue é definitivo (RF-401, RF-409, T-388)", () 
     mensagem: "Seu plano está liberado.",
     proxima_etapa: { destino: "plano", ID_PERGUNTA: null, item_id: null },
     valor_em_destaque: "3000.00",
-    pode_refazer_plano: false,
   } as const;
 
   it("com a fase plano: só o plano, sem acompanhamento, refazer ou decisão do ataque", () => {

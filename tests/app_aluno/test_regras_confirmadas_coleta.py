@@ -47,9 +47,14 @@ def test_ac_c00_que_nao_confere_bloqueia_ate_indicar_o_que_nao_condiz(resposta: 
     )
 
 
-@pytest.mark.parametrize("resposta", ["SIM", NAO_SEI])
-def test_ac_c00_que_confere_ou_sem_avaliacao_nao_pede_o_que_nao_condiz(resposta: object) -> None:
-    assert "B3.C00A" not in _ids_pendentes(_resposta("CONFIRMACAO_MAPEAMENTO_DESPESAS", resposta))
+def test_ac_c00_que_confere_nao_pede_o_que_nao_condiz() -> None:
+    assert "B3.C00A" not in _ids_pendentes(_resposta("CONFIRMACAO_MAPEAMENTO_DESPESAS", "SIM"))
+
+
+def test_ac_c00_nao_admite_nao_sei() -> None:
+    (c00,) = [r for r in _REGISTROS if r.ID == "B3.C00"]
+    assert c00.admite_nao_sei is False
+    assert [o.valor_interno for o in c00.opcoes] == ["SIM", "FALTA_DESPESA", "VALOR_ERRADO"]
 
 
 def test_ac_c00a_traz_a_responsabilidade_do_aluno() -> None:

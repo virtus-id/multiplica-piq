@@ -234,12 +234,11 @@ describe("TelaRespostas — só leitura em conferência (T-337, RF-114/RF-115)",
 });
 
 describe("TelaRespostas — plano entregue é definitivo (RF-409, T-388)", () => {
-  it("nem um servidor que ainda mandasse pode_refazer_plano faz a oferta aparecer", async () => {
+  it("a tela não oferece plano novo", async () => {
     vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({
       CASO_ID: "C1",
       partes: PARTES,
       editavel: true,
-      pode_refazer_plano: true,
     } as never);
     render(
       <TelaRespostas

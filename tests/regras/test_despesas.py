@@ -1,5 +1,6 @@
-"""Testes de `engine/despesas.py` — `RF-412` (`B3.DF02`): fixas × variáveis.
-Cada teste cita o critério `RF-412-Cn`.
+"""Testes de `engine/despesas.py` — regra `§16.2` (`specs/motor-calculo.spec.md`,
+`B3.DF02`): fixas × variáveis. Cada teste cita o critério `§16.2-Cn`:
+`test_c1_*` = `§16.2-C1`, `test_c2_*` = `§16.2-C2`, `test_c3_*` = `§16.2-C3`.
 """
 
 from __future__ import annotations

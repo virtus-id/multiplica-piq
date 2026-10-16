@@ -1762,13 +1762,26 @@ def _fatos_da_divida(
 
 
 def _avisos_gerais(
-    vocabulario: VocabularioDoCaso | None, textos: TextosCanonicosPlano
+    snapshot: SnapshotOrdem,
+    vocabulario: VocabularioDoCaso | None,
+    textos: TextosCanonicosPlano,
+    nomes: Mapping[str, str],
 ) -> tuple[str, ...]:
-    """`RF-412` (`B5.00`) — faltam fichas de dívida declaradas; não bloqueia."""
+    """`RF-412` (`B5.00`) — faltam fichas de dívida declaradas; não bloqueia.
+    Em estabilização não há cartão por dívida (sem ordem), então os avisos de
+    atraso e garantia (`B5.E01`, `B5.F01`) sobem para cá, um por dívida, com o
+    nome dela; sem cronograma e sem tocar o motor (`RF-416`)."""
+    avisos: list[str] = []
     aviso = textos.avisos.get("fichas_faltando")
-    if not (vocabulario and vocabulario.fichas_faltando and aviso):
-        return ()
-    return (f"{aviso} {textos.avisos.get('responsabilidade', '')}".strip(),)
+    if vocabulario and vocabulario.fichas_faltando and aviso:
+        avisos.append(f"{aviso} {textos.avisos.get('responsabilidade', '')}".strip())
+    if vocabulario and snapshot.diagnostico.MODO_ESTABILIZACAO:
+        for divida in snapshot.estado_inputs.dividas:
+            avisos.extend(
+                f"{nomes.get(divida.DIVIDA_ID, divida.DIVIDA_ID)}: {texto}"
+                for texto in _avisos_da_divida(divida.DIVIDA_ID, vocabulario, textos)
+            )
+    return tuple(avisos)
 
 
 def _avisos_da_divida(
@@ -1851,7 +1864,7 @@ def _ponto_de_partida(
         renda=formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE),
         gastos=formatar_dinheiro_br(estado.DESPESAS_OPERACIONAIS_ATUAIS),
         gastos_ocasionais=formatar_dinheiro_br(estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS),
-        parcelas=formatar_dinheiro_br(diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES),
+        parcelas=formatar_dinheiro_br(diagnostico.PAGAMENTOS_EFETIVOS_DIVIDAS),
         valor_extra=formatar_dinheiro_br(diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA),
         quantidade_de_dividas=len(estado.dividas),
     )
@@ -2011,7 +2024,7 @@ def montar_contexto_plano(
         ponto_de_partida=_ponto_de_partida(
             snapshot, vocabulario.resumo_das_despesas if vocabulario else None, textos
         ),
-        avisos_gerais=_avisos_gerais(vocabulario, textos),
+        avisos_gerais=_avisos_gerais(snapshot, vocabulario, textos, nomes),
         como_funciona=textos.como_funciona.get(snapshot.METODO_RECOMENDADO_PIQ.value, ()),
         pendencias_acionaveis=_pendencias_acionaveis(snapshot, textos, nomes),
         prognostico=prognostico,

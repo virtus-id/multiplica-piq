@@ -83,9 +83,7 @@ _TITULO_Q03 = "Seu plano inteligente de quitação de dívidas"
 _CORPO_Q03 = (
     "Montamos este plano a partir das informações que você nos passou. Ele "
     "mostra, mês a mês, quanto pagar e em qual dívida, até a última ser "
-    "quitada. Se algo importante mudar na sua vida financeira, como a renda, "
-    "uma dívida nova ou um dinheiro extra, o plano é refeito para continuar "
-    "adequado à sua realidade."
+    "quitada. Este plano é definitivo."
 )
 
 _PALAVRAS_PROIBIDAS = ("definitiva", "final", "fixa")

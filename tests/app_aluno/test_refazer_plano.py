@@ -3,8 +3,8 @@ liberação (`RF-118`, `RF-119`, `T-341`). DESLIGADO em `T-387` (`RF-401`, `RF-4
 o plano entregue é definitivo; as rotas e o Início recusam/escondem o pedido.
 
 Pelas rotas reais (a mesma montagem de `test_correcao_pedida.py`, `AC-175`):
-depois da liberação, `refazer-plano` recusa com `409`, `pode_refazer_plano` é
-`false`, o caso fica em `PLANO_LIBERADO` e a v1 segue intacta. A v2 continua
+depois da liberação, `refazer-plano` recusa com `409`,
+o caso fica em `PLANO_LIBERADO` e a v1 segue intacta. A v2 continua
 nascendo pelo caminho de antes da entrega (`retomar-edicao`), visto do lado do
 revisor em `AC-192`.
 
@@ -130,7 +130,6 @@ def test_ac181_plano_entregue_e_definitivo_nao_se_pede_plano_novo(
         assert raiz is not None
         (v1,) = snapshots.historico(raiz)
 
-        assert cliente.get(f"/caso/{CASO_ID}/respostas").json()["pode_refazer_plano"] is False
 
         # O dado muda depois da liberação: o plano não.
         respostas.corrigir_no_item(
@@ -172,7 +171,6 @@ def test_ac182_antes_da_liberacao_pedir_plano_novo_e_recusado(
         assert resposta.status_code == 409
         assert resposta.json()["erro"] == _MENSAGEM_PLANO_DEFINITIVO
         assert _caso(casos).estado is estado
-        assert cliente.get(f"/caso/{CASO_ID}/respostas").json()["pode_refazer_plano"] is False
 
 
 def test_etapas_pos_plano_nao_existem_mais(cenario: Cenario) -> None:  # noqa: F811
@@ -203,7 +201,6 @@ def test_ac185_plano_entregue_nao_afirma_mudanca_nem_oferece_plano_novo(
         _liberar_v1(cliente, casos, cenario)
 
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
-        assert inicio["pode_refazer_plano"] is False
         assert inicio["pode_retomar_edicao"] is False
         assert "respostas_atualizadas" not in inicio
 
@@ -216,7 +213,6 @@ def test_ac185_plano_entregue_nao_afirma_mudanca_nem_oferece_plano_novo(
         )
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
         assert "respostas_atualizadas" not in inicio
-        assert inicio["pode_refazer_plano"] is False
 
 
 def test_ac185_fora_do_plano_liberado_nao_afirma_nada(cenario: Cenario) -> None:  # noqa: F811
@@ -224,14 +220,12 @@ def test_ac185_fora_do_plano_liberado_nao_afirma_nada(cenario: Cenario) -> None:
     with cliente:
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()  # COLETA_INICIAL, sem plano
         assert "respostas_atualizadas" not in inicio
-        assert inicio["pode_refazer_plano"] is False
         assert inicio["pode_retomar_edicao"] is False
 
         casos.transicionar_estado(CASO_ID, ESTADO_CASO.CALCULANDO)
         casos.transicionar_estado(CASO_ID, ESTADO_CASO.AGUARDANDO_REVISAO)
         inicio = cliente.get(f"/caso/{CASO_ID}/inicio").json()
         assert inicio["pode_retomar_edicao"] is True  # `AC-187`
-        assert inicio["pode_refazer_plano"] is False
         assert "respostas_atualizadas" not in inicio
 
 
@@ -249,7 +243,6 @@ def test_ac188_se_a_comparacao_e_impossivel_o_inicio_responde_e_nao_afirma_mudan
         assert resposta.status_code == 200, "a falha da comparação nunca derruba o Início"
         corpo = resposta.json()
         assert "respostas_atualizadas" not in corpo
-        assert corpo["pode_refazer_plano"] is False, "RF-409: nunca se oferece plano novo"
 
 
 # --------------------------------------------------------------------------- AC-189 · AC-192

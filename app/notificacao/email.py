@@ -5,7 +5,7 @@ cumpria: *"A espera é com a equipe. Avisamos por e-mail."*
 (`TrilhaDaJornada.tsx`) e *"Avisaremos por e-mail assim que o plano estiver
 liberado."* (`TelaAguardando.tsx`). Não havia nenhum envio de e-mail no
 projeto — a promessa era falsa, e o aluno que fechasse o navegador depois da
-coleta nunca ficava sabendo que o plano saiu. Num acompanhamento de meses
+coleta nunca ficava sabendo que o plano saiu. Com a coleta feita ao longo de dias
 (`OQ-06`), esse é o ponto de abandono mais provável do piloto.
 
 E-mail é também a peça de que dependem o primeiro acesso (`T-179`) e a

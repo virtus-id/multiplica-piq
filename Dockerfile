@@ -40,7 +40,7 @@ FROM python:3.12-slim
 # **As bibliotecas nativas do WeasyPrint não são opcionais.** Ele as carrega
 # por `cffi` em tempo de execução, então a ausência delas NÃO quebra o build
 # nem a subida do container: quebra quando alguém pede o PDF do plano — o
-# aluno, no fim do acompanhamento. É exatamente a falha que aparece no
+# aluno, ao receber o plano. É exatamente a falha que aparece no
 # Windows de desenvolvimento (`cannot load library 'libgobject-2.0-0'`, os 3
 # testes pulados da suíte) e a razão de o `HEALTHCHECK` abaixo não bastar
 # como garantia: o PDF precisa ser exercitado depois do deploy.

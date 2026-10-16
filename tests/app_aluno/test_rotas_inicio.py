@@ -603,7 +603,6 @@ def test_plano_liberado_sem_ataque_recomendado_fica_na_fase_plano(
     assert payload["estado"] == ESTADO_CASO.PLANO_LIBERADO.value
     assert payload["fase"] == FASE_INICIO.PLANO.value
     assert payload["proxima_etapa"]["destino"] == "plano"
-    assert payload["pode_refazer_plano"] is False
 
 
 def test_plano_liberado_sem_snapshot_encontrado_fica_na_fase_plano(
