@@ -350,6 +350,17 @@ rotulos_de_codigos:
   REPROVADO_EM_REVISAO: "Plano devolvido na conferência"
   PLANO_LIBERADO: "Plano liberado"
   ENCERRADO: "Encerrado"
+  # Tabela de casos do revisor (app/revisao/lista_de_casos.py, T-408).
+  # Textos a aprovar pelo produto.
+  FILA_AGUARDANDO_REVISAO: "Em revisão"
+  FILA_PLANO_LIBERADO: "Entregue"
+  FILA_REPROVADO_EM_REVISAO: "Devolvido ao aluno"
+  FILA_ERRO_DE_CALCULO: "Erro no cálculo"
+  FILA_TIPO_PRIMEIRO: "Primeiro plano"
+  FILA_TIPO_RECALCULO: "Recálculo"
+  FILA_MES_POSITIVO: "Fecha positivo"
+  FILA_MES_NEGATIVO: "Mês no negativo"
+  FILA_REVISOR_DESCONHECIDO: "Não identificado"
   # Liquidez do investimento (engine/estado.py::LIQUIDEZ_INVESTIMENTOS)
   D0: "No mesmo dia"
   D1: "Em 1 dia"

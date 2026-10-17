@@ -217,3 +217,28 @@ class RepositorioRevisoesSupabase:
             linhas = cursor.fetchall()
 
         return tuple(_linha_para_registro(linha) for linha in linhas)
+
+    def listar_dos_casos(
+        self, caso_ids: tuple[str, ...]
+    ) -> dict[str, tuple[RegistroRevisao, ...]]:
+        """`RF-506` (T-408) — as revisões de vários casos numa consulta só."""
+        if not caso_ids:
+            return {}
+        with _conectar() as conexao, conexao.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT revisao_id, snapshot_id, "CASO_ID", decisao, autor,
+                       decidido_em, classificacao_erro, observacao, mensagem_aluno
+                FROM app_aluno.revisoes
+                WHERE "CASO_ID" = ANY(%s)
+                ORDER BY decidido_em ASC
+                """,
+                (list(caso_ids),),
+            )
+            linhas = cursor.fetchall()
+
+        agrupados: dict[str, list[RegistroRevisao]] = {}
+        for linha in linhas:
+            registro = _linha_para_registro(linha)
+            agrupados.setdefault(registro.CASO_ID, []).append(registro)
+        return {caso_id: tuple(lista) for caso_id, lista in agrupados.items()}

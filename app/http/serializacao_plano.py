@@ -33,6 +33,7 @@ from app.http.rotas_calculo import _respostas_do_calculo
 from app.montagem.entrada import resumo_das_despesas
 from app.revisao.comprovacao import NivelDaFicha
 from app.revisao.fila import ItemFila
+from app.revisao.lista_de_casos import LinhaDoCaso
 from collection.registro import RegistroPergunta
 from collection.respostas import RespostasCaso
 from report.plano import (
@@ -507,6 +508,77 @@ def serializar_item_da_fila(
         "e_metodologico": item.e_metodologico,
         "ENGINE_VERSION": snapshot.ENGINE_VERSION,
         "PARAMETROS_VERSION": snapshot.PARAMETROS_VERSION,
+    }
+
+
+def serializar_linha_de_caso(
+    linha: LinhaDoCaso, textos: TextosCanonicosPlano, revisores: Mapping[str, str]
+) -> dict[str, Any]:
+    """`RF-502` (T-408) — uma linha da tabela do revisor, com rótulos humanos
+    do servidor. Os códigos ficam só em `status`.
+
+    `entra_por_politica` e `e_metodologico` seguem SEPARADOS (`AC-28`): a
+    política do piloto (100% revisado) e o campo `REVISAO_HUMANA_OBRIGATORIA`
+    do motor são fatos diferentes."""
+    rotulos = textos.rotulos_de_codigos
+    snapshot = linha.item.snapshot
+    return {
+        "CASO_ID": linha.CASO_ID,
+        "nome": linha.nome,
+        "email_do_aluno": linha.email,
+        "chegou_em": linha.chegou_em.isoformat(),
+        "chegada_aproximada": linha.chegada_aproximada,
+        "tempo_na_fila_horas": linha.tempo_na_fila_horas,
+        "atrasado": linha.atrasado,
+        "status": linha.status.value,
+        "status_rotulo": rotulo_de_codigo(rotulos, f"FILA_{linha.status.value}"),
+        "tipo": "recalculo" if linha.e_recalculo else "primeiro",
+        "tipo_rotulo": rotulo_de_codigo(
+            rotulos, "FILA_TIPO_RECALCULO" if linha.e_recalculo else "FILA_TIPO_PRIMEIRO"
+        ),
+        "motivo_rotulo": rotulo_de_codigo(rotulos, linha.motivo),
+        "mes_negativo": linha.mes_negativo,
+        "situacao_mes_rotulo": rotulo_de_codigo(
+            rotulos, "FILA_MES_NEGATIVO" if linha.mes_negativo else "FILA_MES_POSITIVO"
+        ),
+        "dividas": linha.dividas,
+        "metodo": rotulo_de_codigo(rotulos, linha.metodo),
+        "status_metodo": rotulo_de_codigo(rotulos, snapshot.STATUS_METODO.value),
+        "entra_por_politica": linha.item.entra_por_politica,
+        "e_metodologico": linha.item.e_metodologico,
+        "revisor": (
+            revisores.get(linha.revisor) or rotulo_de_codigo(rotulos, "FILA_REVISOR_DESCONHECIDO")
+            if linha.revisor is not None
+            else None
+        ),
+        "decidido_em": linha.decidido_em.isoformat() if linha.decidido_em else None,
+    }
+
+
+def serializar_opcoes_da_lista(
+    textos: TextosCanonicosPlano, linhas: Iterable[LinhaDoCaso], revisores: Mapping[str, str]
+) -> dict[str, list[dict[str, str]]]:
+    """Os valores que a tela oferece nos filtros de método, motivo e revisor:
+    `codigo` volta como parâmetro de consulta, `rotulo` é o que se lê."""
+    rotulos = textos.rotulos_de_codigos
+    visiveis = list(linhas)
+
+    def _opcoes(codigos: Iterable[str]) -> list[dict[str, str]]:
+        return [
+            {"codigo": c, "rotulo": rotulo_de_codigo(rotulos, c)} for c in sorted(set(codigos))
+        ]
+
+    return {
+        "metodos": _opcoes(linha.metodo for linha in visiveis),
+        "motivos": _opcoes(linha.motivo for linha in visiveis),
+        "revisores": [
+            {
+                "codigo": c,
+                "rotulo": revisores.get(c)
+                or rotulo_de_codigo(rotulos, "FILA_REVISOR_DESCONHECIDO"),
+            }
+            for c in sorted({linha.revisor for linha in visiveis if linha.revisor})
+        ],
     }
 
 

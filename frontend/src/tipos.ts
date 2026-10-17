@@ -746,3 +746,84 @@ export interface CorrecaoPedida {
   mensagem: string | null
   dados_a_conferir: DadoAConferir[]
 }
+
+// ---------------------------------------------------------------------------
+// Tabela de casos do revisor — `RF-502`, `RF-504`, `RF-505` (T-409)
+// ---------------------------------------------------------------------------
+
+export type AbaDeCasos = 'pendentes' | 'entregues' | 'devolvidos' | 'todos'
+
+export type CampoDeOrdem =
+  | 'aluno'
+  | 'chegou_em'
+  | 'tempo_na_fila'
+  | 'status'
+  | 'tipo'
+  | 'situacao_mes'
+  | 'dividas'
+  | 'metodo'
+  | 'decidido_em'
+  | 'revisor'
+
+/** Os parâmetros de `GET /api/revisao/casos`; o que falta, o servidor assume. */
+export interface ParametrosDeCasos {
+  aba?: AbaDeCasos
+  q?: string
+  status?: string[]
+  de?: string
+  ate?: string
+  tipo?: 'primeiro' | 'recalculo'
+  mes_negativo?: 'sim' | 'nao'
+  metodo?: string
+  motivo?: string
+  revisor?: string
+  parado_horas?: number
+  ordenar?: CampoDeOrdem
+  direcao?: 'asc' | 'desc'
+  pagina?: number
+  por_pagina?: 25 | 50
+}
+
+export interface LinhaDeCaso {
+  CASO_ID: string
+  nome: string | null
+  email_do_aluno: string | null
+  chegou_em: string
+  chegada_aproximada: boolean
+  tempo_na_fila_horas: number
+  atrasado: boolean
+  /** Código do estado; a tela mostra `status_rotulo`. */
+  status: string
+  status_rotulo: string
+  tipo: 'primeiro' | 'recalculo'
+  tipo_rotulo: string
+  motivo_rotulo: string
+  mes_negativo: boolean
+  situacao_mes_rotulo: string
+  dividas: number
+  metodo: string
+  status_metodo: string
+  /** Os dois sinais seguem SEPARADOS — política do piloto × sinal do motor. */
+  entra_por_politica: boolean
+  e_metodologico: boolean
+  revisor: string | null
+  decidido_em: string | null
+}
+
+export interface OpcaoDeFiltro {
+  codigo: string
+  rotulo: string
+}
+
+export interface RespostaDeCasos {
+  itens: LinhaDeCaso[]
+  total: number
+  pagina: number
+  por_pagina: number
+  contagens: Record<AbaDeCasos, number>
+  opcoes: {
+    metodos: OpcaoDeFiltro[]
+    motivos: OpcaoDeFiltro[]
+    revisores: OpcaoDeFiltro[]
+  }
+}
