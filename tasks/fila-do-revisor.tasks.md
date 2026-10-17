@@ -41,3 +41,10 @@
 - [x] Tabela fina e compacta; só a busca como filtro, ao lado das abas; tempo na fila mostra só os dias, sem frase de alerta
 
 **Status:** `[x] concluída`
+
+### `T-412` — Menos colunas e "Fecha no mês" em verde ou vermelho
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-411` · **Rastreia:** `RF-502`
+- [x] Remover as colunas Chegou em, Tipo e Motivo da revisão; "Situação do mês" vira "Fecha no mês" (Positivo verde, Negativo vermelho, com texto)
+
+**Status:** `[x] concluída`

@@ -19,11 +19,12 @@ que **já chegaram ao revisor** (decisão do produto): em revisão (`AGUARDANDO_
 tiveram plano enviado à revisão. Casos ainda em coleta pelo aluno não aparecem. A consulta aceita filtros,
 ordenação e paginação no servidor. A rota antiga `GET /api/revisao/fila` continua funcionando.
 
-### RF-502. Colunas da tabela
-Aluno (nome e e-mail; sem nome, só o e-mail), Chegou em (data e hora de entrada na fila), Tempo na fila, Status,
-Tipo (primeiro plano ou recálculo, com o motivo), Situação do mês (fecha positivo ou mês no negativo), Dívidas
-(quantidade), Método (recomendado e se está confirmado ou em dúvida), Motivo da revisão, Revisor e decisão (quem
-decidiu e quando, só para entregues e devolvidos) e Ação (abrir).
+### RF-502. Colunas da tabela (ajustado em 2026-10-17)
+Aluno (nome e e-mail; sem nome, só o e-mail), Tempo na fila, Status, **Fecha no mês** (Positivo em verde ou Negativo em
+vermelho, sempre com o texto), Dívidas (quantidade), Método (recomendado e se está confirmado ou em dúvida), Revisor e
+decisão (quem decidiu e quando, só para entregues e devolvidos) e Ação (abrir). Saíram da tela, por decisão do
+produto, as colunas "Chegou em", "Tipo" e "Motivo da revisão" (e com ela os chips "Política 100%" e "Revisão
+obrigatória pelo motor"); a consulta do servidor continua devolvendo esses dados.
 
 ### RF-503. Data de chegada e tempo na fila
 A data de chegada é o momento em que o caso entrou em `AGUARDANDO_REVISAO` pela última vez (evento de transição);

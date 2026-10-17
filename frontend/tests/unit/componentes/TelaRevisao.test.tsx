@@ -70,8 +70,7 @@ describe("TelaRevisao — colunas e linguagem humana", () => {
     expect(tabela().getByText("fulana@exemplo.com")).toBeInTheDocument();
     expect(tabela().getByText("2 d")).toBeInTheDocument();
     expect(tabela().getByText("Em revisão")).toBeInTheDocument();
-    expect(tabela().getByText("Primeiro plano")).toBeInTheDocument();
-    expect(tabela().getByText("Fecha positivo")).toBeInTheDocument();
+    expect(tabela().getByText("Positivo")).toBeInTheDocument();
     expect(tabela().getByText("Híbrido")).toBeInTheDocument();
     expect(tabela().getByText("Definitivo na data")).toBeInTheDocument();
     expect(tabela().getByText("Fulana de Tal")).toHaveAttribute("title", "Fulana de Tal");
@@ -82,12 +81,6 @@ describe("TelaRevisao — colunas e linguagem humana", () => {
     espiar(resposta({}, { nome: null }));
     render(<TelaRevisao aoSair={vi.fn()} />);
     expect((await aTabela()).getByText("fulana@exemplo.com")).toHaveClass("font-bold");
-  });
-
-  it("chegada aproximada vem marcada", async () => {
-    espiar(resposta({}, { chegada_aproximada: true }));
-    render(<TelaRevisao aoSair={vi.fn()} />);
-    expect((await aTabela()).getByText("aprox.")).toBeInTheDocument();
   });
 
   it("tempo na fila mostra só os dias, sem a frase de alerta", async () => {
@@ -118,13 +111,29 @@ describe("TelaRevisao — colunas e linguagem humana", () => {
     expect(screen.queryByRole("img", { name: /Parado há/ })).toBeNull();
   });
 
-  it("os dois sinais são chips separados", async () => {
-    espiar(resposta({}, { entra_por_politica: true, e_metodologico: true }));
+  it("cabeçalhos: só as colunas decididas pelo produto", async () => {
+    espiar();
     render(<TelaRevisao aoSair={vi.fn()} />);
-    const politica = (await aTabela()).getByText("Política 100%");
-    const motor = tabela().getByText("Revisão obrigatória pelo motor");
-    expect(politica).not.toBe(motor);
-    expect(politica.textContent).not.toContain("motor");
+    const nomes = (await aTabela()).getAllByRole("columnheader").map((h) => h.textContent?.replace(/ [▲▼]$/, ""));
+    expect(nomes).toEqual(["Aluno", "Tempo na fila", "Status", "Fecha no mês", "Dívidas", "Método", "Revisor e decisão", "Ação"]);
+    for (const fora of ["Chegou em", "Tipo", "Motivo da revisão", "Política 100%", "Revisão obrigatória pelo motor"]) {
+      expect(screen.queryByText(fora)).toBeNull();
+    }
+  });
+
+  it("Fecha no mês: Positivo (verde) e Negativo (vermelho), sempre com texto", async () => {
+    espiar(resposta({}, { mes_negativo: false }));
+    const { unmount } = render(<TelaRevisao aoSair={vi.fn()} />);
+    const positivo = (await aTabela()).getByText("Positivo");
+    expect(positivo).toHaveClass("chip-ok");
+    unmount();
+
+    espiar(resposta({}, { mes_negativo: true }));
+    render(<TelaRevisao aoSair={vi.fn()} />);
+    const negativo = (await aTabela()).getByText("Negativo");
+    expect(negativo).toHaveClass("text-bad");
+    expect(negativo).not.toHaveClass("chip-ok");
+    expect(within(screen.getByTestId("cartoes-de-casos")).getByText("Negativo")).toBeInTheDocument();
   });
 
   it("decidido mostra quem e quando", async () => {
@@ -140,7 +149,7 @@ describe("TelaRevisao — colunas e linguagem humana", () => {
     await userEvent.click((await aTabela()).getByRole("button", { name: /Abrir/ }));
     expect(abrir).toHaveBeenCalledTimes(1);
     expect(abrir).toHaveBeenCalledWith("CASO-1");
-    await userEvent.click(tabela().getByText("Primeiro plano"));
+    await userEvent.click(tabela().getByText("Híbrido"));
     expect(abrir).toHaveBeenCalledTimes(2);
   });
 
@@ -171,7 +180,7 @@ describe("TelaRevisao — abas, filtros, ordem e páginas", () => {
     render(<TelaRevisao aoSair={vi.fn()} />);
     await screen.findByRole("button", { name: "Pendentes (1)" });
     expect(screen.getByLabelText("Buscar por nome ou e-mail")).toBeInTheDocument();
-    for (const rotulo of ["Chegou a partir de", "Chegou até", "Tipo", "Mês no negativo", "Método", "Motivo da revisão", "Revisor", "Parado há mais de (horas)", "Status"]) {
+    for (const rotulo of ["Chegou a partir de", "Chegou até", "Tipo", "Mês no negativo", "Motivo da revisão", "Revisor", "Parado há mais de (horas)", "Status"]) {
       expect(screen.queryByLabelText(rotulo)).toBeNull();
     }
     expect(screen.queryByRole("button", { name: /Limpar filtros/ })).toBeNull();
@@ -229,8 +238,7 @@ describe("TelaRevisao — abas, filtros, ordem e páginas", () => {
   it("cabeçalho ordenável: aria-sort e clique alternam a direção", async () => {
     const s = espiar();
     render(<TelaRevisao aoSair={vi.fn()} />);
-    const cab = (await aTabela()).getByRole("columnheader", { name: /Chegou em/ });
-    expect(cab).toHaveAttribute("aria-sort", "ascending");
+    expect((await aTabela()).getByRole("columnheader", { name: "Aluno" })).toHaveAttribute("aria-sort", "none");
     expect(tabela().getByRole("columnheader", { name: "Aluno" })).toHaveAttribute("aria-sort", "none");
 
     await userEvent.click(tabela().getByRole("button", { name: "Aluno" }));
