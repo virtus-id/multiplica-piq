@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`1/3 tarefas concluídas`.
+`2/3 tarefas concluídas`.
 
 ### `T-408` — Consulta unificada de casos para o revisor (servidor)
 
@@ -23,10 +23,10 @@
 ### `T-409` — Tabela, filtros e cartões no celular (front)
 
 - **Tipo:** `FEATURE` · **Dependências:** `T-408` · **Rastreia:** `RF-502`, `RF-504`, `RF-505`, `RF-507`
-- [ ] Tabela com abas, filtros, chips, ordenação, paginação, alerta de 5 dias; cartões abaixo de 768px
-- [ ] Testes de componente, acessibilidade e 360px; rótulos humanos
+- [x] Tabela com abas, filtros, chips, ordenação, paginação, alerta de 5 dias; cartões abaixo de 768px
+- [x] Testes de componente, acessibilidade e 360px; rótulos humanos
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída`
 
 ### `T-410` — Revisão, PR e deploy
 

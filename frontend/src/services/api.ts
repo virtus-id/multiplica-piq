@@ -10,6 +10,8 @@
  * assim que deve ser: o cliente nunca decide a quem um caso pertence.
  */
 import type {
+  ParametrosDeCasos,
+  RespostaDeCasos,
   ConfirmacaoDeResposta,
   EscoposDoCaso,
   Ficha,
@@ -374,6 +376,17 @@ export function obterPlano(casoId: string): Promise<RespostaPlano> {
 
 export function obterFilaDeRevisao(): Promise<{ itens: ItemDaFila[] }> {
   return pedir<{ itens: ItemDaFila[] }>('/api/revisao/fila')
+}
+
+export function obterCasosParaRevisao(
+  parametros: ParametrosDeCasos,
+): Promise<RespostaDeCasos> {
+  const busca = new URLSearchParams()
+  for (const [chave, valor] of Object.entries(parametros)) {
+    if (valor === undefined || valor === '') continue
+    for (const v of Array.isArray(valor) ? valor : [valor]) busca.append(chave, String(v))
+  }
+  return pedir<RespostaDeCasos>(`/api/revisao/casos?${busca.toString()}`)
 }
 
 // ---------------------------------------------------------------------------
