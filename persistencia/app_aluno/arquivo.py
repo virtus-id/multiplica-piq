@@ -77,7 +77,11 @@ from persistencia.app_aluno.casos import (
     ErroCasoInexistente,
     RepositorioCasos,
 )
-from persistencia.app_aluno.eventos import EventoCaso, RepositorioEventosCaso
+from persistencia.app_aluno.eventos import (
+    EventoCaso,
+    RepositorioEventosCaso,
+    agrupar_eventos_por_caso,
+)
 from persistencia.app_aluno.itens import ItemRepetido, RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
 
@@ -720,6 +724,13 @@ class RepositorioEventosCasoArquivo(RepositorioEventosCaso):
             _linha_para_evento(linha)
             for linha in _ler_linhas(self._caminho_arquivo)
             if linha["CASO_ID"] == caso_id
+        )
+
+    def listar_dos_casos(self, caso_ids: tuple[str, ...]) -> dict[str, tuple[EventoCaso, ...]]:
+        return agrupar_eventos_por_caso(
+            _linha_para_evento(linha)
+            for linha in _ler_linhas(self._caminho_arquivo)
+            if linha["CASO_ID"] in caso_ids
         )
 
 

@@ -32,7 +32,7 @@ REGRAS: `RF-31`, `AC-40`, `AC-35`
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any, Final, Protocol
@@ -166,6 +166,31 @@ class RepositorioEventosCasoSupabase:
             )
             linhas = cursor.fetchall()
         return tuple(_linha_para_evento(linha) for linha in linhas)
+
+    def listar_dos_casos(self, caso_ids: tuple[str, ...]) -> dict[str, tuple[EventoCaso, ...]]:
+        """`RF-503` (T-408) — a trilha de vários casos numa consulta só (a
+        lista do revisor não pode pagar uma viagem por caso)."""
+        if not caso_ids:
+            return {}
+        with _conectar() as conexao, conexao.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT evento_id, "CASO_ID", tipo_evento, estado_de,
+                       estado_para, detalhe, ocorrido_em
+                FROM app_aluno.eventos_caso
+                WHERE "CASO_ID" = ANY(%s)
+                """,
+                (list(caso_ids),),
+            )
+            linhas = cursor.fetchall()
+        return agrupar_eventos_por_caso(_linha_para_evento(linha) for linha in linhas)
+
+
+def agrupar_eventos_por_caso(eventos: Iterable[EventoCaso]) -> dict[str, tuple[EventoCaso, ...]]:
+    agrupados: dict[str, list[EventoCaso]] = {}
+    for evento in eventos:
+        agrupados.setdefault(evento.CASO_ID, []).append(evento)
+    return {caso_id: tuple(lista) for caso_id, lista in agrupados.items()}
 
 
 def _linha_para_evento(linha: tuple[Any, ...]) -> EventoCaso:

@@ -21,10 +21,11 @@ REGRAS: `RF-50`, `RF-51`, `AC-25`, `AC-28`
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from typing import Annotated, Final, Protocol
+from collections.abc import Callable
+from datetime import UTC, date, datetime
+from typing import Annotated, Final, Literal, Protocol
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
 
 from app.casos.inventario import pendencias_de_inventario
@@ -71,6 +72,8 @@ from app.http.serializacao_plano import (
     fontes_por_divida,
     serializar_estado_inputs,
     serializar_item_da_fila,
+    serializar_linha_de_caso,
+    serializar_opcoes_da_lista,
     serializar_plano,
     vocabulario_do_caso,
 )
@@ -80,14 +83,28 @@ from app.revisao.fila import (
     listar_fila_de_revisao,
     montar_item_da_fila,
 )
+from app.revisao.lista_de_casos import (
+    CAMPO_DE_ORDEM,
+    FiltrosDaLista,
+    RepositorioEventosDaLista,
+    RepositorioRevisoesDaLista,
+    consultar_casos,
+    montar_linhas,
+)
 from collection.carga import ColecaoDeRegistros
 from collection.respostas import RespostasCaso
 from engine.portas import RepositorioSnapshots
 from engine.snapshot import SnapshotOrdem
 from persistencia.app_aluno.casos import RepositorioCasos
-from persistencia.app_aluno.contas import ContaDoCaso, RepositorioContasSupabase
+from persistencia.app_aluno.contas import (
+    ContaDoCaso,
+    RepositorioContasSupabase,
+    listar_revisores,
+)
+from persistencia.app_aluno.eventos import RepositorioEventosCasoSupabase
 from persistencia.app_aluno.itens import RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
+from persistencia.app_aluno.revisoes import RepositorioRevisoesSupabase
 from persistencia.supabase.repositorio_snapshots import ErroSnapshotNaoEncontrado
 from report.pdf import gerar_pdf_de_previa, snapshot_tem_liberacao_registrada
 from report.plano import (
@@ -132,6 +149,22 @@ def obter_emails_dos_alunos() -> EmailsDosAlunos:
     (`exigir_papel_revisor`) dependem dele: o e-mail nunca vai a rota de
     aluno."""
     return RepositorioContasSupabase()
+
+
+def obter_repositorio_eventos_da_lista() -> RepositorioEventosDaLista:
+    """`T-408` — ponto de injeção da trilha em lote; sobrescrito nos testes."""
+    return RepositorioEventosCasoSupabase()
+
+
+def obter_repositorio_revisoes_da_lista() -> RepositorioRevisoesDaLista:
+    """`T-408` — ponto de injeção das revisões em lote; sobrescrito nos testes."""
+    return RepositorioRevisoesSupabase()
+
+
+def obter_revisores() -> Callable[[], dict[str, str]]:
+    """`T-408` — `conta_id` → e-mail de quem é revisor, para mostrar quem
+    decidiu (`RF-506`); sobrescrito nos testes."""
+    return lambda: {conta.conta_id: conta.email for conta in listar_revisores()}
 
 
 def _vocabulario(
@@ -268,6 +301,79 @@ def fila_de_revisao(
                 serializar_item_da_fila(item, textos, email_por_caso.get(item.CASO_ID))
                 for item in itens
             ]
+        }
+    )
+
+
+@roteador.get("/api/revisao/casos")
+def casos_para_revisao(
+    _revisor: Annotated[str, Depends(exigir_papel_revisor)],
+    repositorio_casos: Annotated[RepositorioCasosDaFila, Depends(obter_repositorio_casos_da_fila)],
+    repositorio_snapshots: Annotated[
+        RepositorioSnapshots, Depends(obter_repositorio_snapshots_da_fila)
+    ],
+    repositorio_eventos: Annotated[
+        RepositorioEventosDaLista, Depends(obter_repositorio_eventos_da_lista)
+    ],
+    repositorio_revisoes: Annotated[
+        RepositorioRevisoesDaLista, Depends(obter_repositorio_revisoes_da_lista)
+    ],
+    emails: Annotated[EmailsDosAlunos, Depends(obter_emails_dos_alunos)],
+    revisores_por_conta: Annotated[Callable[[], dict[str, str]], Depends(obter_revisores)],
+    aba: Literal["pendentes", "entregues", "devolvidos", "todos"] = "pendentes",
+    q: str | None = None,
+    status: Annotated[list[ESTADO_CASO] | None, Query()] = None,
+    de: date | None = None,
+    ate: date | None = None,
+    tipo: Literal["primeiro", "recalculo"] | None = None,
+    mes_negativo: Literal["sim", "nao"] | None = None,
+    metodo: str | None = None,
+    motivo: str | None = None,
+    revisor: str | None = None,
+    parado_horas: Annotated[int | None, Query(ge=0)] = None,
+    ordenar: CAMPO_DE_ORDEM | None = None,
+    direcao: Literal["asc", "desc"] | None = None,
+    pagina: Annotated[int, Query(ge=1)] = 1,
+    por_pagina: int = 25,
+) -> JSONResponse:
+    """`RF-501` a `RF-506` — todos os casos que já chegaram ao revisor, com
+    abas, filtros, ordenação e paginação no servidor. `status` repete o
+    parâmetro para mais de um valor. A rota antiga `/api/revisao/fila` não
+    muda."""
+    if por_pagina not in (25, 50):
+        raise HTTPException(status_code=422, detail="Use 25 ou 50 itens por página.")
+    linhas = montar_linhas(
+        datetime.now(UTC),
+        repositorio_casos,
+        repositorio_snapshots,
+        repositorio_eventos,
+        repositorio_revisoes,
+        emails.contas_dos_casos,
+    )
+    filtros = FiltrosDaLista(
+        aba=aba,
+        q=q,
+        status=frozenset(status or ()),
+        de=de,
+        ate=ate,
+        tipo=tipo,
+        mes_negativo=None if mes_negativo is None else mes_negativo == "sim",
+        metodo=metodo,
+        motivo=motivo,
+        revisor=revisor,
+        parado_horas=parado_horas,
+    )
+    resultado = consultar_casos(linhas, filtros, ordenar, direcao, pagina, por_pagina)
+    textos = carregar_textos_canonicos()
+    revisores = revisores_por_conta()
+    return JSONResponse(
+        {
+            "itens": [serializar_linha_de_caso(x, textos, revisores) for x in resultado.linhas],
+            "total": resultado.total,
+            "pagina": pagina,
+            "por_pagina": por_pagina,
+            "contagens": resultado.contagens,
+            "opcoes": serializar_opcoes_da_lista(textos, linhas, revisores),
         }
     )
 
