@@ -5,9 +5,9 @@
  * linha vira cartão (sem rolagem horizontal a 360px). Os dois são
  * renderizados e o CSS esconde um — por isso cada um tem o seu `data-testid`.
  *
- * Os dois sinais (`entra_por_politica`, `e_metodologico`) são chips
- * SEPARADOS, como em `AC-28`. Status e tipo chegam em código, mas a tela
- * só mostra `status_rotulo`/`tipo_rotulo`.
+ * Os sinais `entra_por_politica`/`e_metodologico` não aparecem aqui
+ * (T-412); nunca serão combinados num só (`AC-28`). Status chega em código,
+ * mas a tela só mostra `status_rotulo`.
  *
  * Compacta (`RF-508`, T-411): `table-fixed` com larguras em %, uma linha por
  * caso, texto longo truncado com reticências e o texto inteiro em `title`.
@@ -30,17 +30,14 @@ interface TabelaDeCasosProps {
 
 /** `largura` em % da tabela (soma 100). */
 const COLUNAS: { titulo: string; largura: number; campo?: CampoDeOrdem }[] = [
-  { titulo: 'Aluno', largura: 14, campo: 'aluno' },
-  { titulo: 'Chegou em', largura: 10, campo: 'chegou_em' },
-  { titulo: 'Tempo na fila', largura: 7, campo: 'tempo_na_fila' },
-  { titulo: 'Status', largura: 8, campo: 'status' },
-  { titulo: 'Tipo', largura: 8, campo: 'tipo' },
-  { titulo: 'Situação do mês', largura: 9, campo: 'situacao_mes' },
-  { titulo: 'Dívidas', largura: 5, campo: 'dividas' },
-  { titulo: 'Método', largura: 8, campo: 'metodo' },
-  { titulo: 'Motivo da revisão', largura: 18 },
-  { titulo: 'Revisor e decisão', largura: 9, campo: 'decidido_em' },
-  { titulo: 'Ação', largura: 4 },
+  { titulo: 'Aluno', largura: 22, campo: 'aluno' },
+  { titulo: 'Tempo na fila', largura: 9, campo: 'tempo_na_fila' },
+  { titulo: 'Status', largura: 11, campo: 'status' },
+  { titulo: 'Fecha no mês', largura: 11, campo: 'situacao_mes' },
+  { titulo: 'Dívidas', largura: 7, campo: 'dividas' },
+  { titulo: 'Método', largura: 18, campo: 'metodo' },
+  { titulo: 'Revisor e decisão', largura: 14, campo: 'decidido_em' },
+  { titulo: 'Ação', largura: 8 },
 ]
 
 const CELULA = 'truncate px-1.5 py-1'
@@ -61,6 +58,15 @@ function classeDoStatus(status: string): string {
   return `${CHIP} chip-mudo`
 }
 
+/** Sempre com texto: a cor sozinha não basta (`RF-502`). */
+function FechaNoMes({ c }: { c: LinhaDeCaso }) {
+  return c.mes_negativo ? (
+    <span className={`${CHIP} bg-bad-soft text-bad`}>Negativo</span>
+  ) : (
+    <span className={`${CHIP} chip-ok`}>Positivo</span>
+  )
+}
+
 function Aluno({ c }: { c: LinhaDeCaso }) {
   const principal = c.nome || c.email_do_aluno || c.CASO_ID
   return (
@@ -71,15 +77,6 @@ function Aluno({ c }: { c: LinhaDeCaso }) {
           {c.email_do_aluno}
         </small>
       )}
-    </>
-  )
-}
-
-function Chegada({ c }: { c: LinhaDeCaso }) {
-  return (
-    <>
-      <span className="tabular-nums">{formatarData(c.chegou_em)}</span>
-      {c.chegada_aproximada && <small className="ml-1 text-[11px] text-muted">aprox.</small>}
     </>
   )
 }
@@ -98,17 +95,6 @@ function Tempo({ c }: { c: LinhaDeCaso }) {
         >
           <Icone nome="prazo" />
         </span>
-      )}
-    </>
-  )
-}
-
-function Sinais({ c }: { c: LinhaDeCaso }) {
-  return (
-    <>
-      {c.entra_por_politica && <span className={`${CHIP} bg-line text-muted`}>Política 100%</span>}
-      {c.e_metodologico && (
-        <span className={`${CHIP} bg-warn-soft text-warn`}>Revisão obrigatória pelo motor</span>
       )}
     </>
   )
@@ -151,20 +137,14 @@ function Cartao({ c, abrirCaso }: { c: LinhaDeCaso; abrirCaso?: (id: string) => 
         <span className={classeDoStatus(c.status)}>{c.status_rotulo}</span>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-        <dt className="text-muted">Chegou em</dt>
-        <dd className="m-0"><Chegada c={c} /></dd>
         <dt className="text-muted">Tempo na fila</dt>
         <dd className="m-0"><Tempo c={c} /></dd>
-        <dt className="text-muted">Tipo</dt>
-        <dd className="m-0">{c.tipo_rotulo}</dd>
-        <dt className="text-muted">Situação do mês</dt>
-        <dd className="m-0">{c.situacao_mes_rotulo}</dd>
+        <dt className="text-muted">Fecha no mês</dt>
+        <dd className="m-0"><FechaNoMes c={c} /></dd>
         <dt className="text-muted">Dívidas</dt>
         <dd className="m-0 tabular-nums">{c.dividas}</dd>
         <dt className="text-muted">Método</dt>
         <dd className="m-0">{c.metodo} · {c.status_metodo}</dd>
-        <dt className="text-muted">Motivo da revisão</dt>
-        <dd className="m-0">{c.motivo_rotulo}<div className="mt-1 flex flex-wrap gap-2"><Sinais c={c} /></div></dd>
         {c.decidido_em && (
           <>
             <dt className="text-muted">Revisor e decisão</dt>
@@ -233,23 +213,15 @@ export default function TabelaDeCasos({ itens, ordem, aoOrdenar, abrirCaso }: Ta
                 onClick={() => abrirCaso?.(c.CASO_ID)}
               >
                 <td className={CELULA}><Aluno c={c} /></td>
-                <td className={CELULA}><Chegada c={c} /></td>
                 <td className={CELULA}><Tempo c={c} /></td>
                 <td className={CELULA}>
                   <span className={classeDoStatus(c.status)}>{c.status_rotulo}</span>
                 </td>
-                <td className={CELULA} title={c.tipo_rotulo}>{c.tipo_rotulo}</td>
-                <td className={CELULA} title={c.situacao_mes_rotulo}>{c.situacao_mes_rotulo}</td>
+                <td className={CELULA}><FechaNoMes c={c} /></td>
                 <td className={`${CELULA} tabular-nums`}>{c.dividas}</td>
                 <td className={CELULA} title={`${c.metodo} · ${c.status_metodo}`}>
                   {c.metodo}
                   <small className="block truncate text-[11px] leading-tight text-muted">{c.status_metodo}</small>
-                </td>
-                <td className={CELULA}>
-                  <span className="block truncate" title={c.motivo_rotulo}>{c.motivo_rotulo}</span>
-                  {(c.entra_por_politica || c.e_metodologico) && (
-                    <div className="flex flex-wrap gap-x-1"><Sinais c={c} /></div>
-                  )}
                 </td>
                 <td className={CELULA}><Decisao c={c} /></td>
                 <td className={CELULA}><Abrir c={c} abrirCaso={abrirCaso} /></td>
