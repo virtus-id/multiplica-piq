@@ -31,20 +31,24 @@ se o caso não tiver o evento, vale a data de criação do plano calculado e a t
 O tempo na fila é calculado entre timestamps de eventos, nunca por aritmética sobre campos do snapshot. Para
 entregues e devolvidos, mostra o tempo até a decisão.
 
-### RF-504. Abas de status e filtros
-Abas: Pendentes (em revisão), Entregues, Devolvidos, Todos, cada uma com contagem. Filtros: busca por nome ou
-e-mail; status (mais de um); período de chegada; primeiro plano ou recálculo; mês no negativo sim ou não; método;
-motivo da revisão; revisor; parado há mais de X horas. Os filtros ativos aparecem como chips com "Limpar filtros" e
-ficam guardados ao recarregar a tela.
+### RF-504. Abas de status e busca (ajustado em 2026-10-17)
+Abas: Pendentes (em revisão), Entregues, Devolvidos, Todos, cada uma com contagem. Único filtro da tela: busca por
+nome ou e-mail, na mesma linha das abas, ao lado delas. Os demais filtros (período, tipo, mês no negativo, método,
+motivo, revisor, tempo parado) e o filtro de status separado saíram da tela por decisão do produto; a consulta do
+servidor continua aceitando esses parâmetros. O termo de busca fica guardado ao recarregar a tela.
 
 ### RF-505. Ordenação, paginação e alerta de atraso
 Cabeçalhos ordenáveis (padrão: mais antigo primeiro nos pendentes e mais recente primeiro nas demais abas).
-Paginação de 25 ou 50, com "mostrando N–M de T". Um pendente parado há **5 dias ou mais** é destacado com texto e
-ícone, não só com cor (decisão do produto).
+Paginação de 25 ou 50, com "mostrando N–M de T". Um pendente parado há **5 dias ou mais** é destacado com ícone e cor; a coluna mostra só os dias (por exemplo "9 d"),
+sem frase de alerta (ajustado em 2026-10-17). O alerta tem nome acessível para leitor de tela.
 
 ### RF-506. Quem decidiu
 Nos entregues e devolvidos, a tabela mostra o autor da decisão e a data (`revisoes.autor`, `decidido_em`). Não há
 atribuição prévia de revisor (fora de escopo).
+
+### RF-508. Tabela fina e compacta (2026-10-17)
+Linhas de uma linha só, com espaçamento e fonte reduzidos, de modo que a tabela caiba na largura da tela do revisor em
+desktop sem rolagem horizontal. Aluno mostra nome e e-mail em linhas curtas; colunas de texto longo usam reticências.
 
 ### RF-507. Layout e acessibilidade
 Tabela com cabeçalho fixo, linha inteira clicável e botão "Abrir"; a partir de 768px de largura vira cartões
@@ -68,7 +72,8 @@ motor" continuam separados.
   método, motivo, revisor e decisão, com rótulos humanos (nenhum texto em MAIÚSCULAS_COM_UNDERSCORE na tela).
 - AC-503: filtros, ordenação e paginação do servidor funcionam e se combinam; a contagem das abas bate com a lista.
 - AC-504: a data de chegada de um caso devolvido e reenviado é a da última entrada na fila.
-- AC-505: um pendente com 5 dias ou mais aparece destacado com texto; com menos, não.
+- AC-505: um pendente com 5 dias ou mais aparece destacado (ícone e cor) e a coluna mostra só os dias; com menos, não.
+- AC-508: a tela só tem a busca como filtro, ao lado das abas; a tabela cabe na largura do desktop e as linhas são compactas.
 - AC-506: a tela não tem rolagem horizontal a 360px e passa nos testes de acessibilidade e de padrões visuais.
 - AC-507: a rota antiga da fila e as telas de conferência do caso continuam funcionando.
 
