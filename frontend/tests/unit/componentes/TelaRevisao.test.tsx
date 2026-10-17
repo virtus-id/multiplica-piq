@@ -68,12 +68,13 @@ describe("TelaRevisao — colunas e linguagem humana", () => {
 
     expect((await aTabela()).getByText("Fulana de Tal")).toBeInTheDocument();
     expect(tabela().getByText("fulana@exemplo.com")).toBeInTheDocument();
-    expect(tabela().getByText("2 d 4 h")).toBeInTheDocument();
+    expect(tabela().getByText("2 d")).toBeInTheDocument();
     expect(tabela().getByText("Em revisão")).toBeInTheDocument();
     expect(tabela().getByText("Primeiro plano")).toBeInTheDocument();
     expect(tabela().getByText("Fecha positivo")).toBeInTheDocument();
     expect(tabela().getByText("Híbrido")).toBeInTheDocument();
     expect(tabela().getByText("Definitivo na data")).toBeInTheDocument();
+    expect(tabela().getByText("Fulana de Tal")).toHaveAttribute("title", "Fulana de Tal");
     expect(container.textContent).not.toMatch(/[A-Z]+_[A-Z_]+/);
   });
 
@@ -89,10 +90,32 @@ describe("TelaRevisao — colunas e linguagem humana", () => {
     expect((await aTabela()).getByText("aprox.")).toBeInTheDocument();
   });
 
-  it("pendente atrasado ganha texto, não só cor", async () => {
-    espiar(resposta({}, { atrasado: true, tempo_na_fila_horas: 130 }));
+  it("tempo na fila mostra só os dias, sem a frase de alerta", async () => {
+    espiar(resposta({}, { atrasado: true, tempo_na_fila_horas: 9 * 24 + 23 }));
+    const { container } = render(<TelaRevisao aoSair={vi.fn()} />);
+    expect((await aTabela()).getByText("9 d")).toBeInTheDocument();
+    expect(container.textContent).not.toContain("Parado há");
+    expect(container.textContent).not.toMatch(/\d h\b/);
+  });
+
+  it("menos de um dia vira '0 d'", async () => {
+    espiar(resposta({}, { tempo_na_fila_horas: 5 }));
     render(<TelaRevisao aoSair={vi.fn()} />);
-    expect((await aTabela()).getByText("Parado há 5 dias ou mais")).toBeInTheDocument();
+    expect((await aTabela()).getByText("0 d")).toBeInTheDocument();
+  });
+
+  it("atrasado tem nome acessível (aria-label), não texto visível; em dia não tem", async () => {
+    espiar(resposta({}, { atrasado: true, tempo_na_fila_horas: 130 }));
+    const { unmount } = render(<TelaRevisao aoSair={vi.fn()} />);
+    const alerta = (await aTabela()).getByRole("img", { name: "Parado há 5 dias ou mais" });
+    expect(alerta).toHaveAttribute("aria-label", "Parado há 5 dias ou mais");
+    expect(alerta).toHaveAttribute("title", "Parado há 5 dias ou mais");
+    unmount();
+
+    espiar(resposta({}, { atrasado: false }));
+    render(<TelaRevisao aoSair={vi.fn()} />);
+    await aTabela();
+    expect(screen.queryByRole("img", { name: /Parado há/ })).toBeNull();
   });
 
   it("os dois sinais são chips separados", async () => {
@@ -143,30 +166,41 @@ describe("TelaRevisao — abas, filtros, ordem e páginas", () => {
     );
   });
 
-  it("filtros viram parâmetros e chips; 'Limpar filtros' desfaz", async () => {
+  it("a busca é o único filtro: sem período, tipo, mês, método, motivo, revisor, parado nem status", async () => {
+    espiar();
+    render(<TelaRevisao aoSair={vi.fn()} />);
+    await screen.findByRole("button", { name: "Pendentes (1)" });
+    expect(screen.getByLabelText("Buscar por nome ou e-mail")).toBeInTheDocument();
+    for (const rotulo of ["Chegou a partir de", "Chegou até", "Tipo", "Mês no negativo", "Método", "Motivo da revisão", "Revisor", "Parado há mais de (horas)", "Status"]) {
+      expect(screen.queryByLabelText(rotulo)).toBeNull();
+    }
+    expect(screen.queryByRole("button", { name: /Limpar filtros/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Filtros ativos" })).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    // Só a busca (texto) e o "Por página" são campos; nenhum seletor de filtro.
+    expect(screen.getAllByRole("combobox")).toHaveLength(1);
+  });
+
+  it("a busca fica no mesmo contêiner das abas", async () => {
+    espiar();
+    render(<TelaRevisao aoSair={vi.fn()} />);
+    await screen.findByRole("button", { name: "Pendentes (1)" });
+    const linha = within(screen.getByTestId("abas-e-busca"));
+    expect(linha.getByRole("group", { name: "Situação dos planos" })).toBeInTheDocument();
+    expect(linha.getByLabelText("Buscar por nome ou e-mail")).toBeInTheDocument();
+  });
+
+  it("a busca vira o parâmetro q e o 'x' limpa", async () => {
     const s = espiar();
     render(<TelaRevisao aoSair={vi.fn()} />);
     await screen.findByRole("button", { name: "Pendentes (1)" });
+    await userEvent.type(screen.getByLabelText("Buscar por nome ou e-mail"), "fula");
+    await waitFor(() => expect(ultima(s)).toMatchObject({ q: "fula", pagina: 1 }));
 
-    await userEvent.selectOptions(screen.getByLabelText("Tipo"), "recalculo");
-    await userEvent.selectOptions(screen.getByLabelText("Mês no negativo"), "sim");
-    await userEvent.click(screen.getByLabelText("Entregue"));
-    await userEvent.selectOptions(screen.getByLabelText("Revisor"), "R1");
-    await waitFor(() =>
-      expect(ultima(s)).toMatchObject({
-        tipo: "recalculo",
-        mes_negativo: "sim",
-        status: ["PLANO_LIBERADO"],
-        revisor: "R1",
-        pagina: 1,
-      }),
-    );
-    expect(screen.getByRole("button", { name: /Revisor: Rodrigo/ })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
-    await waitFor(() => expect(ultima(s).tipo).toBeUndefined());
-    expect(ultima(s).status).toBeUndefined();
-    expect(screen.queryByRole("button", { name: "Limpar filtros" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Limpar busca" }));
+    await waitFor(() => expect(ultima(s).q).toBeUndefined());
+    expect(screen.getByLabelText("Buscar por nome ou e-mail")).toHaveValue("");
+    expect(screen.queryByRole("button", { name: "Limpar busca" })).toBeNull();
   });
 
   it("a busca espera a pausa na digitação", async () => {
@@ -177,17 +211,19 @@ describe("TelaRevisao — abas, filtros, ordem e páginas", () => {
     await waitFor(() => expect(ultima(s).q).toBe("fula"));
   });
 
-  it("os filtros ficam guardados na sessão", async () => {
+  it("o termo de busca fica guardado na sessão", async () => {
     espiar();
     const { unmount } = render(<TelaRevisao aoSair={vi.fn()} />);
     await screen.findByRole("button", { name: "Pendentes (1)" });
-    await userEvent.selectOptions(screen.getByLabelText("Tipo"), "primeiro");
+    await userEvent.type(screen.getByLabelText("Buscar por nome ou e-mail"), "fula");
+    await waitFor(() => expect(sessionStorage.getItem("piq.fila.busca")).toBe("fula"));
     unmount();
 
     const s = espiar();
     render(<TelaRevisao aoSair={vi.fn()} />);
     await screen.findByRole("button", { name: "Pendentes (1)" });
-    expect(ultima(s).tipo).toBe("primeiro");
+    expect(ultima(s).q).toBe("fula");
+    expect(screen.getByLabelText("Buscar por nome ou e-mail")).toHaveValue("fula");
   });
 
   it("cabeçalho ordenável: aria-sort e clique alternam a direção", async () => {
@@ -225,11 +261,11 @@ describe("TelaRevisao — estados", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Carregando a fila");
   });
 
-  it("vazio: 'Nenhum plano encontrado' com 'Limpar filtros'", async () => {
+  it("vazio: só 'Nenhum plano encontrado.'", async () => {
     espiar(resposta({ itens: [], total: 0 }));
     render(<TelaRevisao aoSair={vi.fn()} />);
     expect(await screen.findByText("Nenhum plano encontrado.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Limpar filtros" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Limpar/ })).toBeNull();
   });
 
   it.each([

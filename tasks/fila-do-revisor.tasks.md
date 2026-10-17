@@ -34,3 +34,10 @@
 - [ ] Revisão da branch, PR, merge e deploy no servidor, teste de fumaça da tela
 
 **Status:** `[ ] pendente`
+
+### `T-411` — Ajustes de layout da fila (tabela compacta, só busca, dias)
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-409` · **Rastreia:** `RF-504`, `RF-505`, `RF-508`
+- [x] Tabela fina e compacta; só a busca como filtro, ao lado das abas; tempo na fila mostra só os dias, sem frase de alerta
+
+**Status:** `[x] concluída`

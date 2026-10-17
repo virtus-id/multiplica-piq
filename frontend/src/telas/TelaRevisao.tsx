@@ -37,26 +37,18 @@ const ABAS: { aba: AbaDeCasos; rotulo: string }[] = [
   { aba: 'todos', rotulo: 'Todos' },
 ]
 
-/** Os códigos vão na consulta; o texto da tela é o rótulo. */
-const STATUS: { codigo: string; rotulo: string }[] = [
-  { codigo: 'AGUARDANDO_REVISAO', rotulo: 'Em revisão' },
-  { codigo: 'PLANO_LIBERADO', rotulo: 'Entregue' },
-  { codigo: 'REPROVADO_EM_REVISAO', rotulo: 'Devolvido ao aluno' },
-  { codigo: 'ERRO_DE_CALCULO', rotulo: 'Erro no cálculo' },
-]
+const CHAVE_DA_BUSCA = 'piq.fila.busca'
+const CONSULTA_INICIAL: ParametrosDeCasos = { aba: 'pendentes', pagina: 1, por_pagina: 25 }
 
-const CHAVE_DOS_FILTROS = 'piq.fila.filtros'
-const FILTROS_INICIAIS: ParametrosDeCasos = { aba: 'pendentes', pagina: 1, por_pagina: 25 }
-
-/** Filtros guardados ao recarregar (`RF-504`); storage indisponível não derruba a tela. */
-function lerFiltros(): ParametrosDeCasos {
+/** O termo de busca guardado ao recarregar (`RF-504`); storage indisponível não derruba a tela. */
+function lerConsulta(): ParametrosDeCasos {
   try {
-    const guardado = sessionStorage.getItem(CHAVE_DOS_FILTROS)
-    if (guardado) return { ...FILTROS_INICIAIS, ...(JSON.parse(guardado) as ParametrosDeCasos) }
+    const q = sessionStorage.getItem(CHAVE_DA_BUSCA)
+    if (q) return { ...CONSULTA_INICIAL, q }
   } catch {
-    /* sem storage ou JSON inválido: começa limpo */
+    /* sem storage: começa limpo */
   }
-  return FILTROS_INICIAIS
+  return CONSULTA_INICIAL
 }
 
 /** Pendentes: o mais antigo primeiro; nas demais abas, o mais recente (`RF-505`). */
@@ -64,7 +56,8 @@ function ordemPadrao(aba: AbaDeCasos): Ordem {
   return { campo: 'chegou_em', direcao: aba === 'pendentes' ? 'asc' : 'desc' }
 }
 
-const CLASSE_CAMPO = 'rounded-piq border-2 border-line bg-surface px-2 py-1 text-ink'
+const CLASSE_CAMPO = 'rounded-piq border-2 border-line bg-surface px-2 py-0.5 text-sm text-ink'
+const CLASSE_PAGINACAO = '!min-h-0 !w-auto !px-3 !py-0.5 !text-sm'
 
 /**
  * `401`/`403` não são falhas: são a guarda de papel funcionando. Mostrar
@@ -118,7 +111,7 @@ export default function TelaRevisao({
   abrirPainel,
   aoSair,
 }: TelaRevisaoProps) {
-  const [filtros, setFiltros] = useState<ParametrosDeCasos>(lerFiltros)
+  const [filtros, setFiltros] = useState<ParametrosDeCasos>(lerConsulta)
   const [busca, setBusca] = useState(filtros.q ?? '')
   const [dados, setDados] = useState<RespostaDeCasos | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -155,11 +148,12 @@ export default function TelaRevisao({
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(CHAVE_DOS_FILTROS, JSON.stringify(filtros))
+      if (filtros.q) sessionStorage.setItem(CHAVE_DA_BUSCA, filtros.q)
+      else sessionStorage.removeItem(CHAVE_DA_BUSCA)
     } catch {
-      /* sem storage: os filtros só não sobrevivem ao recarregar */
+      /* sem storage: a busca só não sobrevive ao recarregar */
     }
-  }, [filtros])
+  }, [filtros.q])
 
   // Busca com atraso: uma consulta por pausa na digitação, não por tecla.
   useEffect(() => {
@@ -178,32 +172,6 @@ export default function TelaRevisao({
       ordenar: campo,
       direcao: ordem.campo === campo && ordem.direcao === 'asc' ? 'desc' : 'asc',
     })
-
-  const limpar = () => {
-    setBusca('')
-    setFiltros({ ...FILTROS_INICIAIS, aba, por_pagina: filtros.por_pagina })
-  }
-
-  // Chips dos filtros ativos (a aba, a ordem e a paginação não contam).
-  const opcoes = dados?.opcoes
-  const rotuloDe = (lista: { codigo: string; rotulo: string }[] | undefined, c: string) =>
-    lista?.find((o) => o.codigo === c)?.rotulo ?? c
-  const ativos: { chave: string; texto: string; remover: () => void }[] = []
-  if (filtros.q) ativos.push({ chave: 'q', texto: `Busca: ${filtros.q}`, remover: () => { setBusca(''); mudar({ q: undefined }) } })
-  for (const s of filtros.status ?? [])
-    ativos.push({
-      chave: `s-${s}`,
-      texto: `Status: ${STATUS.find((x) => x.codigo === s)?.rotulo ?? s}`,
-      remover: () => mudar({ status: (filtros.status ?? []).filter((x) => x !== s) }),
-    })
-  if (filtros.de) ativos.push({ chave: 'de', texto: `Chegou desde ${filtros.de}`, remover: () => mudar({ de: undefined }) })
-  if (filtros.ate) ativos.push({ chave: 'ate', texto: `Chegou até ${filtros.ate}`, remover: () => mudar({ ate: undefined }) })
-  if (filtros.tipo) ativos.push({ chave: 'tipo', texto: filtros.tipo === 'primeiro' ? 'Primeiro plano' : 'Recálculo', remover: () => mudar({ tipo: undefined }) })
-  if (filtros.mes_negativo) ativos.push({ chave: 'mes', texto: filtros.mes_negativo === 'sim' ? 'Mês no negativo' : 'Mês fecha positivo', remover: () => mudar({ mes_negativo: undefined }) })
-  if (filtros.metodo) ativos.push({ chave: 'metodo', texto: `Método: ${rotuloDe(opcoes?.metodos, filtros.metodo)}`, remover: () => mudar({ metodo: undefined }) })
-  if (filtros.motivo) ativos.push({ chave: 'motivo', texto: `Motivo: ${rotuloDe(opcoes?.motivos, filtros.motivo)}`, remover: () => mudar({ motivo: undefined }) })
-  if (filtros.revisor) ativos.push({ chave: 'revisor', texto: `Revisor: ${rotuloDe(opcoes?.revisores, filtros.revisor)}`, remover: () => mudar({ revisor: undefined }) })
-  if (filtros.parado_horas) ativos.push({ chave: 'parado', texto: `Parado há mais de ${filtros.parado_horas} h`, remover: () => mudar({ parado_horas: undefined }) })
 
   const total = dados?.total ?? 0
   const porPagina = dados?.por_pagina ?? filtros.por_pagina ?? 25
@@ -239,119 +207,44 @@ export default function TelaRevisao({
         Todo plano passa por aqui antes de chegar ao aluno. Recálculos também.
       </p>
 
-      <div role="group" aria-label="Situação dos planos" className="flex flex-wrap gap-2">
-        {ABAS.map(({ aba: a, rotulo }) => (
-          <button
-            key={a}
-            type="button"
-            aria-pressed={a === aba}
-            className={`chip ${a === aba ? 'chip-ok' : 'chip-mudo'}`}
-            onClick={() => mudar({ aba: a, ordenar: undefined, direcao: undefined, status: undefined })}
-          >
-            {rotulo}
-            {dados && ` (${dados.contagens[a]})`}
-          </button>
-        ))}
-      </div>
-
-      <form
-        role="search"
-        aria-label="Filtros"
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-        onSubmit={(e) => e.preventDefault()}
-      >
-        <label className="flex flex-col gap-1">
-          Buscar por nome ou e-mail
-          <input type="search" className={CLASSE_CAMPO} value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1">
-          Chegou a partir de
-          <input type="date" className={CLASSE_CAMPO} value={filtros.de ?? ''} onChange={(e) => mudar({ de: e.target.value || undefined })} />
-        </label>
-        <label className="flex flex-col gap-1">
-          Chegou até
-          <input type="date" className={CLASSE_CAMPO} value={filtros.ate ?? ''} onChange={(e) => mudar({ ate: e.target.value || undefined })} />
-        </label>
-        <label className="flex flex-col gap-1">
-          Tipo
-          <select className={CLASSE_CAMPO} value={filtros.tipo ?? ''} onChange={(e) => mudar({ tipo: (e.target.value || undefined) as ParametrosDeCasos['tipo'] })}>
-            <option value="">Todos</option>
-            <option value="primeiro">Primeiro plano</option>
-            <option value="recalculo">Recálculo</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Mês no negativo
-          <select className={CLASSE_CAMPO} value={filtros.mes_negativo ?? ''} onChange={(e) => mudar({ mes_negativo: (e.target.value || undefined) as ParametrosDeCasos['mes_negativo'] })}>
-            <option value="">Todos</option>
-            <option value="sim">Sim</option>
-            <option value="nao">Não</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Método
-          <select className={CLASSE_CAMPO} value={filtros.metodo ?? ''} onChange={(e) => mudar({ metodo: e.target.value || undefined })}>
-            <option value="">Todos</option>
-            {opcoes?.metodos.map((o) => <option key={o.codigo} value={o.codigo}>{o.rotulo}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Motivo da revisão
-          <select className={CLASSE_CAMPO} value={filtros.motivo ?? ''} onChange={(e) => mudar({ motivo: e.target.value || undefined })}>
-            <option value="">Todos</option>
-            {opcoes?.motivos.map((o) => <option key={o.codigo} value={o.codigo}>{o.rotulo}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Revisor
-          <select className={CLASSE_CAMPO} value={filtros.revisor ?? ''} onChange={(e) => mudar({ revisor: e.target.value || undefined })}>
-            <option value="">Todos</option>
-            {opcoes?.revisores.map((o) => <option key={o.codigo} value={o.codigo}>{o.rotulo}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Parado há mais de (horas)
-          <input
-            type="number"
-            min={1}
-            className={CLASSE_CAMPO}
-            value={filtros.parado_horas ?? ''}
-            onChange={(e) => mudar({ parado_horas: e.target.value ? Number(e.target.value) : undefined })}
-          />
-        </label>
-        <fieldset className="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 border-0 p-0 sm:col-span-2 lg:col-span-3">
-          <legend className="mb-1 p-0">Status</legend>
-          {STATUS.map(({ codigo, rotulo }) => (
-            <label key={codigo} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={filtros.status?.includes(codigo) ?? false}
-                onChange={(e) => {
-                  const atual = filtros.status ?? []
-                  const novo = e.target.checked ? [...atual, codigo] : atual.filter((x) => x !== codigo)
-                  mudar({ status: novo.length ? novo : undefined })
-                }}
-              />
+      {/* Abas e busca na mesma linha; em tela estreita a busca desce. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2" data-testid="abas-e-busca">
+        <div role="group" aria-label="Situação dos planos" className="flex flex-wrap gap-2">
+          {ABAS.map(({ aba: a, rotulo }) => (
+            <button
+              key={a}
+              type="button"
+              aria-pressed={a === aba}
+              className={`chip !py-0.5 ${a === aba ? 'chip-ok' : 'chip-mudo'}`}
+              onClick={() => mudar({ aba: a, ordenar: undefined, direcao: undefined })}
+            >
               {rotulo}
-            </label>
-          ))}
-        </fieldset>
-      </form>
-
-      {ativos.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2" aria-label="Filtros ativos" role="group">
-          {ativos.map((a) => (
-            <button key={a.chave} type="button" className="chip chip-mudo" onClick={a.remover}>
-              {a.texto}
-              <span className="sr-only"> (tirar este filtro)</span>
-              <span aria-hidden="true"> ×</span>
+              {dados && ` (${dados.contagens[a]})`}
             </button>
           ))}
-          <Botao variante="discreto" onClick={limpar}>
-            Limpar filtros
-          </Botao>
         </div>
-      )}
+
+        <form role="search" className="relative w-full sm:w-72" onSubmit={(e) => e.preventDefault()}>
+          <input
+            type="text"
+            aria-label="Buscar por nome ou e-mail"
+            placeholder="Buscar por nome ou e-mail"
+            className={`${CLASSE_CAMPO} w-full pr-7`}
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+          {busca && (
+            <button
+              type="button"
+              aria-label="Limpar busca"
+              className="absolute inset-y-0 right-0 px-2 text-muted"
+              onClick={() => setBusca('')}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
+        </form>
+      </div>
 
       {/*
         **Só na PRIMEIRA carga** (T-164): `carregando` também fica `true` na
@@ -368,9 +261,6 @@ export default function TelaRevisao({
       {dados && !erro && itens.length === 0 && !carregando && (
         <div role="status" className="nota">
           <p>Nenhum plano encontrado.</p>
-          <Botao variante="secundario" onClick={limpar}>
-            Limpar filtros
-          </Botao>
         </div>
       )}
 
@@ -379,14 +269,14 @@ export default function TelaRevisao({
       )}
 
       {dados && total > 0 && (
-        <nav aria-label="Páginas" className="flex flex-wrap items-center gap-3">
+        <nav aria-label="Páginas" className="flex flex-wrap items-center gap-2 text-sm">
           <span role="status">
             Mostrando {de}–{ate} de {total}
           </span>
-          <Botao variante="discreto" disabled={pagina <= 1} onClick={() => mudar({ pagina: pagina - 1 })}>
+          <Botao variante="discreto" className={CLASSE_PAGINACAO} disabled={pagina <= 1} onClick={() => mudar({ pagina: pagina - 1 })}>
             Anterior
           </Botao>
-          <Botao variante="discreto" disabled={ate >= total} onClick={() => mudar({ pagina: pagina + 1 })}>
+          <Botao variante="discreto" className={CLASSE_PAGINACAO} disabled={ate >= total} onClick={() => mudar({ pagina: pagina + 1 })}>
             Próxima
           </Botao>
           <label className="flex items-center gap-2">
