@@ -1,0 +1,7 @@
+# Quem pode abrir os segredos: a chave do servidor e a pessoal (recuperação).
+# Chaves PÚBLICAS: não são segredo. As privadas ficam em ~/.config/sops/age/keys.txt.
+creation_rules:
+  - path_regex: segredos\.enc\.env$
+    age: >-
+      age1rkl3df39t6d3n4stdj7mu7wt5wc98gtqwc2lceha9urag95mav6qz4ruct,
+      age1c4wv2hv9y299cwph5udd4st87yql3yyufjjpzuwn2zv3j5u86flsnxtrz6

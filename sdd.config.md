@@ -23,7 +23,7 @@ Deixe `—` no que não se aplica ou no que ainda não foi decidido.
 | ----------------- | -------------------------------------------------------------------------------------------------------------- |
 | **Projeto**       | PIQ                                                                                                              |
 | **Descrição**     | Motor de cálculo, questionário e relatório que produzem um plano de quitação de dívidas personalizado para servidores públicos endividados. |
-| **Repositório**   | `c:\Especialistas\especialista-rodrigo\piq` — local, ainda sem controle de versão                               |
+| **Repositório**   | `github.com/virtus-id/multiplica-piq`                                                                              |
 | **Estágio**       | `greenfield`                                                                                                     |
 
 ## 2. Comandos de verificação

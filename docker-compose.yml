@@ -4,7 +4,21 @@ services:
     image: piq-api
     container_name: piq-api
     restart: unless-stopped
-    env_file: .env
+    # Variáveis vêm do ambiente do `docker compose`, injetado pelo SOPS
+    # (ver "Segredos" no README); não há .env no disco.
+    environment:
+      - DATABASE_URL
+      - CHAVE_ASSINATURA_SESSAO
+      - PARAMETROS_VERSION_VIGENTE
+      - URL_BASE_APP
+      - SEGREDO_PROVISIONAMENTO
+      - SMTP_SERVIDOR
+      - SMTP_PORTA
+      - SMTP_USUARIO
+      - SMTP_SENHA
+      - SMTP_REMETENTE
+      - HOTMART_HOTTOK
+      - HOTMART_PRODUTO_ID
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/saude', timeout=3)"]
       interval: 30s
@@ -25,6 +39,6 @@ services:
     networks: [default, proxy]
 
 networks:
-  # Criada pelo compose do rodrigo-nginx.
+  # Criada pelo compose do multiplica-nginx.
   proxy:
     external: true

@@ -151,3 +151,97 @@ config terem rodado. Falhou, o relatório traz a saída real.
 
 > Os agentes aceleram, mas **você** é o(a) engenheiro(a) responsável. Revise
 > criticamente cada artefato antes de aceitar.
+
+---
+
+## Segredos e deploy (SOPS + age)
+
+Os segredos do PIQ ficam em `segredos.enc.env`: **criptografados e versionados**. Os nomes das
+variáveis aparecem, os valores não. Não existe `.env` no servidor. O modelo com a explicação de
+cada variável continua em [`.env.example`](.env.example).
+
+```
+ chave pública  ──fecha──►  segredos.enc.env  (no git)
+ chave PRIVADA  ──abre───►  variáveis só na memória do processo ──► container
+```
+
+### Chaves
+
+| Chave | Onde fica | Para quê |
+|---|---|---|
+| privada do **servidor** | `~/.config/sops/age/keys.txt` no servidor | subir o projeto |
+| privada **pessoal** | `~/.config/sops/age/keys.txt` no Mac **e no gerenciador de senhas** | editar e recuperar |
+| públicas (as duas) | [`.sops.yaml`](.sops.yaml) | criptografar. Não são segredo |
+
+**A chave privada é a única coisa a proteger.** Perdendo as duas, o `segredos.enc.env` é
+irrecuperável e todo valor precisa ser gerado de novo. Mantenha cópia fora do servidor e nunca
+a envie ao git ou a um chat.
+
+### Variáveis
+
+| Variável | O que é |
+|---|---|
+| `DATABASE_URL` | Postgres do Supabase, **Session pooler (porta 5432)** |
+| `CHAVE_ASSINATURA_SESSAO` | assina o cookie; trocar desloga todos |
+| `PARAMETROS_VERSION_VIGENTE` | versão dos parâmetros (`1.0.1`); deve existir em `motor_calculo.parametros` |
+| `URL_BASE_APP` | domínio público, **sem barra no fim** |
+| `SEGREDO_PROVISIONAMENTO` | senha que a automação (n8n) envia para criar contas |
+| `SMTP_SERVIDOR`, `SMTP_PORTA` | AWS SES por SMTP |
+| `SMTP_USUARIO` | 20 caracteres, começa com `AKIA` |
+| `SMTP_SENHA` | 44 caracteres, começa com `B` (não é a secret key do IAM) |
+| `SMTP_REMETENTE` | "De:" verificado no SES |
+| `HOTMART_HOTTOK`, `HOTMART_PRODUTO_ID` | webhook da Hotmart; o produto filtra compras de outros produtos |
+
+Faltando uma obrigatória, a aplicação falha ao subir e nomeia a variável.
+
+### Dia a dia
+
+```bash
+sops segredos.enc.env          # abre o editor e criptografa ao salvar (Mac)
+git add segredos.enc.env && git commit && git push
+```
+
+No servidor, sem deixar `.env` no disco:
+
+```bash
+cd ~/workspace/multiplica-piq && git pull
+sops exec-env segredos.enc.env 'docker compose up -d --build'
+```
+
+O compose repassa as variáveis ao container (`environment:`). Rodar `docker compose up` **sem** o
+`sops exec-env` recria o container com variáveis vazias. `docker compose restart` é seguro.
+
+### Servidor novo (recuperação)
+
+```bash
+git clone git@github.com:virtus-id/multiplica-piq.git ~/workspace/multiplica-piq
+mkdir -p ~/.config/sops/age && chmod 700 ~/.config/sops/age
+# colar a chave privada pessoal (gerenciador de senhas) em ~/.config/sops/age/keys.txt
+chmod 600 ~/.config/sops/age/keys.txt
+cd ~/workspace/multiplica-piq && sops exec-env segredos.enc.env 'docker compose up -d --build'
+```
+
+Para o servidor novo ter a própria chave: `age-keygen -o ~/.config/sops/age/keys.txt`, troque a
+pública antiga em `.sops.yaml` pela nova e rode `sops updatekeys segredos.enc.env`.
+
+### Instalar as ferramentas
+
+- Mac: `brew install sops age`. O SOPS procura a chave em
+  `~/Library/Application Support/sops/age/keys.txt`:
+  `ln -s ~/.config/sops/age/keys.txt "$HOME/Library/Application Support/sops/age/keys.txt"`.
+- Ubuntu: `apt install age` e baixar o binário do SOPS em github.com/getsops/sops/releases.
+
+### Se uma chave vazar
+
+Troque a chave (`sops updatekeys`) **e** os valores que ela abria (senha do banco, SMTP,
+segredos). O histórico do git guarda as versões antigas; trocar só a chave não basta.
+
+### Convenção para os outros projetos
+
+- Um `segredos.enc.env` **por repositório**, sempre com esse nome, e uma cópia do `.sops.yaml`
+  com as mesmas chaves públicas. Um par de chaves protege todos os projetos.
+- Mesmo comando de subida em todos: `sops exec-env segredos.enc.env 'docker compose up -d'`.
+- Não usar repositório central de segredos: subir um projeto não pode depender de outro.
+- Alguém externo que precise de um projeto só: crie uma chave para essa pessoa e inclua-a **apenas**
+  no `.sops.yaml` daquele projeto.
+- Projetos sem segredo (ex.: SSD, cujo único valor é o nome da rede) não precisam do arquivo.
