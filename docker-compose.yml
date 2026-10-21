@@ -25,6 +25,6 @@ services:
     networks: [default, proxy]
 
 networks:
-  # Criada pelo compose do rodrigo-nginx.
+  # Criada pelo compose do multiplica-nginx.
   proxy:
     external: true
