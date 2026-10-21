@@ -236,6 +236,102 @@ pública antiga em `.sops.yaml` pela nova e rode `sops updatekeys segredos.enc.e
 Troque a chave (`sops updatekeys`) **e** os valores que ela abria (senha do banco, SMTP,
 segredos). O histórico do git guarda as versões antigas; trocar só a chave não basta.
 
+### Dar acesso a outro desenvolvedor
+
+A chave de cada pessoa é **dela**: nunca se compartilha a privada. O fluxo é gerar a chave, enviar
+só a **pública** e quem já tem acesso a autoriza no `.sops.yaml`.
+
+**1. Quem vai receber o acesso (gerar a chave)**
+
+```bash
+# instalar: brew install sops age   (Mac)  |  apt install age + binário do SOPS (Ubuntu)
+mkdir -p ~/.config/sops/age
+age-keygen -o ~/.config/sops/age/keys.txt
+chmod 600 ~/.config/sops/age/keys.txt
+age-keygen -y ~/.config/sops/age/keys.txt     # imprime a chave PÚBLICA (age1...): enviar essa
+```
+
+| Arquivo | O que é | Pode compartilhar? |
+|---|---|---|
+| `~/.config/sops/age/keys.txt` | **chave privada** (`AGE-SECRET-KEY-1...`) + a pública | **não**: guardar também no gerenciador de senhas |
+| linha `age1...` (saída do `-y`) | chave **pública** | sim, é o que se envia |
+
+No Mac, o SOPS procura a chave em outro caminho; crie o atalho:
+
+```bash
+mkdir -p "$HOME/Library/Application Support/sops/age"
+ln -s ~/.config/sops/age/keys.txt "$HOME/Library/Application Support/sops/age/keys.txt"
+```
+
+Alternativa em qualquer sistema: `export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt`.
+
+**2. Quem já tem acesso (autorizar)**
+
+O arquivo é [`.sops.yaml`](.sops.yaml), na raiz do projeto, e não é criptografado. Acrescente a
+chave pública da pessoa no fim da lista `age:`, separada por vírgula:
+
+```yaml
+creation_rules:
+  - path_regex: segredos\.enc\.env$
+    age: >-
+      age1...servidor...,
+      age1...voce...,
+      age1...nova-pessoa...
+```
+
+Só editar o `.sops.yaml` **não basta**: é preciso recriptografar o arquivo de segredos.
+
+```bash
+sops updatekeys segredos.enc.env      # confirme com "y"
+git add .sops.yaml segredos.enc.env && git commit -m "chore: dá acesso aos segredos a <nome>" && git push
+```
+
+A pessoa faz `git pull` e já abre com `sops segredos.enc.env`. Ela também precisa de acesso ao
+repositório no GitHub (o SOPS não dá isso).
+
+Observações:
+
+- O acesso é ao arquivo **inteiro** (banco, SMTP, Hotmart), não por variável.
+- Os commits antigos continuam fechados para a pessoa nova: ela abre só a versão atual em diante.
+- **Remover alguém:** tire a pública dela do `.sops.yaml`, rode `sops updatekeys segredos.enc.env` e
+  **troque os valores** (senha do banco, SMTP, segredos). Ela já viu os valores atuais.
+
+### Rodar os containers na mão
+
+No servidor (`ssh multiplica`), dentro da pasta de cada projeto em `~/workspace/`:
+
+| Projeto | Pasta | Comando |
+|---|---|---|
+| Nginx (NPM) | `multiplica-nginx` | `docker compose up -d` |
+| SSD | `multiplica-ssd` | `docker compose up -d` (exige `.env` com `PROXY_NET=proxy`) |
+| **PIQ** | `multiplica-piq` | `sops exec-env segredos.enc.env 'docker compose up -d'` |
+
+- **Só o PIQ precisa do `sops exec-env`.** `docker compose up -d` puro no PIQ recria o container com as
+  variáveis vazias e ele deixa de funcionar. `restart` e `stop` não têm esse problema.
+- **Ordem do zero:** Nginx primeiro (ele cria a rede `proxy`), depois SSD e PIQ.
+- A chave privada do servidor precisa estar em `~/.config/sops/age/keys.txt` (já está).
+
+| Para | Comando |
+|---|---|
+| Ver o estado | `docker ps` |
+| Ver logs | `docker logs -f piq-api` (ou `piq-web`, `rodrigo-site`, `npm`) |
+| Reiniciar sem mexer em variáveis | `docker compose restart` |
+| Parar | `docker compose stop` |
+| Atualizar código do PIQ (`git pull`) | `sops exec-env segredos.enc.env 'docker compose up -d --build'` |
+| Atualizar só os segredos do PIQ (`git pull`) | `sops exec-env segredos.enc.env 'docker compose up -d'` |
+| Checar saúde (pelo domínio) | `curl https://piq.multiplicaservidor.com.br/saude/banco` |
+
+Containers: `npm` (porta de entrada, HTTPS), `rodrigo-site` (site do SSD), `piq-web` (telas e proxy da
+API) e `piq-api` (regras, banco e e-mail). Todos se falam pela rede Docker `proxy`.
+
+### Banco de dados
+
+O PIQ usa o Supabase de **sa-east-1** (Session pooler, porta 5432) na `DATABASE_URL`. O
+`DATABASE_URL_ANTIGA` do arquivo de segredos é o banco dos EUA, mantido só para reverter; o container
+**não** a recebe (o compose lista as variáveis uma a uma). Para reverter, troque o valor da
+`DATABASE_URL` pelo da antiga e suba de novo. Plano da migração em
+[`plans/migracao-supabase-brasil.plan.md`](plans/migracao-supabase-brasil.plan.md).
+
 ### Convenção para os outros projetos
 
 - Um `segredos.enc.env` **por repositório**, sempre com esse nome, e uma cópia do `.sops.yaml`
