@@ -251,9 +251,11 @@ export async function interceptarRespostas(
   page: Page,
   caso: string,
   partes: ParteDeTeste[],
+  /** `editavel: false` = só leitura (conferência); ausente = editável. */
+  extra: { editavel?: boolean; pode_retomar_edicao?: boolean } = {},
 ): Promise<void> {
   await page.route(`**/caso/${caso}/respostas`, async (rota) => {
-    await rota.fulfill({ json: { CASO_ID: caso, partes } })
+    await rota.fulfill({ json: { CASO_ID: caso, partes, ...extra } })
   })
 }
 

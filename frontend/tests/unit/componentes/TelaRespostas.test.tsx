@@ -1,18 +1,22 @@
 // @vitest-environment happy-dom
 /**
- * `TelaRespostas` — menu de partes, ficha visual e agrupamento por item
- * (`T-334`; `RF-68`, `RF-69`, `AC-100`, `AC-101`).
+ * `TelaRespostas` — uma página só, com todas as partes, índice fixo e o mesmo
+ * layout para ver e editar (`T-422`, `RF-433`; `RF-68`, `RF-114`, `RF-115`,
+ * `AC-100`, `AC-101`).
  *
  * Textos inventados: o que se prova é a ESTRUTURA, não a redação do questionário.
  */
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import TelaRespostas, {
-  agruparPorItem,
-} from "../../../src/telas/TelaRespostas";
+import TelaRespostas, { agruparPorItem } from "../../../src/telas/TelaRespostas";
 import * as api from "../../../src/services/api";
 import type { ParteDasRespostas, RespostaDada } from "../../../src/tipos";
+
+beforeEach(() => {
+  // O happy-dom não rola: o que se prova é a chamada, não a animação.
+  Element.prototype.scrollIntoView = vi.fn();
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -34,18 +38,12 @@ function resposta(
 }
 
 const PARTES: ParteDasRespostas[] = [
-  {
-    bloco: 1,
-    rotulo: "Parte Um",
-    total_de_perguntas: 10,
-    respondidas: [resposta("B1.01", null)],
-  },
+  { bloco: 1, rotulo: "Parte Um", total_de_perguntas: 10, respondidas: [resposta("B1.01", null)] },
   { bloco: 2, rotulo: "Parte Dois", total_de_perguntas: 4, respondidas: [] },
   {
     bloco: 3,
     rotulo: "Parte Três",
     total_de_perguntas: 8,
-    // Ordem do servidor: pergunta a pergunta, intercalando as dívidas.
     respondidas: [
       resposta("B5.A", "D001"),
       resposta("B5.A", "D002"),
@@ -55,23 +53,15 @@ const PARTES: ParteDasRespostas[] = [
   },
 ];
 
-function montar(bloco?: number) {
+function montar(extra: { editavel?: boolean; pode_retomar_edicao?: boolean } = {}, fase?: "plano") {
   vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({
     CASO_ID: "C1",
     partes: PARTES,
+    ...extra,
   });
-  const escolherBloco = vi.fn();
-  const editar = vi.fn();
-  render(
-    <TelaRespostas
-      casoId="C1"
-      voltar={vi.fn()}
-      bloco={bloco}
-      escolherBloco={escolherBloco}
-      editar={editar}
-    />,
-  );
-  return { escolherBloco, editar };
+  const voltar = vi.fn();
+  render(<TelaRespostas casoId="C1" voltar={voltar} fase={fase} />);
+  return { voltar };
 }
 
 describe("agruparPorItem", () => {
@@ -86,189 +76,131 @@ describe("agruparPorItem", () => {
   });
 });
 
-function montarEmConferencia(extra: {
-  editavel?: boolean;
-  pode_retomar_edicao?: boolean;
-}) {
-  vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({
-    CASO_ID: "C1",
-    partes: PARTES,
-    ...extra,
-  });
-  const editar = vi.fn();
-  render(
-    <TelaRespostas
-      casoId="C1"
-      voltar={vi.fn()}
-      bloco={1}
-      escolherBloco={vi.fn()}
-      editar={editar}
-    />,
-  );
-  return { editar };
-}
+describe("TelaRespostas — a página única (RF-433)", () => {
+  it("mostra TODAS as partes na mesma página, inclusive a vazia, sem menu lateral", async () => {
+    montar({ editavel: false, pode_retomar_edicao: true });
 
-describe("TelaRespostas — só leitura em conferência (T-337, RF-114/RF-115)", () => {
-  it('em conferência: sem "Editar", com o aviso e a ação de retirar o plano', async () => {
-    montarEmConferencia({ editavel: false, pode_retomar_edicao: true });
-
-    expect(
-      await screen.findByText("Seu plano está em conferência."),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Editar" }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText("Enunciado B1.01?")).toBeInTheDocument(); // ler continua livre
-    expect(
-      screen.getByRole("button", { name: "Quero editar minhas respostas" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Parte Um" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Parte Dois" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Parte Três" })).toBeInTheDocument();
+    expect(screen.getByText("Você ainda não respondeu nada desta parte.")).toBeInTheDocument();
+    expect(screen.getByText("1 resposta de 10 perguntas")).toBeInTheDocument();
+    expect(screen.getByText("Enunciado B1.01?")).toBeInTheDocument();
+    // Dados de dívidas diferentes ficam em grupos separados.
+    expect(screen.getByRole("heading", { level: 3, name: "Dívida 1" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Dívida 2" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Partes das respostas" })).not.toBeInTheDocument();
   });
 
-  it('em cálculo: sem "Editar" e sem a ação de retirar', async () => {
-    montarEmConferencia({ editavel: false, pode_retomar_edicao: false });
+  it("o índice leva a cada parte por rolagem, sem trocar o conteúdo", async () => {
+    montar({ editavel: false });
+    const indice = await screen.findByRole("navigation", { name: "Seções das respostas" });
+    expect(within(indice).getAllByRole("button")).toHaveLength(3);
 
-    expect(
-      await screen.findByText("Estamos montando o seu plano."),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Editar" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Quero editar minhas respostas" }),
-    ).not.toBeInTheDocument();
+    fireEvent.click(within(indice).getByRole("button", { name: "Parte Três" }));
+
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(within(indice).getByRole("button", { name: "Parte Três" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    expect(screen.getByRole("heading", { level: 2, name: "Parte Um" })).toBeInTheDocument();
   });
 
-  it('pede confirmação, retira o plano e a lista volta a ter "Editar"', async () => {
-    const retomar = vi
-      .spyOn(api, "retomarEdicao")
-      .mockResolvedValue({ estado: "COLETA_INICIAL" });
+  it("a busca acha pergunta ou resposta e leva ao item", async () => {
+    montar({ editavel: false });
+    const busca = await screen.findByLabelText("Buscar pergunta ou resposta");
+
+    fireEvent.change(busca, { target: { value: "B5.B" } });
+    const achado = (await screen.findAllByRole("button", { name: /Enunciado B5\.B/ }))[0];
+    fireEvent.click(achado);
+
+    expect(document.getElementById("resposta-3-B5.B-D001")).not.toBeNull();
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('"Não sei" antigo continua legível como resposta', async () => {
+    montar({ editavel: false });
+    expect((await screen.findAllByText("Você respondeu: não sei.")).length).toBeGreaterThan(0);
+  });
+});
+
+describe("TelaRespostas — visualizar × editar (RF-114/RF-115)", () => {
+  it("em conferência: modo visualizar, sem campos, com a faixa de análise e o botão de editar", async () => {
+    montar({ editavel: false, pode_retomar_edicao: true });
+
+    expect(await screen.findByText("Seu plano está em elaboração e análise.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Editar respostas/ })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Salvar alterações/ })).not.toBeInTheDocument();
+  });
+
+  it("em cálculo: modo visualizar e sem a ação de editar", async () => {
+    montar({ editavel: false, pode_retomar_edicao: false });
+
+    expect(await screen.findByText("Seu plano está em elaboração e análise.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Editar respostas/ })).not.toBeInTheDocument();
+  });
+
+  it("plano liberado: só consulta, sem dizer que está em análise", async () => {
+    montar({ editavel: false, pode_retomar_edicao: false }, "plano");
+
+    expect(await screen.findByText("Seu plano de quitação já foi liberado.")).toBeInTheDocument();
+    expect(screen.queryByText(/em elaboração e análise/)).not.toBeInTheDocument();
+  });
+
+  it("editar pede confirmação, retira o plano e a página passa ao modo editar", async () => {
+    const retomar = vi.spyOn(api, "retomarEdicao").mockResolvedValue({ estado: "COLETA_INICIAL" });
+    vi.spyOn(api, "obterPergunta").mockResolvedValue({ pergunta: null });
     const obter = vi
       .spyOn(api, "obterRespostasDoCaso")
-      .mockResolvedValueOnce({
-        CASO_ID: "C1",
-        partes: PARTES,
-        editavel: false,
-        pode_retomar_edicao: true,
-      })
-      .mockResolvedValue({
-        CASO_ID: "C1",
-        partes: PARTES,
-        editavel: true,
-        pode_retomar_edicao: false,
-      });
-    render(
-      <TelaRespostas
-        casoId="C1"
-        voltar={vi.fn()}
-        bloco={1}
-        escolherBloco={vi.fn()}
-        editar={vi.fn()}
-      />,
-    );
+      .mockResolvedValueOnce({ CASO_ID: "C1", partes: PARTES, editavel: false, pode_retomar_edicao: true })
+      .mockResolvedValue({ CASO_ID: "C1", partes: PARTES, editavel: true, pode_retomar_edicao: false });
+    render(<TelaRespostas casoId="C1" voltar={vi.fn()} />);
 
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Quero editar minhas respostas",
-      }),
-    );
-    // Nada acontece até confirmar: o texto de RF-115 aparece primeiro.
+    fireEvent.click(await screen.findByRole("button", { name: /Editar respostas/ }));
+    // Nada acontece até confirmar.
     expect(retomar).not.toHaveBeenCalled();
-    expect(
-      screen.getByText(
-        "Seu plano sai da conferência. Quando você enviar de novo, ele volta para a fila.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Alterar suas informações?")).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Retirar o plano e editar" }),
-    );
-    expect(
-      await screen.findByRole("button", { name: "Editar" }),
-    ).toBeInTheDocument();
+    const confirmar = screen.getAllByRole("button", { name: "Editar respostas" });
+    fireEvent.click(confirmar[confirmar.length - 1]);
+
+    expect(await screen.findByText("Revise suas informações")).toBeInTheDocument();
     expect(retomar).toHaveBeenCalledWith("C1");
     expect(obter).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
   });
 
-  it("cancelar não retira nada", async () => {
+  it('"Continuar aguardando" não retira nada', async () => {
     const retomar = vi.spyOn(api, "retomarEdicao");
-    montarEmConferencia({ editavel: false, pode_retomar_edicao: true });
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Quero editar minhas respostas",
-      }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    montar({ editavel: false, pode_retomar_edicao: true });
+
+    fireEvent.click(await screen.findByRole("button", { name: /Editar respostas/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Continuar aguardando" }));
+
     expect(retomar).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("button", { name: "Quero editar minhas respostas" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Editar respostas/ })).toBeInTheDocument();
   });
 
   it("o servidor recusa (409): a mensagem dele aparece e o plano segue em conferência", async () => {
-    vi.spyOn(api, "retomarEdicao").mockRejectedValue(
-      new Error("Seu plano não está em conferência."),
-    );
-    montarEmConferencia({ editavel: false, pode_retomar_edicao: true });
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Quero editar minhas respostas",
-      }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Retirar o plano e editar" }),
-    );
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Seu plano não está em conferência.",
-    );
-    expect(
-      screen.queryByRole("button", { name: "Editar" }),
-    ).not.toBeInTheDocument();
+    vi.spyOn(api, "retomarEdicao").mockRejectedValue(new Error("Seu plano não está em conferência."));
+    montar({ editavel: false, pode_retomar_edicao: true });
+
+    fireEvent.click(await screen.findByRole("button", { name: /Editar respostas/ }));
+    const confirmar = screen.getAllByRole("button", { name: "Editar respostas" });
+    fireEvent.click(confirmar[confirmar.length - 1]);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Seu plano não está em conferência.");
+    expect(screen.queryByText("Revise suas informações")).not.toBeInTheDocument();
   });
 
-  it("sem o campo (servidor antigo) a tela é editável como sempre", async () => {
-    montarEmConferencia({});
-    expect(
-      (await screen.findAllByRole("button", { name: "Editar" })).length,
-    ).toBeGreaterThan(0);
-  });
-});
+  it("sem o campo `editavel` (servidor antigo) a tela é editável como sempre", async () => {
+    vi.spyOn(api, "obterPergunta").mockResolvedValue({ pergunta: null });
+    montar({});
 
-describe("TelaRespostas — plano entregue é definitivo (RF-409, T-388)", () => {
-  it("a tela não oferece plano novo", async () => {
-    vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({
-      CASO_ID: "C1",
-      partes: PARTES,
-      editavel: true,
-    } as never);
-    render(
-      <TelaRespostas
-        casoId="C1"
-        voltar={vi.fn()}
-        bloco={1}
-        escolherBloco={vi.fn()}
-        editar={vi.fn()}
-      />,
-    );
-
-    await screen.findByRole("navigation", { name: "Partes das respostas" });
-    expect(
-      screen.queryByText("Mudou algo? Você pode pedir um plano novo."),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", {
-        name: "Gerar um novo plano com as minhas respostas",
-      }),
-    ).not.toBeInTheDocument();
-  });
-});
-
-describe("TelaRespostas — foco (T-339)", () => {
-  it("abrir a tela não puxa o foco para o título da parte", async () => {
-    montar();
-    await screen.findByRole("navigation", { name: "Partes das respostas" });
-    expect(document.activeElement).not.toBe(
-      screen.getByRole("heading", { level: 2 }),
-    );
+    expect(await screen.findByText("Revise suas informações")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Salvar alterações" })).toBeInTheDocument();
   });
 });
 
@@ -276,6 +208,7 @@ describe("TelaRespostas — taxa e dinheiro como o aluno digitou (T-335)", () =>
   it('TAXA aparece como "8%" e MOEDA como "R$ 2.276,76"', async () => {
     vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({
       CASO_ID: "C1",
+      editavel: false,
       partes: [
         {
           bloco: 5,
@@ -288,72 +221,10 @@ describe("TelaRespostas — taxa e dinheiro como o aluno digitou (T-335)", () =>
         },
       ],
     });
-    render(
-      <TelaRespostas
-        casoId="C1"
-        voltar={vi.fn()}
-        bloco={5}
-        escolherBloco={vi.fn()}
-        editar={vi.fn()}
-      />,
-    );
+    render(<TelaRespostas casoId="C1" voltar={vi.fn()} />);
 
     expect(await screen.findByText("8%")).toBeInTheDocument();
     expect(screen.getByText("R$ 2.276,76")).toBeInTheDocument();
     expect(screen.queryByText("0.08")).not.toBeInTheDocument();
-  });
-});
-
-describe("TelaRespostas — menu e painel (T-334)", () => {
-  it('menu com todas as partes, contagem e "Vazia"; abre a primeira com resposta', async () => {
-    montar();
-    const menu = await screen.findByRole("navigation", {
-      name: "Partes das respostas",
-    });
-    expect(within(menu).getAllByRole("button")).toHaveLength(3);
-    expect(
-      within(menu).getByText("1 resposta de 10 perguntas"),
-    ).toBeInTheDocument();
-    expect(within(menu).getByText("Vazia")).toBeInTheDocument();
-    expect(
-      within(menu).getByRole("button", { name: /Parte Um/ }),
-    ).toHaveAttribute("aria-current", "page");
-    expect(screen.getByText("Enunciado B1.01?")).toBeInTheDocument();
-  });
-
-  it("a parte da rota abre no painel; clicar numa parte pede a troca pela rota", async () => {
-    const { escolherBloco } = montar(3);
-    const menu = await screen.findByRole("navigation", {
-      name: "Partes das respostas",
-    });
-    expect(
-      within(menu).getByRole("button", { name: /Parte Três/ }),
-    ).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByText("Enunciado B1.01?")).not.toBeInTheDocument();
-
-    fireEvent.click(within(menu).getByRole("button", { name: /Parte Dois/ }));
-    expect(escolherBloco).toHaveBeenCalledWith(2);
-  });
-
-  it("parte vazia diz que está vazia (AC-101)", async () => {
-    montar(2);
-    expect(
-      await screen.findByText(/ainda não respondeu nada desta parte/),
-    ).toBeInTheDocument();
-  });
-
-  it('fichas em cartões por dívida; "não sei" com selo', async () => {
-    montar(3);
-    expect(await screen.findByText("Dívida 1")).toBeInTheDocument();
-    expect(screen.getByText("Dívida 2")).toBeInTheDocument();
-    expect(screen.getByText("Você respondeu: não sei.")).toBeInTheDocument();
-    expect(screen.getByText("Não sei")).toBeInTheDocument();
-  });
-
-  it('"Editar" leva ID, item e a parte aberta (RF-69)', async () => {
-    const { editar } = montar(3);
-    await screen.findByText("Dívida 1");
-    fireEvent.click(screen.getAllByRole("button", { name: "Editar" })[1]);
-    expect(editar).toHaveBeenCalledWith("B5.B", "D001", 3);
   });
 });

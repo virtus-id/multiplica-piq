@@ -1345,122 +1345,115 @@ function partesComRespostas(): ParteDeTeste[] {
   return partes
 }
 
-/** O botão do menu para uma parte, pelo rótulo que o servidor mandou (`T-334`). */
-function menuDaParte(page: Page, rotulo: string) {
-  return page
-    .getByRole('navigation', { name: 'Partes das respostas' })
-    .getByRole('button')
-    .filter({ hasText: rotulo })
+/** O índice fixo no topo, com uma âncora por seção (`T-422`). */
+function indiceDasSecoes(page: Page) {
+  return page.getByRole('navigation', { name: 'Seções das respostas' })
 }
 
-/** O painel com as respostas da parte aberta. */
-function painelDaParte(page: Page) {
-  return page.locator('section[aria-labelledby="titulo-da-parte"]')
+/** A seção de uma parte (1 a 5): a página tem as cinco, sempre. */
+function secaoDaParte(page: Page, bloco: number) {
+  return page.locator(`#secao-${bloco}`)
 }
 
-/** Abre uma parte pelo menu e devolve o painel. */
-async function abrirParte(page: Page, rotulo: string) {
-  await menuDaParte(page, rotulo).click()
-  return painelDaParte(page)
+/** Só leitura: o servidor diz `editavel: false` na conferência (`RF-114`). */
+async function respostasSoLeitura(page: Page, partes: ParteDeTeste[]) {
+  await interceptarRespostas(page, CASO_REVISAO, partes, { editavel: false })
 }
 
-test('AC-100: a revisão mostra pergunta e VALOR respondido, agrupados por parte', async ({
+test('AC-100: a página mostra pergunta e VALOR respondido, todas as partes juntas', async ({
   page,
 }) => {
   await interceptarBase(page, CASO_REVISAO)
-  await interceptarRespostas(page, CASO_REVISAO, partesComRespostas())
+  await respostasSoLeitura(page, partesComRespostas())
   await abrirTela(page, CASO_REVISAO, 'respostas')
 
-  // As cinco partes, sempre — é contrato da rota, não filtro da tela.
-  await expect(
-    page.getByRole('navigation', { name: 'Partes das respostas' }).getByRole('button'),
-  ).toHaveCount(5)
-
-  // A primeira parte COM respostas nasce aberta.
-  const primeira = painelDaParte(page)
+  // As cinco partes, sempre — é contrato da rota, não filtro da tela — e na
+  // MESMA página, sem trocar de conteúdo (`T-422`).
+  await expect(indiceDasSecoes(page).getByRole('button')).toHaveCount(5)
+  for (let bloco = 1; bloco <= 5; bloco += 1) {
+    await expect(secaoDaParte(page, bloco)).toHaveCount(1)
+  }
 
   // **A asserção que carrega o requisito é o VALOR.** Uma lista só com os
-  // enunciados passaria por uma tela que mostra as perguntas respondidas sem
-  // dizer o que o aluno respondeu — que é exatamente o defeito relatado.
+  // enunciados passaria por uma tela que mostra as perguntas sem dizer o que o
+  // aluno respondeu.
+  const primeira = secaoDaParte(page, 1)
   await expect(primeira).toContainText('Primeira pergunta do compromisso?')
   await expect(primeira).toContainText('A escolha que eu fiz')
-
-  // E nunca só o identificador: "B1.01" no lugar do texto pediria ao aluno
-  // que aprendesse a nossa notação para reler a própria resposta.
+  // E nunca só o identificador.
   await expect(primeira).not.toContainText('B1.01')
-
-  // "Não sei" é resposta de primeira classe (`RF-11`) e aparece como tal —
-  // escondê-la faria o aluno procurar uma pergunta que ele já resolveu.
+  // "Não sei" é resposta de primeira classe (`RF-11`) e aparece como tal.
   await expect(primeira).toContainText('não sei')
+  // A parte 5 está na mesma página, com a resposta da dívida.
+  await expect(secaoDaParte(page, 5)).toContainText('R$ 1.234,56')
 })
 
-test('AC-100: cada parte traz a sua contagem de respostas', async ({ page }) => {
+test('AC-100: cada seção traz a sua contagem de respostas', async ({ page }) => {
   await interceptarBase(page, CASO_REVISAO)
-  await interceptarRespostas(page, CASO_REVISAO, partesComRespostas())
+  await respostasSoLeitura(page, partesComRespostas())
   await abrirTela(page, CASO_REVISAO, 'respostas')
 
-  await expect(menuDaParte(page, ROTULOS_DAS_PARTES[0])).toContainText(
-    '2 respostas de 10 perguntas',
-  )
-  // Singular correto: "1 respostas" é o tipo de detalhe que faz a tela
-  // parecer um rascunho para quem já desconfia do sistema.
-  await expect(menuDaParte(page, ROTULOS_DAS_PARTES[4])).toContainText(
-    '1 resposta de 10 perguntas',
-  )
+  await expect(secaoDaParte(page, 1)).toContainText('2 respostas de 10 perguntas')
+  // Singular correto: "1 respostas" faz a tela parecer um rascunho.
+  await expect(secaoDaParte(page, 5)).toContainText('1 resposta de 10 perguntas')
 })
 
-test('AC-101: a parte sem respostas DIZ que está vazia — não some da lista', async ({
+test('AC-101: a parte sem respostas DIZ que está vazia — não some da página', async ({
   page,
 }) => {
   await interceptarBase(page, CASO_REVISAO)
-  await interceptarRespostas(page, CASO_REVISAO, partesComRespostas())
+  await respostasSoLeitura(page, partesComRespostas())
   await abrirTela(page, CASO_REVISAO, 'respostas')
 
-  // A parte 2 não tem nenhuma resposta no payload. Ela continua na lista...
-  const vazia = menuDaParte(page, ROTULOS_DAS_PARTES[1])
-  await expect(vazia).toHaveCount(1)
-  await expect(vazia).toContainText('Vazia')
-
-  // ...e diz por que está vazia. Uma lista em branco sugeriria erro de
-  // carregamento; sumir da tela faria o aluno procurar onde a parte foi parar.
-  const painel = await abrirParte(page, ROTULOS_DAS_PARTES[1])
-  await expect(painel).toContainText('ainda não respondeu nada desta parte')
+  await expect(secaoDaParte(page, 2)).toHaveCount(1)
+  await expect(secaoDaParte(page, 2)).toContainText('ainda não respondeu nada desta parte')
 })
 
-test('AC-101: a revisão de um caso sem NENHUMA resposta ainda mostra as cinco partes', async ({
-  page,
-}) => {
+test('AC-101: um caso sem NENHUMA resposta ainda mostra as cinco partes', async ({ page }) => {
   await interceptarBase(page, CASO_REVISAO)
-  await interceptarRespostas(page, CASO_REVISAO, partesVazias())
+  await respostasSoLeitura(page, partesVazias())
   await abrirTela(page, CASO_REVISAO, 'respostas')
 
   for (const rotulo of ROTULOS_DAS_PARTES) {
-    await expect(menuDaParte(page, rotulo)).toHaveCount(1)
+    await expect(indiceDasSecoes(page).getByRole('button', { name: rotulo })).toHaveCount(1)
   }
 })
 
-test('AC-100: a lista é navegável por teclado', async ({ page }) => {
+test('AC-100: o índice é navegável por teclado e leva à seção sem trocar de página', async ({
+  page,
+}) => {
   await interceptarBase(page, CASO_REVISAO)
-  await interceptarRespostas(page, CASO_REVISAO, partesComRespostas())
+  await respostasSoLeitura(page, partesComRespostas())
   await abrirTela(page, CASO_REVISAO, 'respostas')
 
-  // A parte 2 nasce fechada (só a primeira COM respostas abre). Abri-la pelo
-  // teclado é o que prova que a lista não depende de mouse — NFR de
-  // acessibilidade, e a persona pode estar num leitor de tela.
-  const vazia = menuDaParte(page, ROTULOS_DAS_PARTES[1])
-  await vazia.focus()
+  const alvo = indiceDasSecoes(page).getByRole('button', { name: ROTULOS_DAS_PARTES[4] })
+  await alvo.focus()
   await page.keyboard.press('Enter')
-  await expect(vazia).toHaveAttribute('aria-current', 'page')
-  await expect(page).toHaveURL(/#respostas\/bloco\/2/)
+
+  await expect(alvo).toHaveAttribute('aria-current', 'true')
+  // Nada foi trocado: a rota é a mesma e as outras seções seguem na página.
+  await expect(page).toHaveURL(/#respostas$/)
+  await expect(secaoDaParte(page, 1)).toHaveCount(1)
+  await expect(secaoDaParte(page, 5)).toBeInViewport()
+})
+
+test('T-422: a busca acha uma resposta e leva ao item', async ({ page }) => {
+  await interceptarBase(page, CASO_REVISAO)
+  await respostasSoLeitura(page, partesComRespostas())
+  await abrirTela(page, CASO_REVISAO, 'respostas')
+
+  await page.getByLabel('Buscar pergunta ou resposta').fill('quanto falta')
+  await page.getByRole('button', { name: /Quanto falta pagar nesta dívida/ }).click()
+
+  await expect(page.locator('#resposta-5-B5\\.B03-D001')).toBeInViewport()
 })
 
 /**
- * `AC-102` — o defeito de produção que T-160 corrigiu.
+ * `AC-102` — editar na própria página (`T-422`).
  *
- * A rota `#pergunta/{ID}/{item_id}` existia desde `T-149` e `TelaPergunta`
- * **ignorava os dois parâmetros**: ela chamava sempre `GET
- * /caso/{id}/pergunta` (a PRÓXIMA pendente). Este teste falha contra o código
- * anterior porque o intercept de `/pergunta/B1.01` nunca seria acionado.
+ * No modo editável cada resposta vira o campo de sempre. O campo vem de `GET
+ * /caso/{id}/pergunta/{ID}` — a rota que sempre devolveu a pergunta com o valor
+ * anterior — e só é buscado quando a linha chega perto da tela.
  */
 const PERGUNTA_B101 = {
   pergunta: {
@@ -1507,62 +1500,135 @@ const PERGUNTA_B5B03 = {
   total_pendencias: 1,
 }
 
-test('AC-102: "Editar" abre a pergunta certa, com o valor anterior preenchido', async ({
-  page,
-}) => {
+/** Edição na página: B1.01 e a dívida têm campo; a outra pergunta não abre. */
+async function paginaEmEdicao(page: Page) {
   await interceptarBase(page, CASO_REVISAO)
   await interceptarRespostas(page, CASO_REVISAO, partesComRespostas())
-
-  // A pergunta ESPECÍFICA — note o `valor_atual` já preenchido: é o servidor
-  // que o devolve, e é isso que faz corrigir ser editar em vez de redigitar.
-  await page.route(`**/caso/${CASO_REVISAO}/pergunta/B1.01*`, async (rota) => {
-    await rota.fulfill({ json: PERGUNTA_B101 })
-  })
-
-  // Se a tela ainda pedisse a PRÓXIMA pergunta, este intercept responderia —
-  // e a asserção final falharia com outro enunciado na tela. É a trava que
-  // impede o defeito de voltar sem ninguém notar.
-  await page.route(`**/caso/${CASO_REVISAO}/pergunta`, async (rota) => {
-    await rota.fulfill({
-      json: { pergunta: null, coleta_completa: true, CASO_ID: CASO_REVISAO },
-    })
-  })
-
+  await page.route(`**/caso/${CASO_REVISAO}/pergunta/B1.01*`, (rota) =>
+    rota.fulfill({ json: PERGUNTA_B101 }),
+  )
+  await page.route(`**/caso/${CASO_REVISAO}/pergunta/B1.02*`, (rota) =>
+    rota.fulfill({ json: { pergunta: null } }),
+  )
+  await page.route(`**/caso/${CASO_REVISAO}/pergunta/B5.B03*`, (rota) =>
+    rota.fulfill({ json: PERGUNTA_B5B03 }),
+  )
   await abrirTela(page, CASO_REVISAO, 'respostas')
-  await painelDaParte(page).getByRole('button', { name: 'Editar' }).first().click()
+}
 
-  await expect(page).toHaveURL(/#respostas\/B1\.01/)
+test('AC-102: no modo editável a resposta vira o campo, com o valor anterior', async ({
+  page,
+}) => {
+  await paginaEmEdicao(page)
+
+  await expect(page.getByText('Revise suas informações')).toBeVisible()
   await expect(page.getByLabel('Primeira pergunta do compromisso?')).toHaveValue(
     'A escolha que eu fiz',
   )
+  // Nada foi gravado só por abrir: o botão espera uma alteração.
+  await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeDisabled()
 })
 
-test('AC-102: a edição de uma ficha repetível leva o item na rota', async ({ page }) => {
-  await interceptarBase(page, CASO_REVISAO)
-  await interceptarRespostas(page, CASO_REVISAO, partesComRespostas())
-  await page.route(`**/caso/${CASO_REVISAO}/pergunta/B5.B03*`, async (rota) => {
-    await rota.fulfill({ json: PERGUNTA_B5B03 })
+test('AC-102/AC-103: salvar grava pela rota de sempre, com o item da ficha, e relê o servidor', async ({
+  page,
+}) => {
+  const corpos: string[] = []
+  let jaGravou = false
+  await paginaEmEdicao(page)
+  await page.route(`**/caso/${CASO_REVISAO}/resposta`, async (rota) => {
+    corpos.push(rota.request().postData() ?? '')
+    jaGravou = true
+    await rota.fulfill({
+      json: { ID_PERGUNTA: 'B1.01', aviso: null, avanco_permitido: true, total_pendencias: 0 },
+    })
+  })
+  await page.route(`**/caso/${CASO_REVISAO}/respostas`, async (rota) => {
+    const partes = partesComRespostas()
+    if (jaGravou) partes[0].respondidas[0].valores = ['O que eu escolhi depois']
+    await rota.fulfill({ json: { CASO_ID: CASO_REVISAO, partes } })
   })
 
-  await abrirTela(page, CASO_REVISAO, 'respostas')
-  const parte = await abrirParte(page, ROTULOS_DAS_PARTES[4])
-  await parte.getByRole('button', { name: 'Editar' }).click()
+  // Depois de gravar o servidor devolve o valor novo ao reabrir o campo.
+  await page.route(`**/caso/${CASO_REVISAO}/pergunta/B1.01*`, (rota) =>
+    rota.fulfill({
+      json: {
+        ...PERGUNTA_B101,
+        pergunta: {
+          ...PERGUNTA_B101.pergunta,
+          valor_atual: jaGravou ? 'O que eu escolhi depois' : 'A escolha que eu fiz',
+        },
+      },
+    }),
+  )
 
-  // `D001` na rota não é detalhe: a mesma pergunta rende uma resposta por
-  // dívida, e perder o item abriria a ficha errada com cara de certa.
-  await expect(page).toHaveURL(/#respostas\/B5\.B03\/D001/)
+  await page.getByLabel('Primeira pergunta do compromisso?').fill('O que eu escolhi depois')
+  await page.getByRole('button', { name: /Salvar alterações/ }).click()
+
+  // **A mesma rota de gravação de sempre** (`RF-69`): `POST /caso/{id}/resposta`
+  // com `ID_PERGUNTA` no corpo. Um segundo caminho de escrita seria uma
+  // segunda regra de validação, e `EC-01` deixaria de ser soberano.
+  await expect(page.getByText('Alterações salvas.')).toBeVisible()
+  expect(corpos).toHaveLength(1)
+  expect(corpos[0]).toContain('ID_PERGUNTA=B1.01')
+  await expect(page.getByLabel('Primeira pergunta do compromisso?')).toHaveValue(
+    'O que eu escolhi depois',
+  )
+})
+
+test('AC-102: a alteração numa ficha repetível leva o item no corpo', async ({ page }) => {
+  const corpos: string[] = []
+  await paginaEmEdicao(page)
+  await page.route(`**/caso/${CASO_REVISAO}/resposta`, async (rota) => {
+    corpos.push(rota.request().postData() ?? '')
+    await rota.fulfill({
+      json: { ID_PERGUNTA: 'B5.B03', aviso: null, avanco_permitido: true, total_pendencias: 0 },
+    })
+  })
+
+  // O campo de cada linha só abre quando ela chega perto da tela.
+  await page.locator('#secao-5').scrollIntoViewIfNeeded()
+  await page.getByLabel('Quanto falta pagar nesta dívida?').fill('999')
+  await page.getByRole('button', { name: /Salvar alterações/ }).click()
+
+  // `D001` no corpo não é detalhe: a mesma pergunta rende uma resposta por
+  // dívida, e perder o item gravaria na ficha errada.
+  await expect(page.getByText('Alterações salvas.')).toBeVisible()
+  expect(corpos[0]).toContain('ID_PERGUNTA=B5.B03')
+  expect(corpos[0]).toContain('item_id=D001')
+})
+
+test('AC-104: alteração recusada mostra a mensagem do servidor na linha e não apaga o valor', async ({
+  page,
+}) => {
+  await paginaEmEdicao(page)
+  await page.route(`**/caso/${CASO_REVISAO}/resposta`, async (rota) => {
+    // `EC-01`: a fronteira de conversão recusou e nomeou o motivo. O cliente
+    // NUNCA inventa esta mensagem — ele mostra a do servidor.
+    await rota.fulfill({
+      status: 400,
+      json: { erro: 'O valor informado não foi reconhecido como dinheiro.' },
+    })
+  })
+
+  const campo = page.getByLabel('Primeira pergunta do compromisso?')
+  await campo.fill('mil reais')
+  await page.getByRole('button', { name: /Salvar alterações/ }).click()
+
+  await expect(page.locator('[role="alert"]')).toContainText('não foi reconhecido como dinheiro')
+  // O aluno segue na página, com o que digitou: recarregar apagaria a digitação.
+  await expect(campo).toHaveValue('mil reais')
 })
 
 /**
- * `AC-103`/`AC-104` — gravar a correção, e o que acontece quando o servidor
- * recusa. Os dois compartilham a montagem; o que muda é a resposta do `POST`.
+ * A rota de correção (`#respostas/{ID}`) continua existindo — é para onde o
+ * "Corrigir" da fotografia do mês leva (`RF-69`).
  */
 async function abrirCorrecaoDeB101(
   page: Page,
   registrarPost: () => Promise<void>,
 ): Promise<void> {
   await interceptarBase(page, CASO_REVISAO)
-  await interceptarRespostas(page, CASO_REVISAO, partesComRespostas())
+  await interceptarRespostas(page, CASO_REVISAO, partesComRespostas(), { editavel: false })
   await page.route(`**/caso/${CASO_REVISAO}/pergunta/B1.01*`, async (rota) => {
     await rota.fulfill({ json: PERGUNTA_B101 })
   })
@@ -1573,113 +1639,33 @@ async function abrirCorrecaoDeB101(
   )
 }
 
-test('AC-103: gravada a correção, a revisão reabre com o valor NOVO', async ({
+test('AC-103: gravada a correção pela rota de correção, a página reabre com o valor NOVO', async ({
   page,
 }) => {
-  let corpoGravado = ''
   let jaCorrigiu = false
-
   await abrirCorrecaoDeB101(page, async () => {
     await page.route(`**/caso/${CASO_REVISAO}/resposta`, async (rota) => {
-      corpoGravado = rota.request().postData() ?? ''
       jaCorrigiu = true
       await rota.fulfill({
-        json: {
-          ID_PERGUNTA: 'B1.01',
-          aviso: null,
-          avanco_permitido: true,
-          total_pendencias: 0,
-        },
+        json: { ID_PERGUNTA: 'B1.01', aviso: null, avanco_permitido: true, total_pendencias: 0 },
       })
     })
-    // A revisão relê o servidor depois da correção — e o servidor devolve o
-    // valor novo, com a MESMA contagem de respostas: corrigir não é responder
-    // de novo (`AC-103`, segundo pé).
     await page.route(`**/caso/${CASO_REVISAO}/respostas`, async (rota) => {
       const partes = partesComRespostas()
       if (jaCorrigiu) partes[0].respondidas[0].valores = ['O que eu escolhi depois']
-      await rota.fulfill({ json: { CASO_ID: CASO_REVISAO, partes } })
+      await rota.fulfill({ json: { CASO_ID: CASO_REVISAO, partes, editavel: false } })
     })
   })
 
-  await page
-    .getByLabel('Primeira pergunta do compromisso?')
-    .fill('O que eu escolhi depois')
+  await page.getByLabel('Primeira pergunta do compromisso?').fill('O que eu escolhi depois')
   await acaoPrincipal(page, 'Salvar a correção').click()
 
-  // **A mesma rota de gravação de sempre** (`RF-69`): é `POST
-  // /caso/{id}/resposta` com `ID_PERGUNTA` no corpo, não uma segunda via.
-  // Um segundo caminho de escrita seria uma segunda regra de validação, e
-  // `EC-01` deixaria de ser soberano.
-  expect(corpoGravado).toContain('ID_PERGUNTA=B1.01')
-
-  // Volta para a revisão, que é de onde o aluno veio — não para o meio da
-  // coleta, que ele não pediu.
   await expect(page).toHaveURL(/#respostas/)
-  const primeira = painelDaParte(page)
+  const primeira = secaoDaParte(page, 1)
   await expect(primeira).toContainText('O que eu escolhi depois')
   await expect(primeira).not.toContainText('A escolha que eu fiz')
-
-  // E o total de respondidas NÃO subiu: continuam duas.
+  // Corrigir não é responder de novo: continuam duas respostas.
   await expect(primeira).toContainText('2 respostas de 10 perguntas')
-})
-
-test('T-334: gravada a correção, a revisão volta à MESMA parte de onde o aluno saiu', async ({
-  page,
-}) => {
-  await interceptarBase(page, CASO_REVISAO)
-  await interceptarRespostas(page, CASO_REVISAO, partesComRespostas())
-  await page.route(`**/caso/${CASO_REVISAO}/pergunta/B5.B03*`, async (rota) => {
-    await rota.fulfill({ json: PERGUNTA_B5B03 })
-  })
-  await page.route(`**/caso/${CASO_REVISAO}/resposta`, async (rota) => {
-    await rota.fulfill({
-      json: { ID_PERGUNTA: 'B5.B03', aviso: null, avanco_permitido: true, total_pendencias: 0 },
-    })
-  })
-
-  await abrirTela(page, CASO_REVISAO, 'respostas')
-  const parte = await abrirParte(page, ROTULOS_DAS_PARTES[4])
-  await parte.getByRole('button', { name: 'Editar' }).click()
-  await acaoPrincipal(page, 'Salvar a correção').click()
-
-  // Sem isto o aluno caía na primeira parte com resposta e perdia o lugar.
-  await expect(page).toHaveURL(/#respostas\/bloco\/5/)
-  await expect(menuDaParte(page, ROTULOS_DAS_PARTES[4])).toHaveAttribute('aria-current', 'page')
-})
-
-test('AC-104: correção recusada mostra a mensagem do servidor e não apaga o valor', async ({
-  page,
-}) => {
-  await abrirCorrecaoDeB101(page, async () => {
-    await page.route(`**/caso/${CASO_REVISAO}/resposta`, async (rota) => {
-      // `EC-01`: a fronteira de conversão recusou, e nomeou o motivo. O
-      // cliente NUNCA inventa esta mensagem — ele mostra a do servidor.
-      await rota.fulfill({
-        status: 400,
-        json: { erro: 'O valor informado não foi reconhecido como dinheiro.' },
-      })
-    })
-  })
-
-  const campo = page.getByLabel('Primeira pergunta do compromisso?')
-  await campo.fill('mil reais')
-  await acaoPrincipal(page, 'Salvar a correção').click()
-
-  // A mensagem DO SERVIDOR, anunciada como alerta.
-  await expect(page.locator('[role="alert"]')).toContainText(
-    'não foi reconhecido como dinheiro',
-  )
-
-  // **E o aluno continua na pergunta, com o que digitou.** Recarregar aqui
-  // apagaria a digitação dele por causa de um erro que foi do valor novo. O
-  // valor ANTERIOR segue gravado no servidor — ele recusou a escrita inteira,
-  // não gravou pela metade —, e a revisão o prova.
-  await expect(page).toHaveURL(/#respostas\/B1\.01/)
-  await expect(campo).toHaveValue('mil reais')
-
-  await abrirTela(page, CASO_REVISAO, 'respostas')
-  await expect(painelDaParte(page)).toContainText('A escolha que eu fiz')
 })
 
 /**
