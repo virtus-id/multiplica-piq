@@ -111,7 +111,6 @@ perguntas:
     escopo_repeticao: NENHUM
     opcoes:
       - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Talvez, valor_interno: TALVEZ}
       - {rotulo: Não, valor_interno: NAO}
     VARIAVEL_GRAVADA: RECURSOS_EXTRAORDINARIOS_EXISTE
     condicao_exibicao: null
@@ -119,7 +118,7 @@ perguntas:
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
-    salto_consequencia: "Sim/Talvez → ficha REP B3.05B–D."
+    salto_consequencia: "Sim → ficha REP B3.05B–D."
 
   - ID: B3.05B
     bloco: 3
@@ -131,11 +130,7 @@ perguntas:
       - {rotulo: "R$ ______", valor_interno: null}
     VARIAVEL_GRAVADA: VALOR_RECURSO_EXTRAORDINARIO
     # T-404 (RF-418): sem o tipo (B3.05A saiu), a ficha começa aqui.
-    condicao_exibicao:
-      tipo: OU
-      termos:
-        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
-        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
+    condicao_exibicao: {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
@@ -153,17 +148,12 @@ perguntas:
       - {rotulo: 1–3 meses, valor_interno: "1_3M"}
       - {rotulo: 4–6 meses, valor_interno: "4_6M"}
       - {rotulo: 7–12 meses, valor_interno: "7_12M"}
-      - {rotulo: Ainda não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: JANELA_RECURSO_EXTRAORDINARIO
-    condicao_exibicao:
-      tipo: OU
-      termos:
-        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
-        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
+    condicao_exibicao: {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B3.05D
@@ -177,11 +167,7 @@ perguntas:
       - {rotulo: "Provável, mas ainda não garantido.", valor_interno: PROVAVEL}
       - {rotulo: Apenas uma possibilidade., valor_interno: POSSIVEL}
     VARIAVEL_GRAVADA: CERTEZA_RECURSO_EXTRAORDINARIO
-    condicao_exibicao:
-      tipo: OU
-      termos:
-        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
-        - {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: TALVEZ}
+    condicao_exibicao: {tipo: IGUAL, variavel: RECURSOS_EXTRAORDINARIOS_EXISTE, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}

@@ -141,15 +141,14 @@ perguntas:
     opcoes:
       - {rotulo: Sim, valor_interno: SIM}
       - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: POSSUI_PARCELA_DEFINIDA
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
-      Sim → B5.C02–C04 (Modelo 1). Não/Não sei → B5.C05 (Modelo 2).
+      Sim → B5.C02–C04 (Modelo 1). Não → sem parcela definida.
 
   - ID: B5.C02
     bloco: 5
@@ -264,7 +263,6 @@ perguntas:
       - {rotulo: 4–6 meses, valor_interno: "4_6M"}
       - {rotulo: 7–12 meses, valor_interno: "7_12M"}
       - {rotulo: Mais de 12 meses, valor_interno: MAIS_DE_12_MESES}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: TEMPO_ATRASO
     condicao_exibicao:
       tipo: OU
@@ -274,7 +272,7 @@ perguntas:
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B5.E03
@@ -286,13 +284,12 @@ perguntas:
     opcoes:
       - {rotulo: Sim, valor_interno: SIM}
       - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: NEGATIVACAO
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B5.E05
@@ -322,13 +319,12 @@ perguntas:
     opcoes:
       - {rotulo: Sim, valor_interno: SIM}
       - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: POSSUI_GARANTIA
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: "Sim → B5.F02 e B5.F03."
 
   - ID: B5.F02
@@ -344,13 +340,12 @@ perguntas:
       - {rotulo: Aval/fiança, valor_interno: AVAL_FIANCA}
       - {rotulo: Saldo/aplicação financeira, valor_interno: SALDO_APLICACAO_FINANCEIRA}
       - {rotulo: Outra, valor_interno: OUTRA}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: TIPO_GARANTIA
     condicao_exibicao: {tipo: IGUAL, variavel: POSSUI_GARANTIA, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
       Imóvel/Veículo → vincular à ficha do Bloco 4 correspondente
       (SALDO_PASSIVO_VINCULADO).
@@ -367,13 +362,12 @@ perguntas:
       - {rotulo: "Sim.", valor_interno: ESSENCIAL}
       - {rotulo: "É importante, mas existem alternativas.", valor_interno: IMPORTANTE}
       - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: Não sei., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: GARANTIA_ESSENCIAL
     condicao_exibicao: {tipo: IGUAL, variavel: POSSUI_GARANTIA, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   # Grupo G — Oportunidades
@@ -426,13 +420,12 @@ perguntas:
     opcoes:
       - {rotulo: Sim, valor_interno: SIM}
       - {rotulo: Não, valor_interno: NAO}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: PREFERENCIA_QUITACAO
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: "Bloco 9/10 (não decide sozinha)."
 
   # Grupo I — Documentação
@@ -515,13 +508,12 @@ perguntas:
       - {rotulo: Neste mês, valor_interno: NESTE_MES}
       - {rotulo: Há 1–3 meses, valor_interno: HA_13_MESES}
       - {rotulo: Há mais de 3 meses, valor_interno: HA_MAIS_DE_3_MESES}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: DATA_REFERENCIA_DADO
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
       SYS: DOCUMENTO_REFERENCIA é vinculado pelo sistema quando disponível.
       Não exigir upload universal.
@@ -555,15 +547,14 @@ perguntas:
     opcoes:
       - {rotulo: "Sim, cadastrar outra.", valor_interno: SIM_CADASTRAR_OUTRA}
       - {rotulo: "Não, esta foi a última.", valor_interno: NAO_ESTA_FOI_A_ULTIMA}
-      - {rotulo: Não tenho certeza., valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: "SYS (loop)"
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
-      Sim → nova ficha. Não/Não tenho certeza → resumo + B5.FIM02.
+      Sim → nova ficha. Não → resumo + B5.FIM02.
 
   - ID: B5.FIM02
     bloco: 5

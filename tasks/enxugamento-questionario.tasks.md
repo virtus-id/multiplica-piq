@@ -297,3 +297,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-417` — Sim ou Não de verdade, sem palpite
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-416` · **Rastreia:** `RF-428`, `AC-424`
+- [x] "Não sei"/"Talvez"/"Não tenho certeza" fora das 13 perguntas de RF-428; fichas do extraordinário só com "Sim"
+
+**Status:** `[x] concluída (2026-10-22)`
+

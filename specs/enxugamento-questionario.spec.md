@@ -442,6 +442,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-421 | RF-425 | Dado `B5.00`, então não há "Não sei"; "Nenhuma dívida" mostra o aviso, não abre ficha e bloqueia o cálculo; quantidade inválida é recusada | verificado (T-414) |
 | AC-422 | RF-426 | Dado `B5.A01`, então o aluno escolhe a instituição num menu, ou "Outra" e digita o nome; nome vazio ou acima de 60 letras é recusado | verificado (T-415) |
 | AC-423 | RF-427 | Dado `B5.A04`, então a pergunta é "Qual é o status desta operação hoje?" e não há opção de quitação a confirmar | verificado (T-416) |
+| AC-424 | RF-428 | Dadas as perguntas listadas em RF-428, então não oferecem "Não sei"/"Talvez"/"Não tenho certeza"; sim/não mostra só Sim e Não | verificado (T-417) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -472,6 +473,9 @@ Na `B3.C00` as despesas por item e as não mensais aparecem sempre abertas, em t
 
 ### RF-427. Status da operação direto, sem palpite de quitação (2026-10-22)
 `B5.A04` passa a perguntar "Qual é o status desta operação hoje?" e deixa de oferecer "Acredito que esteja quitada, mas preciso confirmar". O motor mantém o tratamento da situação antiga para respostas já gravadas.
+
+### RF-428. Sem "Não sei", "Talvez" e "Não tenho certeza" nas perguntas de fato (2026-10-22)
+Decisão do produto: o cálculo precisa de exatidão, sem adivinhação. Perdem a opção de palpite `B5.C01`, `B5.E02`, `B5.E03`, `B5.F01`, `B5.F02`, `B5.F03`, `B5.H04`, `B5.I03` e `B5.FIM01` ("Não sei"/"Não tenho certeza"), `B4.02A` e `B4.03A` (valor), `B2.11` ("Não consigo avaliar") e `B3.05C` ("Ainda não sei"). `B1.07` e `B3.05` passam a Sim ou Não, sem "Talvez"; as fichas do valor extraordinário abrem só com "Sim". Ficam, por serem escalas de comportamento e não sim/não, `B2.06`, `B4.03` e a opção de pular de `B3.C01A` (opcional); estão no relatório de subjetividade. O motor segue lendo respostas antigas.
 
 ## 9. Non-Functional Requirements
 

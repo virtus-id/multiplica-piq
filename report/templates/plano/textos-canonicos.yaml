@@ -316,6 +316,8 @@ rotulos_de_codigos:
   SALDO_DEVEDOR_DESCONHECIDO: "falta o saldo devedor de alguma dívida"
   # Situação antiga, que a pergunta de status já não oferece (T-416): o motor ainda a lê.
   QUITADA_A_CONFIRMAR: "Quitada, a confirmar"
+  # Janela do valor extraordinário "ainda não sei", que a pergunta já não oferece (T-417).
+  NAO_SEI: "Ainda não sei"
   # Método e status (engine/tipos.py::METODO, STATUS_METODO)
   AVALANCHE: "Avalanche"
   BOLA_DE_NEVE: "Bola de neve"
