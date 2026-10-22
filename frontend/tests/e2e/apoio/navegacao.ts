@@ -41,6 +41,8 @@ export interface InicioDeTeste {
   progresso: { respondidas: number; total: number }
   valor_em_destaque: string | null
   plano_liberado: boolean
+  /** `RF-115`: o servidor permite retirar o plano da conferência para editar. */
+  pode_retomar_edicao?: boolean
   versao_do_plano: number | null
   /** `T-333` (`RF-113`): a conferência pediu correção; `null` fora disso. */
   correcao_pedida?: {
