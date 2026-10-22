@@ -19,35 +19,86 @@ import { useState } from 'react'
 
 import { retomarEdicao } from '../services/api'
 import Botao from './Botao'
+import type { Fase, Inicio } from '../tipos'
 import Icone, { type NomeDoIcone } from './Icone'
 
 type SituacaoDaEtapa = 'concluida' | 'atual' | 'pendente'
 
+/**
+ * As três etapas do andamento — `RF-431`, que substitui as quatro da
+ * `TrilhaDaJornada` (`RF-64`). O cálculo e a conferência da equipe são UMA
+ * etapa: para o aluno é um processo só de elaboração.
+ */
 const ETAPAS: readonly {
   rotulo: string
-  descricao: string
-  situacao: SituacaoDaEtapa
-  icone: NomeDoIcone
+  /** O ícone da etapa quando é a atual: o que se faz nela. */
+  iconeAtual: NomeDoIcone
+  /** O que a etapa diz em cada situação (`atual` cai em `pendente` se faltar). */
+  descricao: Readonly<Partial<Record<SituacaoDaEtapa, string>>>
 }[] = [
   {
-    rotulo: 'Informações enviadas',
-    descricao: 'Suas informações foram recebidas com sucesso.',
-    situacao: 'concluida',
-    icone: 'concluido',
+    rotulo: 'Preencha as informações',
+    iconeAtual: 'editar',
+    descricao: {
+      atual: 'Responda às perguntas sobre sua renda, seus gastos e suas dívidas.',
+      concluida: 'Suas informações foram recebidas com sucesso.',
+    },
   },
   {
     rotulo: 'Elaboração e análise do plano',
-    descricao: 'Seu plano será calculado e analisado por um especialista antes da liberação.',
-    situacao: 'atual',
-    icone: 'conferencia',
+    iconeAtual: 'conferencia',
+    descricao: {
+      pendente: 'Seu plano será calculado e analisado por um especialista antes da liberação.',
+      atual: 'Seu plano será calculado e analisado por um especialista antes da liberação.',
+      concluida: 'Seu plano foi elaborado e analisado pela equipe.',
+    },
   },
   {
     rotulo: 'Plano liberado',
-    descricao: 'Você poderá acessar seu plano de quitação quando estiver pronto.',
-    situacao: 'pendente',
-    icone: 'prazo',
+    iconeAtual: 'bandeira',
+    descricao: {
+      pendente: 'Você poderá acessar seu plano de quitação quando estiver pronto.',
+      atual: 'Seu plano de quitação está disponível.',
+      concluida: 'Seu plano de quitação está disponível.',
+    },
   },
 ]
+
+/**
+ * A etapa em que cada fase coloca o aluno — exatamente uma, sempre (`AC-94`).
+ *
+ * `reprovado` fica na etapa 2 de propósito: para o aluno o plano segue com a
+ * equipe, e "reprovado" seria um veredito sobre ele, não um passo. Fase que
+ * este cliente não conhece (um servidor mais novo) também cai na 2: é o lugar
+ * honesto para "o caso está com a gente" (`T-171`).
+ */
+function indiceDaEtapa(fase: Fase): number {
+  if (fase === 'coleta') return 0
+  if (fase === 'plano') return 2
+  return 1
+}
+
+/**
+ * O que falta, COM unidade — `RF-65`, `AC-96`. "3 de 101" não informa: 101 do
+ * quê. Na coleta com fichas abertas o total cresce, então só as respondidas
+ * aparecem (`T-293`).
+ */
+export function oQueFalta(inicio: Inicio): string | null {
+  const { fase, progresso } = inicio
+  if (fase === 'coleta') {
+    if (progresso.fichas_abertas) {
+      const n = progresso.respondidas
+      return n === 1 ? 'Você já respondeu 1 pergunta.' : `Você já respondeu ${n} perguntas.`
+    }
+    const faltam = progresso.total - progresso.respondidas
+    if (faltam <= 0) return 'Você respondeu tudo o que precisávamos.'
+    return faltam === 1 ? 'Falta 1 pergunta.' : `Faltam ${faltam} perguntas.`
+  }
+  if (fase === 'revisao') return 'A espera é com a equipe. Avisamos por e-mail.'
+  if (fase === 'reprovado') return 'A equipe pediu um ajuste. Alguém entra em contato.'
+  if (fase === 'plano') return null
+  return 'O seu caso está com a equipe. Avisamos quando houver novidade.'
+}
 
 const CLASSE_DO_MARCO: Readonly<Record<SituacaoDaEtapa, string>> = {
   concluida: 'bg-accent text-surface border-accent',
@@ -55,46 +106,76 @@ const CLASSE_DO_MARCO: Readonly<Record<SituacaoDaEtapa, string>> = {
   pendente: 'bg-surface text-muted border-line',
 }
 
+
+interface AndamentoDoPlanoProps {
+  /** O payload de `/inicio`: dá a fase e o que falta. Sem ele, vale `fase`. */
+  inicio?: Inicio
+  /** Telas da coleta (pergunta, fichas, formulário) não têm `inicio`: é a fase `coleta`. */
+  fase?: Fase
+}
+
 /**
- * A linha do tempo, com exatamente três etapas. No computador é a coluna
- * lateral, com a descrição de cada uma; no celular vira uma faixa compacta
- * (só os rótulos), para não empurrar a informação principal para baixo.
+ * A linha do tempo das três etapas, igual em toda tela do aluno. Informativa:
+ * nenhuma etapa é clicável (`AC-115`). No computador é a coluna lateral, com a
+ * descrição de cada uma; no celular vira uma faixa compacta (só os rótulos),
+ * para não empurrar a informação principal para baixo.
  */
-export function AndamentoDoPlano() {
+export function AndamentoDoPlano({ inicio, fase = 'coleta' }: AndamentoDoPlanoProps) {
+  const atual = indiceDaEtapa(inicio?.fase ?? fase)
+  const falta = inicio ? oQueFalta(inicio) : null
+
   return (
-    <nav aria-label="Andamento do plano">
+    <nav aria-label="Andamento do plano" className="flex flex-col gap-2">
+      <span className="eyebrow">Onde você está</span>
       <ol className="m-0 grid list-none grid-cols-3 gap-2 p-0 lg:grid-cols-1 lg:gap-0">
-        {ETAPAS.map((etapa, indice) => (
-          <li
-            key={etapa.rotulo}
-            aria-current={etapa.situacao === 'atual' ? 'step' : undefined}
-            className="relative flex flex-col items-center gap-1 text-center lg:flex-row lg:items-start lg:gap-3 lg:pb-6 lg:text-left"
-          >
-            {/* O fio que liga as etapas, só na vertical. */}
-            {indice < ETAPAS.length - 1 && (
-              <span
-                aria-hidden="true"
-                className={`absolute left-[17px] top-9 hidden h-[calc(100%-2.25rem)] w-0.5 lg:block ${
-                  etapa.situacao === 'concluida' ? 'bg-accent' : 'bg-line'
-                }`}
-              />
-            )}
-            <span
-              className={`grid h-9 w-9 flex-none place-items-center rounded-full border-2 ${CLASSE_DO_MARCO[etapa.situacao]}`}
+        {ETAPAS.map((etapa, indice) => {
+          const situacao: SituacaoDaEtapa =
+            indice < atual ? 'concluida' : indice === atual ? 'atual' : 'pendente'
+          return (
+            <li
+              key={etapa.rotulo}
+              aria-current={situacao === 'atual' ? 'step' : undefined}
+              className="relative flex flex-col items-center gap-1 text-center lg:flex-row lg:items-start lg:gap-3 lg:pb-6 lg:text-left"
             >
-              <Icone nome={etapa.icone} />
-            </span>
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <strong className="text-[0.82rem] leading-tight lg:text-base">{etapa.rotulo}</strong>
-              {etapa.situacao === 'atual' && (
-                <span className="chip chip-ok self-center !px-2 !py-0 !text-[11px] lg:self-start">
-                  Etapa atual
-                </span>
+              {/* O fio que liga as etapas, só na vertical. */}
+              {indice < ETAPAS.length - 1 && (
+                <span
+                  aria-hidden="true"
+                  className={`absolute left-[17px] top-9 hidden h-[calc(100%-2.25rem)] w-0.5 lg:block ${
+                    situacao === 'concluida' ? 'bg-accent' : 'bg-line'
+                  }`}
+                />
               )}
-              <span className="nota m-0 hidden lg:block">{etapa.descricao}</span>
-            </span>
-          </li>
-        ))}
+              <span
+                className={`grid h-9 w-9 flex-none place-items-center rounded-full border-2 ${CLASSE_DO_MARCO[situacao]}`}
+              >
+                <Icone
+                  nome={
+                    situacao === 'concluida'
+                      ? 'concluido'
+                      : situacao === 'atual'
+                        ? etapa.iconeAtual
+                        : 'prazo'
+                  }
+                />
+              </span>
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <strong className="text-[0.82rem] leading-tight lg:text-base">{etapa.rotulo}</strong>
+                {situacao === 'atual' && (
+                  <span className="chip chip-ok self-center !px-2 !py-0 !text-[11px] lg:self-start">
+                    Etapa atual
+                  </span>
+                )}
+                <span className="nota m-0 hidden lg:block">
+                  {etapa.descricao[situacao] ?? etapa.descricao.pendente}
+                </span>
+                {situacao === 'atual' && falta && (
+                  <span className="hidden text-sm font-bold lg:block">{falta}</span>
+                )}
+              </span>
+            </li>
+          )
+        })}
       </ol>
     </nav>
   )

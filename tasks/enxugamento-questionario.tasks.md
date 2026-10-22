@@ -326,3 +326,11 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-421` — Andamento em três etapas em todas as telas
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-420` · **Rastreia:** `RF-432`, `AC-428`
+- [x] `AndamentoDoPlano` (três etapas) no Início, no termo e nas telas de coleta; `TrilhaDaJornada` (quatro etapas) removida
+- [x] Cinco partes da coleta mantidas como progresso secundário (`LateralDaColeta`); testes unitários e e2e ajustados
+
+**Status:** `[x] concluída (2026-10-22)`
+

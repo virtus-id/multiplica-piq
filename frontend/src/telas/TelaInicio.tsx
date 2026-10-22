@@ -20,7 +20,6 @@ import { CartaoRetirarDaConferencia } from '../componentes/CartoesDoPlano'
 import Esqueleto from '../componentes/Esqueleto'
 import Icone from '../componentes/Icone'
 import Tela from '../componentes/Tela'
-import TrilhaDaJornada from '../componentes/TrilhaDaJornada'
 import { type Rota } from '../navegacao'
 import type { DestinoDaEtapa, Inicio } from '../tipos'
 
@@ -196,7 +195,7 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
     return (
       <Tela
         titulo="Meu plano de quitação"
-        lateral={<AndamentoDoPlano />}
+        lateral={<AndamentoDoPlano inicio={inicio} />}
         aoSair={aoSair}
         largura="ampla"
       >
@@ -236,7 +235,7 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
       // onde o protótipo o validou (`RF-64`: quem chega precisa saber onde
       // está antes de receber uma ordem do que fazer); no computador vira
       // coluna ao lado, e o conteúdo deixa de ser uma fresta.
-      lateral={<TrilhaDaJornada inicio={inicio} />}
+      lateral={<AndamentoDoPlano inicio={inicio} />}
       aoSair={aoSair}
       acoes={
         <>

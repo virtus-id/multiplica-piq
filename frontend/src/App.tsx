@@ -26,7 +26,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ContextoDoAlerta } from './componentes/AlertaInventario'
 import Esqueleto from './componentes/Esqueleto'
 import Tela from './componentes/Tela'
-import TrilhaDaJornada from './componentes/TrilhaDaJornada'
+import { AndamentoDoPlano } from './componentes/AcompanhamentoDoPlano'
 import { eTelaDaEquipe, type Rota, substituirRota, useRota } from './navegacao'
 import { obterInicio, obterSessao, sair } from './services/api'
 import type { Inicio, Pergunta } from './tipos'
@@ -502,7 +502,7 @@ export default function App() {
         return (
           <TelaConsentimento
             casoId={casoId}
-            lateral={<TrilhaDaJornada inicio={inicio} />}
+            lateral={<AndamentoDoPlano inicio={inicio} />}
             aoSair={aoSair}
             onAceito={voltarAoInicioAtualizado}
           />

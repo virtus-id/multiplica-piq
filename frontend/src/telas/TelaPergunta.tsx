@@ -47,7 +47,7 @@ import CamposDoItem, {
 import Esqueleto from '../componentes/Esqueleto'
 import PainelFotografia from '../componentes/PainelFotografia'
 import Tela from '../componentes/Tela'
-import TrilhaDaColeta from '../componentes/TrilhaDaColeta'
+import LateralDaColeta from '../componentes/LateralDaColeta'
 import {
   concluirItem,
   ErroHttp,
@@ -581,7 +581,7 @@ export default function TelaPergunta({
       rotuloVoltar={rotuloVoltar}
       onde={localizador(pergunta, pendencias)}
       // `T-310` (RF-100): a trilha das cinco partes, do servidor.
-      lateral={pergunta.trilha ? <TrilhaDaColeta trilha={pergunta.trilha} /> : undefined}
+      lateral={<LateralDaColeta trilha={pergunta.trilha} />}
       acoes={
         <>
           <Botao onClick={() => void aoResponder()} disabled={gravando}>

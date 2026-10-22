@@ -34,7 +34,7 @@ import CamposDoItem, {
 } from '../componentes/CamposDoItem'
 import Esqueleto from '../componentes/Esqueleto'
 import Tela from '../componentes/Tela'
-import TrilhaDaColeta from '../componentes/TrilhaDaColeta'
+import LateralDaColeta from '../componentes/LateralDaColeta'
 import { concluirItem, ErroHttp, nomearFicha, obterFormulario } from '../services/api'
 import type { FormularioDoItem, Pergunta } from '../tipos'
 import { avisoDeUmPorVez, type TitulosDoEscopo } from './TelaFichas'
@@ -245,7 +245,7 @@ export default function TelaFormulario({
       voltar={voltar}
       // `T-317` (RF-105): "Despesa 2 de 4" — a posição vem do servidor.
       onde={`${titulos.titulo} ${posicao} de ${total}`}
-      lateral={formulario.trilha ? <TrilhaDaColeta trilha={formulario.trilha} /> : undefined}
+      lateral={<LateralDaColeta trilha={formulario.trilha} />}
       acoes={
         <Botao onClick={() => void salvar()} disabled={gravando}>
           {gravando ? 'Salvando…' : 'Salvar'}

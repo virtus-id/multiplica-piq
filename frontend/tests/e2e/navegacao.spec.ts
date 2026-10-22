@@ -943,34 +943,33 @@ test('T-154: sessão válida na carga da página não mostra login', async ({ pa
 // aluno tinha. `RF-64`..`RF-67` são a resposta, e o que segue é a prova de que
 // ela está no navegador.
 //
-// A trilha (`TrilhaDaJornada`) e as boas-vindas (`TelaBoasVindas`) são
+// O andamento (`AndamentoDoPlano`) e as boas-vindas (`TelaBoasVindas`) são
 // testadas pela interface que o aluno vê, nunca pelas classes CSS: o que
-// `AC-93` promete é uma lista de quatro etapas com UMA marcada como atual, e
+// `AC-93` promete é uma lista de três etapas com UMA marcada como atual, e
 // `aria-current="step"` é o contrato dessa marca — quem não vê a cor depende
 // só dele.
 // ---------------------------------------------------------------------------
 
 const CASO_JORNADA = 'CASO-JORNADA-E2E'
 
-/** A trilha inteira — o seletor único de `TrilhaDaJornada`. */
+/** O andamento inteiro — o seletor único de `AndamentoDoPlano` (`RF-431`). */
 function trilha(page: Page) {
-  return page.locator('[aria-label="Sua jornada no PIQ"]')
+  return page.locator('[aria-label="Andamento do plano"]')
 }
 
-/** As quatro etapas, na ordem do DOM. */
+/** As três etapas, na ordem do DOM. */
 function etapasDaTrilha(page: Page) {
   return trilha(page).locator('li')
 }
 
-/** Os rótulos das quatro etapas, na ordem em que o aluno as percorre. */
+/** Os rótulos das três etapas, na ordem em que o aluno as percorre. */
 const ROTULOS_DAS_ETAPAS: readonly string[] = [
-  'Suas respostas',
-  'Cálculo do plano',
-  'Conferência da equipe',
-  'Seu plano',
+  'Preencha as informações',
+  'Elaboração e análise do plano',
+  'Plano liberado',
 ]
 
-test('AC-93: a trilha mostra as quatro etapas, com exatamente uma em curso', async ({
+test('AC-93: o andamento mostra as três etapas, com exatamente uma em curso', async ({
   page,
 }) => {
   await interceptarBase(page, CASO_JORNADA)
@@ -981,12 +980,12 @@ test('AC-93: a trilha mostra as quatro etapas, com exatamente uma em curso', asy
   // A CONTAGEM é a asserção que carrega o requisito: `RF-64` promete a
   // jornada INTEIRA, e uma trilha com etapas a menos esconde justamente o
   // pedaço que o aluno ainda não conhece.
-  await expect(etapasDaTrilha(page)).toHaveCount(4)
+  await expect(etapasDaTrilha(page)).toHaveCount(3)
 
   // E na ordem: a jornada é uma sequência, não um conjunto. Uma trilha com as
-  // mesmas quatro etapas embaralhadas responderia "onde estou" errado.
+  // mesmas três etapas embaralhadas responderia "onde estou" errado.
   const rotulos = await etapasDaTrilha(page).evaluateAll((itens) =>
-    itens.map((item) => item.querySelector('.linha span')?.textContent?.trim() ?? ''),
+    itens.map((item) => item.querySelector('strong')?.textContent?.trim() ?? ''),
   )
   expect(rotulos).toEqual([...ROTULOS_DAS_ETAPAS])
 
@@ -995,7 +994,7 @@ test('AC-93: a trilha mostra as quatro etapas, com exatamente uma em curso', asy
 })
 
 /**
- * `AC-94` — a etapa em curso corresponde à fase, em cada uma das quatro.
+ * `AC-94` — a etapa em curso corresponde à fase, em cada uma das fases.
  *
  * Um teste por fase, e não um laço dentro de um teste, pelo mesmo motivo de
  * `AC-81`: quando quebra, o relatório precisa dizer QUAL fase quebrou.
@@ -1015,9 +1014,9 @@ const ETAPA_ESPERADA_POR_FASE: readonly {
   indice: number
 }[] = [
   { fase: 'coleta', estado: 'COLETA_INICIAL', destino: 'pergunta', indice: 0 },
-  // `T-420`: a fase `revisao` tem tela própria, com as três etapas do andamento.
-  { fase: 'reprovado', estado: 'REPROVADO', destino: 'progresso', indice: 2 },
-  { fase: 'plano', estado: 'PLANO_LIBERADO', destino: 'plano', indice: 3 },
+  { fase: 'revisao', estado: 'AGUARDANDO_REVISAO', destino: 'aguardando', indice: 1 },
+  { fase: 'reprovado', estado: 'REPROVADO', destino: 'progresso', indice: 1 },
+  { fase: 'plano', estado: 'PLANO_LIBERADO', destino: 'plano', indice: 2 },
 ]
 
 for (const caso of ETAPA_ESPERADA_POR_FASE) {
@@ -1039,7 +1038,7 @@ for (const caso of ETAPA_ESPERADA_POR_FASE) {
     await abrirTela(page, CASO_JORNADA, 'inicio')
 
     const etapas = etapasDaTrilha(page)
-    await expect(etapas).toHaveCount(4)
+    await expect(etapas).toHaveCount(3)
 
     // Nenhuma fase produz trilha vazia nem duas em curso — a metade do
     // critério que vale para TODAS as fases, e que um teste só da fase feliz
@@ -1047,18 +1046,18 @@ for (const caso of ETAPA_ESPERADA_POR_FASE) {
     const emCurso = trilha(page).locator('li[aria-current="step"]')
     await expect(emCurso).toHaveCount(1)
     await expect(emCurso).toContainText(ROTULOS_DAS_ETAPAS[caso.indice])
-    await expect(emCurso).toContainText('Agora')
+    await expect(emCurso).toContainText('Etapa atual')
 
     // As ANTERIORES aparecem como concluídas...
     for (let i = 0; i < caso.indice; i += 1) {
-      await expect(etapas.nth(i)).toContainText('Feito')
+      await expect(etapas.nth(i)).not.toContainText('Etapa atual')
       await expect(etapas.nth(i)).not.toHaveAttribute('aria-current', 'step')
     }
 
     // ...e as SEGUINTES não. "Feito" numa etapa futura seria promessa falsa:
     // diria ao aluno que a equipe já conferiu um plano que não existe.
-    for (let i = caso.indice + 1; i < 4; i += 1) {
-      await expect(etapas.nth(i)).not.toContainText('Feito')
+    for (let i = caso.indice + 1; i < 3; i += 1) {
+      await expect(etapas.nth(i)).not.toContainText('Etapa atual')
       await expect(etapas.nth(i)).not.toHaveAttribute('aria-current', 'step')
     }
   })
@@ -1084,11 +1083,10 @@ test('AC-95: a trilha é visível sem interação e não exige rolagem horizonta
   )
   expect(dentroDeDetails).toBe(false)
 
-  // As quatro etapas estão TODAS na tela, não só o cartão: uma trilha visível
-  // cujas etapas 3 e 4 ficam fora do container não mostra a jornada inteira.
+  // As três etapas estão TODAS na tela, não só o cartão.
   const etapas = etapasDaTrilha(page)
-  await expect(etapas).toHaveCount(4)
-  for (let i = 0; i < 4; i += 1) {
+  await expect(etapas).toHaveCount(3)
+  for (let i = 0; i < 3; i += 1) {
     await expect(etapas.nth(i)).toBeVisible()
   }
 
@@ -1125,9 +1123,9 @@ test('AC-115: a trilha é informativa — nenhum degrau é clicável', async ({ 
   )
   expect(interativosNaTrilha).toBe(0)
 
-  // E a estrutura que `AC-93`/`AC-94` usam como seletor continua de pé: quatro
-  // `<li>`, o rótulo em `.linha span`, `aria-current="step"` em exatamente uma.
-  await expect(etapasDaTrilha(page)).toHaveCount(4)
+  // E a estrutura que `AC-93`/`AC-94` usam como seletor continua de pé: três
+  // `<li>`, o rótulo em `strong`, `aria-current="step"` em exatamente uma.
+  await expect(etapasDaTrilha(page)).toHaveCount(3)
   await expect(trilha(page).locator('li[aria-current="step"]')).toHaveCount(1)
 })
 
@@ -1247,12 +1245,12 @@ test('AC-98: "Começar" nas boas-vindas leva ao Início — a tela nunca é bloq
  */
 test('AC-99: nem a trilha nem as boas-vindas leem localStorage/sessionStorage no código', async () => {
   const raiz = fileURLToPath(new URL('../../src/', import.meta.url))
-  const ARQUIVOS = ['componentes/TrilhaDaJornada.tsx', 'telas/TelaBoasVindas.tsx']
+  const ARQUIVOS = ['componentes/AcompanhamentoDoPlano.tsx', 'telas/TelaBoasVindas.tsx']
 
   for (const relativo of ARQUIVOS) {
     const fonte = readFileSync(raiz + relativo, 'utf8')
-    // Os comentários saem da auditoria porque o cabeçalho de
-    // `TrilhaDaJornada` cita `localStorage` justamente para dizer que NÃO o
+    // Os comentários saem da auditoria porque o cabeçalho do
+    // `AcompanhamentoDoPlano` cita `localStorage` justamente para dizer que NÃO o
     // usa — uma asserção que casasse o comentário proibiria a documentação da
     // decisão, que é a parte que impede alguém de reintroduzi-la.
     const codigo = fonte
@@ -1836,7 +1834,7 @@ test('AC-106: trilha lateral no desktop, coluna única a 360px', async ({
   await expect(page.locator('.cartao-proximo')).toBeVisible()
 
   const caixas = await page.evaluate(() => {
-    const trilhaEl = document.querySelector('[aria-label="Sua jornada no PIQ"]')
+    const trilhaEl = document.querySelector('[aria-label="Andamento do plano"]')
     const conteudoEl = document.querySelector('.cartao-proximo')
     if (!trilhaEl || !conteudoEl) return null
     const t = trilhaEl.getBoundingClientRect()

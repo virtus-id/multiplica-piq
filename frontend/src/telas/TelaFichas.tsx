@@ -18,7 +18,7 @@ import Botao from '../componentes/Botao'
 import Esqueleto from '../componentes/Esqueleto'
 import ResumoDaFicha from '../componentes/ResumoDaFicha'
 import Tela from '../componentes/Tela'
-import TrilhaDaColeta from '../componentes/TrilhaDaColeta'
+import LateralDaColeta from '../componentes/LateralDaColeta'
 import {
   criarFicha,
   listarFichas,
@@ -226,7 +226,7 @@ export default function TelaFichas({
       titulo={`${possessivo} ${tituloPlural.toLowerCase()}`}
       voltar={voltar}
       // `T-310` (RF-100): a trilha das cinco partes, do servidor.
-      lateral={trilha ? <TrilhaDaColeta trilha={trilha} /> : undefined}
+      lateral={<LateralDaColeta trilha={trilha} />}
       onde={fichas.length > 0 ? `${fichas.length} cadastrada${fichas.length === 1 ? '' : 's'}` : undefined}
       acoes={
         <>

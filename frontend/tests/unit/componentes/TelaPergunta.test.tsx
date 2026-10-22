@@ -334,9 +334,13 @@ describe("T-308/T-309/T-310: topo, anterior e trilha vêm do servidor", () => {
     });
     expect(barra).toHaveAttribute("aria-valuenow", "1");
     expect(barra).toHaveAttribute("aria-valuemax", "3");
-    expect(document.querySelector('[aria-current="step"]')).toHaveTextContent(
-      "Como você controla os gastos",
-    );
+    // O andamento das três etapas também tem um `aria-current`: aqui só as partes.
+    expect(
+      screen
+        .getByRole("region", { name: "Partes da coleta" })
+        .querySelector('[aria-current="step"]'),
+    ).toHaveTextContent("Como você controla os gastos");
+    expect(screen.getByRole("navigation", { name: "Andamento do plano" })).toBeInTheDocument();
     expect(screen.getByText(/Parte 2 de 3/)).toBeInTheDocument();
   });
 });
