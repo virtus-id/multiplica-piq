@@ -120,6 +120,7 @@ def serializar_pergunta(
         "bloco": registro.bloco,
         "tipo": registro.tipo.value,
         "enunciado": contexto.enunciado,
+        "apoio": registro.apoio,
         "opcoes": [serializar_opcao(opcao) for opcao in contexto.opcoes],
         "escopo_repeticao": registro.escopo_repeticao.value,
         "item_id": item_id,

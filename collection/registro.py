@@ -164,3 +164,6 @@ class RegistroPergunta:
     # item de outro escopo — a margem dentro do vínculo. O pai é gravado na
     # criação do item (`item_pai_id`), nunca perguntado.
     escopo_pai: EscopoRepeticao | None = None
+    # Instrução de preenchimento (`T-409`): vai logo abaixo do enunciado, em
+    # destaque menor. O enunciado é só a pergunta; o "como informar" mora aqui.
+    apoio: str | None = None

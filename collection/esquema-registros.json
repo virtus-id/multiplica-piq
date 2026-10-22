@@ -84,6 +84,7 @@
         "origem_opcoes": { "$ref": "#/$defs/origemOpcoes" },
         "admite_nao_sei": { "type": "boolean" },
         "salto_consequencia": { "type": ["string", "null"] },
+        "apoio": { "type": "string", "minLength": 1 },
         "painel": { "enum": ["FOTOGRAFIA_DO_MES"] },
         "escopo_pai": { "type": "string" },
         "indispensavel": { "type": "boolean" },

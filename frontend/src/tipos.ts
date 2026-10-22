@@ -46,6 +46,8 @@ export interface Pergunta {
   bloco: number
   tipo: TipoResposta
   enunciado: string
+  /** Instrução de preenchimento, em destaque menor abaixo do enunciado. */
+  apoio?: string | null
   opcoes: Opcao[]
   escopo_repeticao: string
   item_id: string | null

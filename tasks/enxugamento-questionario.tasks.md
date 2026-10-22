@@ -238,3 +238,11 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Testes ajustados; estado e snapshot do motor idênticos com e sem as respostas antigas, exceto os campos neutros
 
 **Status:** `[x] concluída (2026-10-22)`; suíte completa: 12 falhas (1 ambiente de acessibilidade, 11 em test_rotas_plano/test_rotas_revisao_decisao que passam isoladas) e 4 e2e que já falhavam antes
+
+### `T-409` — Pergunta da renda curta, com a instrução em destaque menor
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-408` · **Rastreia:** `RF-117`, `AC-180`
+- [x] `B3.01`: enunciado "Qual é o seu salário líquido mensal?"; instrução de preenchimento no novo campo opcional `apoio` do registro
+- [x] `apoio` chega ao aluno na pergunta e aparece abaixo do enunciado em destaque menor (campo, escalas e seleções)
+
+**Status:** `[x] concluída (2026-10-22)`

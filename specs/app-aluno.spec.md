@@ -1052,7 +1052,7 @@ Atende: `RF-121`, `RF-122`, `RF-123`, `RF-124`
 | `AC-177` | `US-34` | Dado um caso em `AGUARDANDO_REVISAO` com o snapshot v1, quando o aluno confirma "Quero editar minhas respostas", então o caso passa a `COLETA_INICIAL`, o evento `aluno_retoma_edicao` é registrado, o caso deixa de aparecer na fila do revisor, e o snapshot v1 e as respostas ficam intactos; e, depois de editar e reenviar, nasce a v2 encadeada à v1 e o caso volta à fila |
 | `AC-178` | `US-34` | Dado um caso que o aluno retirou da conferência, quando o revisor tenta liberar ou reprovar, então a rota responde `409` com "Este plano saiu da conferência: o aluno o retirou para editar ou ele foi devolvido. Ele volta à fila quando for reenviado." e nenhuma revisão é registrada |
 | `AC-179` | `US-34` | Dado um caso fora de `AGUARDANDO_REVISAO` (em `CALCULANDO`, por exemplo), quando o aluno pede para retomar a edição, então a rota responde `409`, o estado não muda e nenhum evento é gravado |
-| `AC-180` | `US-34` | Dada a pergunta `B3.01`, quando exibida, então o enunciado é exatamente "Quanto você recebe por mês, em média, depois do imposto de renda e da previdência, mas antes de empréstimos e consignados? (Não desconte parcelas de empréstimo nem consignado: você cadastra essas dívidas mais adiante. Plano de saúde, sindicato e outros descontos de folha entram nas despesas.)" |
+| `AC-180` | `US-34` | Dada a pergunta `B3.01`, quando exibida, então o enunciado é "Qual é o seu salário líquido mensal?" e, logo abaixo, em destaque menor, a instrução "Informe o valor após os descontos de Imposto de Renda e Previdência, mas antes dos empréstimos e consignados." (`T-409`; a redação anterior, mais longa, saiu) |
 
 ### Rodada 14 (2026-10-05) — Plano novo depois da liberação
 

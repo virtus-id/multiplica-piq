@@ -39,6 +39,13 @@ export default function CampoPergunta({
 }: CampoPerguntaProps) {
   const id = idDoCampo(pergunta)
   const idAviso = pergunta.aviso ? `aviso-${pergunta.ID}` : undefined
+  const idApoio = pergunta.apoio ? `apoio-${pergunta.ID}` : undefined
+  const descritoPor = [idApoio, idAviso].filter(Boolean).join(' ') || undefined
+  const apoio = pergunta.apoio ? (
+    <p id={idApoio} className="nota m-0">
+      {pergunta.apoio}
+    </p>
+  ) : null
   const grupo = pergunta.tipo === 'SELECAO_UNICA' || pergunta.tipo === 'SIM_NAO_TALVEZ'
   // `T-294`: na seleção única, `[código, R$ digitado]` quando a opção abre
   // campo de outra variável; o código vem primeiro, como o servidor lê.
@@ -138,6 +145,7 @@ export default function CampoPergunta({
           <legend className="mb-2 font-serif text-[1.35rem] font-semibold">
             {pergunta.enunciado}
           </legend>
+          {apoio}
           {pergunta.opcoes.map((opcao, indice) => {
             // `T-194`: opção sem `valor_interno` não tem o que enviar — o
             // cliente não inventa identificador (D1). Fica desabilitada, e
@@ -230,6 +238,7 @@ export default function CampoPergunta({
           <legend className="mb-2 font-serif text-[1.35rem] font-semibold">
             {pergunta.enunciado}
           </legend>
+          {apoio}
           {pergunta.opcoes.map((opcao, indice) => {
             // `T-194`: estado POR opção. Sem `valor_interno` (checklists, D1
             // em aberto) a opção fica desabilitada em vez de virar `''` — que
@@ -256,6 +265,7 @@ export default function CampoPergunta({
           <legend className="mb-2 font-serif text-[1.35rem] font-semibold">
             {pergunta.enunciado}
           </legend>
+          {apoio}
           <div className="grid grid-cols-6 gap-2">
             {Array.from({ length: 11 }, (_, n) => String(n)).map((n) => (
               <button
@@ -277,6 +287,7 @@ export default function CampoPergunta({
           <label htmlFor={id} className="font-serif text-[1.35rem] font-semibold">
             {pergunta.enunciado}
           </label>
+          {apoio}
 
           {pergunta.tipo === 'MOEDA' ? (
             // O "R$" é prefixo VISUAL, fora do <input>: `_CARACTERES_ACEITOS`
@@ -288,7 +299,7 @@ export default function CampoPergunta({
                 inputMode="decimal"
                 value={campoVazio ? '' : texto}
                 disabled={inerte}
-                aria-describedby={idAviso}
+                aria-describedby={descritoPor}
                 onChange={(e) => aoDigitar(e.target.value)}
               />
             </div>
@@ -302,7 +313,7 @@ export default function CampoPergunta({
                   inputMode="decimal"
                   value={campoVazio ? '' : texto}
                   disabled={inerte}
-                  aria-describedby={idAviso}
+                  aria-describedby={descritoPor}
                   onChange={(e) => aoDigitar(e.target.value)}
                 />
               </div>
@@ -318,7 +329,7 @@ export default function CampoPergunta({
               className="campo-texto"
               value={campoVazio ? '' : texto}
               disabled={inerte}
-              aria-describedby={idAviso}
+              aria-describedby={descritoPor}
               onChange={(e) => aoDigitar(e.target.value)}
             />
           )}
