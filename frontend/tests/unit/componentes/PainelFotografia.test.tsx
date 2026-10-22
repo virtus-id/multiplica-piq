@@ -102,28 +102,4 @@ describe("PainelFotografia", () => {
     );
     expect(aoCorrigir).toHaveBeenCalledWith("B3.NM02B", "NM001");
   });
-
-  it("RF-412: na B3.C02C mostra informado, calculado e diferença do servidor, sem tolerância", () => {
-    render(
-      <PainelFotografia
-        painel={painel({
-          comparacao: {
-            sentido: "SOBRA",
-            informado: "2500.01",
-            calculado: "2500.00",
-            diferenca: "0.01",
-          },
-        })}
-      />,
-    );
-    expect(screen.getByText("Sobra que você informou")).toBeInTheDocument();
-    expect(screen.getByText("R$ 2.500,01")).toBeInTheDocument();
-    expect(screen.getByText("R$ 0,01")).toBeInTheDocument();
-    expect(screen.getByText(/responsabilidade pela informação é do aluno/)).toBeInTheDocument();
-  });
-
-  it("RF-412: sem comparação (B3.C00) o bloco não aparece", () => {
-    render(<PainelFotografia painel={painel({ comparacao: null })} />);
-    expect(screen.queryByText(/Diferença/)).toBeNull();
-  });
 });

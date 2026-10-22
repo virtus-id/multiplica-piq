@@ -173,18 +173,18 @@ class TestCriterio3ZeroDistintoDeDesconhecido:
         assert divida.PAGAMENTO_MENSAL_EFETIVO is not DESCONHECIDO
         assert isinstance(divida.PAGAMENTO_MENSAL_EFETIVO, Decimal)
 
-    def test_valor_quitacao_hoje_zero_e_preservado_como_zero_nao_desconhecido(self) -> None:
+    def test_parcela_contratual_zero_e_preservada_como_zero_nao_desconhecido(self) -> None:
         """Mesma garantia para um campo COND (`_dinheiro_estrutural_ou_
         desconhecido`) — o bug de truthiness (`Decimal("0") or NAO_SEI`)
         afetaria justamente este caminho se reintroduzido."""
         respostas = _ficha_minima_completa(
-            "D005", VALOR_QUITACAO_HOJE=converter_para_dinheiro("0")
+            "D005", **{_VARIAVEL_PARCELA_CONTRATUAL: converter_para_dinheiro("0")}
         )
 
         divida = montar_divida(respostas, "D005")
 
-        assert divida.VALOR_QUITACAO_HOJE == Decimal("0")
-        assert divida.VALOR_QUITACAO_HOJE is not DESCONHECIDO
+        assert divida.PARCELA_CONTRATUAL == Decimal("0")
+        assert divida.PARCELA_CONTRATUAL is not DESCONHECIDO
 
 
 # ---------------------------------------------------------------------------
@@ -273,9 +273,6 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_5() -> None:
         "TIPO_DIVIDA",
         "STATUS_DIVIDA",
         "SALDO_DEVEDOR_ATUAL",
-        "VALOR_QUITACAO_HOJE",
-        "QUITACAO_CONSULTADA",
-        "DATA_VALIDADE_PROPOSTA",
         _VARIAVEL_PARCELA_CONTRATUAL,
         "PAGAMENTO_MENSAL_EFETIVO",
         "PAGAMENTO_MENSAL_EFETIVO (média 3 meses)",
@@ -290,15 +287,14 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_5() -> None:
     )
 
 
-def test_quitacao_consultada_expirou_produz_sim_e_status_expirada() -> None:
-    """Decisão documentada de `_quitacao_consultada`/`_status_validade_
-    proposta`: EXPIROU → SimNaoTalvez.SIM + STATUS_VALIDADE_PROPOSTA.EXPIRADA."""
-    respostas = _ficha_minima_completa("D007", QUITACAO_CONSULTADA="EXPIROU")
+def test_quitacao_nao_tem_pergunta_e_o_motor_recebe_valores_neutros() -> None:
+    """`T-408` (RF-420): `B5.B05`, `B5.B05A` e `B5.B05B` saíram; a dívida
+    sempre chega ao motor sem valor de quitação informado."""
+    divida = montar_divida(_ficha_minima_completa("D007"), "D007")
 
-    divida = montar_divida(respostas, "D007")
-
-    assert divida.QUITACAO_CONSULTADA is SimNaoTalvez.SIM
-    assert divida.STATUS_VALIDADE_PROPOSTA is STATUS_VALIDADE_PROPOSTA.EXPIRADA
+    assert divida.QUITACAO_CONSULTADA is SimNaoTalvez.NAO
+    assert divida.VALOR_QUITACAO_HOJE is DESCONHECIDO
+    assert divida.STATUS_VALIDADE_PROPOSTA is STATUS_VALIDADE_PROPOSTA.VALIDADE_DESCONHECIDA
 
 
 def test_taxa_mensal_passa_direto() -> None:

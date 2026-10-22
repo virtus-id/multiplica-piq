@@ -41,7 +41,6 @@ from app.montagem.estado import (
 from collection.registro import EscopoRepeticao
 from collection.respostas import RespostasCaso
 from engine.despesas import somar_despesas_por_classificacao
-from engine.percepcao import diferenca_percebida_do_calculado
 from engine.precisao import quantizar_exibicao
 from engine.tipos import DESCONHECIDO, Dinheiro, DinheiroTalvez
 from report.plano import ResumoDasDespesas
@@ -142,39 +141,6 @@ def resumo_das_despesas(respostas: RespostasCaso) -> ResumoDasDespesas:
         resultado_mensal=fotografia.SOBRA_ANTES_DAS_DIVIDAS,
         parcial=fotografia.parcial_sobra,
         contribuicao_familiar=_contribuicao_familiar(respostas),
-    )
-
-
-@dataclass(frozen=True, slots=True)
-class ComparacaoSobraFalta:
-    """`RF-412` (`B3.C02A`/`B3.C02B`) — o que o aluno disse que sobra ou
-    falta × o resultado mensal calculado da fotografia. `sentido`: `SOBRA`
-    ou `FALTA`. `diferenca` = percebido − calculado (sobra positiva, falta
-    negativa), `DESCONHECIDO` se o calculado é desconhecido (`EC-28`)."""
-
-    sentido: str
-    percebido: Dinheiro
-    calculado: DinheiroTalvez
-    diferenca: DinheiroTalvez
-
-
-def comparar_sobra_ou_falta(respostas: RespostasCaso) -> ComparacaoSobraFalta | None:
-    """`RF-412` — `None` se o aluno não informou sobra nem falta. O
-    resultado calculado é o MESMO da `B3.C00` (`fotografia_do_mes`); a
-    diferença é a função pura do motor, sem conta nova aqui."""
-    sobra = respostas.valor("SOBRA_PERCEBIDA")
-    falta = respostas.valor("FALTA_PERCEBIDA")
-    sobra = sobra if isinstance(sobra, Decimal) else None
-    falta = falta if isinstance(falta, Decimal) else None
-    percebido = sobra if sobra is not None else falta
-    if percebido is None:
-        return None
-    calculado = fotografia_do_mes(respostas).SOBRA_ANTES_DAS_DIVIDAS
-    return ComparacaoSobraFalta(
-        sentido="SOBRA" if sobra is not None else "FALTA",
-        percebido=percebido,
-        calculado=calculado,
-        diferenca=diferenca_percebida_do_calculado(sobra, falta, calculado),
     )
 
 

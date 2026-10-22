@@ -93,16 +93,6 @@ def test_t208_nenhuma_pergunta_de_escolha_tem_valor_interno_nulo() -> None:
     assert not violacoes, "opção de escolha sem valor_interno (T-208):\n" + "\n".join(violacoes)
 
 
-def test_t213_opcao_de_data_de_b5b05b_sai_da_excecao_pelo_atributo() -> None:
-    """`B5.B05B` não é mais exceção: "Data" é aceita por `abre_campo` e o
-    "Não sei." grava `NAO_SEI` (a montagem o lê como `VALIDADE_DESCONHECIDA`)."""
-    registro = next(r for r in _registros() if r.ID == "B5.B05B")
-    nulas = [o for o in registro.opcoes if o.valor_interno is None and o.abre_campo is None]
-
-    assert nulas == []
-    assert "B5.B05B" not in EXCECOES_VALOR_NULO
-
-
 def test_valor_interno_das_sim_nao_esta_no_dominio_que_a_montagem_compara() -> None:
     violacoes = [
         f"{registro.ID}: {opcao.rotulo!r} -> {opcao.valor_interno!r}"

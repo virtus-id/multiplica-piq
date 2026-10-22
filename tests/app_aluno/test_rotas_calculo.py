@@ -50,7 +50,6 @@ from app.http.sessao import iniciar_sessao_conta
 from app.montagem.conversao import ErroConversaoInvalida
 from app.montagem.estado import (
     ErroCampoAgregadoDesconhecido,
-    ErroDinheiroDisponivelIndeterminado,
     ErroRespostaAusente,
     ErroSinalComportamentalAusente,
 )
@@ -552,7 +551,6 @@ def _erros_de_montagem() -> list[Exception]:
         ValueError("valor inesperado ''"),
         ErroSinalComportamentalAusente("VARIAVEL_TESTE_T197"),
         ErroCampoAgregadoDesconhecido("VARIAVEL_TESTE_T197", "motivo"),
-        ErroDinheiroDisponivelIndeterminado("VARIAVEL_TESTE_T197", "motivo"),
         ErroConversaoInvalida("abc", "motivo"),
         ErroRespostaAusente("DIV-1", "B5.99", "VARIAVEL_TESTE_T197"),
         # Valor de tipo inesperado cai no `assert` de `estado.py`.
@@ -771,25 +769,26 @@ def _respostas_vistas_pela_montagem(
 def test_t217_resposta_de_pergunta_fechada_nao_chega_a_montagem(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """B2.09=SIM → B2.10 respondida → corrige B2.09=NAO: B2.10 segue no
-    repositório, mas a montagem não a vê. (`T-389`: era `B1.02`/`B1.03`.)"""
+    """B3.04=SIM → B3.04A respondida → corrige B3.04=NAO: B3.04A segue no
+    repositório, mas a montagem não a vê. (`T-389`: era `B1.02`/`B1.03`;
+    `T-408`: era `B2.09`/`B2.10`.)"""
     respostas = (
-        _resposta_t217("GASTOS_FANTASMAS", "NAO"),
-        _resposta_t217("VALOR_GASTOS_FANTASMAS", Decimal("100")),
+        _resposta_t217("CONTRIBUICAO_FAMILIAR_EXISTE", "NAO"),
+        _resposta_t217("CONTRIBUICAO_FAMILIAR", Decimal("100")),
     )
 
-    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B2.09", "B2.10"), respostas)
+    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B3.04", "B3.04A"), respostas)
 
-    assert [r.ID_PERGUNTA for r in vistas] == ["GASTOS_FANTASMAS"]
+    assert [r.ID_PERGUNTA for r in vistas] == ["CONTRIBUICAO_FAMILIAR_EXISTE"]
 
 
 def test_t217_pergunta_aberta_continua_no_calculo(monkeypatch: pytest.MonkeyPatch) -> None:
     respostas = (
-        _resposta_t217("GASTOS_FANTASMAS", "SIM"),
-        _resposta_t217("VALOR_GASTOS_FANTASMAS", Decimal("100")),
+        _resposta_t217("CONTRIBUICAO_FAMILIAR_EXISTE", "SIM"),
+        _resposta_t217("CONTRIBUICAO_FAMILIAR", Decimal("100")),
     )
 
-    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B2.09", "B2.10"), respostas)
+    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B3.04", "B3.04A"), respostas)
 
     assert vistas == respostas
 

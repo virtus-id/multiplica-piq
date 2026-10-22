@@ -74,7 +74,7 @@ def test_ac92_a_posicao_acompanha_a_ordem_das_perguntas_abertas() -> None:
     assert quarta.posicao == 4
 
 
-@pytest.mark.parametrize("indice", [0, 3, 7])
+@pytest.mark.parametrize("indice", [0, 1, 3])
 def test_ac92_o_denominador_e_o_mesmo_para_toda_a_ficha(indice: int) -> None:
     """O total não pode variar entre perguntas da MESMA ficha — senão a barra
     de progresso do `.top` andaria para trás sozinha."""

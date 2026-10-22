@@ -159,15 +159,15 @@ def test_campo_opt_em_branco_nao_gera_pendencia() -> None:
 
 
 def test_campo_cond_puro_sem_obr_nunca_gera_pendencia_mesmo_com_condicao_verdadeira() -> None:
-    """`B2.10` real: `obrigatoriedade=[COND]` (sem `OBR`) — condicionalmente
+    """`B3.04A` real: `obrigatoriedade=[COND]` (sem `OBR`) — condicionalmente
     EXIBIDA, mas não obrigatória por si só. Mesmo com a condição de exibição
     satisfeita e a pergunta em branco, ela não é uma pendência: só `OBR`
     torna um registro exigível (`_e_exigivel_agora`)."""
     registros = _colecao_real()
-    registro_b2_10 = next(r for r in registros if r.ID == "B2.10")
+    registro_b2_10 = next(r for r in registros if r.ID == "B3.04A")
     assert registro_b2_10.obrigatoriedade == frozenset({Obrigatoriedade.COND})
 
-    respostas = RespostasCaso(respostas=(_resposta("GASTOS_FANTASMAS", "SIM"),))
+    respostas = RespostasCaso(respostas=(_resposta("CONTRIBUICAO_FAMILIAR_EXISTE", "SIM"),))
 
     pendencias = pendencias_obrigatorias((registro_b2_10,), respostas)
 

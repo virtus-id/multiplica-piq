@@ -20,7 +20,6 @@ from app.montagem.estado import (
     ErroRespostaAusente,
     ErroSinalComportamentalAusente,
     ErroValorInternoDesconhecido,
-    _autopercepcao_controle,
     montar_perfil_comportamental,
     montar_sinais_comportamentais,
 )
@@ -171,35 +170,6 @@ class TestCriterio1AC13TodosOsCamposPreenchidos:
 
 
 # ---------------------------------------------------------------------------
-# Critério 2 — AUTOPERCEPCAO_CONTROLE (B2.13) admite DESCONHECIDO.
-# ---------------------------------------------------------------------------
-class TestCriterio2AutopercepcaoControleAdmiteDesconhecido:
-    def test_autopercepcao_controle_com_resposta_concreta(self) -> None:
-        respostas = RespostasCaso(respostas=(_resposta("AUTOPERCEPCAO_CONTROLE", 7),))
-
-        assert _autopercepcao_controle(respostas) == 7
-
-    def test_autopercepcao_controle_sem_resposta_e_desconhecido(self) -> None:
-        respostas = RespostasCaso(respostas=())
-
-        assert _autopercepcao_controle(respostas) is DESCONHECIDO
-
-    def test_autopercepcao_controle_nao_sei_e_desconhecido(self) -> None:
-        respostas = RespostasCaso(respostas=(_resposta("AUTOPERCEPCAO_CONTROLE", NAO_SEI),))
-
-        assert _autopercepcao_controle(respostas) is DESCONHECIDO
-
-    def test_autopercepcao_controle_zero_e_preservado_como_zero(self) -> None:
-        """Nota real da escala (0 = "muito pouca visibilidade") não pode
-        ser confundida com ausência/DESCONHECIDO."""
-        respostas = RespostasCaso(respostas=(_resposta("AUTOPERCEPCAO_CONTROLE", 0),))
-
-        valor = _autopercepcao_controle(respostas)
-        assert valor == 0
-        assert isinstance(valor, int)
-
-
-# ---------------------------------------------------------------------------
 # Critério 3 — o mapeamento resposta → membro de enum é por valor_interno
 # do registro, sem `if` por pergunta (mecanismo genérico `_membro_do_enum`).
 # ---------------------------------------------------------------------------
@@ -296,7 +266,6 @@ def test_mapeamento_usa_variaveis_dos_registros_reais() -> None:
     variaveis_usadas = {
         "CONHECIMENTO_GASTO",
         "REVISAO_SEMANAL",
-        "AUTOPERCEPCAO_CONTROLE",
         "MECANISMO_DEFICIT",
         "NOVO_PARCELAMENTO_PREVISTO",
         "PACTO",
@@ -336,8 +305,8 @@ def test_necessidade_vitoria_le_a_escala_0_10_do_registro_real() -> None:
 
 def test_necessidade_vitoria_zero_e_preservado_como_zero() -> None:
     """Nota real da escala (0 = "isso faria pouca diferença para mim") não
-    pode ser confundida com ausência/DESCONHECIDO — mesma prova de
-    `_autopercepcao_controle` (B2.13)."""
+    pode ser confundida com ausência/DESCONHECIDO — mesma prova que valia
+    para `B2.13` (removida em `T-408`)."""
     respostas = _sinais_comportamentais_minimo_completo(NECESSIDADE_VITORIA=0)
 
     sinais = montar_sinais_comportamentais(respostas)

@@ -362,20 +362,20 @@ def test_isolamento_sem_sessao_responde_401(monkeypatch: pytest.MonkeyPatch) -> 
 def test_t198_resposta_cuja_condicao_fechou_nao_quebra_nem_e_listada(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`B2.09=SIM` abre `B2.10`; corrigir para `NAO` fecha. A resposta de
-    `B2.10` continua gravada, mas a revisão respondia `500` em toda carga —
+    """`B3.04=SIM` abre `B3.04A`; corrigir para `NAO` fecha. A resposta de
+    `B3.04A` continua gravada, mas a revisão respondia `500` em toda carga —
     e o "‹ Pergunta anterior", que usa a mesma rota, sumia.
 
     A linha some da revisão (mesma disciplina das fichas); a parte fica.
-    (`T-389`: era `B1.02`/`B1.03`.)"""
-    b210 = _resposta("B2.10", Decimal("100"))
-    respostas = (_resposta("B2.09", "NAO"), b210)
+    (`T-389`: era `B1.02`/`B1.03`; `T-408`: era `B2.09`/`B2.10`.)"""
+    b304a = _resposta("B3.04A", Decimal("100"))
+    respostas = (_resposta("B3.04", "NAO"), b304a)
     cliente = _montar_cliente(monkeypatch, respostas=respostas)
 
-    parte = next(p for p in _partes(cliente) if p["bloco"] == 2)
+    parte = next(p for p in _partes(cliente) if p["bloco"] == 3)
 
-    assert [r["ID"] for r in parte["respondidas"]] == ["B2.09"]
-    assert b210 in _RepositorioRespostasDublê(respostas).listar_do_caso(_CASO)
+    assert [r["ID"] for r in parte["respondidas"]] == ["B3.04"]
+    assert b304a in _RepositorioRespostasDublê(respostas).listar_do_caso(_CASO)
 
 
 def test_t389_resposta_de_pergunta_retirada_do_questionario_nao_quebra_a_revisao(
@@ -482,19 +482,3 @@ def test_t297_respostas_do_bloco_9_aparecem_na_revisao(
 # ---------------------------------------------------------------------------
 # `T-303` — opção que abre campo mostra o valor digitado.
 # ---------------------------------------------------------------------------
-
-
-def test_t303_data_digitada_aparece_formatada(monkeypatch: pytest.MonkeyPatch) -> None:
-    cliente = _montar_cliente(
-        monkeypatch,
-        respostas=(
-            _resposta("B5.B05", "SIM", "D001"),
-            _resposta("B5.B05B", date(2026, 1, 15), "D001"),
-        ),
-        itens=_dividas("D001"),
-    )
-
-    parte = next(p for p in _partes(cliente) if p["bloco"] == 5)
-    linha = next(r for r in parte["respondidas"] if r["ID"] == "B5.B05B")
-
-    assert linha["valores"] == ["Data — 15/01/2026"]

@@ -432,26 +432,26 @@ def test_ac36_editar_enunciado_no_yaml_e_recarregar_muda_o_texto_sem_tocar_py(
     tmp_path: Path,
 ) -> None:
     """Copia os registros reais para um diretório temporário, edita o
-    enunciado de `B2.10A` no YAML copiado e recarrega com
+    enunciado de `B3.05B` no YAML copiado e recarrega com
     `carregar_registros(diretorio=...)`: o novo texto aparece na coleção
     recarregada, sem que nenhum `.py` do repositório tenha sido tocado."""
     diretorio_copia = tmp_path / "registros"
     shutil.copytree(_DIRETORIO_REGISTROS_REAIS, diretorio_copia)
 
     colecao_original = carregar_registros(diretorio_copia)
-    registro_original = _registro(colecao_original, "B2.10A")
+    registro_original = _registro(colecao_original, "B3.05B")
     enunciado_original = registro_original.enunciado
 
-    caminho_bloco = diretorio_copia / "bloco-02.yaml"
+    caminho_bloco = diretorio_copia / "bloco-03.yaml"
     conteudo = caminho_bloco.read_text(encoding="utf-8")
-    novo_enunciado = "Sem sombra de dúvida, você aceita considerar essa redução no seu PIQ?"
+    novo_enunciado = "Sem sombra de dúvida, quanto você espera receber?"
     assert enunciado_original in conteudo
     conteudo_editado = conteudo.replace(enunciado_original, novo_enunciado)
     assert conteudo_editado != conteudo
     caminho_bloco.write_text(conteudo_editado, encoding="utf-8")
 
     colecao_recarregada = carregar_registros(diretorio_copia)
-    registro_recarregado = _registro(colecao_recarregada, "B2.10A")
+    registro_recarregado = _registro(colecao_recarregada, "B3.05B")
 
     assert registro_recarregado.enunciado == novo_enunciado
     assert registro_recarregado.enunciado != enunciado_original
@@ -460,7 +460,7 @@ def test_ac36_editar_enunciado_no_yaml_e_recarregar_muda_o_texto_sem_tocar_py(
     # foi tocado — só o YAML copiado em tmp_path. A prova é que os registros
     # REAIS (fora de tmp_path) continuam com o enunciado original.
     colecao_real_intacta = carregar_registros()
-    assert _registro(colecao_real_intacta, "B2.10A").enunciado == enunciado_original
+    assert _registro(colecao_real_intacta, "B3.05B").enunciado == enunciado_original
 
 
 def _bruto_com_perguntas(*, versao: str, perguntas: list[dict[str, object]]) -> dict[str, object]:

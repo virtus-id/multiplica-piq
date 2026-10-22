@@ -100,7 +100,7 @@ def _responder_todas_as_abertas(
 def test_ac01_blocos_1_a_3_respondidos_retoma_na_primeira_pergunta_do_bloco_4() -> None:
     """Todas as perguntas ABERTAS dos Blocos 1–3 (sem escopo de repetição,
     para não depender de fichas/itens ainda não cadastrados) são respondidas;
-    nenhuma do Bloco 4 é tocada. A retomada aponta `B4.01` — `OBR`, sem
+    nenhuma do Bloco 4 é tocada. A retomada aponta `B4.02` — `OBR`, sem
     condição de exibição, a primeira pergunta real do Bloco 4 na ordem de
     carga (`collection/carga.py`)."""
     registros = _colecao_real()
@@ -116,22 +116,22 @@ def test_ac01_blocos_1_a_3_respondidos_retoma_na_primeira_pergunta_do_bloco_4() 
 
     proxima = proxima_pergunta_nao_respondida(registros, respostas)
 
-    assert proxima == PendenciaObrigatoria(ID="B4.01", item_id=None)
+    assert proxima == PendenciaObrigatoria(ID="B4.02", item_id=None)
 
 
-def test_ac01_apos_responder_b4_01_a_retomada_avanca_para_a_proxima_do_bloco_4() -> None:
-    """Gravando também `B4.01`, a retomada deixa de apontar para ela — a
+def test_ac01_apos_responder_b4_02_a_retomada_avanca_para_a_proxima_do_bloco_4() -> None:
+    """Gravando também `B4.02`, a retomada deixa de apontar para ela — a
     função nunca pede de novo um campo já respondido."""
     registros = _colecao_real()
     blocos_1_a_3_sem_repeticao = _registros_dos_blocos_sem_repeticao(registros, 1, 2, 3)
     respostas_dadas = list(_responder_todas_as_abertas(blocos_1_a_3_sem_repeticao))
-    respostas_dadas.append(_resposta("DINHEIRO_DISPONIVEL_EXISTE", "SIM"))
+    respostas_dadas.append(_resposta("RESERVA_EXISTE", "NAO"))
     respostas = RespostasCaso(respostas=tuple(respostas_dadas))
 
     proxima = proxima_pergunta_nao_respondida(registros, respostas)
 
     assert proxima is not None
-    assert proxima.ID != "B4.01"
+    assert proxima.ID != "B4.02"
 
 
 # ---------------------------------------------------------------------------

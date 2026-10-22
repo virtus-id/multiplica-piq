@@ -173,7 +173,6 @@ from app.http.renderizacao import ErroPerguntaNaoExibivel, montar_contexto_pergu
 from app.montagem.conversao import ErroConversaoInvalida, converter_para_dinheiro
 from app.montagem.estado import (
     ErroCampoAgregadoDesconhecido,
-    ErroDinheiroDisponivelIndeterminado,
     ErroRespostaAusente,
     ErroSinalComportamentalAusente,
     ErroValorInternoDesconhecido,
@@ -229,7 +228,6 @@ _ERROS_DE_MONTAGEM: Final[tuple[type[Exception], ...]] = (
     ErroValorInternoDesconhecido,
     ErroSinalComportamentalAusente,
     ErroCampoAgregadoDesconhecido,
-    ErroDinheiroDisponivelIndeterminado,
     ErroConversaoInvalida,
     ValueError,
     # `estado.py` confere com `assert` o tipo de um valor monetário;

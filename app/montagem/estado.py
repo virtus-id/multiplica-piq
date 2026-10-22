@@ -509,43 +509,6 @@ def _taxa_mensal_normalizada(respostas: RespostasCaso, DIVIDA_ID: str) -> TaxaTa
     return DESCONHECIDO
 
 
-def _quitacao_consultada(valor: ValorResposta | None) -> SimNaoTalvez:
-    """`B5.B05` (`QUITACAO_CONSULTADA`) tem domínio `SIM · NAO · EXPIROU`
-    (`T-405`, RF-418: sem "Não sei"). `Divida.QUITACAO_CONSULTADA` é tipado
-    `SimNaoTalvez`; `EXPIROU` significa "consultou, mas o valor venceu" — o
-    FATO relevante é que a consulta ocorreu, e a invalidade é tratada à
-    parte por `STATUS_VALIDADE_PROPOSTA`; por isso `EXPIROU → SIM`."""
-    if valor is None:
-        return SimNaoTalvez.NAO
-    if valor == "SIM" or valor == "EXPIROU":
-        return SimNaoTalvez.SIM
-    if valor == "NAO":
-        return SimNaoTalvez.NAO
-    raise ValueError(f"QUITACAO_CONSULTADA: valor inesperado {valor!r}")
-
-
-def _status_validade_proposta(
-    quitacao_consultada_bruto: ValorResposta | None,
-    data_validade_bruto: ValorResposta | None,
-) -> STATUS_VALIDADE_PROPOSTA:
-    """`STATUS_VALIDADE_PROPOSTA` é "derivado" pela própria canônica a partir
-    de `DATA_VALIDADE_PROPOSTA` (B5.B05B) — mas a derivação aqui é LEITURA
-    de fato (qual rótulo a resposta já indicou), nunca fórmula financeira:
-    `B5.B05 = EXPIROU` → `EXPIRADA` diretamente (regra do próprio salto de
-    B5.B05, sem depender de B5.B05B). `B5.B05B = VALIDADE_DESCONHECIDA` →
-    `VALIDADE_DESCONHECIDA`. Qualquer outra resposta concreta de data (ou
-    ausência, quando a quitação não foi sequer consultada) → `VIGENTE` seria
-    uma AFIRMAÇÃO não verificada (comparar a data com `DATA_REFERENCIA`
-    exigiria essa entrada, fora do escopo desta função que só monta
-    `Divida`) — por isso, fora dos dois casos explícitos acima, o valor mais
-    fiel e não-inventado é `VALIDADE_DESCONHECIDA`."""
-    if quitacao_consultada_bruto == "EXPIROU":
-        return STATUS_VALIDADE_PROPOSTA.EXPIRADA
-    if data_validade_bruto == "VALIDADE_DESCONHECIDA":
-        return STATUS_VALIDADE_PROPOSTA.VALIDADE_DESCONHECIDA
-    return STATUS_VALIDADE_PROPOSTA.VALIDADE_DESCONHECIDA
-
-
 def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
     """RF-12, RF-14 (`AC-08`) — monta a `Divida` de uma ficha do Bloco 5 a
     partir das respostas gravadas para o item `DIVIDA_ID`.
@@ -580,20 +543,11 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         SALDO_DEVEDOR_ATUAL=_dinheiro_obrigatorio(
             respostas, DIVIDA_ID, "B5.B03", "SALDO_DEVEDOR_ATUAL"
         ),
-        # B5.B05A — COND (só exibida quando QUITACAO_CONSULTADA ∈ {SIM,
-        # EXPIROU}): ausência aqui é ESTRUTURAL (pergunta nem foi exibida),
-        # não "REP obrigatória sem resposta" — por isso admite DESCONHECIDO
-        # também para ausência, e não ErroRespostaAusente.
-        VALOR_QUITACAO_HOJE=_dinheiro_estrutural_ou_desconhecido(
-            respostas, DIVIDA_ID, "VALOR_QUITACAO_HOJE"
-        ),
-        QUITACAO_CONSULTADA=_quitacao_consultada(
-            respostas.valor_no_item(DIVIDA_ID, "QUITACAO_CONSULTADA")
-        ),
-        STATUS_VALIDADE_PROPOSTA=_status_validade_proposta(
-            respostas.valor_no_item(DIVIDA_ID, "QUITACAO_CONSULTADA"),
-            respostas.valor_no_item(DIVIDA_ID, "DATA_VALIDADE_PROPOSTA"),
-        ),
+        # `T-408`: B5.B05, B5.B05A e B5.B05B saíram — o motor sempre usava o
+        # saldo devedor no lugar do valor de quitação (nunca havia `VIGENTE`).
+        VALOR_QUITACAO_HOJE=DESCONHECIDO,
+        QUITACAO_CONSULTADA=SimNaoTalvez.NAO,
+        STATUS_VALIDADE_PROPOSTA=STATUS_VALIDADE_PROPOSTA.VALIDADE_DESCONHECIDA,
         # B5.D06 — valor e periodicidade na mesma resposta; a conversão ao
         # ano é do motor (`§16.1`). O CET não é lido: não há marca de qual dos
         # dois o aluno informou (`T-393`).
@@ -698,26 +652,6 @@ def montar_perfil_comportamental(respostas: RespostasCaso) -> PerfilComportament
             respostas, "B2.12", "REVISAO_SEMANAL", REVISAO_SEMANAL
         ),
     )
-
-
-def _autopercepcao_controle(respostas: RespostasCaso) -> int | Desconhecido:
-    """`B2.13` (`AUTOPERCEPCAO_CONTROLE`) — escala 0–10, OBR, admite
-    `DESCONHECIDO` (segundo critério de aceite de T-50): a pergunta em si
-    não oferece opção "não sei" no registro (`admite_nao_sei: false`), mas
-    o campo do contrato (`EstadoFinanceiro.AUTOPERCEPCAO_CONTROLE`) é
-    tipado `int | Desconhecido` — resposta ausente aqui vira `DESCONHECIDO`
-    (nunca 0, que é uma nota real da escala), e não `ErroRespostaAusente`,
-    exatamente porque o próprio contrato já admite a ausência como valor de
-    primeira classe."""
-    bruto = respostas.valor("AUTOPERCEPCAO_CONTROLE")
-    if bruto is None:
-        return DESCONHECIDO
-    traduzido = _ou_desconhecido(bruto)
-    if not (isinstance(traduzido, int) and not isinstance(traduzido, bool)) and (
-        traduzido is not DESCONHECIDO
-    ):
-        return DESCONHECIDO
-    return traduzido
 
 
 # ---------------------------------------------------------------------------
@@ -1196,37 +1130,6 @@ def _inventario_completo(respostas: RespostasCaso) -> bool:
     return valor == "SIM"
 
 
-class ErroDinheiroDisponivelIndeterminado(Exception):
-    """`RF-38`, `EC-20`, `AC-59` (`T-110`). `EstadoFinanceiro.DINHEIRO_
-    DISPONIVEL` é `Dinheiro` PURO (`engine/estado.py:517`), sem união com
-    `Desconhecido`: quando `B4.01`/`B4.01A` não entregam um `Decimal` real
-    nem a resposta afirmativa "não possuo", não há `DESCONHECIDO` a entregar
-    — e zero por omissão seria exatamente a estimativa silenciosa que
-    `sdd.config.md` §4 proíbe.
-
-    Classe NOVA e dedicada, não reuso (decisão fechada, plano R2.4.1/R2.10):
-    `ErroRespostaAusente` carrega `DIVIDA_ID`/`ID_PERGUNTA` e nasceu para a
-    ficha `REP` de dívida do Bloco 5; `ErroCampoAgregadoDesconhecido`
-    (`:1000`) é declaradamente dedicada a agregados do Bloco 3. Este caminho
-    é campo escalar de Bloco 4 e precisa ser DISTINGUÍVEL na captura pela
-    chamadora. Reusar `ErroRespostaAusente` também seria defensável —
-    registrado como trade-off no plano (R2.10), nunca decidido em silêncio.
-
-    Mensagem por `str.join` sobre segmentos curtos (mesmo padrão de
-    `ErroRespostaAusente.__init__`/`ErroCampoAgregadoDesconhecido.__init__`,
-    acima) — nenhum enunciado de pergunta aparece nela (`AC-37`)."""
-
-    def __init__(self, VARIAVEL_GRAVADA: str, motivo: str) -> None:
-        self.VARIAVEL_GRAVADA = VARIAVEL_GRAVADA
-        self.motivo = motivo
-        segmentos = (
-            f"{VARIAVEL_GRAVADA}:",
-            motivo,
-            "— nenhuma estimativa silenciosa (RF-38).",
-        )
-        super().__init__(" ".join(segmentos))
-
-
 def _reserva_existe(respostas: RespostasCaso) -> RESERVA_EXISTE:
     """`B4.02` (`RESERVA_EXISTE`) — `RF-36`, `AC-51`. `OBR`, não repetível,
     `admite_nao_sei: false` (`collection/registros/bloco-04.yaml:43-64`), e
@@ -1355,91 +1258,6 @@ def _valor_maximo_reserva_informado_usuario(respostas: RespostasCaso) -> Dinheir
     return traduzido
 
 
-def _dinheiro_disponivel(respostas: RespostasCaso) -> Dinheiro:
-    """`B4.01`/`B4.01A` (`DINHEIRO_DISPONIVEL_EXISTE`/`DINHEIRO_DISPONIVEL`)
-    — `RF-38`, `AC-57`, `AC-58`, `AC-59`, `EC-20`. Único dos cinco campos
-    desta fatia tipado `Dinheiro` PURO (`engine/estado.py:517`): não há
-    `DESCONHECIDO` a entregar em nenhum ramo. Os cinco caminhos, na ordem de
-    avaliação (plano R2.4.4):
-
-    - `B4.01 = SIM` + `B4.01A` com `Decimal` → o próprio `Decimal` (`AC-57`).
-    - `B4.01 = NAO` (`B4.01A` não exibida, `condicao_exibicao`, `:36`) →
-      `_ZERO` (`AC-58`).
-    - `B4.01` ausente → erro nomeado (`AC-59`).
-    - `B4.01 = SIM` com `B4.01A` ausente ou `NAO_SEI` → erro nomeado.
-      (`B4.01` não tem mais "Não sei", `T-405`; resposta fora de SIM/NAO segue erro.)
-
-    **O `_ZERO` do ramo `NAO` NÃO é default.** `sdd.config.md` §4 proíbe
-    inventar dado; não proíbe transcrever um zero que o aluno declarou.
-    `B4.01 = NAO` é resposta `[OBR]` AFIRMATIVA — "não possuo dinheiro
-    disponível" — e o zero é a transcrição dela, não a ausência dela. O que a
-    §4 proíbe é exatamente o quarto e o quinto ramos, que por isso levantam
-    `ErroDinheiroDisponivelIndeterminado`. `_ZERO` (`:266`) vem da fronteira
-    `Decimal` única, como todo `Dinheiro` deste módulo — nenhum
-    `Decimal(...)`/`dinheiro(...)` literal é escrito aqui (`RF-13`).
-
-    `OQ-23` continua aberta quanto a COMO a coleta se recupera do ramo
-    `NAO_SEI` (e se o registro deveria bloquear na própria coleta o par
-    "`B4.01 = NAO_SEI` + `B4.01A` não exibida") — decisão de produto/registro,
-    que não se toma aqui (plano R2.10.1). Qual erro levantar é o que foi
-    encaminhado como decisão de implementação, e é esta exceção dedicada."""
-    existe = respostas.valor("DINHEIRO_DISPONIVEL_EXISTE")
-    if existe is None:
-        raise ErroDinheiroDisponivelIndeterminado("DINHEIRO_DISPONIVEL_EXISTE", "sem resposta")
-    if existe == "NAO":
-        return _ZERO
-    if existe != "SIM":
-        # Qualquer `valor_interno` fora do domínio não autoriza um valor.
-        raise ErroDinheiroDisponivelIndeterminado(
-            "DINHEIRO_DISPONIVEL_EXISTE", "resposta não afirma valor conhecido"
-        )
-    valor = respostas.valor("DINHEIRO_DISPONIVEL")
-    if valor is None:
-        raise ErroDinheiroDisponivelIndeterminado("DINHEIRO_DISPONIVEL", "sem resposta")
-    traduzido = _ou_desconhecido(valor)
-    if not isinstance(traduzido, Decimal):
-        raise ErroDinheiroDisponivelIndeterminado("DINHEIRO_DISPONIVEL", "valor não conhecido")
-    return traduzido
-
-
-def _economia_potencial_imediata(
-    respostas: RespostasCaso, economia_nao_identificada: Dinheiro | None
-) -> Dinheiro:
-    """`B2.09`/`B2.10`/`B2.10A` — ver docstring do módulo. "Somente SIM
-    torna `VALOR_GASTOS_FANTASMAS` elegível à economia potencial" (canônica,
-    salto/consequência de `B2.10A`): quando `ACEITA_REDUCAO_GASTOS_
-    FANTASMAS = SIM`, repassa `VALOR_GASTOS_FANTASMAS` (identidade, não
-    cálculo) — e SÓ nesse ramo constrói `Dinheiro` a partir de uma resposta já
-    convertida (RF-13: o valor já É `Decimal`, vindo da fronteira única). Em
-    qualquer outro caso — sem gasto fantasma identificado (`GASTOS_
-    FANTASMAS` ausente/`NAO`/`TALVEZ`), aceite `NAO`/`TALVEZ`/ausente, ou
-    `VALOR_GASTOS_FANTASMAS` desconhecido/ausente mesmo com aceite `SIM` —
-    o campo é `Dinheiro`, não `DinheiroTalvez`: não há como construir um
-    `Dinheiro(0)` aqui sem violar a fronteira `Decimal` única
-    (`app/montagem/conversao.py`, `RF-13`, `T-27` — este módulo nunca chama
-    `Decimal(...)`/`dinheiro(...)` literal). Por isso `economia_nao_
-    identificada` é parâmetro explícito da chamadora para ESSE caso — quando
-    `None` (nenhum valor fornecido) e nenhuma economia foi identificada, a
-    ausência é reportada como erro explícito, nunca 0 inventado aqui."""
-    gastos_fantasmas = respostas.valor("GASTOS_FANTASMAS")
-    aceite = respostas.valor("ACEITA_REDUCAO_GASTOS_FANTASMAS")
-    if gastos_fantasmas == "SIM" and aceite == "SIM":
-        valor_gastos_fantasmas = respostas.valor("VALOR_GASTOS_FANTASMAS")
-        if valor_gastos_fantasmas is not None:
-            traduzido = _ou_desconhecido(valor_gastos_fantasmas)
-            if isinstance(traduzido, Decimal):
-                return traduzido
-    if economia_nao_identificada is not None:
-        return economia_nao_identificada
-    # Mensagem técnica montada por `str.join` sobre segmentos curtos (mesmo
-    # padrão de `ErroRespostaAusente.__init__`/`ErroValorInternoDesconhecido.
-    # __init__`, acima) — evita um literal contíguo que ultrapasse o limiar
-    # de "possível enunciado de pergunta" de `tests/app_aluno/estatica/
-    # test_sem_conteudo_de_questionario_no_codigo.py` (T-08, AC-37).
-    nome_variavel = " ".join(("ECONOMIA_POTENCIAL_IMEDIATA", "(nenhuma economia elegível)"))
-    raise ErroRespostaAusente("", "B2.10/B2.10A", nome_variavel)
-
-
 def montar_estado_financeiro(
     respostas: RespostasCaso,
     *,
@@ -1548,22 +1366,23 @@ def montar_estado_financeiro(
         DESPESAS_NAO_MENSAIS_NORMALIZADAS=_despesas_nao_mensais_normalizadas(respostas),
         CAPACIDADE_ATAQUE_DECLARADA=_capacidade_ataque_declarada(respostas),
         CONTRIBUICAO_EXTRA_MENSAL=_contribuicao_extra_mensal(respostas),
-        ECONOMIA_POTENCIAL_IMEDIATA=_economia_potencial_imediata(
-            respostas, economia_nao_identificada
+        # `T-408`: B2.09, B2.10 e B2.10A saíram; só resta o valor da chamadora.
+        ECONOMIA_POTENCIAL_IMEDIATA=(
+            _ZERO if economia_nao_identificada is None else economia_nao_identificada
         ),
         INVENTARIO_COMPLETO=_inventario_completo(respostas),
         dividas=dividas,
         perfil_comportamental=montar_perfil_comportamental(respostas),
         sinais_comportamentais=montar_sinais_comportamentais(respostas),
         CONFIABILIDADE_DADOS=CONFIABILIDADE_DADOS,
-        AUTOPERCEPCAO_CONTROLE=_autopercepcao_controle(respostas),
+        AUTOPERCEPCAO_CONTROLE=DESCONHECIDO,  # `T-408`: B2.13 saiu
         # --- Bloco 4 · reserva (`T-111`, `RF-36`, `RF-37`) ---
         RESERVA_EXISTE=_reserva_existe(respostas),
         RESERVA_TOTAL=_reserva_total(respostas),
         DISPOSICAO_USO_RESERVA=_disposicao_uso_reserva(respostas),
         VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO=_valor_maximo_reserva_informado_usuario(respostas),
         # --- Bloco 4 · caixa (`T-111`, `RF-38`) ---
-        DINHEIRO_DISPONIVEL=_dinheiro_disponivel(respostas),
+        DINHEIRO_DISPONIVEL=_ZERO,  # `T-408`: B4.01/B4.01A saíram
         # --- Lacuna DECLARADA, com motivo na docstring acima (`RF-39`,
         # `AC-60`, `AC-62`, `EC-19`) — nunca omissão silenciosa: as duas
         # `motor-calculo:OQ-26` e `motor-calculo:OQ-27` bloqueiam

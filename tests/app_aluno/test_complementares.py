@@ -116,7 +116,7 @@ def _ids(complementares: dict[str, list[dict[str, object]]]) -> dict[str, list[o
 @pytest.mark.parametrize(
     ("mae", "item_id", "esperado"),
     [
-        ("B2.09", None, {"SIM": ["B2.10", "B2.10A"]}),
+        ("B3.04", None, {"SIM": ["B3.04A"]}),
         ("B5.C01", "D001", {"SIM": ["B5.C02"]}),
     ],
 )
@@ -155,29 +155,29 @@ def test_ac157_mae_e_filhas_gravadas_em_ordem_e_proxima_pula_as_respondidas(
 
     # Antes da mãe, a filha está fechada — a ordem mãe → filhas importa.
     fechada = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B2.10", "valor": "1.000,00"}
+        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B3.04A", "valor": "1.000,00"}
     )
     assert fechada.status_code == 400
 
     mae = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B2.09", "valor": "SIM"}
+        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B3.04", "valor": "SIM"}
     )
     assert mae.status_code == 200, mae.text
 
     recusada = cliente.post(
-        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B2.10", "valor": "abc"}
+        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B3.04A", "valor": "abc"}
     )
     assert recusada.status_code == 400
     # A mãe continua gravada; a filha recusada não.
     gravadas = {r.ID_PERGUNTA: r.valor for r in respostas.respostas}
-    assert gravadas["GASTOS_FANTASMAS"] == "SIM"
+    assert gravadas["CONTRIBUICAO_FAMILIAR_EXISTE"] == "SIM"
     assert len(gravadas) == 1
 
-    for filha, valor in (("B2.10", "1.000,00"), ("B2.10A", "SIM")):
+    for filha, valor in (("B3.04A", "1.000,00"),):
         gravada = cliente.post(
             f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": filha, "valor": valor}
         )
         assert gravada.status_code == 200, gravada.text
 
     proxima = gravada.json()["proxima"]["pergunta"]
-    assert proxima["ID"] not in {"B2.09", "B2.10", "B2.10A"}
+    assert proxima["ID"] not in {"B3.04", "B3.04A"}

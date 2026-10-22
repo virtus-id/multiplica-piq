@@ -142,7 +142,7 @@ from app.montagem.conversao import (
     converter_para_dinheiro,
     converter_para_taxa,
 )
-from app.montagem.entrada import avisos_da_gravacao, comparar_sobra_ou_falta, fotografia_do_mes
+from app.montagem.entrada import avisos_da_gravacao, fotografia_do_mes
 from collection.carga import ColecaoDeRegistros, carregar_registros
 from collection.condicoes import avaliar
 from collection.materialidade import AvisoMaterialidade, avaliar_ao_responder
@@ -1149,12 +1149,6 @@ def serializar_pergunta_do_caso(
             fotografia_do_mes(do_calculo),
             colecao.registros,
             dict(rotulos),
-            # `RF-412` (`B3.C02C`): sobra ou falta informada × calculado.
-            comparacao=(
-                comparar_sobra_ou_falta(do_calculo)
-                if registro.painel == "COMPARACAO_SOBRA_FALTA"
-                else None
-            ),
         )
     # `T-307` (RF-99): as filhas abertas por cada opção, na mesma tela.
     if com_complementares:

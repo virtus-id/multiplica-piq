@@ -434,6 +434,16 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-413 | RF-414 | Dada `B5.E01`, então não oferece "Não sei" e é obrigatória | verificado (T-401) |
 | AC-414 | RF-415 | Dado o revisor, então vê `B5.I03` como informação, sem efeito no cálculo | verificado (T-402) |
 | AC-415 | RF-416 | Dado o plano, a FAQ e o anexo, então nenhum menciona refazer o plano, "Gerar um novo plano" nem acompanhamento; os números do plano de quem fecha o mês no negativo fecham entre si | a implementar (T-403) |
+| AC-416 | RF-420 | Dado o questionário carregado, então nenhuma das 17 perguntas de RF-420 existe e o estado do motor com ou sem as respostas antigas é o mesmo, exceto os campos neutros | verificado (T-408) |
+
+### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
+Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
+- Valores neutros na montagem, motor intocado: `AUTOPERCEPCAO_CONTROLE = DESCONHECIDO`; `ECONOMIA_POTENCIAL_IMEDIATA` = o valor da chamadora (zero); `DINHEIRO_DISPONIVEL = 0`; `QUITACAO_CONSULTADA = NAO`, `VALOR_QUITACAO_HOJE = DESCONHECIDO`, `STATUS_VALIDADE_PROPOSTA = VALIDADE_DESCONHECIDA` (o motor já usava sempre o saldo devedor).
+- `B4.04` e `B4.I01` estavam como "manter" em RF-418; a decisão de agora as substitui.
+- Saem também o painel de comparação entre sobra/falta informada e calculada, e a exigência de justificar quando a fotografia do mês não confere (parte de RF-412). `B3.C00` segue e continua levando a `B3.D11` ou à correção.
+- A tela do revisor deixa de listar os cinco campos que não têm mais pergunta.
+- `engine/percepcao.py` e `engine/despesas.py` ficam como estão (o motor não muda sem a spec do motor).
+- `QUESTIONARIO_VERSION` segue em `1.3.0`, como em T-398 (sem mudar o formato das respostas guardadas).
 
 ## 9. Non-Functional Requirements
 

@@ -4,8 +4,9 @@ O especialista retirou 87 perguntas dos Blocos 1 a 5 que o motor não lê, o pro
 retirou `B4.V01` na `T-396`, e os dois retiraram mais 15 na `T-398` (Blocos 4, 5 e
 `B11.01`)
 (`specs/enxugamento-questionario.spec.md`, RF-402; a lista é a de `T-389`,
-menos `B3.S03` (que saiu na `T-404`) e `B5.I01`, que ficaram porque outras perguntas dependem
-delas). Este arquivo prova duas coisas:
+menos `B3.S03` (que saiu na `T-404`) e `B5.I01`, que ficou porque outra pergunta depende
+dela; `T-408` (RF-420) soma mais 17 perguntas que o motor não lê, entre elas `B3.C02` e `B4.04`.
+Este arquivo prova duas coisas:
 
 1. nenhuma delas existe mais nos registros (e os IDs não são reaproveitados);
 2. para os casos de prova que usam respostas (`caso_completo`, o de `GAB-03`
@@ -207,6 +208,24 @@ _REMOVIDAS: tuple[tuple[str, str, str | None, ValorResposta], ...] = (
     ("B3.S03", "ORGAO_FONTE_PAGADORA", "VINCULO_ID", "Prefeitura"),
     ("B5.A02V", "VINCULO_DA_DIVIDA", "DIVIDA_ID", "V001"),
     ("B5.C07", "LINHA_CONTINUA_SENDO_UTILIZADA", "DIVIDA_ID", "SIM"),
+    # `T-408` (RF-420): perguntas que o motor não lê.
+    ("B2.13", "AUTOPERCEPCAO_CONTROLE", None, 7),
+    ("B2.09", "GASTOS_FANTASMAS", None, "SIM"),
+    ("B2.10", "VALOR_GASTOS_FANTASMAS", None, Decimal("123.45")),
+    ("B2.10A", "ACEITA_REDUCAO_GASTOS_FANTASMAS", None, "SIM"),
+    ("B3.C00A", "ITENS_NAO_CONDIZENTES", None, "Texto"),
+    ("B3.C02", "PERCEPCAO_FECHAMENTO_MES", None, "SOBRA"),
+    ("B3.C02A", "SOBRA_PERCEBIDA", None, Decimal("123.45")),
+    ("B3.C02B", "FALTA_PERCEBIDA", None, Decimal("123.45")),
+    ("B3.C02C", "CONFERENCIA_SOBRA_FALTA", None, "REVISAR"),
+    ("B4.01", "DINHEIRO_DISPONIVEL_EXISTE", None, "SIM"),
+    ("B4.01A", "DINHEIRO_DISPONIVEL", None, Decimal("123.45")),
+    ("B4.04", "INVESTIMENTOS_EXISTE", None, "SIM"),
+    ("B4.I01", "IMOVEL_EXISTE", None, "SIM"),
+    ("B5.G01", "PROPOSTA_ATUAL", "DIVIDA_ID", "SIM"),
+    ("B5.B05", "QUITACAO_CONSULTADA", "DIVIDA_ID", "SIM"),
+    ("B5.B05A", "VALOR_QUITACAO_HOJE", "DIVIDA_ID", Decimal("123.45")),
+    ("B5.B05B", "DATA_VALIDADE_PROPOSTA", "DIVIDA_ID", "VALIDADE_DESCONHECIDA"),
 )
 
 # `T-404`: `B3.05BF` grava a mesma variável de `B3.05B` (que continua); sai sem
@@ -215,16 +234,14 @@ _REMOVIDA_COM_VARIAVEL_DE_OUTRA: tuple[str, ...] = ("B3.05BF",)
 
 _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = (
     "B5.I01",  # `nivel_comprovacao_se` de B5.I02 (comprovação da fonte)
-    "B3.C02",  # pai de B3.C02A/B3.C02B, que o especialista quer ligar ao motor
-    "B4.04",  # o responsável do produto decidiu manter
 )
 
 
 def test_perguntas_removidas_nao_existem_e_as_mantidas_continuam() -> None:
     ids = {r.ID for r in carregar_registros().registros}
 
-    assert len(_REMOVIDAS) == 126
-    assert len({ID for ID, *_ in _REMOVIDAS}) == 126
+    assert len(_REMOVIDAS) == 143
+    assert len({ID for ID, *_ in _REMOVIDAS}) == 143
     assert {ID for ID, *_ in _REMOVIDAS} & ids == set()
     assert set(_REMOVIDA_COM_VARIAVEL_DE_OUTRA) & ids == set()
     assert set(_MANTIDAS_QUE_OUTRAS_USAM) <= ids

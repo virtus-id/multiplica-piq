@@ -466,7 +466,7 @@ def test_t294_variavel_do_campo_so_com_abre_campo_moeda(
         carregar_registros(diretorio, _ESQUEMA_PADRAO)
 
 
-_IDS_COM_OPCAO_DE_DATA = ("B5.B05B",)
+_IDS_COM_OPCAO_DE_DATA: tuple[str, ...] = ()  # `T-408`: B5.B05B saiu
 
 
 def test_t213_registro_real_marca_so_as_opcoes_de_data() -> None:
@@ -633,11 +633,11 @@ def test_t224_questionario_na_versao_1_3_0_e_b3_c00_com_painel() -> None:
     1.2.0 (1.0.3 da canônica; 1.1.0 em `T-389` com as 87 perguntas retiradas, RF-402;
     1.2.0 na publicação do enxugamento (T-390 a T-397); 1.3.0 em `T-400`, RF-413).
     `B3.C00` declara o painel da fotografia do mês e é o único registro que
-    o faz."""
+    o faz (`T-408`: `B3.C02C`, o painel de comparação, saiu)."""
     colecao = carregar_registros(incluir_casos_de_prova=True)
 
     assert colecao.QUESTIONARIO_VERSION == "1.3.0"
-    assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00", "B3.C02C"]
+    assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00"]
     assert next(r for r in colecao.registros if r.ID == "B3.C00").painel == "FOTOGRAFIA_DO_MES"
 
 

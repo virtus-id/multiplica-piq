@@ -721,10 +721,9 @@ def test_variaveis_do_bloco_4_vem_do_registro_real() -> None:
     # `CUSTOS_ESTIMADOS_DESMOBILIZACAO`; `T-398`, a última que gravava
     # `VALOR_ESTIMADO_ATIVO` (`B4.04B`).
     assert VARIAVEIS_PATRIMONIAIS <= VARIAVEIS_BLOCO_4
-    # Os cinco campos escalares que a fatia 2A de fato lê (`AC-71`).
+    # Os campos escalares que a fatia 2A de fato lê (`AC-71`); `T-408`: o dinheiro
+    # disponível (`B4.01`/`B4.01A`) saiu do questionário.
     for escalar in (
-        "DINHEIRO_DISPONIVEL_EXISTE",
-        "DINHEIRO_DISPONIVEL",
         "RESERVA_EXISTE",
         "RESERVA_TOTAL",
         "DISPOSICAO_USO_RESERVA",

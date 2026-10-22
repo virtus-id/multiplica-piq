@@ -227,25 +227,29 @@ class TestTodosOsCamposObrigatoriosPreenchidos:
         assert estado.CAPACIDADE_ATAQUE_DECLARADA == Decimal("0")
         assert estado.CAPACIDADE_ATAQUE_DECLARADA is not DESCONHECIDO
 
-    def test_autopercepcao_controle_presente_e_lida(self) -> None:
+    def test_autopercepcao_controle_nao_tem_pergunta_e_e_desconhecido(self) -> None:
+        """`T-408` (RF-420): `B2.13` saiu; mesmo com resposta antiga gravada o
+        motor recebe `DESCONHECIDO`."""
         respostas = _respostas_minimas_completas(AUTOPERCEPCAO_CONTROLE=7)
 
         estado = _montar(respostas)
 
-        assert estado.AUTOPERCEPCAO_CONTROLE == 7
+        assert estado.AUTOPERCEPCAO_CONTROLE is DESCONHECIDO
 
-    def test_economia_potencial_imediata_com_aceite_repassa_valor_gastos_fantasmas(
+    def test_economia_potencial_imediata_ignora_respostas_antigas_de_gastos_fantasmas(
         self,
     ) -> None:
+        """`T-408` (RF-420): `B2.09`, `B2.10` e `B2.10A` saíram; só vale o valor
+        que a chamadora informa."""
         respostas = _respostas_minimas_completas(
             GASTOS_FANTASMAS="SIM",
             VALOR_GASTOS_FANTASMAS=converter_para_dinheiro("120,00"),
             ACEITA_REDUCAO_GASTOS_FANTASMAS="SIM",
         )
 
-        estado = _montar(respostas)
+        estado = _montar(respostas, economia_nao_identificada=Decimal("0"))
 
-        assert estado.ECONOMIA_POTENCIAL_IMEDIATA == Decimal("120.00")
+        assert estado.ECONOMIA_POTENCIAL_IMEDIATA == Decimal("0")
 
     def test_economia_potencial_imediata_sem_aceite_usa_parametro_de_ausencia(self) -> None:
         respostas = _respostas_minimas_completas(
@@ -258,15 +262,12 @@ class TestTodosOsCamposObrigatoriosPreenchidos:
 
         assert estado.ECONOMIA_POTENCIAL_IMEDIATA == Decimal("0")
 
-    def test_economia_potencial_imediata_sem_parametro_de_ausencia_levanta_erro(self) -> None:
-        """Sem gasto fantasma identificado E sem `economia_nao_identificada`
-        fornecido pela chamadora, a ausência é erro explícito — nunca um
-        `Dinheiro(0)` inventado dentro deste módulo (RF-13: fronteira
-        Decimal única)."""
-        respostas = _respostas_minimas_completas()
+    def test_economia_potencial_imediata_sem_parametro_e_zero(self) -> None:
+        """Sem `economia_nao_identificada`, o zero vem da fronteira única de
+        dinheiro do módulo (`_ZERO`), nunca de um construtor local."""
+        estado = _montar(_respostas_minimas_completas(), economia_nao_identificada=None)
 
-        with pytest.raises(ErroRespostaAusente):
-            _montar(respostas, economia_nao_identificada=None)
+        assert estado.ECONOMIA_POTENCIAL_IMEDIATA == Decimal("0")
 
 
 # ---------------------------------------------------------------------------
@@ -366,26 +367,6 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_3() -> None:
     assert not ausentes, (
         f"montar_estado_financeiro usa variável(is) do Bloco 3 que não "
         f"existe(m) em nenhum registro real: {ausentes}"
-    )
-
-
-def test_mapeamento_economia_potencial_usa_variaveis_do_registro_real_do_bloco_2() -> None:
-    colecao = carregar_registros()
-    variaveis_existentes = {
-        registro.VARIAVEL_GRAVADA
-        for registro in colecao.registros
-        if registro.VARIAVEL_GRAVADA is not None
-    }
-
-    variaveis_usadas = {
-        "GASTOS_FANTASMAS",
-        "VALOR_GASTOS_FANTASMAS",
-        "ACEITA_REDUCAO_GASTOS_FANTASMAS",
-    }
-    ausentes = variaveis_usadas - variaveis_existentes
-    assert not ausentes, (
-        f"_economia_potencial_imediata usa variável(is) que não existe(m) "
-        f"em nenhum registro real: {ausentes}"
     )
 
 

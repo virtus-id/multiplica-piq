@@ -113,69 +113,6 @@ perguntas:
       DESCONHECIDA → PRIORIDADE DE INFORMAÇÃO; STATUS_DIVIDA_TOTAL =
       PARCIAL.
 
-  - ID: B5.B05
-    bloco: 5
-    enunciado: >-
-      Você já consultou quanto precisaria pagar hoje para quitar
-      integralmente esta dívida?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "Sim.", valor_interno: SIM}
-      - {rotulo: "Não.", valor_interno: NAO}
-      - {rotulo: "Consultei, mas o valor já venceu/expirou.", valor_interno: EXPIROU}
-    VARIAVEL_GRAVADA: QUITACAO_CONSULTADA
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      SIM → B5.B05A e B5.B05B. EXPIROU → B5.B05A como histórico
-      (STATUS_VALIDADE_PROPOSTA = EXPIRADA). NAO → ação de consulta (Bloco
-      11).
-
-  - ID: B5.B05A
-    bloco: 5
-    enunciado: Qual foi o valor informado para quitar a dívida?
-    tipo: MOEDA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: VALOR_QUITACAO_HOJE
-    condicao_exibicao:
-      tipo: OU
-      termos:
-        - {tipo: IGUAL, variavel: QUITACAO_CONSULTADA, valor: SIM}
-        - {tipo: IGUAL, variavel: QUITACAO_CONSULTADA, valor: EXPIROU}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: "Saldo devedor ≠ valor de quitação."
-
-  - ID: B5.B05B
-    bloco: 5
-    enunciado: Até quando esse valor é válido?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: Data, valor_interno: null, abre_campo: DATA}
-      - {rotulo: Validade não informada., valor_interno: VALIDADE_DESCONHECIDA}
-      - {rotulo: Não sei., valor_interno: NAO_SEI, admite_nao_sei: true}
-    VARIAVEL_GRAVADA: DATA_VALIDADE_PROPOSTA
-    condicao_exibicao: {tipo: IGUAL, variavel: QUITACAO_CONSULTADA, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
-    salto_consequencia: >-
-      Validade desconhecida e material → PRIORIDADE DE INFORMAÇÃO.
-
   # Grupo C — Fluxo
   - ID: B5.C01
     bloco: 5
@@ -427,23 +364,6 @@ perguntas:
     salto_consequencia: null
 
   # Grupo G — Oportunidades
-  - ID: B5.G01
-    bloco: 5
-    enunciado: O credor já fez uma proposta para esta dívida?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "Sim.", valor_interno: SIM}
-      - {rotulo: "Não.", valor_interno: NAO}
-    VARIAVEL_GRAVADA: PROPOSTA_ATUAL
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "Gatilho B7 (detalhes coletados no Bloco 7)."
-
   # Grupo H — Dimensão humana
   - ID: B5.H01
     bloco: 5

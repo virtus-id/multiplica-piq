@@ -122,15 +122,6 @@ export interface LinhaDaFotografia {
   corrigir: { ID_PERGUNTA: string | null; item_id: string }
 }
 
-/** `RF-412` — tudo calculado no servidor; `diferenca` nula = sem resultado calculado. */
-export interface ComparacaoSobraFalta {
-  sentido: 'SOBRA' | 'FALTA'
-  informado: string | null
-  calculado: string | null
-  /** Informado − calculado, sobra positiva e falta negativa. */
-  diferenca: string | null
-}
-
 /**
  * `B3.C00` — os três números, todos do servidor (`RF-79`). `null` = não
  * informado, nunca `0` (`EC-28`); `parcial` marca o total com item "não sei"
@@ -138,8 +129,6 @@ export interface ComparacaoSobraFalta {
  */
 export interface PainelFotografia {
   tipo: 'FOTOGRAFIA_DO_MES'
-  /** `RF-412` (`B3.C02C`): sobra ou falta informada × calculado. Só nessa pergunta. */
-  comparacao?: ComparacaoSobraFalta | null
   renda_total: string | null
   despesas_totais: string | null
   sobra_antes_das_dividas: string | null

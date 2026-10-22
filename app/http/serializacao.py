@@ -31,7 +31,7 @@ from decimal import Decimal
 from typing import Any, Final
 
 from app.http.renderizacao import ContextoPergunta
-from app.montagem.entrada import ComparacaoSobraFalta, FotografiaDoMes, LinhaDecomposicao
+from app.montagem.entrada import FotografiaDoMes, LinhaDecomposicao
 from collection.registro import OpcaoRegistro, RegistroPergunta
 from collection.respostas import NAO_SEI, ValorResposta
 from engine.tipos import DinheiroTalvez
@@ -142,7 +142,6 @@ def serializar_painel(
     foto: FotografiaDoMes,
     registros: tuple[RegistroPergunta, ...],
     rotulos: dict[str, str],
-    comparacao: ComparacaoSobraFalta | None = None,
 ) -> dict[str, Any]:
     """`RF-79`/`RF-80` (`T-227`) — o painel da `B3.C00`, só para registro com
     `painel` declarado. Valores só do servidor: o cliente nunca soma. Cada
@@ -166,17 +165,6 @@ def serializar_painel(
 
     return {
         "tipo": "FOTOGRAFIA_DO_MES",
-        # `RF-412`: só na `B3.C02C`. `diferenca` nula = sem resultado calculado.
-        "comparacao": (
-            None
-            if comparacao is None
-            else {
-                "sentido": comparacao.sentido,
-                "informado": _dinheiro_ou_nulo(comparacao.percebido),
-                "calculado": _dinheiro_ou_nulo(comparacao.calculado),
-                "diferenca": _dinheiro_ou_nulo(comparacao.diferenca),
-            }
-        ),
         "renda_total": _dinheiro_ou_nulo(foto.RENDA_TOTAL),
         "despesas_totais": _dinheiro_ou_nulo(foto.DESPESAS_TOTAIS),
         "sobra_antes_das_dividas": _dinheiro_ou_nulo(foto.SOBRA_ANTES_DAS_DIVIDAS),

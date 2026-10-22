@@ -111,8 +111,6 @@ _VALORES_CASO: Final[dict[str, object]] = {
     # PerfilComportamental (Bloco 2, T-50). `T-404`: B2.01 a B2.05 e B2.07 saíram.
     "CONHECIMENTO_GASTO": "BOA_APROXIMACAO",
     "REVISAO_SEMANAL": "SEMPRE",
-    # AUTOPERCEPCAO_CONTROLE (B2.13, escala 0-10)
-    "AUTOPERCEPCAO_CONTROLE": 6,
     # SinaisComportamentais (Blocos 1/2/9, T-50/T-99)
     "MECANISMO_DEFICIT": frozenset({"CORTE"}),
     "NOVO_PARCELAMENTO_PREVISTO": "NAO",
@@ -170,8 +168,6 @@ _VALORES_CASO: Final[dict[str, object]] = {
     # `CAPACIDADE_ATAQUE_DECLARADA` acima — nenhum `float`, nenhum `Decimal`
     # construído à mão. Todos sobrescrevíveis parcialmente por
     # `montar_respostas_caso(valores_caso=...)`, como os demais.
-    "DINHEIRO_DISPONIVEL_EXISTE": "SIM",
-    "DINHEIRO_DISPONIVEL": converter_para_dinheiro("1.200,00"),
     "RESERVA_EXISTE": "SIM",
     "RESERVA_TOTAL": converter_para_dinheiro("10.000,00"),
     "DISPOSICAO_USO_RESERVA": "PARTE",
@@ -187,7 +183,6 @@ _VALORES_CASO: Final[dict[str, object]] = {
     # fixture já tem a ficha (`DESPESAS_NAO_MENSAIS_EXISTE=SIM`, dívida de
     # cartão rotativo). Categorias de despesa: um item por categoria, só
     # como resposta de seleção — o total segue vindo da ficha `ITEM_DESPESA`.
-    "GASTOS_FANTASMAS": "NAO",  # B2.09
     "RENDA_RECORRENTE_ADICIONAL_EXISTE": "NAO",  # B3.03
     "CONTRIBUICAO_FAMILIAR_EXISTE": "NAO",  # B3.04
     "RECURSOS_EXTRAORDINARIOS_EXISTE": "NAO",  # B3.05
@@ -204,11 +199,6 @@ _VALORES_CASO: Final[dict[str, object]] = {
     "DESPESA_EXTRA_EXISTE": "NAO",  # B3.D11
     "DESPESAS_NAO_MENSAIS_EXISTE": "SIM",  # B3.NM01 — a ficha NM já existe
     "CONFIRMACAO_MAPEAMENTO_DESPESAS": "SIM",  # B3.C00
-    "PERCEPCAO_FECHAMENTO_MES": "SOBRA",  # B3.C02
-    "SOBRA_PERCEBIDA": converter_para_dinheiro("100,00"),  # B3.C02A (RF-412)
-    "CONFERENCIA_SOBRA_FALTA": "ACEITAR_DIFERENCA",  # B3.C02C (RF-412)
-    "INVESTIMENTOS_EXISTE": "NAO",  # B4.04
-    "IMOVEL_EXISTE": "NAO",  # B4.I01
     "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1,  # B5.00 — NUMERO grava int
 }
 

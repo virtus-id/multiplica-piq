@@ -530,7 +530,7 @@ def formatar_escala_br(valor: Decimal | int) -> str:
 
 #: `T-326` — dados inteiros que são `ESCALA_0_10`: "6 de 10", não "6".
 _ESCALAS: Final[frozenset[str]] = frozenset(
-    {"PESO_EMOCIONAL", "NECESSIDADE_VITORIA", "AUTOPERCEPCAO_CONTROLE", "URGENCIA_PERCEBIDA"}
+    {"PESO_EMOCIONAL", "NECESSIDADE_VITORIA", "URGENCIA_PERCEBIDA"}
 )
 
 #: `T-326` — identificadores dos itens: vão ao revisor como detalhe
@@ -539,6 +539,18 @@ _CAMPOS_IDENTIFICADORES: Final[frozenset[str]] = frozenset({"DIVIDA_ID", "ITEM_I
 # `T-391` (`RF-410`): o seguro saiu do questionário; os dois campos seguem em
 # `Divida` (motor intocado), com valor neutro fixo, e não são mostrados.
 _CAMPOS_DO_SEGURO: Final[frozenset[str]] = frozenset({"SEGURO_INCLUIDO_PARCELA", "CUSTO_SEGURO"})
+# `T-408`: as perguntas saíram (autopercepção, dinheiro disponível, consulta do
+# valor de quitação); os campos seguem no motor com valor neutro fixo e não
+# são mostrados ao revisor como se o aluno os tivesse informado.
+_CAMPOS_SEM_PERGUNTA: Final[frozenset[str]] = frozenset(
+    {
+        "AUTOPERCEPCAO_CONTROLE",
+        "DINHEIRO_DISPONIVEL",
+        "QUITACAO_CONSULTADA",
+        "VALOR_QUITACAO_HOJE",
+        "STATUS_VALIDADE_PROPOSTA",
+    }
+)
 
 
 def _rotulo_de_opcao(
@@ -644,6 +656,7 @@ def _campos_de_apoio(
         for campo in fields(instancia)  # type: ignore[arg-type]
         if campo.name not in _CAMPOS_IDENTIFICADORES
         and campo.name not in _CAMPOS_DO_SEGURO
+        and campo.name not in _CAMPOS_SEM_PERGUNTA
         and campo.name not in _CAMPOS_ESTADO_COM_SECAO_PROPRIA
     )
 

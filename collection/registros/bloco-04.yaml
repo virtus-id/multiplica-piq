@@ -3,42 +3,6 @@
 # 1903-2614). T-17 (RF-03, RF-04, RF-09, AC-04, AC-36).
 QUESTIONARIO_VERSION: "1.3.0"
 perguntas:
-  - ID: B4.01
-    bloco: 4
-    enunciado: >-
-      Hoje, fora da sua reserva financeira e dos seus investimentos, você
-      possui algum dinheiro disponível que não esteja comprometido com as
-      despesas normais até a próxima entrada de renda?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [OBR]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-    VARIAVEL_GRAVADA: DINHEIRO_DISPONIVEL_EXISTE
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "Sim → B4.01A."
-
-  - ID: B4.01A
-    bloco: 4
-    enunciado: Qual é o valor exato disponível hoje?
-    tipo: MOEDA
-    obrigatoriedade: [COND]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-    VARIAVEL_GRAVADA: DINHEIRO_DISPONIVEL
-    condicao_exibicao: {tipo: IGUAL, variavel: DINHEIRO_DISPONIVEL_EXISTE, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
   - ID: B4.02
     bloco: 4
     enunciado: >-
@@ -130,39 +94,4 @@ perguntas:
     admite_nao_sei: true
     salto_consequencia: "Valor para análise. Não é recomendação automática."
 
-  - ID: B4.04
-    bloco: 4
-    enunciado: >-
-      Além dos valores que você já informou como reserva, você possui
-      outros investimentos?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [OBR]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-    VARIAVEL_GRAVADA: INVESTIMENTOS_EXISTE
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "Sim → ficha REP B4.04A–B4.06B."
-
   # Imóveis — ficha REP
-  - ID: B4.I01
-    bloco: 4
-    enunciado: Você possui algum imóvel, total ou parcialmente?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [OBR]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-    VARIAVEL_GRAVADA: IMOVEL_EXISTE
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "Sim → ficha REP B4.I02–I09 (uma por imóvel)."

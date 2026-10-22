@@ -53,13 +53,12 @@ from collection.registro import (
 )
 from collection.respostas import Resposta, RespostasCaso
 
-# `GASTOS_FANTASMAS == SIM` é a condição real que abre `B2.10` e `B2.10A` —
-# dois registros não repetíveis, do Bloco 2, com `condicao_exibicao`
-# idêntica. É o caso mais limpo dos registros reais para provar que o
-# denominador só conta o que está aberto. (`T-389`: era `B1.06A`–`C`, que
-# saíram do questionário.)
-_VARIAVEL_QUE_ABRE: Final[str] = "GASTOS_FANTASMAS"
-_IDS_ABERTOS_PELA_CONDICAO: Final[tuple[str, ...]] = ("B2.10", "B2.10A")
+# `CONTRIBUICAO_FAMILIAR_EXISTE == SIM` é a condição real que abre `B3.04A` —
+# registro não repetível, do Bloco 3. É o caso mais limpo dos registros reais
+# para provar que o denominador só conta o que está aberto. (`T-389`: era
+# `B1.06A`–`C`; `T-408`: era `B2.10` e `B2.10A`, que saíram do questionário.)
+_VARIAVEL_QUE_ABRE: Final[str] = "CONTRIBUICAO_FAMILIAR_EXISTE"
+_IDS_ABERTOS_PELA_CONDICAO: Final[tuple[str, ...]] = ("B3.04A",)
 
 # A divergência deliberada: `obrigatoriedade=[COND]` (sem `REP`) com escopo
 # por item. Ver `_percorrer_ocorrencias`: ali `REP` qualificaria "obrigatório
@@ -250,7 +249,7 @@ def test_ac90_invariante_vale_com_todas_as_perguntas_abertas_respondidas() -> No
     pergunta `OPT`."""
     por_id = {registro.ID: registro for registro in _registros_reais()}
     registros = tuple(r for r in por_id.values() if r.bloco in (1, 2))
-    assert len(registros) > 6
+    assert len(registros) > 5
     respostas = RespostasCaso(respostas=())
 
     for _ in range(len(registros) * 2):
@@ -323,7 +322,7 @@ def test_ac90_resposta_em_um_item_nao_conta_pelo_outro() -> None:
 
 
 def test_rf62_pergunta_com_condicao_falsa_nao_entra_no_total() -> None:
-    """`RF-62` — `B2.10` só abre com `GASTOS_FANTASMAS == SIM`.
+    """`RF-62` — `B3.04A` só abre com `CONTRIBUICAO_FAMILIAR_EXISTE == SIM`.
     Respondido `NAO`, a pergunta não é contada: ela nunca será exibida neste
     estado, e incluí-la no denominador mentiria sobre o trabalho restante."""
     registro_condicional = _registro_real(_IDS_ABERTOS_PELA_CONDICAO[0])
@@ -341,8 +340,8 @@ def test_rf62_pergunta_com_condicao_falsa_nao_entra_no_total() -> None:
 
 def test_rf62_total_aumenta_quando_a_resposta_abre_a_condicao() -> None:
     """`RF-62` — a mesma pergunta, agora com a condição verdadeira, entra no
-    denominador. Sobre os registros REAIS, responder `SIM` abre `B2.10` e
-    `B2.10A`: o total sobe exatamente dois, e os dois entram como faltantes."""
+    denominador. Sobre os registros REAIS, responder `SIM` abre `B3.04A`:
+    o total sobe exatamente um, e ele entra como faltante."""
     registros = _registros_reais()
 
     com_condicao_falsa = contar_coleta(
@@ -521,7 +520,7 @@ def test_rf62_contagem_e_retomada_nunca_divergem_sobre_os_registros_reais() -> N
     assert proxima_pergunta_nao_respondida((registro_respondido,), respostas) is None
 
 
-def test_a_colecao_real_tem_81_registros() -> None:
+def test_a_colecao_real_tem_64_registros() -> None:
     """Âncora explícita contra a contagem envelhecida: a coleção de COLETA
     tem **81** registros.
 
@@ -553,8 +552,9 @@ def test_a_colecao_real_tem_81_registros() -> None:
     `T-398` (RF-402): `-15`, sete do Bloco 4, sete do Bloco 5 e `B11.01`, a
     última do Bloco 11 (113 → 98). `T-399` (RF-412): `+2`, `B3.C00A` e `B3.C02C` (98 → 100).
     `T-404` (RF-418): `-19`, as perguntas que saem do questionário e do
-    cálculo (100 → 81)."""
-    assert len(_registros_reais()) == 81
+    cálculo (100 → 81). `T-408` (RF-420): `-17`, as perguntas sem uso no motor
+    (81 → 64)."""
+    assert len(_registros_reais()) == 64
 
 
 def test_os_casos_de_prova_do_gerador_ficam_fora_da_coleta() -> None:

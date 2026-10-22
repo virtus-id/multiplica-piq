@@ -33,8 +33,6 @@ import pytest
 
 from app.montagem.conversao import converter_para_dinheiro
 from app.montagem.estado import (
-    ErroCampoAgregadoDesconhecido,
-    ErroDinheiroDisponivelIndeterminado,
     ErroRespostaAusente,
     ErroValorInternoDesconhecido,
     montar_divida,
@@ -299,122 +297,6 @@ class TestAC56ValorMaximoReservaInformado:
 
 # ---------------------------------------------------------------------------
 # AC-57 / AC-58 / AC-59 / EC-20 — DINHEIRO_DISPONIVEL, o único `Dinheiro` PURO.
-# ---------------------------------------------------------------------------
-class TestAC57DinheiroDisponivelComValor:
-    def test_ac57_sim_com_valor_e_o_decimal_exato_sem_typeerror_de_recusar_float(self) -> None:
-        """`AC-57`, `RF-38`, `RF-13` — `B4.01 = SIM` + `B4.01A = "1234,56"` →
-        `DINHEIRO_DISPONIVEL == Decimal("1234.56")`.
-
-        A construção NÃO levanta o `TypeError` de
-        `engine/estado.py::_recusar_float`: esse guarda percorre os campos do
-        `EstadoFinanceiro` no `__post_init__` e recusa qualquer `float`, então
-        o simples fato de a montagem TER retornado já prova que nenhum `float`
-        atravessou a fronteira. O teste torna essa prova explícita — se um dia
-        a conversão passar por `float`, a montagem levantará aqui, e não
-        silenciosamente arredondará."""
-        estado = _montar(
-            sobrescritas={
-                "DINHEIRO_DISPONIVEL_EXISTE": "SIM",
-                "DINHEIRO_DISPONIVEL": converter_para_dinheiro("1234,56"),
-            }
-        )
-        assert estado.DINHEIRO_DISPONIVEL == Decimal("1234.56")
-        assert isinstance(estado.DINHEIRO_DISPONIVEL, Decimal)
-        assert not isinstance(estado.DINHEIRO_DISPONIVEL, float)
-
-
-class TestAC58DinheiroDisponivelZeroLegitimo:
-    def test_ac58_nao_e_o_zero_lido_da_resposta_nunca_um_default(self) -> None:
-        """`AC-58`, `RF-38` — `B4.01 = NAO` com `B4.01A` suprimida por
-        `condicao_exibicao` (`bloco-04.yaml:36`) → o zero da fronteira única.
-
-        Este zero é **legítimo, LIDO de uma resposta**, não um default:
-        `B4.01 = NAO` é resposta `[OBR]` AFIRMATIVA — "não possuo dinheiro
-        disponível" — e o zero é a transcrição dela. `sdd.config.md` §4 proíbe
-        INVENTAR dado, não transcrever um zero declarado; a prova de que a
-        montagem não inventa zero por omissão é `AC-59`, logo abaixo, onde a
-        MESMA ausência de `B4.01A` SEM o `NAO` levanta erro."""
-        estado = _montar(
-            sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "NAO"},
-            remover=("DINHEIRO_DISPONIVEL",),
-        )
-        assert estado.DINHEIRO_DISPONIVEL == Decimal("0")
-        assert isinstance(estado.DINHEIRO_DISPONIVEL, Decimal)
-
-
-class TestAC59EEC20DinheiroDisponivelIndeterminado:
-    """`AC-59`, `EC-20`, `RF-38` — `EstadoFinanceiro.DINHEIRO_DISPONIVEL` é
-    `Dinheiro` PURO, sem união com `Desconhecido`: quando a resposta não
-    entrega um `Decimal` real nem o "não possuo" afirmativo, não há
-    `DESCONHECIDO` a entregar — e zero por omissão seria a estimativa
-    silenciosa que `sdd.config.md` §4 proíbe."""
-
-    def test_ac59_ambas_ausentes_levanta_erro_citando_a_variavel(self) -> None:
-        """`AC-59` — `B4.01` e `B4.01A` ambas sem resposta →
-        `ErroDinheiroDisponivelIndeterminado`, citando a `VARIAVEL_GRAVADA`.
-        A montagem NUNCA devolve `0` por omissão."""
-        with pytest.raises(ErroDinheiroDisponivelIndeterminado) as capturado:
-            _montar(remover=("DINHEIRO_DISPONIVEL_EXISTE", "DINHEIRO_DISPONIVEL"))
-        assert capturado.value.VARIAVEL_GRAVADA == "DINHEIRO_DISPONIVEL_EXISTE"
-        assert "DINHEIRO_DISPONIVEL_EXISTE" in str(capturado.value)
-
-    def test_ac59_sim_com_b4_01a_ausente_levanta_erro_citando_a_variavel(self) -> None:
-        """`AC-59` — `B4.01 = SIM` com `B4.01A` ausente: o aluno afirmou
-        possuir, mas não disse quanto. Erro nomeado, jamais zero — a
-        contraprova direta de `AC-58`, com a MESMA ausência de `B4.01A` e
-        resultado oposto, porque a resposta de `B4.01` é outra."""
-        with pytest.raises(ErroDinheiroDisponivelIndeterminado) as capturado:
-            _montar(
-                sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "SIM"},
-                remover=("DINHEIRO_DISPONIVEL",),
-            )
-        assert capturado.value.VARIAVEL_GRAVADA == "DINHEIRO_DISPONIVEL"
-
-    def test_ac59_sim_com_b4_01a_nao_sei_levanta_erro(self) -> None:
-        """`AC-59` — `B4.01 = SIM` com `B4.01A = NAO_SEI`. B4.01A tem
-        `admite_nao_sei: false` (`bloco-04.yaml:40`), então este par não
-        deveria existir na coleta; se existir no dado, é erro nomeado e nunca
-        um zero."""
-        with pytest.raises(ErroDinheiroDisponivelIndeterminado):
-            _montar(
-                sobrescritas={
-                    "DINHEIRO_DISPONIVEL_EXISTE": "SIM",
-                    "DINHEIRO_DISPONIVEL": NAO_SEI,
-                }
-            )
-
-    def test_ec20_a_excecao_e_capturavel_distintamente_das_outras_duas(self) -> None:
-        """`EC-20` — `ErroDinheiroDisponivelIndeterminado` é capturável
-        DISTINTAMENTE de `ErroRespostaAusente` e de
-        `ErroCampoAgregadoDesconhecido`: a chamadora precisa poder reagir a
-        "o caixa é indeterminado" sem varrer junto "faltou uma resposta de
-        ficha de dívida" nem "um agregado do Bloco 3 ficou desconhecido".
-
-        Duas provas independentes: (a) as três classes não são parentes entre
-        si em NENHUMA direção, então `except` de uma jamais captura outra; e
-        (b) o caminho real de `EC-20` não é capturado por `except` das outras
-        duas — verificado executando de verdade, não por inspeção de
-        hierarquia apenas."""
-        assert not issubclass(ErroDinheiroDisponivelIndeterminado, ErroRespostaAusente)
-        assert not issubclass(ErroDinheiroDisponivelIndeterminado, ErroCampoAgregadoDesconhecido)
-        assert not issubclass(ErroRespostaAusente, ErroDinheiroDisponivelIndeterminado)
-        assert not issubclass(ErroCampoAgregadoDesconhecido, ErroDinheiroDisponivelIndeterminado)
-
-        try:
-            _montar(
-                sobrescritas={"DINHEIRO_DISPONIVEL_EXISTE": "TALVEZ"},
-                remover=("DINHEIRO_DISPONIVEL",),
-            )
-        except (ErroRespostaAusente, ErroCampoAgregadoDesconhecido) as erro:  # pragma: no cover
-            pytest.fail(f"EC-20 foi capturado pela exceção errada: {type(erro).__name__}")
-        except ErroDinheiroDisponivelIndeterminado:
-            pass
-        else:  # pragma: no cover
-            pytest.fail("EC-20 deveria ter levantado ErroDinheiroDisponivelIndeterminado")
-
-
-# ---------------------------------------------------------------------------
-# EC-16 / EC-17 — as duas ausências estruturais em cadeia.
 # ---------------------------------------------------------------------------
 class TestEC16EEC17AusenciasEstruturais:
     def test_ec16_reserva_existe_nao_com_condicionais_ausentes_nao_levanta(self) -> None:

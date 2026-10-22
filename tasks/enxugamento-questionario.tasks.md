@@ -229,3 +229,12 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Remover código/testes de vínculo sem origem; atualizar os dois testes de banco desatualizados
 
 **Status:** `[x] concluída`
+
+### `T-408` — Remover as 17 perguntas sem uso
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-407` · **Rastreia:** `RF-420`, `AC-416`
+- [x] Perguntas apagadas dos registros dos Blocos 2 a 5 (84 → 67)
+- [x] Montagem com valores neutros; painel de comparação e exigência de `B3.C00A` removidos; campos sem pergunta fora da tela do revisor
+- [x] Testes ajustados; estado e snapshot do motor idênticos com e sem as respostas antigas, exceto os campos neutros
+
+**Status:** `[x] concluída (2026-10-22)`; suíte completa: 12 falhas (1 ambiente de acessibilidade, 11 em test_rotas_plano/test_rotas_revisao_decisao que passam isoladas) e 4 e2e que já falhavam antes

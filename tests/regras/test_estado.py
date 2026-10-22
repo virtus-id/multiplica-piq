@@ -552,28 +552,3 @@ def test_bloco04_b4_03a_grava_valor_maximo_informado() -> None:
         "AC-69: registro de coleta gravando em RESERVA_MOBILIZAVEL (valor "
         f"DERIVADO pelo motor, nunca coletado): {gravam_derivado!r}"
     )
-
-
-def test_b4_04_continua_excluindo_valores_de_reserva() -> None:
-    """`AC-84` (`RF-52`): o enunciado de `B4.04` continua excluindo
-    explicitamente os valores já informados como reserva ("Além dos valores
-    que você já informou como reserva, ..."), de modo que o PRIMEIRO caso
-    vedado da §13.8 — o mesmo dinheiro contado como reserva e como
-    investimento — permanece prevenido na ORIGEM, e não por uma
-    desduplicação a posteriori no motor."""
-    registros = _registros_do_bloco_04()
-
-    assert "B4.04" in registros, f"AC-84: registro B4.04 ausente em {_BLOCO_04}"
-    b4_04 = registros["B4.04"]
-
-    assertar_exato(b4_04["ID"], "B4.04")
-    enunciado = " ".join(b4_04["enunciado"].split())  # normaliza a quebra do YAML
-
-    assert "Além dos valores que você já informou como reserva" in enunciado, (
-        "AC-84: o enunciado de B4.04 não exclui mais os valores já informados "
-        f"como reserva — §13.8 caso 1 deixaria de ser prevenido na origem. "
-        f"Enunciado atual: {enunciado!r}"
-    )
-    assert "outros investimentos" in enunciado, (
-        f"AC-84: B4.04 deixou de perguntar por OUTROS investimentos: {enunciado!r}"
-    )
