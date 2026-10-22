@@ -135,7 +135,14 @@ for (const caso of FASES) {
     await abrirTela(page, CASO, 'inicio')
 
     // A etapa que o servidor escolheu está na tela, com a redação do cliente.
-    await expect(acaoPrincipal(page, caso.rotulo)).toBeVisible()
+    // `T-419`: na conferência (`aguardando`) não há o que fazer — a etapa é só
+    // o texto do cartão, sem botão e sem tela de espera.
+    if (caso.destino === 'aguardando') {
+      await expect(page.getByText(caso.rotulo)).toBeVisible()
+      await expect(page.getByText(/Uma pessoa da equipe confere tudo/)).toBeVisible()
+    } else {
+      await expect(acaoPrincipal(page, caso.rotulo)).toBeVisible()
+    }
 
     // E é a ÚNICA que leva a algum lugar novo. Os rótulos de consulta são
     // nomeados um por um de propósito: um botão de fluxo novo aparecendo no
@@ -163,7 +170,7 @@ for (const caso of FASES) {
       .map((texto) => texto.trim())
       .filter((texto) => !CONSULTAS.includes(texto))
 
-    expect(etapas).toEqual([caso.rotulo])
+    expect(etapas).toEqual(caso.destino === 'aguardando' ? [] : [caso.rotulo])
 
     // `EC-25`: fora da coleta, a mensagem do ESTADO é o conteúdo — nunca uma
     // tela vazia, e nunca o erro técnico.

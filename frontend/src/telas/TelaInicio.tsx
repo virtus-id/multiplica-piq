@@ -93,8 +93,6 @@ function rotaDoDestino(inicio: Inicio): Rota {
       return { tela: 'respostas', idPergunta: ID_PERGUNTA ?? undefined }
     case 'calculando':
       return { tela: 'calculando' }
-    case 'aguardando':
-      return { tela: 'aguardando' }
     case 'progresso':
       return { tela: 'progresso' }
     case 'plano':
@@ -221,7 +219,10 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
       aoSair={aoSair}
       acoes={
         <>
-          <Botao onClick={() => irPara(rotaDoDestino(inicio))}>{texto.rotulo}</Botao>
+          {/* `T-419`: na conferência não há o que fazer — sem botão, e sem tela de espera. */}
+          {etapa.destino !== 'aguardando' && (
+            <Botao onClick={() => irPara(rotaDoDestino(inicio))}>{texto.rotulo}</Botao>
+          )}
           {/* O segundo botão NUNCA é uma alternativa de fluxo: é sempre uma
               consulta ao que já existe. A escolha segue sendo uma só. */}
           {fase === 'coleta' && (
@@ -343,6 +344,15 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
       {fase !== 'coleta' && (
         <div className="aviso-ok" role="status">
           <div>{inicio.mensagem}</div>
+          {etapa.destino === 'aguardando' && (
+            <>
+              <p className="m-0">Uma pessoa da equipe confere tudo antes de você receber.</p>
+              <p className="nota m-0">
+                Avisaremos por e-mail assim que o plano estiver liberado. Normalmente leva até 2
+                dias úteis.
+              </p>
+            </>
+          )}
         </div>
       )}
 

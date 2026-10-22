@@ -30,7 +30,6 @@ import TrilhaDaJornada from './componentes/TrilhaDaJornada'
 import { eTelaDaEquipe, type Rota, substituirRota, useRota } from './navegacao'
 import { obterInicio, obterSessao, sair } from './services/api'
 import type { Inicio, Pergunta } from './tipos'
-import TelaAguardando from './telas/TelaAguardando'
 import TelaCalculando from './telas/TelaCalculando'
 import TelaBoasVindas from './telas/TelaBoasVindas'
 import TelaConsentimento from './telas/TelaConsentimento'
@@ -682,9 +681,6 @@ export default function App() {
           }
         />
       )
-
-    case 'aguardando':
-      return <TelaAguardando inicio={inicio} voltar={voltarAoInicio} />
 
     case 'plano':
       return <TelaPlano casoId={casoId} voltar={voltarAoInicio} />

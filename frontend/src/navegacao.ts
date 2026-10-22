@@ -63,7 +63,6 @@ export type Rota =
   | { tela: 'respostas'; idPergunta?: string; itemId?: string; bloco?: number }
   | { tela: 'pergunta'; idPergunta?: string; itemId?: string }
   | { tela: 'calculando' }
-  | { tela: 'aguardando' }
   | { tela: 'plano' }
   | { tela: 'equipe-fila' }
   | { tela: 'equipe-caso'; casoId: string }
@@ -166,7 +165,6 @@ export function hashParaRota(hash: string): Rota {
     case 'inicio':
     case 'progresso':
     case 'calculando':
-    case 'aguardando':
     case 'plano':
     case 'equipe-fila':
     case 'equipe-painel':

@@ -444,6 +444,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-423 | RF-427 | Dado `B5.A04`, então a pergunta é "Qual é o status desta operação hoje?" e não há opção de quitação a confirmar | verificado (T-416) |
 | AC-424 | RF-428 | Dadas as perguntas listadas em RF-428, então não oferecem "Não sei"/"Talvez"/"Não tenho certeza"; sim/não mostra só Sim e Não | verificado (T-417) |
 | AC-425 | RF-429 | Dada `B5.C06`, quando a pessoa escolhe o valor total, então o pagamento mensal efetivo é igual ao saldo devedor de `B5.B03` | verificado (T-418) |
+| AC-426 | RF-430 | Dado um caso em conferência, então o Início não traz o botão "Aguardar a conferência", traz a explicação da espera, e a rota `#aguardando` deixa de existir | verificado (T-419) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -480,6 +481,9 @@ Decisão do produto: o cálculo precisa de exatidão, sem adivinhação. Perdem 
 
 ### RF-429. Pagamento mensal "valor total da dívida" (2026-10-22)
 Em `B5.C06` ("Na prática, quanto você está pagando por mês nesta dívida atualmente?") há a opção "Estou pagando o valor total da dívida." O pagamento passa a ser o saldo devedor que a pessoa já informou em `B5.B03`: copiado, não calculado, para ela não digitar o mesmo valor duas vezes. Se o saldo for corrigido depois, o pagamento acompanha.
+
+### RF-430. Sem botão nem tela de "Aguardar a conferência" (2026-10-22)
+Com o plano calculado e em conferência, o Início não oferece mais o botão "Aguardar a conferência" nem leva a uma tela de espera. O próprio Início diz que a equipe confere o plano antes de liberar e que o aviso vem por e-mail (normalmente até 2 dias úteis), e mantém as consultas ("Ver minhas respostas", "Quero editar minhas respostas") e o "Sair".
 
 ## 9. Non-Functional Requirements
 

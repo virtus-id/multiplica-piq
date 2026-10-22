@@ -311,3 +311,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-419` — Fim do botão e da tela "Aguardar a conferência"
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-418` · **Rastreia:** `RF-430`, `AC-426`
+- [x] Início sem o botão na fase de conferência, com a explicação da espera; `TelaAguardando` e a rota `#aguardando` removidas
+
+**Status:** `[x] concluída (2026-10-22)`
+
