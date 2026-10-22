@@ -445,6 +445,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-424 | RF-428 | Dadas as perguntas listadas em RF-428, então não oferecem "Não sei"/"Talvez"/"Não tenho certeza"; sim/não mostra só Sim e Não | verificado (T-417) |
 | AC-425 | RF-429 | Dada `B5.C06`, quando a pessoa escolhe o valor total, então o pagamento mensal efetivo é igual ao saldo devedor de `B5.B03` | verificado (T-418) |
 | AC-426 | RF-430 | Dado um caso em conferência, então o Início não traz o botão "Aguardar a conferência", traz a explicação da espera, e a rota `#aguardando` deixa de existir | verificado (T-419) |
+| AC-427 | RF-431 | Dado um caso em conferência, então o Início mostra as três etapas, o prazo e os dois botões; editar só retira o plano da fila depois da confirmação; sem permissão do servidor não há botão de editar | verificado (T-420) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -484,6 +485,9 @@ Em `B5.C06` ("Na prática, quanto você está pagando por mês nesta dívida atu
 
 ### RF-430. Sem botão nem tela de "Aguardar a conferência" (2026-10-22)
 Com o plano calculado e em conferência, o Início não oferece mais o botão "Aguardar a conferência" nem leva a uma tela de espera. O próprio Início diz que a equipe confere o plano antes de liberar e que o aviso vem por e-mail (normalmente até 2 dias úteis), e mantém as consultas ("Ver minhas respostas", "Quero editar minhas respostas") e o "Sair".
+
+### RF-431. Tela de acompanhamento do plano em elaboração e análise (2026-10-22)
+Com o plano em conferência, o Início vira "Meu plano de quitação": andamento com exatamente três etapas (Informações enviadas — concluída; Elaboração e análise do plano — etapa atual; Plano liberado — pendente), um cartão "Estamos preparando seu plano de quitação", o prazo estimado de até 2 dias úteis com o aviso por e-mail e a orientação de espera, e o cartão "Quer revisar suas informações?" com "Ver minhas respostas" e "Editar minhas respostas". Editar pede confirmação ("Alterar suas informações?", com "Continuar aguardando" e "Editar respostas") antes de retirar o plano da fila, e só existe quando o servidor permite (`pode_retomar_edicao`). A tela nunca diz que o plano está calculado ou pronto, e não traz contagem regressiva, data nem porcentagem. Substitui a explicação de espera de RF-430.
 
 ## 9. Non-Functional Requirements
 

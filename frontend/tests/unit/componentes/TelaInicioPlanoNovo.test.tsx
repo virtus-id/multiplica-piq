@@ -119,23 +119,19 @@ describe('Início — "Quero editar minhas respostas" em conferência (AC-187)',
     pode_retomar_edicao: true,
   } as const;
 
-  it('oferece a retirada, confirma e leva a "Minhas respostas"', async () => {
+  it('oferece a edição, confirma e leva a "Minhas respostas"', async () => {
     const retomar = vi
       .spyOn(api, "retomarEdicao")
       .mockResolvedValue({ estado: "COLETA_INICIAL" });
     const irPara = renderizar(inicio(EM_CONFERENCIA));
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Quero editar minhas respostas" }),
+      screen.getByRole("button", { name: /Editar minhas respostas/ }),
     );
-    expect(
-      screen.getByText(
-        "Seu plano sai da conferência. Quando você enviar de novo, ele volta para a fila.",
-      ),
-    ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Retirar o plano e editar" }),
-    );
+    // Só o clique não retira o plano da fila: antes, a confirmação.
+    expect(retomar).not.toHaveBeenCalled();
+    expect(screen.getByText("Alterar suas informações?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Editar respostas" }));
 
     await vi.waitFor(() =>
       expect(irPara).toHaveBeenCalledWith({ tela: "respostas" }),
@@ -143,10 +139,39 @@ describe('Início — "Quero editar minhas respostas" em conferência (AC-187)',
     expect(retomar).toHaveBeenCalledWith("CASO-1");
   });
 
+  it('"Continuar aguardando" desiste sem retirar o plano', () => {
+    const retomar = vi.spyOn(api, "retomarEdicao");
+    renderizar(inicio(EM_CONFERENCIA));
+
+    fireEvent.click(screen.getByRole("button", { name: /Editar minhas respostas/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Continuar aguardando" }));
+
+    expect(retomar).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /Ver minhas respostas/ })).toBeInTheDocument();
+  });
+
+  it("mostra as três etapas e o prazo, sem afirmar que o plano está pronto", () => {
+    renderizar(inicio(EM_CONFERENCIA));
+
+    expect(screen.getByRole("heading", { name: "Meu plano de quitação" })).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getByText("Etapa atual")).toBeInTheDocument();
+    expect(screen.getByText("Prazo estimado: até 2 dias úteis")).toBeInTheDocument();
+    expect(screen.queryByText(/já foi calculado|está pronto/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Aguardar a conferência/ })).not.toBeInTheDocument();
+  });
+
+  it("sem permissão do servidor não há botão de editar", () => {
+    renderizar(inicio({ ...EM_CONFERENCIA, pode_retomar_edicao: false }));
+
+    expect(screen.queryByRole("button", { name: /Editar minhas respostas/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Ver minhas respostas/ })).toBeInTheDocument();
+  });
+
   it("fora da conferência a ação não existe", () => {
     renderizar(inicio({}));
     expect(
-      screen.queryByRole("button", { name: "Quero editar minhas respostas" }),
+      screen.queryByRole("button", { name: /Editar minhas respostas/ }),
     ).not.toBeInTheDocument();
   });
 });

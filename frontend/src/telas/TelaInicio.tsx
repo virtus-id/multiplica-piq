@@ -14,6 +14,7 @@
  * — o `destino` vem do servidor (`RF-34`, Lei nº 3). O `switch` abaixo escolhe
  * o TEXTO e o enquadramento visual de cada fase, que é trabalho de interface.
  */
+import AcompanhamentoDoPlano, { AndamentoDoPlano } from '../componentes/AcompanhamentoDoPlano'
 import Botao from '../componentes/Botao'
 import { CartaoRetirarDaConferencia } from '../componentes/CartoesDoPlano'
 import Esqueleto from '../componentes/Esqueleto'
@@ -188,6 +189,26 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
   }
 
   const { proxima_etapa: etapa, fase } = inicio
+
+  // `T-420` (`RF-431`): plano em elaboração e análise — a tela própria, sem botão de
+  // "aguardar" e com as três etapas do andamento.
+  if (fase === 'revisao' && etapa.destino === 'aguardando') {
+    return (
+      <Tela
+        titulo="Meu plano de quitação"
+        lateral={<AndamentoDoPlano />}
+        aoSair={aoSair}
+        largura="ampla"
+      >
+        <AcompanhamentoDoPlano
+          casoId={inicio.CASO_ID}
+          podeEditar={inicio.pode_retomar_edicao === true}
+          aoVerRespostas={() => irPara({ tela: 'respostas' })}
+          aoEditarRespostas={() => irPara({ tela: 'respostas' })}
+        />
+      </Tela>
+    )
+  }
   // `T-169`: `destino` desconhecido (servidor mais novo que este cliente)
   // devolvia `undefined`, e a linha seguinte (`texto.rotulo`) lançava —
   // derrubando a aplicação inteira, já que não há `ErrorBoundary`. O
@@ -344,15 +365,6 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
       {fase !== 'coleta' && (
         <div className="aviso-ok" role="status">
           <div>{inicio.mensagem}</div>
-          {etapa.destino === 'aguardando' && (
-            <>
-              <p className="m-0">Uma pessoa da equipe confere tudo antes de você receber.</p>
-              <p className="nota m-0">
-                Avisaremos por e-mail assim que o plano estiver liberado. Normalmente leva até 2
-                dias úteis.
-              </p>
-            </>
-          )}
         </div>
       )}
 

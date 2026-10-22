@@ -51,6 +51,9 @@ export type NomeDoIcone =
   | 'trofeu'
   | 'bandeira'
   | 'duvida'
+  // Acompanhamento do plano em conferência (`T-420`): ver e editar as respostas.
+  | 'ver'
+  | 'editar'
 
 /**
  * Traçado aberto, 20×20, `stroke` herdando `currentColor`.
@@ -83,6 +86,10 @@ const TRACADO: Readonly<Record<NomeDoIcone, string>> = {
   bandeira: 'M5 3v14M5 4h9l-2.5 3L14 10H5',
   // Ponto de interrogação num círculo — "Dúvidas comuns".
   duvida: 'M7.5 7.8a2.5 2.5 0 114.6 1.4c-.5.8-1.6 1-1.6 2.3M10.4 14h.1',
+  // Olho — "Ver minhas respostas".
+  ver: 'M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10zM10 12.2a2.2 2.2 0 100-4.4 2.2 2.2 0 000 4.4',
+  // Lápis — "Editar minhas respostas".
+  editar: 'M3.5 16.5l.8-3.6 8.6-8.6a1.6 1.6 0 012.3 0l.5.5a1.6 1.6 0 010 2.3L7.1 15.7zM11.5 5.7l2.8 2.8',
 }
 
 /** Ícones cujo desenho inclui um círculo além do traçado. */

@@ -138,8 +138,8 @@ for (const caso of FASES) {
     // `T-419`: na conferência (`aguardando`) não há o que fazer — a etapa é só
     // o texto do cartão, sem botão e sem tela de espera.
     if (caso.destino === 'aguardando') {
-      await expect(page.getByText(caso.rotulo)).toBeVisible()
-      await expect(page.getByText(/Uma pessoa da equipe confere tudo/)).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Meu plano de quitação' })).toBeVisible()
+      await expect(page.getByText('Prazo estimado: até 2 dias úteis')).toBeVisible()
     } else {
       await expect(acaoPrincipal(page, caso.rotulo)).toBeVisible()
     }
@@ -174,7 +174,8 @@ for (const caso of FASES) {
 
     // `EC-25`: fora da coleta, a mensagem do ESTADO é o conteúdo — nunca uma
     // tela vazia, e nunca o erro técnico.
-    if (caso.fase !== 'coleta') {
+    // `T-420`: o acompanhamento tem texto próprio e não repete a frase do estado.
+    if (caso.fase !== 'coleta' && caso.destino !== 'aguardando') {
       await expect(page.getByText(caso.mensagem)).toBeVisible()
     }
   })
@@ -1014,7 +1015,7 @@ const ETAPA_ESPERADA_POR_FASE: readonly {
   indice: number
 }[] = [
   { fase: 'coleta', estado: 'COLETA_INICIAL', destino: 'pergunta', indice: 0 },
-  { fase: 'revisao', estado: 'AGUARDANDO_REVISAO', destino: 'aguardando', indice: 2 },
+  // `T-420`: a fase `revisao` tem tela própria, com as três etapas do andamento.
   { fase: 'reprovado', estado: 'REPROVADO', destino: 'progresso', indice: 2 },
   { fase: 'plano', estado: 'PLANO_LIBERADO', destino: 'plano', indice: 3 },
 ]
