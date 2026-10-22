@@ -631,12 +631,8 @@ export default function App() {
         <TelaRespostas
           casoId={casoId}
           voltar={voltarAoInicio}
-          bloco={rota.bloco}
-          escolherBloco={(bloco) => irPara({ tela: 'respostas', bloco })}
-          editar={(id, item, bloco) => {
-            blocoDaRevisao.current = bloco
-            irPara({ tela: 'respostas', idPergunta: id, itemId: item ?? undefined })
-          }}
+          fase={inicio?.fase}
+          continuar={() => irPara({ tela: 'pergunta' })}
         />
       )
     }

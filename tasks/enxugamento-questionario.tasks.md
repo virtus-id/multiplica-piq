@@ -334,3 +334,12 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-422` — "Minhas respostas" em uma página só, igual para ver e editar
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-421` · **Rastreia:** `RF-433`, `AC-429`
+- [x] Layout compartilhado (`PaginaDeRespostas`, `BannerDeRespostas`, `LinhaDaResposta`): índice fixo com âncoras e seção ativa, busca, seções em sequência
+- [x] Modo edição com os campos de sempre, rascunho por linha e "Salvar alterações" pela rota de coleta
+- [ ] Testes: `TelaRespostas.test.tsx` e os de navegação ainda descrevem o menu lateral e precisam ser reescritos; validação (lint, build, navegador) não executada
+
+**Status:** `[ ] implementada, sem validação`
+

@@ -184,7 +184,10 @@ export default function Tela({
               ? largura === 'ampla'
                 ? 'max-w-tela lg:max-w-[1120px] xl:max-w-[1360px] 2xl:max-w-[1560px]'
                 : 'max-w-tela lg:max-w-[1120px]'
-              : 'max-w-tela lg:max-w-[760px]'
+              : largura === 'ampla'
+                ? // `T-422`: página de documento (Minhas respostas), sem lateral.
+                  'max-w-tela lg:max-w-[1120px] xl:max-w-[1280px]'
+                : 'max-w-tela lg:max-w-[760px]'
         }`}
       >
         <div className="top">
