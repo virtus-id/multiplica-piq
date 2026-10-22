@@ -521,7 +521,7 @@ def test_t212_gatilho_aponta_a_ficha_e_o_item_criado_abre_a_cabeca(
 
 @pytest.mark.parametrize(
     ("gatilho", "valor"),
-    [("B3.03", "NAO"), ("B3.03", "NAO_SEI"), ("B3.NM01", "NAO")],
+    [("B3.03", "NAO"), ("B3.NM01", "NAO")],
 )
 def test_t212_gatilho_que_nao_abre_nao_aponta_ficha(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, gatilho: str, valor: str

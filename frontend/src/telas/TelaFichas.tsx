@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import Botao from '../componentes/Botao'
 import Esqueleto from '../componentes/Esqueleto'
+import ResumoDaFicha from '../componentes/ResumoDaFicha'
 import Tela from '../componentes/Tela'
 import TrilhaDaColeta from '../componentes/TrilhaDaColeta'
 import {
@@ -279,7 +280,7 @@ export default function TelaFichas({
 
       <ul className="lista list-none p-0">
         {fichas.map((ficha, indice) => (
-          <li key={ficha.item_id} className="item">
+          <li key={ficha.item_id} className="item flex-wrap sm:flex-nowrap">
             <span className="num">{indice + 1}</span>
             <div className="min-w-0 flex-1">
               <button
@@ -289,9 +290,13 @@ export default function TelaFichas({
               >
                 {ficha.rotulo ?? `${titulo} ${ficha.item_id}`}
               </button>
-              <small className="block text-muted">
-                {ficha.campos.length} campo{ficha.campos.length === 1 ? '' : 's'}
-              </small>
+              {/* `T-410`: na ficha curta, o que foi preenchido vem ao lado (valor e
+                  escolhas); na dívida, que tem dezenas de campos, só a contagem. */}
+              {!curta && (
+                <small className="block text-muted">
+                  {ficha.campos.length} campo{ficha.campos.length === 1 ? '' : 's'}
+                </small>
+              )}
               {ficha.pede_nome && (
                 <NomeDaFicha
                   itemId={ficha.item_id}
@@ -343,6 +348,7 @@ export default function TelaFichas({
                 )
               })}
             </div>
+            {curta && <ResumoDaFicha campos={ficha.campos} />}
             <span
               className={`chip ${ficha.completa ? 'bg-accent-soft text-accent' : 'bg-warn-soft text-warn'}`}
             >

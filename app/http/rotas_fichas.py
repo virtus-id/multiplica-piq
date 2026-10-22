@@ -203,7 +203,7 @@ def listar_fichas(
             "item_id": item.item_id,
             "item_pai_id": item.item_pai_id,
             "rotulo": rotulo,
-            "pede_nome": pede_nome(item.origem),
+            "pede_nome": pede_nome(item.origem, item.escopo),
             "completa": item.item_id not in em_aberto,
             "campos": _campos_da_ficha(
                 colecao, item.escopo, respostas, CASO_ID, item.item_id, rotulo, agrupado, rotulos
@@ -290,7 +290,7 @@ def formulario_do_item(
             "escopo_pai": pai.value if pai else None,
             "item_id": item_id,
             "rotulo": rotulos.get(item_id),
-            "pede_nome": pede_nome(item.origem),
+            "pede_nome": pede_nome(item.origem, item.escopo),
             "completa": item_id not in em_aberto,
             "perguntas": perguntas,
             "posicao_do_item": irmaos.index(item) + 1,
@@ -360,7 +360,7 @@ def concluir_item(
         }
         for falta in em_branco_no_item(da_ficha, respostas, agrupado, item_id)
     ]
-    if pede_nome(item.origem) and not item.nome:
+    if pede_nome(item.origem, item.escopo) and not item.nome:
         pendencias.insert(0, {"ID": "", "item_id": item_id, "enunciado": "Nome da despesa"})
     if pendencias:
         return JSONResponse(
@@ -443,7 +443,7 @@ def criar_ficha(
                 "item_id": item_id,
                 "item_pai_id": item_pai_id,
                 "rotulo": None,
-                "pede_nome": pede_nome(origem),
+                "pede_nome": pede_nome(origem, membro),
                 "completa": False,
                 "campos": campos,
                 "margens": [],
@@ -512,7 +512,7 @@ def nomear_ficha(
     )
     if item is None:
         return JSONResponse({"erro": _MENSAGEM_ITEM_INEXISTENTE}, status_code=404)
-    if not pede_nome(item.origem):
+    if not pede_nome(item.origem, item.escopo):
         return JSONResponse({"erro": _MENSAGEM_ITEM_SEM_NOME}, status_code=400)
 
     nome = " ".join(dados.get("nome", "").split())

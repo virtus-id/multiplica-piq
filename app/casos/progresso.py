@@ -295,7 +295,7 @@ from collection.condicoes import (
 )
 from collection.opcoes_do_motor import sem_itens_para_escolher
 from collection.registro import EscopoRepeticao, Obrigatoriedade, RegistroPergunta
-from collection.respostas import RespostasCaso
+from collection.respostas import NAO_SEI, RespostasCaso
 from persistencia.app_aluno.casos import Caso
 from persistencia.app_aluno.eventos import EventoCaso, RepositorioEventosCaso
 
@@ -441,7 +441,7 @@ def _percorrer_ocorrencias(
                 if elegivel(registro, respostas, None):
                     yield (
                         PendenciaObrigatoria(ID=registro.ID, item_id=None),
-                        respostas.valor(_variavel(registro)) is None,
+                        _sem_resposta_aceita(registro, respostas.valor(_variavel(registro))),
                     )
             continue
 
@@ -451,6 +451,16 @@ def _percorrer_ocorrencias(
                 if elegivel(registro, respostas, item_id):
                     em_branco = _em_branco_no_item(registro, respostas, item_id, itens_por_escopo)
                     yield PendenciaObrigatoria(ID=registro.ID, item_id=item_id), em_branco
+
+
+def _sem_resposta_aceita(registro: RegistroPergunta, valor: object) -> bool:
+    """Sem resposta — ou `NAO_SEI` numa pergunta que já não admite "não sei"
+    (`T-411`): quem respondeu assim antes da mudança volta a ter pendência e
+    informa um valor. A resposta antiga continua gravada."""
+    if valor is None:
+        return True
+    admite = registro.admite_nao_sei or any(o.admite_nao_sei for o in registro.opcoes)
+    return valor == NAO_SEI and not admite
 
 
 def _em_branco_no_item(
@@ -466,7 +476,7 @@ def _em_branco_no_item(
     valor = respostas.valor_no_item(item_id, _variavel(registro))
     # `T-320` (RF-107): `""` (seleção ou texto enviado em branco) não é
     # resposta — antes contava, e a ficha saía "Completa" com campo vazio.
-    if valor is None or valor == "":
+    if _sem_resposta_aceita(registro, valor) or valor == "":
         return True
     origem = registro.origem_opcoes
     return (

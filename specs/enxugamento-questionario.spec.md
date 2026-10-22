@@ -435,6 +435,10 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-414 | RF-415 | Dado o revisor, então vê `B5.I03` como informação, sem efeito no cálculo | verificado (T-402) |
 | AC-415 | RF-416 | Dado o plano, a FAQ e o anexo, então nenhum menciona refazer o plano, "Gerar um novo plano" nem acompanhamento; os números do plano de quem fecha o mês no negativo fecham entre si | a implementar (T-403) |
 | AC-416 | RF-420 | Dado o questionário carregado, então nenhuma das 17 perguntas de RF-420 existe e o estado do motor com ou sem as respostas antigas é o mesmo, exceto os campos neutros | verificado (T-408) |
+| AC-417 | RF-421 | Dada a lista de despesas, então cada linha traz o valor em reais e Fixo/Variável ao lado | verificado (T-410) |
+| AC-418 | RF-422 | Dado um campo de valor do cálculo, então não há "Não sei" na tela, a requisição com `nao_sei` é recusada e um "não sei" antigo vira pendência | verificado (T-411) |
+| AC-419 | RF-423 | Dada a despesa não mensal, então o formulário pede o nome e a lista mostra o nome digitado | verificado (T-412) |
+| AC-420 | RF-424 | Dada a `B3.C00`, então as despesas aparecem sem abrir nada, em tabela com "Corrigir" à direita | verificado (T-413) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -444,6 +448,18 @@ Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do pla
 - A tela do revisor deixa de listar os cinco campos que não têm mais pergunta.
 - `engine/percepcao.py` e `engine/despesas.py` ficam como estão (o motor não muda sem a spec do motor).
 - `QUESTIONARIO_VERSION` segue em `1.3.0`, como em T-398 (sem mudar o formato das respostas guardadas).
+
+### RF-421. Lista de fichas curtas com o que foi preenchido (2026-10-22)
+Na lista de despesas (e demais fichas curtas), cada linha mostra ao lado o valor em reais e as escolhas (ex.: Fixo ou Variável) no lugar de "N campos". A dívida segue com a contagem.
+
+### RF-422. Sem "Não sei" nos campos de valor do cálculo (2026-10-22)
+Decisão do produto: o valor precisa existir, mesmo estimado. Perdem a opção `B3.03B`, `B3.04A`, `B3.05B`, `B3.DF01`, `B3.DF02`, `B3.NM02B`, `B3.C01`, `B5.B03`, `B5.C02`, `B5.C06` e `B5.C06A`. O servidor recusa "não sei" em pergunta que não o admite, e quem já respondeu "não sei" antes volta a ter pendência. A montagem segue lendo respostas antigas (revisa AC-08 só para estes campos de entrada).
+
+### RF-423. A despesa não mensal tem nome (2026-10-22)
+A ficha da despesa não mensal pede um nome (obrigatório para concluir), e a lista, a fotografia e o revisor mostram esse nome em vez do identificador (`NM001`). Vale também para as já cadastradas.
+
+### RF-424. Fotografia do mês com as despesas à vista, em tabela (2026-10-22)
+Na `B3.C00` as despesas por item e as não mensais aparecem sempre abertas, em tabela compacta (modelo da fila do revisor) com o botão "Corrigir" à direita e, no monitor, lado a lado; abaixo de 768px viram cartões.
 
 ## 9. Non-Functional Requirements
 

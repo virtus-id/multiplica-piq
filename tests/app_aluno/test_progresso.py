@@ -13,6 +13,7 @@ REGRAS: `RF-09`, `RF-11`, `AC-11`
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -123,14 +124,29 @@ def test_ac11_campo_obr_que_admite_nao_sei_respondido_com_nao_sei_nao_e_pendenci
     dada). Um registro sintético `OBR` que admite "não sei", respondido com
     `NAO_SEI`, não é pendência: "não sei" é resposta de primeira classe
     (`RF-11`), distinta de "em branco"."""
-    registro = _registro_sintetico(
-        "SINTETICO.OBR_ADMITE_NAO_SEI", obrigatoriedade=frozenset({Obrigatoriedade.OBR})
+    registro = replace(
+        _registro_sintetico(
+            "SINTETICO.OBR_ADMITE_NAO_SEI", obrigatoriedade=frozenset({Obrigatoriedade.OBR})
+        ),
+        admite_nao_sei=True,
     )
     respostas = RespostasCaso(respostas=(_resposta("VARIAVEL_DE_TESTE", NAO_SEI),))
 
     pendencias = pendencias_obrigatorias((registro,), respostas)
 
     assert pendencias == ()
+
+
+def test_t411_nao_sei_em_pergunta_que_nao_admite_mais_volta_a_ser_pendencia() -> None:
+    """`T-411`: quem respondeu "não sei" antes de a opção sair precisa informar um valor."""
+    registro = _registro_sintetico(
+        "SINTETICO.OBR_NAO_ADMITE", obrigatoriedade=frozenset({Obrigatoriedade.OBR})
+    )
+    respostas = RespostasCaso(respostas=(_resposta("VARIAVEL_DE_TESTE", NAO_SEI),))
+
+    assert [p.ID for p in pendencias_obrigatorias((registro,), respostas)] == [
+        "SINTETICO.OBR_NAO_ADMITE"
+    ]
 
 
 # ---------------------------------------------------------------------------

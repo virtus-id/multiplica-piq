@@ -575,6 +575,8 @@ export default function TelaPergunta({
       // dívida 1 — na ficha, que é o caminho mais longo da coleta.
       chave={`${pergunta.ID}/${pergunta.item_id ?? ''}`}
       mostrarTitulo={false}
+      // `T-413`: a fotografia do mês traz tabelas; elas usam a largura do monitor.
+      largura={pergunta.painel ? 'ampla' : undefined}
       voltar={voltar}
       rotuloVoltar={rotuloVoltar}
       onde={localizador(pergunta, pendencias)}

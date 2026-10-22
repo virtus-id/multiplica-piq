@@ -76,29 +76,22 @@ describe("PainelFotografia", () => {
     expect(screen.getByText("−R$ 150,50")).toBeInTheDocument();
   });
 
-  it('RF-80: decomposições num <details>, alcançáveis por teclado, com "corrigir"', async () => {
+  it('RF-80/T-413: as decomposições aparecem sem abrir nada, com "corrigir" à direita', async () => {
     const aoCorrigir = vi.fn();
     const usuario = userEvent.setup();
     const { container } = render(
       <PainelFotografia painel={painel()} aoCorrigir={aoCorrigir} />,
     );
 
-    const detalhes = container.querySelector("details");
-    expect(detalhes).not.toBeNull();
-    expect(detalhes?.open).toBe(false);
+    expect(container.querySelector("details")).toBeNull();
+    expect(screen.queryByText("Ver de onde vêm as despesas")).toBeNull();
 
-    // O `<summary>` é o primeiro alvo do Tab: alcançável por teclado. (O
-    // happy-dom não abre `<details>` por Enter; o navegador abre — o clique
-    // abaixo é a mesma ativação.)
-    await usuario.tab();
-    expect(screen.getByText("Ver de onde vêm as despesas")).toHaveFocus();
-    await usuario.click(screen.getByText("Ver de onde vêm as despesas"));
-    expect(detalhes?.open).toBe(true);
+    // Tabela (≥768px) e cartões (<768px) trazem a mesma linha; o CSS esconde um.
+    const tabela = screen.getByTestId("tabela-despesas-nao-mensais");
+    expect(within(tabela).getByRole("columnheader", { name: "Valor no mês" })).toBeInTheDocument();
 
     await usuario.click(
-      within(detalhes as HTMLElement).getByRole("button", {
-        name: "Corrigir IPTU",
-      }),
+      within(tabela).getByRole("button", { name: "Corrigir IPTU" }),
     );
     expect(aoCorrigir).toHaveBeenCalledWith("B3.NM02B", "NM001");
   });

@@ -146,10 +146,10 @@ def test_ac169_concluir_com_campo_em_branco_e_recusado_com_a_lista(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """`T-320`: concluir recusa com `400`, a mensagem legível e as perguntas
-    que faltam (com o enunciado ao aluno); "Não sei" conta como resposta."""
+    que faltam (com o enunciado ao aluno); um valor conta como resposta."""
     cliente = _cliente_real(monkeypatch, tmp_path)
     item = _checklist_de_moradia(cliente)[0]
-    _responder(cliente, "B3.DF01", "NAO_SEI", item)
+    _responder(cliente, "B3.DF01", "500", item)
 
     recusa = _concluir(cliente, _DESPESA, item)
 

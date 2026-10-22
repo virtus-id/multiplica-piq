@@ -354,6 +354,10 @@ def _resolver_valor(
     continuam lendo o único campo `valor` de `dados` (mesma convenção de
     antes desta tarefa)."""
     if dados.get("nao_sei"):
+        # `T-411`: pergunta que não admite "não sei" exige um valor — o botão
+        # some da tela, e a requisição direta também é recusada.
+        if not (registro.admite_nao_sei or any(o.admite_nao_sei for o in registro.opcoes)):
+            raise ErroValorInvalido("", "informe um valor, mesmo que seja uma estimativa")
         return NAO_SEI
 
     valor_bruto = dados.get("valor", "")

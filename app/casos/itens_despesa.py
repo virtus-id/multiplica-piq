@@ -94,8 +94,12 @@ def sincronizar(
     )
 
 
-def pede_nome(origem: str | None) -> bool:
-    """"Outro" e a despesa não listada pedem um nome curto ao aluno."""
+def pede_nome(origem: str | None, escopo: EscopoRepeticao | None = None) -> bool:
+    """"Outro" e a despesa não listada pedem um nome curto ao aluno. A despesa
+    não mensal também (`T-412`): não há opção marcada que a nomeie, e a lista
+    mostrava o identificador (`NM001`)."""
+    if escopo is EscopoRepeticao.DESPESA_NAO_MENSAL_ID:
+        return True
     return origem is not None and (
         origem == DESPESA_NAO_LISTADA or origem.endswith(f":{_OUTRO}")
     )

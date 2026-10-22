@@ -246,3 +246,31 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] `apoio` chega ao aluno na pergunta e aparece abaixo do enunciado em destaque menor (campo, escalas e seleções)
 
 **Status:** `[x] concluída (2026-10-22)`
+
+### `T-410` — Valores à vista na lista de fichas curtas
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-409` · **Rastreia:** `RF-421`, `AC-417`
+- [x] Implementado (2026-10-22)
+
+**Status:** `[x] concluída (2026-10-22)`
+
+### `T-411` — Sem "Não sei" nos campos de valor do cálculo
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-409` · **Rastreia:** `RF-422`, `AC-418`
+- [x] Implementado (2026-10-22)
+
+**Status:** `[x] concluída (2026-10-22)`
+
+### `T-412` — Nome da despesa não mensal
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-409` · **Rastreia:** `RF-423`, `AC-419`
+- [x] Implementado (2026-10-22)
+
+**Status:** `[x] concluída (2026-10-22)`
+
+### `T-413` — Fotografia do mês com despesas à vista em tabela
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-409` · **Rastreia:** `RF-424`, `AC-420`
+- [x] Implementado (2026-10-22)
+
+**Status:** `[x] concluída (2026-10-22)`

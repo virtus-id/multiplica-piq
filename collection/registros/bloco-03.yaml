@@ -56,13 +56,12 @@ perguntas:
     escopo_repeticao: RENDA_ADICIONAL_ID
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: RENDA_RECORRENTE_ADICIONAL
     condicao_exibicao: {tipo: IGUAL, variavel: RENDA_RECORRENTE_ADICIONAL_EXISTE, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B3.04
@@ -94,13 +93,12 @@ perguntas:
     escopo_repeticao: NENHUM
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: CONTRIBUICAO_FAMILIAR
     condicao_exibicao: {tipo: IGUAL, variavel: CONTRIBUICAO_FAMILIAR_EXISTE, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B3.05
@@ -131,7 +129,6 @@ perguntas:
     escopo_repeticao: RECURSO_EXTRAORDINARIO_ID  # T-270 (RF-98)
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: VALOR_RECURSO_EXTRAORDINARIO
     # T-404 (RF-418): sem o tipo (B3.05A saiu), a ficha começa aqui.
     condicao_exibicao:
@@ -142,7 +139,7 @@ perguntas:
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B3.05C
@@ -450,14 +447,13 @@ perguntas:
     escopo_repeticao: ITEM_DESPESA
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: VALOR_DESPESA
     condicao_exibicao: null
     interpolacoes:
       - {marcador: "[despesa]", origem: ID_DO_ITEM, referencia: ""}
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B3.DF02
@@ -469,13 +465,12 @@ perguntas:
     opcoes:
       - {rotulo: Fixo, valor_interno: FIXA}
       - {rotulo: Variável, valor_interno: VARIAVEL}
-      - {rotulo: Não sei, valor_interno: NAO_SEI, admite_nao_sei: true}
     VARIAVEL_GRAVADA: CLASSIFICACAO_FIXA_VARIAVEL
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: "Não inferir pela categoria."
 
   # Parte C — Despesas não mensais
@@ -508,13 +503,12 @@ perguntas:
     escopo_repeticao: DESPESA_NAO_MENSAL_ID
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: VALOR_DESPESA_NAO_MENSAL
     condicao_exibicao: {tipo: IGUAL, variavel: DESPESAS_NAO_MENSAIS_EXISTE, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   # Parte D — Conferência
@@ -556,13 +550,12 @@ perguntas:
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
       - {rotulo: Hoje não consigo separar nenhum valor adicional., valor_interno: "0"}
-      - {rotulo: Ainda não consigo estimar., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: CAPACIDADE_ATAQUE_DECLARADA
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   # RF-78 (T-171): alimenta o prognóstico "verde" (plano + esforço extra).

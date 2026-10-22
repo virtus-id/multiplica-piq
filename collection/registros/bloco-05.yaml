@@ -101,14 +101,13 @@ perguntas:
     escopo_repeticao: DIVIDA_ID
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: SALDO_DEVEDOR_ATUAL
     indispensavel: true  # RF-93 (`T-261`, `R9-8`)
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: >-
       DESCONHECIDA → PRIORIDADE DE INFORMAÇÃO; STATUS_DIVIDA_TOTAL =
       PARCIAL.
@@ -143,14 +142,13 @@ perguntas:
     escopo_repeticao: DIVIDA_ID
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
     indispensavel: true  # RF-93 (`T-261`, `R9-8`)
     condicao_exibicao: {tipo: IGUAL, variavel: POSSUI_PARCELA_DEFINIDA, valor: SIM}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   - ID: B5.C06
@@ -163,13 +161,12 @@ perguntas:
       - {rotulo: "R$ ______", valor_interno: null}
       - {rotulo: Não estou pagando nada atualmente., valor_interno: "0"}
       - {rotulo: O valor varia muito., valor_interno: VARIA}
-      - {rotulo: Não sei., valor_interno: DESCONHECIDA, admite_nao_sei: true}
     VARIAVEL_GRAVADA: PAGAMENTO_MENSAL_EFETIVO
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: "VARIA → B5.C06A."
 
   - ID: B5.C06A
@@ -181,13 +178,12 @@ perguntas:
     escopo_repeticao: DIVIDA_ID
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não sei., valor_interno: null, admite_nao_sei: true}
     VARIAVEL_GRAVADA: "PAGAMENTO_MENSAL_EFETIVO (média 3 meses)"
     condicao_exibicao: {tipo: IGUAL, variavel: PAGAMENTO_MENSAL_EFETIVO, valor: VARIA}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true
+    admite_nao_sei: false
     salto_consequencia: null
 
   # Grupo D — Custo
