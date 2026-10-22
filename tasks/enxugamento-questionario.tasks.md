@@ -274,3 +274,12 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Implementado (2026-10-22)
 
 **Status:** `[x] concluída (2026-10-22)`
+
+### `T-414` — Quantidade de dívidas exata, com "Nenhuma dívida"
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-413` · **Rastreia:** `RF-425`, `AC-421`
+- [x] `B5.00` sem "Não sei"; opção "Nenhuma dívida" e quantidade de 1 a 50 validada no servidor
+- [x] "Nenhuma dívida": aviso na pergunta, nenhuma ficha aberta e cálculo bloqueado por pendência de inventário
+
+**Status:** `[x] concluída (2026-10-22)`
+

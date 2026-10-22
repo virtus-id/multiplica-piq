@@ -17,3 +17,4 @@ DIVIDAS_ACIMA: "Você declarou {declaradas} dívidas, mas cadastrou {cadastradas
 DIVIDAS_SEM_CONFIRMACAO: "Confirme, na ficha da última dívida, que não há outra dívida para cadastrar."
 RENDA_EXTRA_SEM_ITEM: "Você informou que possui renda extra, mas ainda não cadastrou nenhuma."
 NAO_MENSAL_SEM_ITEM: "Você informou que possui despesa não mensal, mas ainda não cadastrou nenhuma."
+SEM_DIVIDAS: "Você informou que não tem dívidas. Sem dívidas, não há plano de quitação para montar. Se tiver alguma dívida, corrija a quantidade."

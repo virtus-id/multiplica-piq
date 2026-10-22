@@ -247,4 +247,9 @@ def avisos_da_gravacao(
         and conferir_desconto(respostas, item_id).divergencia_rs_pct
     ):
         codigos.append("DIVERGENCIA_DESCONTO")
+    # `T-414`: "Nenhuma dívida" para a coleta na própria pergunta, com o motivo.
+    if VARIAVEL_GRAVADA == "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL" and (
+        respostas.valor(VARIAVEL_GRAVADA) == 0
+    ):
+        codigos.append("SEM_DIVIDAS")
     return tuple(Aviso(codigo=c, mensagem=_textos_de_aviso()[c]) for c in codigos)

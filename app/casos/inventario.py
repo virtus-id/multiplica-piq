@@ -64,6 +64,7 @@ class TIPO_PENDENCIA_INVENTARIO(Enum):
     DIVIDAS_FALTANDO = "DIVIDAS_FALTANDO"
     DIVIDAS_ACIMA = "DIVIDAS_ACIMA"
     DIVIDAS_SEM_CONFIRMACAO = "DIVIDAS_SEM_CONFIRMACAO"
+    SEM_DIVIDAS = "SEM_DIVIDAS"
     RENDA_EXTRA_SEM_ITEM = "RENDA_EXTRA_SEM_ITEM"
     NAO_MENSAL_SEM_ITEM = "NAO_MENSAL_SEM_ITEM"
 
@@ -154,6 +155,18 @@ def pendencias_de_inventario(
                 )
                 if faltando
                 else None,
+            )
+        )
+    if id_declaradas is not None and declaradas == 0 and not dividas:
+        # `T-414`: "Nenhuma dívida" — não há o que ordenar nem quitar, então
+        # não existe plano; o caso não segue para o cálculo.
+        pendencias.append(
+            PendenciaInventario(
+                tipo=TIPO_PENDENCIA_INVENTARIO.SEM_DIVIDAS,
+                declaradas=0,
+                cadastradas=0,
+                ID_PARA_CORRIGIR=id_declaradas,
+                escopo=None,
             )
         )
     if id_declaradas is not None and declaradas is not None and not isinstance(declaradas, int):

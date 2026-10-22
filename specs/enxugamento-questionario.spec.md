@@ -439,6 +439,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-418 | RF-422 | Dado um campo de valor do cálculo, então não há "Não sei" na tela, a requisição com `nao_sei` é recusada e um "não sei" antigo vira pendência | verificado (T-411) |
 | AC-419 | RF-423 | Dada a despesa não mensal, então o formulário pede o nome e a lista mostra o nome digitado | verificado (T-412) |
 | AC-420 | RF-424 | Dada a `B3.C00`, então as despesas aparecem sem abrir nada, em tabela com "Corrigir" à direita | verificado (T-413) |
+| AC-421 | RF-425 | Dado `B5.00`, então não há "Não sei"; "Nenhuma dívida" mostra o aviso, não abre ficha e bloqueia o cálculo; quantidade inválida é recusada | verificado (T-414) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -460,6 +461,9 @@ A ficha da despesa não mensal pede um nome (obrigatório para concluir), e a li
 
 ### RF-424. Fotografia do mês com as despesas à vista, em tabela (2026-10-22)
 Na `B3.C00` as despesas por item e as não mensais aparecem sempre abertas, em tabela compacta (modelo da fila do revisor) com o botão "Corrigir" à direita e, no monitor, lado a lado; abaixo de 768px viram cartões.
+
+### RF-425. Quantidade de dívidas exata, com "Nenhuma dívida" (2026-10-22)
+`B5.00` perde o "Não sei exatamente quantas". A pessoa escolhe "Nenhuma dívida" ou informa a quantidade (inteiro de 1 a 50); valor negativo, decimal ou vazio é recusado. O cálculo exige uma ficha para cada dívida declarada. "Nenhuma dívida" não abre ficha de dívida, mostra na própria pergunta o aviso de que, sem dívidas, não há plano de quitação, e o caso não segue para o cálculo (pendência de inventário `SEM_DIVIDAS`, que leva de volta à `B5.00`).
 
 ## 9. Non-Functional Requirements
 

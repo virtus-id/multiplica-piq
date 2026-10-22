@@ -111,11 +111,28 @@ def test_t250_ac133_devolve_a_pendencia_com_a_mensagem_exata(
 
 
 def test_t250_inventario_completo_devolve_lista_vazia(monkeypatch: pytest.MonkeyPatch) -> None:
-    respostas = (_resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 0),)
+    respostas = (
+        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 1),
+        _resposta("TIPO_DIVIDA", "PESSOAL", item_id="D001"),
+    )
 
-    resposta = _cliente(monkeypatch, respostas).get(f"/caso/{_CASO_ID}/inventario")
+    resposta = _cliente(monkeypatch, respostas, (_ficha("D001"),)).get(
+        f"/caso/{_CASO_ID}/inventario"
+    )
 
     assert resposta.json() == {"pendencias": []}
+
+
+def test_t414_nenhuma_divida_nao_segue_para_o_calculo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`T-414`: "Nenhuma dívida" é pendência de inventário com a mensagem própria."""
+    respostas = (_resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 0),)
+
+    (pendencia,) = _cliente(monkeypatch, respostas).get(f"/caso/{_CASO_ID}/inventario").json()[
+        "pendencias"
+    ]
+
+    assert pendencia["ID_PARA_CORRIGIR"] == "B5.00"
+    assert "não há plano de quitação" in pendencia["mensagem"]
 
 
 def test_t250_ac03_isolamento_por_caso(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -146,7 +163,7 @@ def test_t251_inicio_troca_montar_o_plano_pela_pendencia() -> None:
         return proxima.destino, proxima.ID_PERGUNTA
 
     assert etapa(3) == (DESTINO_DA_ETAPA.INVENTARIO, "B5.00")
-    assert etapa(0) == (DESTINO_DA_ETAPA.CALCULANDO, None)
+    assert etapa(0) == (DESTINO_DA_ETAPA.INVENTARIO, "B5.00")  # `T-414`: sem dívidas, sem plano
 
 
 def test_t324_dividas_faltando_diz_quais_fichas(
