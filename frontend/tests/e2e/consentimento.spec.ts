@@ -54,3 +54,24 @@ test('após o aceite, o Início não oferece de novo o consentimento', async ({ 
   await expect(page).toHaveURL(/#inicio/)
   await expect(page.getByText('Registrar o seu consentimento')).toHaveCount(0)
 })
+
+// `RF-127`, `AC-201`: o termo está no próprio Início, sem tela intermediária.
+test('o Início mostra o termo e o botão "Concordar e começar"', async ({ page }) => {
+  const inicio = {
+    ...inicioEmColeta(CASO),
+    estado: 'CADASTRADO',
+    proxima_etapa: { destino: 'consentimento' as const, ID_PERGUNTA: null, item_id: null },
+    progresso: { respondidas: 3, total: 195 },
+  }
+  await interceptarBase(page, CASO, { inicio })
+  await page.route(`**/api/caso/${CASO}/consentimento`, (rota) =>
+    rota.fulfill({
+      json: { CASO_ID: CASO, QUESTIONARIO_VERSION: '1.0.3', titulo: 'Termo X', corpo: 'Texto do termo.' },
+    }),
+  )
+
+  await abrirTela(page, CASO, 'inicio')
+  await expect(page.getByText('Texto do termo.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Concordar e começar' })).toBeVisible()
+  await expect(page.getByText('Registrar o seu consentimento')).toHaveCount(0)
+})

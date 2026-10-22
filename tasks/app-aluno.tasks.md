@@ -14006,3 +14006,11 @@ Relato de uso (2026-10-05): as colunas pequenas lado a lado do painel (T-349) de
 - [x] Teste: com 6, 9, 14 e 20 dívidas de nome longo, o capítulo 7 tem exatamente uma página por mês
 
 **Status:** `[x] concluída (2026-10-08)`
+
+### `T-387` — Termo de consentimento no próprio Início
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-386` · **Rastreia:** `RF-127`, `RF-30`, `RF-58`, `AC-201`, `AC-39`
+- [x] Início com próxima etapa `consentimento` mostra o termo e o botão "Concordar e começar" (sem rota `consentimento` no caminho)
+- [x] Teste e2e: o termo está no Início e o aceite leva à etapa seguinte
+
+**Status:** `[x] concluída (2026-10-22)`

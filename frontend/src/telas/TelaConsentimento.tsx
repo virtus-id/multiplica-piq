@@ -11,7 +11,7 @@
  * (`exigir_estado_permite_resposta`), não aqui — esta tela não é a
  * proteção, é a porta.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useState } from 'react'
 
 import Botao from '../componentes/Botao'
 import Esqueleto from '../componentes/Esqueleto'
@@ -24,6 +24,9 @@ const TITULO_PROVISORIO = 'Consentimento'
 interface TelaConsentimentoProps {
   casoId: string
   voltar?: () => void
+  /** `RF-127`: quando o termo é desenhado no Início, a casca do Início vem junto. */
+  lateral?: ReactNode
+  aoSair?: () => void
   /** Pode ser assíncrono: o botão segue em "Registrando…" até a troca de tela. */
   onAceito: () => void | Promise<void>
 }
@@ -31,6 +34,8 @@ interface TelaConsentimentoProps {
 export default function TelaConsentimento({
   casoId,
   voltar,
+  lateral,
+  aoSair,
   onAceito,
 }: TelaConsentimentoProps) {
   const [titulo, setTitulo] = useState('')
@@ -64,7 +69,7 @@ export default function TelaConsentimento({
 
   if (carregando) {
     return (
-      <Tela titulo={TITULO_PROVISORIO} voltar={voltar}>
+      <Tela titulo={TITULO_PROVISORIO} voltar={voltar} lateral={lateral} aoSair={aoSair}>
         <Esqueleto forma="texto" anuncio="Carregando o texto de consentimento" />
       </Tela>
     )
@@ -72,7 +77,7 @@ export default function TelaConsentimento({
 
   if (erro && !titulo) {
     return (
-      <Tela titulo={TITULO_PROVISORIO} voltar={voltar}>
+      <Tela titulo={TITULO_PROVISORIO} voltar={voltar} lateral={lateral} aoSair={aoSair}>
         <p role="alert" className="aviso-erro">
           {erro}
         </p>
@@ -99,6 +104,8 @@ export default function TelaConsentimento({
     <Tela
       titulo={titulo}
       voltar={voltar}
+      lateral={lateral}
+      aoSair={aoSair}
       acoes={
         <Botao onClick={() => void aoAceitar()} disabled={!aceite || enviando}>
           {enviando ? 'Registrando…' : 'Concordar e começar'}

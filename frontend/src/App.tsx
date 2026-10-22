@@ -26,6 +26,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ContextoDoAlerta } from './componentes/AlertaInventario'
 import Esqueleto from './componentes/Esqueleto'
 import Tela from './componentes/Tela'
+import TrilhaDaJornada from './componentes/TrilhaDaJornada'
 import { eTelaDaEquipe, type Rota, substituirRota, useRota } from './navegacao'
 import { obterInicio, obterSessao, sair } from './services/api'
 import type { Inicio, Pergunta } from './tipos'
@@ -496,6 +497,17 @@ export default function App() {
       const naoComecou = inicio !== null && inicio.progresso.respondidas === 0
       if (naoComecou && !boasVindasVistas) {
         return <TelaBoasVindas comecar={() => setBoasVindasVistas(true)} />
+      }
+      // `RF-127`: o termo aparece aqui, sem tela intermediária.
+      if (inicio?.proxima_etapa.destino === 'consentimento') {
+        return (
+          <TelaConsentimento
+            casoId={casoId}
+            lateral={<TrilhaDaJornada inicio={inicio} />}
+            aoSair={aoSair}
+            onAceito={voltarAoInicioAtualizado}
+          />
+        )
       }
       return (
         <TelaInicio
