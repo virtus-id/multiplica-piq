@@ -177,13 +177,16 @@ perguntas:
       - {rotulo: "R$ ______", valor_interno: null}
       - {rotulo: Não estou pagando nada atualmente., valor_interno: "0"}
       - {rotulo: O valor varia muito., valor_interno: VARIA}
+      - {rotulo: Estou pagando o valor total da dívida., valor_interno: TOTAL}
     VARIAVEL_GRAVADA: PAGAMENTO_MENSAL_EFETIVO
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
-    salto_consequencia: "VARIA → B5.C06A."
+    salto_consequencia: >-
+      VARIA → B5.C06A. TOTAL → o pagamento é o saldo devedor informado em
+      B5.B03, sem digitar de novo.
 
   - ID: B5.C06A
     bloco: 5

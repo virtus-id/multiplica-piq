@@ -304,3 +304,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-418` — Pagamento "valor total da dívida" sem digitar duas vezes
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-417` · **Rastreia:** `RF-429`, `AC-425`
+- [x] Opção `TOTAL` em `B5.C06`; a montagem copia o saldo devedor de `B5.B03`
+
+**Status:** `[x] concluída (2026-10-22)`
+

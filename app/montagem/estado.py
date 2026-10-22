@@ -457,6 +457,11 @@ def _pagamento_mensal_efetivo(respostas: RespostasCaso, DIVIDA_ID: str) -> Dinhe
     if bruto is None:
         raise ErroRespostaAusente(DIVIDA_ID, "B5.C06", "PAGAMENTO_MENSAL_EFETIVO")
 
+    if bruto == "TOTAL":
+        # `T-418`: "estou pagando o valor total" é o saldo que o próprio aluno
+        # já informou em B5.B03 — copiado, não calculado, para não digitar duas vezes.
+        return _dinheiro_obrigatorio(respostas, DIVIDA_ID, "B5.B03", "SALDO_DEVEDOR_ATUAL")
+
     if bruto == "VARIA":
         media = respostas.valor_no_item(DIVIDA_ID, _VARIAVEL_PAGAMENTO_MEDIA_TRES_MESES)
         if media is None:

@@ -372,3 +372,13 @@ def test_cet_e_sempre_desconhecido_nesta_tarefa() -> None:
     divida = montar_divida(respostas, "D010")
 
     assert divida.CET is DESCONHECIDO
+
+
+def test_pagamento_total_copia_o_saldo_devedor_sem_digitar_de_novo() -> None:
+    """`T-418`: "Estou pagando o valor total da dívida" (`TOTAL`) usa o saldo de `B5.B03`."""
+    respostas = _ficha_minima_completa("D009", PAGAMENTO_MENSAL_EFETIVO="TOTAL")
+
+    divida = montar_divida(respostas, "D009")
+
+    assert divida.PAGAMENTO_MENSAL_EFETIVO == Decimal("5000.00")
+    assert divida.PAGAMENTO_MENSAL_EFETIVO == divida.SALDO_DEVEDOR_ATUAL
