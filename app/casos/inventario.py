@@ -54,6 +54,8 @@ _SIM: Final[str] = "SIM"
 # T-324: o tipo/credor de cada ficha.
 _TIPO_DA_FICHA: Final[str] = "TIPO_DIVIDA"
 _CREDOR: Final[str] = "CREDOR"
+_CREDOR_OUTRO: Final[str] = "CREDOR_OUTRO"
+_OUTRA_INSTITUICAO: Final[str] = "OUTRA"
 
 # Trilha (`RF-31`) e painel (`RF-35`): o bloqueio é um motivo NOMEADO — o
 # `detalhe` leva só os tipos de pendência, nunca valor (NFR da Rodada 9).
@@ -235,6 +237,9 @@ def credor_da_ficha(respostas: RespostasCaso, item_id: str) -> str | None:
     """T-324 — o credor da ficha de dívida, `None` enquanto não respondido.
     Também nomeia a dívida no plano e na conferência (`T-326`)."""
     credor = respostas.valor_no_item(item_id, _CREDOR)
+    if credor == _OUTRA_INSTITUICAO:
+        # `T-415`: "Outra instituição ou pessoa" — o nome digitado no campo da opção.
+        credor = respostas.valor_no_item(item_id, _CREDOR_OUTRO)
     return credor if isinstance(credor, str) and credor.strip() else None
 
 

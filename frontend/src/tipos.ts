@@ -48,6 +48,8 @@ export interface Pergunta {
   enunciado: string
   /** Instrução de preenchimento, em destaque menor abaixo do enunciado. */
   apoio?: string | null
+  /** `MENU` = a escolha vira uma caixa de seleção (lista longa). Ausente = botões. */
+  apresentacao?: 'MENU' | null
   opcoes: Opcao[]
   escopo_repeticao: string
   item_id: string | null

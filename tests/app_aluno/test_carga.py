@@ -486,6 +486,8 @@ def test_t213_registro_real_marca_so_as_opcoes_de_data() -> None:
         ID: [TipoResposta.DATA] for ID in _IDS_COM_OPCAO_DE_DATA
     }
     esperadas["B5.D06"] = [TipoResposta.TAXA, TipoResposta.TAXA]
+    # `T-415`: `B5.A01` ("Outra instituição ou pessoa") abre o campo do nome.
+    esperadas["B5.A01"] = [TipoResposta.TEXTO_CURTO]
     assert marcadas == esperadas
 
 

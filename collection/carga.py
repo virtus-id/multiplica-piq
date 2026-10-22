@@ -242,6 +242,7 @@ def _converter_registro(caminho: Path, pergunta: dict[str, Any]) -> RegistroPerg
             faixa=_converter_faixa(pergunta.get("faixa")),
             mensagem_faixa=(pergunta.get("faixa") or {}).get("mensagem"),
             apoio=pergunta.get("apoio"),
+            apresentacao=pergunta.get("apresentacao"),
             escopo_pai=(
                 EscopoRepeticao(pergunta["escopo_pai"]) if "escopo_pai" in pergunta else None
             ),

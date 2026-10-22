@@ -750,3 +750,51 @@ describe('T-323: nos tipos de valor, "Não sei" e as alternativas no mesmo forma
     },
   );
 });
+
+describe("MENU — instituição do credor (T-415)", () => {
+  const opcoes = [
+    { rotulo: "Nubank", valor_interno: "Nubank", admite_nao_sei: false },
+    {
+      rotulo: "Outra instituição ou pessoa",
+      valor_interno: "OUTRA",
+      admite_nao_sei: false,
+      abre_campo: "TEXTO_CURTO" as const,
+    },
+  ];
+
+  it("desenha uma caixa de seleção e devolve o valor escolhido", async () => {
+    const aoValor = vi.fn();
+    const usuario = userEvent.setup();
+    render(
+      <CampoPergunta
+        pergunta={fabricar("SELECAO_UNICA", { apresentacao: "MENU", opcoes })}
+        valor=""
+        naoSei={false}
+        onValor={aoValor}
+        onNaoSei={vi.fn()}
+      />,
+    );
+
+    await usuario.selectOptions(screen.getByRole("combobox"), "Nubank");
+
+    expect(aoValor).toHaveBeenLastCalledWith("Nubank");
+  });
+
+  it('"Outra instituição ou pessoa" abre o campo do nome e o devolve junto', async () => {
+    const aoValor = vi.fn();
+    const usuario = userEvent.setup();
+    render(
+      <CampoPergunta
+        pergunta={fabricar("SELECAO_UNICA", { apresentacao: "MENU", opcoes })}
+        valor={["OUTRA", ""]}
+        naoSei={false}
+        onValor={aoValor}
+        onNaoSei={vi.fn()}
+      />,
+    );
+
+    await usuario.type(screen.getByLabelText("Outra instituição ou pessoa"), "T");
+
+    expect(aoValor).toHaveBeenLastCalledWith(["OUTRA", "T"]);
+  });
+});

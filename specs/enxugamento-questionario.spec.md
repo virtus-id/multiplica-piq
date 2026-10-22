@@ -440,6 +440,8 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-419 | RF-423 | Dada a despesa não mensal, então o formulário pede o nome e a lista mostra o nome digitado | verificado (T-412) |
 | AC-420 | RF-424 | Dada a `B3.C00`, então as despesas aparecem sem abrir nada, em tabela com "Corrigir" à direita | verificado (T-413) |
 | AC-421 | RF-425 | Dado `B5.00`, então não há "Não sei"; "Nenhuma dívida" mostra o aviso, não abre ficha e bloqueia o cálculo; quantidade inválida é recusada | verificado (T-414) |
+| AC-422 | RF-426 | Dado `B5.A01`, então o aluno escolhe a instituição num menu, ou "Outra" e digita o nome; nome vazio ou acima de 60 letras é recusado | verificado (T-415) |
+| AC-423 | RF-427 | Dado `B5.A04`, então a pergunta é "Qual é o status desta operação hoje?" e não há opção de quitação a confirmar | verificado (T-416) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -464,6 +466,12 @@ Na `B3.C00` as despesas por item e as não mensais aparecem sempre abertas, em t
 
 ### RF-425. Quantidade de dívidas exata, com "Nenhuma dívida" (2026-10-22)
 `B5.00` perde o "Não sei exatamente quantas". A pessoa escolhe "Nenhuma dívida" ou informa a quantidade (inteiro de 1 a 50); valor negativo, decimal ou vazio é recusado. O cálculo exige uma ficha para cada dívida declarada. "Nenhuma dívida" não abre ficha de dívida, mostra na própria pergunta o aviso de que, sem dívidas, não há plano de quitação, e o caso não segue para o cálculo (pendência de inventário `SEM_DIVIDAS`, que leva de volta à `B5.00`).
+
+### RF-426. Credor escolhido em lista de instituições (2026-10-22)
+`B5.A01` ("Para quem você deve nessa operação?") deixa de ser texto livre: a pessoa escolhe num menu entre Caixa Econômica Federal, Banco do Brasil, Itaú, Bradesco, Santander, Nubank, Banco Inter, C6 Bank, Sicoob e Sicredi, ou em "Outra instituição ou pessoa", que abre um campo para digitar o nome (1 a 60 letras). O nome mostrado no plano, na lista e na conferência é o do banco ou o digitado; respostas antigas em texto livre seguem como estão.
+
+### RF-427. Status da operação direto, sem palpite de quitação (2026-10-22)
+`B5.A04` passa a perguntar "Qual é o status desta operação hoje?" e deixa de oferecer "Acredito que esteja quitada, mas preciso confirmar". O motor mantém o tratamento da situação antiga para respostas já gravadas.
 
 ## 9. Non-Functional Requirements
 

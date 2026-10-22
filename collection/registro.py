@@ -113,13 +113,14 @@ class OpcaoRegistro:
 
     `abre_campo` (`T-213`): a opção pede um valor digitado (ex.: "Data" de
     `B5.B05B`), gravado na `VARIAVEL_GRAVADA` da pergunta no lugar do
-    `valor_interno`. Só `DATA`, `MOEDA` e `TAXA` (`T-393`) — o esquema recusa qualquer outro.
+    `valor_interno`. Só `DATA`, `MOEDA`, `TAXA` (`T-393`) e `TEXTO_CURTO` (`T-415`, o nome de
+    "Outra instituição") — o esquema recusa qualquer outro.
 
     `variavel_do_campo` (`T-294`): com ela, o valor digitado vai para ESTA
     variável, no mesmo item, e a opção grava seu `valor_interno` na
     `VARIAVEL_GRAVADA` como sempre (ex.: `B5.B01` "Sim." → `CONFIRMADA` +
     `VALOR_ORIGINAL`; `B5.D06` "ao ano" → `ANUAL` + `TAXA_DIVIDA`). O esquema a
-    exige com `abre_campo: MOEDA` ou `TAXA`."""
+    exige com `abre_campo: MOEDA`, `TAXA` ou `TEXTO_CURTO`."""
 
     rotulo: str
     valor_interno: str | None
@@ -167,3 +168,6 @@ class RegistroPergunta:
     # Instrução de preenchimento (`T-409`): vai logo abaixo do enunciado, em
     # destaque menor. O enunciado é só a pergunta; o "como informar" mora aqui.
     apoio: str | None = None
+    # Como a escolha é desenhada (`T-415`): `MENU` = caixa de seleção, para
+    # lista longa (ex.: as instituições de `B5.A01`). Ausente = botões.
+    apresentacao: Literal["MENU"] | None = None

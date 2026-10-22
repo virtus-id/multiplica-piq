@@ -197,6 +197,7 @@ _MENSAGEM_PERGUNTA_NAO_ENCONTRADA: Final[str] = "Registro de pergunta inválido:
 _MENSAGEM_PERGUNTA_NAO_ABERTA: Final[str] = "Pergunta não está aberta para resposta."
 _MENSAGEM_FALHA_SALVAR: Final[str] = "Não foi possível salvar."
 _MENSAGEM_FORA_DA_FAIXA: Final[str] = "Valor fora do intervalo aceito."
+_TEXTO_CAMPO_MAXIMO: Final[int] = 60
 _MENSAGEM_FICHA_INCOMPLETA: Final[str] = "Antes de salvar, responda nesta ficha:"
 
 _LOGGER: Final[logging.Logger] = logging.getLogger("app.http.rotas_coleta")
@@ -421,6 +422,12 @@ def _resolver_campo(
     if opcao is None or opcao.variavel_do_campo is None:
         return None
     digitado = valores_brutos[1] if len(valores_brutos) > 1 else ""
+    if opcao.abre_campo is TipoResposta.TEXTO_CURTO:
+        # `T-415`: o nome da instituição ou pessoa de "Outra"; 1 a 60 letras.
+        nome = " ".join(digitado.split())
+        if not nome or len(nome) > _TEXTO_CAMPO_MAXIMO:
+            raise ErroValorInvalido(digitado, "informe um nome de até 60 letras")
+        return opcao.variavel_do_campo, nome
     if opcao.abre_campo is TipoResposta.TAXA:
         # `T-393`: percentual digitado -> fração; taxa negativa não existe (`§16.1`).
         taxa = converter_para_taxa(digitado)

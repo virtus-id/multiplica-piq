@@ -132,6 +132,12 @@ export default function CampoPergunta({
     (opcao) => opcao.abre_campo === 'TAXA' && opcao.valor_interno === texto,
   )
 
+  // `T-415`: a opção com `abre_campo: TEXTO_CURTO` ("Outra instituição ou
+  // pessoa") grava o próprio código, e o nome digitado vai a outra variável.
+  const opcaoDeTexto = pergunta.opcoes.find(
+    (opcao) => opcao.abre_campo === 'TEXTO_CURTO' && opcao.valor_interno === texto,
+  )
+
   /** O rádio sozinho não envia nada: o valor é a data digitada. */
   function escolherCampo() {
     setCampoEscolhidoEm(chave)
@@ -140,7 +146,50 @@ export default function CampoPergunta({
 
   return (
     <div className="flex flex-col gap-3">
-      {grupo ? (
+      {grupo && pergunta.apresentacao === 'MENU' ? (
+        // `T-415`: lista longa (as instituições de `B5.A01`) como caixa de seleção.
+        <div className="field flex flex-col gap-2">
+          <label htmlFor={id} className="font-serif text-[1.35rem] font-semibold">
+            {pergunta.enunciado}
+          </label>
+          {apoio}
+          <select
+            id={id}
+            className="campo-texto"
+            value={texto}
+            disabled={inerte}
+            aria-describedby={descritoPor}
+            onChange={(e) => {
+              const escolhida = pergunta.opcoes.find((o) => o.valor_interno === e.target.value)
+              escolher(
+                escolhida?.abre_campo === 'TEXTO_CURTO'
+                  ? [e.target.value, digitadoNoCampo]
+                  : e.target.value,
+              )
+            }}
+          >
+            <option value="">Selecione…</option>
+            {pergunta.opcoes
+              .filter((opcao) => opcao.valor_interno !== null)
+              .map((opcao) => (
+                <option key={opcao.valor_interno} value={opcao.valor_interno ?? ''}>
+                  {opcao.rotulo}
+                </option>
+              ))}
+          </select>
+          {opcaoDeTexto && (
+            <input
+              type="text"
+              maxLength={60}
+              className="campo-texto"
+              aria-label={opcaoDeTexto.rotulo}
+              aria-describedby={descritoPor}
+              value={digitadoNoCampo}
+              onChange={(e) => onValor([texto, e.target.value])}
+            />
+          )}
+        </div>
+      ) : grupo ? (
         <fieldset className="flex flex-col gap-2 border-0 p-0" disabled={inerte}>
           <legend className="mb-2 font-serif text-[1.35rem] font-semibold">
             {pergunta.enunciado}

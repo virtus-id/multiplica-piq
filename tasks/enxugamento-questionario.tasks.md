@@ -283,3 +283,17 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-415` — Credor em lista de instituições
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-414` · **Rastreia:** `RF-426`, `AC-422`
+- [x] `B5.A01` em menu com 10 instituições e "Outra instituição ou pessoa" com campo de nome; `credor_da_ficha` resolve o nome
+
+**Status:** `[x] concluída (2026-10-22)`
+
+### `T-416` — Status da operação direto
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-415` · **Rastreia:** `RF-427`, `AC-423`
+- [x] `B5.A04` com a pergunta nova e sem a opção de quitação a confirmar
+
+**Status:** `[x] concluída (2026-10-22)`
+

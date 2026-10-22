@@ -33,10 +33,25 @@ perguntas:
   - ID: B5.A01
     bloco: 5
     enunciado: Para quem você deve nessa operação?
-    tipo: TEXTO_CURTO
+    apresentacao: MENU
+    tipo: SELECAO_UNICA
     obrigatoriedade: [REP]
     escopo_repeticao: DIVIDA_ID
-    opcoes: []
+    opcoes:
+      - {rotulo: Caixa Econômica Federal, valor_interno: Caixa Econômica Federal}
+      - {rotulo: Banco do Brasil, valor_interno: Banco do Brasil}
+      - {rotulo: Itaú, valor_interno: Itaú}
+      - {rotulo: Bradesco, valor_interno: Bradesco}
+      - {rotulo: Santander, valor_interno: Santander}
+      - {rotulo: Nubank, valor_interno: Nubank}
+      - {rotulo: Banco Inter, valor_interno: Banco Inter}
+      - {rotulo: C6 Bank, valor_interno: C6 Bank}
+      - {rotulo: Sicoob, valor_interno: Sicoob}
+      - {rotulo: Sicredi, valor_interno: Sicredi}
+      - rotulo: Outra instituição ou pessoa
+        valor_interno: OUTRA
+        abre_campo: TEXTO_CURTO
+        variavel_do_campo: CREDOR_OUTRO
     VARIAVEL_GRAVADA: CREDOR
     condicao_exibicao: null
     interpolacoes: []
@@ -76,7 +91,7 @@ perguntas:
 
   - ID: B5.A04
     bloco: 5
-    enunciado: Qual destas opções descreve melhor esta operação hoje?
+    enunciado: Qual é o status desta operação hoje?
     tipo: SELECAO_UNICA
     obrigatoriedade: [REP]
     escopo_repeticao: DIVIDA_ID
@@ -84,7 +99,6 @@ perguntas:
       - {rotulo: Está ativa., valor_interno: ATIVA}
       - {rotulo: Está em acordo ou renegociação., valor_interno: EM_ACORDO}
       - {rotulo: "Está sendo cobrada, mas não possui pagamento regular definido.", valor_interno: COBRANCA_SEM_PAGAMENTO}
-      - {rotulo: "Acredito que esteja quitada, mas preciso confirmar.", valor_interno: QUITADA_A_CONFIRMAR}
       - {rotulo: Outra situação., valor_interno: OUTRA}
     VARIAVEL_GRAVADA: STATUS_DIVIDA
     condicao_exibicao: null
@@ -93,8 +107,8 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
     salto_consequencia: >-
-      QUITADA_A_CONFIRMAR → ação de confirmação (Bloco 11); não entra em
-      DIVIDA_TOTAL até confirmar.
+      OUTRA → em análise, sem ataque. (A opção "quitada, a confirmar" saiu em
+      T-416; respostas antigas dela seguem lidas pelo motor.)
 
   # Grupo B — Valores e saldo
   - ID: B5.B03
@@ -113,8 +127,7 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
     salto_consequencia: >-
-      DESCONHECIDA → PRIORIDADE DE INFORMAÇÃO; STATUS_DIVIDA_TOTAL =
-      PARCIAL.
+      O saldo é obrigatório e exato: sem "não sei" (T-411).
 
   # Grupo C — Fluxo
   - ID: B5.C01
