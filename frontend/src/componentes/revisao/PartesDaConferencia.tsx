@@ -60,11 +60,23 @@ export function ResumoExecutivo({
   const resultado = plano.RESULTADO_CAIXA_OBSERVADO
   const indicadores: Indicador[] = []
   if (renda) indicadores.push({ rotulo: 'Renda total recorrente', valor: renda, icone: 'dinheiro', tom: 'neutro' })
-  if (despesas) indicadores.push({ rotulo: 'Despesas mensais', valor: despesas,
+  // Saídas = despesas + não mensais + parcelas das dívidas (soma do servidor);
+  // renda − saídas = o resultado do mês logo ao lado.
+  if (resumo?.saidas_totais) {
+    indicadores.push({
+      rotulo: 'Saídas totais do mês',
+      valor: resumo.saidas_totais,
       icone: 'reserva',
       tom: 'neutro',
-      detalhe: naoMensais ? `Não mensais, no mês: ${naoMensais}` : undefined,
+      detalhe: [
+        despesas && `Despesas ${despesas}`,
+        naoMensais && `não mensais ${naoMensais}`,
+        `dívidas ${resumo.pagamento_das_dividas}`,
+      ]
+        .filter(Boolean)
+        .join(' + '),
     })
+  }
   if (resultado) {
     indicadores.push({
       rotulo: 'Resultado do mês',

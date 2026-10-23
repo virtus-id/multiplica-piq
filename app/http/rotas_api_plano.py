@@ -129,6 +129,17 @@ def _resumo_do_caso(snapshot: Any) -> dict[str, object]:
     return {
         "total_em_dividas": formatar_dinheiro_br(sum(informados, Decimal(0))) if informados else None,
         "total_em_dividas_parcial": len(informados) < len(saldos),
+        # `RF-443`: saídas do mês = despesas + não mensais + parcelas devidas das
+        # dívidas, as mesmas parcelas que o motor desconta em `RESULTADO_MENSAL_ATUAL`
+        # (o "Resultado do mês" do plano). Renda − saídas = esse resultado.
+        "pagamento_das_dividas": formatar_dinheiro_br(
+            snapshot.diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
+        ),
+        "saidas_totais": formatar_dinheiro_br(
+            snapshot.estado_inputs.DESPESAS_OPERACIONAIS_ATUAIS
+            + snapshot.estado_inputs.DESPESAS_NAO_MENSAIS_NORMALIZADAS
+            + snapshot.diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
+        ),
     }
 
 # A rota de prévia fica sob a raiz da conferência (nome curto: limiar de `AC-37`).

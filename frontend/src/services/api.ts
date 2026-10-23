@@ -439,7 +439,12 @@ export interface CasoParaRevisao {
   /** `RF-123`: o que mudou desde a versão anterior; `null` na versão 1. */
   mudancas?: MudancaDeEntrada[] | null
   /** `RF-442`: totais do servidor para o painel do revisor. */
-  resumo?: { total_em_dividas: string | null; total_em_dividas_parcial: boolean }
+  resumo?: {
+    total_em_dividas: string | null
+    total_em_dividas_parcial: boolean
+    saidas_totais: string
+    pagamento_das_dividas: string
+  }
   fila: ItemDaFila
 }
 
