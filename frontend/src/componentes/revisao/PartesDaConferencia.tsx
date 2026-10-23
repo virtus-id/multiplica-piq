@@ -74,12 +74,8 @@ export function ResumoExecutivo({
     })
   }
   indicadores.push({
-    rotulo: 'Dívidas no plano',
-    // A ordem só leva as dívidas elegíveis; as cadastradas aparecem junto.
-    valor:
-      entradas.dividas.length > plano.ordem.length
-        ? `${plano.ordem.length} de ${entradas.dividas.length} cadastradas`
-        : String(plano.ordem.length),
+    rotulo: 'Total de dívidas',
+    valor: String(entradas.dividas.length),
     icone: 'bandeira',
     tom: 'neutro',
   })

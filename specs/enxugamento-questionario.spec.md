@@ -531,9 +531,9 @@ Pergunta opcional, hipotética, que só alimentava o caminho "verde" do prognós
 A tela de conferência vira um painel de análise: faixa de indicadores, análise financeira, dívidas do plano, ponto de partida, mudanças, dados de entrada e, ao lado, apoio à decisão (método, pendências, fontes, registro de homologação, sinais). Só apresentação: mesmas APIs, cálculos e regras de homologação; dado ausente aparece como "não disponível". A seção "Plano como o aluno vai ver" sai da tela: o revisor confere o plano pelo botão "Abrir prévia do aluno" (PDF em nova aba).
 
 ### RF-442. Indicadores e dívidas da conferência (2026-10-23)
-- **Faixa:** Renda total recorrente, Despesas mensais, Resultado do mês, Dívidas no plano, Total em dívidas e Possui reserva. "Pode ser homologado" sai da faixa (segue no registro de homologação e no bloqueio de "Liberar").
+- **Faixa:** Renda total recorrente, Despesas mensais, Resultado do mês, Total de dívidas, Total em dívidas e Possui reserva. "Pode ser homologado" sai da faixa (segue no registro de homologação e no bloqueio de "Liberar").
 - **Despesas mensais** lê `DESPESAS_OPERACIONAIS_ATUAIS`. O `despesas_mensais_totais` do ponto de partida é receitas − despesas (a sobra), e por isso saía negativo; não serve de despesa. `DESPESAS_NAO_MENSAIS_NORMALIZADAS` vai como linha de apoio, sem somar.
-- **Dívidas:** a ordem do plano só leva as dívidas elegíveis. O indicador mostra "N de M cadastradas" e a tabela lista também as que estão fora da ordem (ordem "—", mês de quitação "não disponível"), ligadas por `DIVIDA_ID`.
+- **Dívidas:** a ordem do plano só leva as dívidas elegíveis. O indicador "Total de dívidas" conta as cadastradas (`estado_inputs.dividas`) e a tabela lista também as que estão fora da ordem (ordem "—", mês de quitação "não disponível"), ligadas por `DIVIDA_ID`.
 - **Total em dívidas:** soma dos `SALDO_DEVEDOR_ATUAL` informados, feita no servidor (campo aditivo `resumo` em `GET /api/revisao/caso/{id}`; a tela não calcula). Saldo desconhecido não entra e marca o total como parcial.
 - **Reserva:** o card "Total em reserva" mostra o `RESERVA_TOTAL` salvo pelo aluno e, embaixo, só "Uso: …" (`DISPOSICAO_USO_RESERVA`). "Aceita usar" só aparece com valor informado. Sem valor, o card vira "Possui reserva" com o `RESERVA_EXISTE`.
 
