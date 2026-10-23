@@ -53,10 +53,6 @@ export function ResumoExecutivo({
   resumo: CasoParaRevisao['resumo']
 }) {
   const renda = campo(entradas.campos, 'RENDA_TOTAL_RECORRENTE')
-  // `ponto_de_partida.despesas_mensais_totais` é receitas − despesas (a sobra),
-  // não as despesas: o indicador lê o campo de despesas do estado de entrada.
-  const despesas = campo(entradas.campos, 'DESPESAS_OPERACIONAIS_ATUAIS')
-  const naoMensais = campo(entradas.campos, 'DESPESAS_NAO_MENSAIS_NORMALIZADAS')
   const resultado = plano.RESULTADO_CAIXA_OBSERVADO
   const indicadores: Indicador[] = []
   if (renda) indicadores.push({ rotulo: 'Renda total recorrente', valor: renda, icone: 'dinheiro', tom: 'neutro' })
@@ -68,13 +64,6 @@ export function ResumoExecutivo({
       valor: resumo.saidas_totais,
       icone: 'reserva',
       tom: 'neutro',
-      detalhe: [
-        despesas && `Despesas ${despesas}`,
-        naoMensais && `não mensais ${naoMensais}`,
-        `dívidas ${resumo.pagamento_das_dividas}`,
-      ]
-        .filter(Boolean)
-        .join(' + '),
     })
   }
   if (resultado) {
