@@ -1,8 +1,7 @@
 """`T-171`/`T-172` — o capítulo "Seu prognóstico: três caminhos" (`RF-77`, `RF-78`).
 
 Snapshots do motor REAL, como em `test_curso_e_incomodo.py`. O app só lê o
-snapshot. `B3.C01A` saiu do questionário (`T-428`): o app não monta mais a
-contribuição extra, e o verde só aparece num snapshot que já a traga — aqui
+snapshot. O verde só aparece com `B3.C02A` (`RF-443`, `T-431`); aqui o valor é
 simulado trocando o campo do estado antes do cálculo.
 """
 
@@ -74,7 +73,7 @@ def test_pdf_traz_os_tres_caminhos_com_os_numeros_do_snapshot() -> None:
     html = renderizar_html_do_plano(montar_contexto_plano(snapshot, textos), textos)
     for classe in ("caminho-vermelho", "caminho-azul", "caminho-verde"):
         assert classe in html
-    assert "Se nada mudar" in html and "Seguindo o seu plano" in html
+    assert "Se nada mudar" in html and "Seguindo seu plano" in html
 
 
 def _caminhos(snapshot: SnapshotOrdem):  # type: ignore[no-untyped-def]

@@ -457,6 +457,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-436 | RF-440 | Dado o questionário, então `B3.C01A` não existe, e o prognóstico mostra os caminhos vermelho e azul, sem o verde | verificado (T-428) |
 | AC-437 | RF-441 | Dado um caso em conferência, então a tela mostra resumo executivo, tabela de dívidas ligada por `DIVIDA_ID`, apoio à decisão e todos os dados de entrada, sem valor inventado e sem mudar a regra de liberação | verificado (T-429) |
 | AC-438 | RF-442 | Dado um caso com 3 dívidas cadastradas e 1 na ordem do plano, então o indicador mostra "1 de 3 cadastradas", a tabela lista as 3 e o total em dívidas soma os saldos informados (parcial se faltar saldo) | verificado (T-430) |
+| AC-439 | RF-443 | Dado o questionário, então `B3.C02` (quer ver o plano acelerado?) e `B3.C02A` (quanto a mais por mês), só com "sim", existem; com valor maior que zero o plano mostra o cenário "Potencializando seu plano" e, sem a resposta, só os dois primeiros | verificado (T-431) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -537,6 +538,12 @@ A tela de conferência vira um painel de análise: faixa de indicadores, anális
 - **Dívidas:** a ordem do plano só leva as dívidas elegíveis. O indicador "Total de dívidas" conta as cadastradas (`estado_inputs.dividas`) e a tabela lista também as que estão fora da ordem (ordem "—", mês de quitação "não disponível"), ligadas por `DIVIDA_ID`.
 - **Total em dívidas:** soma dos `SALDO_DEVEDOR_ATUAL` informados, feita no servidor (campo aditivo `resumo` em `GET /api/revisao/caso/{id}`; a tela não calcula). Saldo desconhecido não entra e marca o total como parcial.
 - **Reserva:** o card "Total em reserva" mostra só o `RESERVA_TOTAL` salvo pelo aluno; sem valor, vira "Possui reserva" com o `RESERVA_EXISTE`. Os cards da faixa levam só campo e valor, sem legenda (total em dívidas parcial leva "(parcial)" no valor).
+
+### RF-443. Cenário "Potencializando seu plano" pelo questionário (2026-10-23)
+O terceiro cenário do item 5 do PDF (verde, RF-78) volta a ser alimentado, agora por duas perguntas claras: `B3.C02` ("Entendi o seu cenário. E se você pudesse ter um plano de quitação mais acelerado, você gostaria de ver como ficaria?") e, só com "sim", `B3.C02A` ("Quanto a mais por mês… Esse valor será usado somente na projeção do plano acelerado"), que grava `CONTRIBUICAO_EXTRA_MENSAL`. Sem resposta, "não", "não sei" ou zero, o plano mostra só "Se nada mudar" e "Seguindo seu plano". O valor é uma declaração do aluno: o motor só o soma ao ataque do mesmo método (sem nova margem de segurança, RF-78), não altera o plano aprovado, e o card diz que é uma simulação dele. Nada de simulação em tempo real. A `B3.C01A` removida (RF-440) continua removida.
+
+### RF-444. Acabamento visual do PDF do plano (2026-10-23)
+Só apresentação, no CSS de `report/templates/plano/plano.html`: números tabulares e alinhados, cards dos três cenários com a cor de cada um (vermelho, azul, verde), cartões e capa com mais respiro e contraste. Textos, ordem das seções, regras, cálculos, classes dos testes e tamanhos das fichas mensais (uma folha A4 por mês) ficam como estavam.
 
 ## 9. Non-Functional Requirements
 

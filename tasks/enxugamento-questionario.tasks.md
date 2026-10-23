@@ -403,3 +403,19 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] "Pode ser homologado" sai da faixa; entram "Total em dívidas" (campo `resumo` aditivo na API) e "Possui reserva"
 
 **Status:** `[x] concluída (2026-10-23)`
+
+### `T-431` — Cenário acelerado pelo questionário
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-430` · **Rastreia:** `RF-443`, `AC-439`
+- [x] `B3.C02` e `B3.C02A` no bloco 3; montagem volta a ler `CONTRIBUICAO_EXTRA_MENSAL`
+- [x] Títulos do item 5: "Se nada mudar", "Seguindo seu plano", "Potencializando seu plano"; nota do verde diz que é simulação do aluno
+- [x] Testes ajustados (contagem 63; `B3.C01A` sai da lista de removidas sem efeito)
+
+**Status:** `[x] concluída (2026-10-23)`
+
+### `T-432` — Acabamento visual do PDF
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-431` · **Rastreia:** `RF-444`
+- [x] Bloco de refinamento no CSS de `plano.html`, sem mudar conteúdo nem medidas das fichas
+
+**Status:** `[x] concluída (2026-10-23)`
