@@ -556,8 +556,8 @@ perguntas:
     obrigatoriedade: [OPT]
     escopo_repeticao: NENHUM
     opcoes:
-      - {rotulo: Sim, quero ver o plano acelerado., valor_interno: SIM}
-      - {rotulo: Não, o plano que recebi já está bom para mim., valor_interno: NAO}
+      - {rotulo: "Sim, quero ver o plano acelerado.", valor_interno: SIM}
+      - {rotulo: "Não, o plano que recebi já está bom para mim.", valor_interno: NAO}
     VARIAVEL_GRAVADA: DESEJA_PLANO_ACELERADO
     condicao_exibicao: null
     interpolacoes: []
