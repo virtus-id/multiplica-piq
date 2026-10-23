@@ -78,6 +78,10 @@ def _construir_parametros(bruto: dict[str, object]) -> Parametros:
     for chave, valor in bruto.items():
         if chave in _CHAVES_CARIMBO:
             continue
+        if valor is None:
+            # Parâmetro opcional ausente nesta versão (`T-435`): fica fora de `_valores`,
+            # e `numero()` falha alto se alguém o pedir (AC-17, sem default embutido).
+            continue
         if chave in _CHAVES_REGRA:
             if not isinstance(valor, str):
                 raise ErroParametros(f"{chave!r} deveria ser texto, recebido {valor!r}")

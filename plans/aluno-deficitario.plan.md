@@ -8,7 +8,7 @@
 | Data  | 2026-10-23 |
 
 ## Decisão central
-Os cenários de 5% e 10% **reaproveitam o motor**: `calcular_plano` roda de novo sobre uma cópia do `EstadoFinanceiro` com `DESPESAS_OPERACIONAIS_ATUAIS` reduzida em `RENDA_TOTAL_RECORRENTE × P_ECONOMIA_*`. Nenhuma fórmula de amortização nova. O cenário 1 é o `prognostico.sem_acao` que o snapshot já guarda.
+Os cenários de 5% e 10% **reaproveitam o motor**: `calcular_plano` roda de novo sobre uma cópia do `EstadoFinanceiro` com `DESPESAS_OPERACIONAIS_ATUAIS` reduzida em `RENDA_TOTAL_RECORRENTE × P_ECONOMIA_RENDA_CENARIO_*`. Nenhuma fórmula de amortização nova. O cenário 1 é o `prognostico.sem_acao` que o snapshot já guarda.
 
 ## Fatos do código que sustentam o plano
 - `MODO_ESTABILIZACAO = RESULTADO_MENSAL_ATUAL < 0` (`engine/diagnostico.py`); o motor não pula nem falha em déficit (`engine/motor.py`), e o relatório decide a apresentação (`report/plano.py::decidir_cenario_apresentacao`).
@@ -17,7 +17,7 @@ Os cenários de 5% e 10% **reaproveitam o motor**: `calcular_plano` roda de novo
 - O snapshot já carrega `prognostico` opcional, com leitura tolerante de snapshots antigos; os cenários seguem o mesmo molde (campo opcional novo, `None` nos antigos e nos não deficitários).
 
 ## Componentes
-1. **Parâmetros 1.0.3:** `P_ECONOMIA_CENARIO_A = 0.05`, `P_ECONOMIA_CENARIO_B = 0.10`.
+1. **Parâmetros 1.0.3:** `P_ECONOMIA_RENDA_CENARIO_1 = 0.05`, `P_ECONOMIA_RENDA_CENARIO_2 = 0.10`.
 2. **Motor (`engine/`):** `cenarios_deficit.py` com `calcular_cenarios_economia(estado, parametros)` (puro): para cada percentual, copia o estado, recalcula o plano e extrai resultado ajustado, classificação, capacidade e prognóstico por horizonte (12/24/60). Só roda com `MODO_ESTABILIZACAO`. Resultado guardado em `SnapshotOrdem.cenarios_economia` (opcional).
 3. **Persistência:** serialização/leitura tolerante nos dois repositórios (arquivo e Supabase), como `prognostico`.
 4. **Relatório:** `ContextoPlano` ganha o bloco do deficitário (introdução versionada, estratégia, três cenários); `estabilizacao.html` passa a incluí-lo; PDF condicional.

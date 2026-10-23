@@ -74,6 +74,8 @@
     "P_HORIZONTE_MAXIMO_SIMULACAO": { "type": "number" },
     "P_INCOMPATIBILIDADE_NECESSIDADE_VITORIA": { "type": "number" },
     "P_AUTOPERCEPCAO": { "type": "number" },
+    "P_ECONOMIA_RENDA_CENARIO_1": { "type": "number", "minimum": 0, "maximum": 1, "description": "Opcional (a partir da 1.0.3): fração da renda mensal usada como hipótese de economia no cenário 1 do aluno deficitário (RF-448)." },
+    "P_ECONOMIA_RENDA_CENARIO_2": { "type": "number", "minimum": 0, "maximum": 1, "description": "Opcional (a partir da 1.0.3): idem, cenário 2 (RF-448)." },
 
     "REGRA_RESIDUO_ATAQUE": { "type": "string" },
     "REGRA_RANQUEAMENTO": { "type": "string" },
