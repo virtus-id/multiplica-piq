@@ -10,12 +10,13 @@ REGRAS: `RF-10`, `AC-01`
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from app.casos.progresso import PendenciaObrigatoria, proxima_pergunta_nao_respondida
 from collection.carga import carregar_registros
 from collection.condicoes import avaliar
-from collection.registro import EscopoRepeticao, RegistroPergunta, TipoResposta
+from collection.registro import EscopoRepeticao, Obrigatoriedade, RegistroPergunta, TipoResposta
 from collection.respostas import Resposta, RespostasCaso
 
 
@@ -280,10 +281,13 @@ def test_retomada_sem_itens_por_escopo_nao_aponta_pergunta_rep() -> None:
 
 
 def test_retomada_devolve_none_quando_nao_ha_nenhuma_pergunta_aberta_em_branco() -> None:
-    """Conjunto reduzido a uma única pergunta `OPT` (`B3.C01A`), já
-    respondida: nada pendente, `None`. (`T-389`: era `B1.03A`.)"""
-    registro_opt = next(r for r in _colecao_real() if r.ID == "B3.C01A")
-    assert registro_opt.VARIAVEL_GRAVADA == "CONTRIBUICAO_EXTRA_MENSAL"
-    respostas = RespostasCaso(respostas=(_resposta("CONTRIBUICAO_EXTRA_MENSAL", "X"),))
+    """Conjunto reduzido a uma única pergunta `OPT`, já respondida: nada
+    pendente, `None`. (`T-389`: era `B1.03A`; `T-428`: `B3.C01A` saiu, e o
+    registro real `B3.01` vira `OPT` no teste.)"""
+    registro_opt = replace(
+        next(r for r in _colecao_real() if r.ID == "B3.01"),
+        obrigatoriedade=frozenset({Obrigatoriedade.OPT}),
+    )
+    respostas = RespostasCaso(respostas=(_resposta("RENDA_PRINCIPAL", "X"),))
 
     assert proxima_pergunta_nao_respondida((registro_opt,), respostas) is None

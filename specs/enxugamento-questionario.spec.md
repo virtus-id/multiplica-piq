@@ -454,6 +454,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-433 | RF-437 | Dado o modo de edição, então cada botão de gerenciar fichas está na sua seção, e clicar numa parte do índice leva o topo dela para logo abaixo do índice, mesmo com os campos abrindo | verificado (T-426) |
 | AC-434 | RF-438 | Dada a ficha de dívida, então ela termina na última pergunta de dados, sem "Essa ficha está correta?" nem "tem mais dívida?" | verificado (T-427) |
 | AC-435 | RF-439 | Dada a edição de "Minhas respostas", então a lista traz os campos numa só requisição e a tela não pede uma pergunta por linha | verificado (T-427) |
+| AC-436 | RF-440 | Dado o questionário, então `B3.C01A` não existe, e o prognóstico mostra os caminhos vermelho e azul, sem o verde | verificado (T-428) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -520,6 +521,9 @@ Os botões de gerenciar fichas deixam de ser um bloco solto acima da página: ca
 
 ### RF-439. A edição de "Minhas respostas" não faz uma requisição por linha (2026-10-22)
 `GET /caso/{id}/respostas?com_campos=1` devolve, em cada resposta, também o campo pronto para editar (mesmo objeto de `GET /pergunta/{ID}`), só quando o caso é editável; sem o parâmetro a resposta é a de sempre. A página usa esse campo e só busca a pergunta de uma linha se ele faltar, cancelando a busca ao sair da tela.
+
+### RF-440. Sai "Se você fizesse um esforço extra…" (B3.C01A) (2026-10-22)
+Pergunta opcional, hipotética, que só alimentava o caminho "verde" do prognóstico. Sai do questionário (61 perguntas) e do cálculo: a montagem entrega sem contribuição extra, e o plano mostra os caminhos vermelho e azul. O motor segue sabendo calcular o verde para um snapshot que já o traga, mas o aplicativo não o produz mais.
 
 ## 9. Non-Functional Requirements
 

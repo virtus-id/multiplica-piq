@@ -1,7 +1,9 @@
 """`T-171`/`T-172` — o capítulo "Seu prognóstico: três caminhos" (`RF-77`, `RF-78`).
 
 Snapshots do motor REAL, como em `test_curso_e_incomodo.py`. O app só lê o
-snapshot; o verde só existe com a resposta de `B3.C01A`.
+snapshot. `B3.C01A` saiu do questionário (`T-428`): o app não monta mais a
+contribuição extra, e o verde só aparece num snapshot que já a traga — aqui
+simulado trocando o campo do estado antes do cálculo.
 """
 
 from __future__ import annotations
@@ -24,16 +26,15 @@ from tests.app_aluno.fixtures.caso_completo import DATA_REFERENCIA, caso_complet
 
 
 def _snapshot(extra: object | None = None) -> SnapshotOrdem:
-    valores: dict[str, object] = {}
-    if extra is not None:
-        valores["CONTRIBUICAO_EXTRA_MENSAL"] = extra
-    caso = caso_completo(DIVIDA_ID="D-A", valores_caso=valores)
+    caso = caso_completo(DIVIDA_ID="D-A")
     estado = montar_estado_financeiro(
         caso.respostas,
         DATA_REFERENCIA=DATA_REFERENCIA,
         dividas=(montar_divida(caso.respostas, "D-A"),),
         **caso.parametros_externos,  # type: ignore[arg-type]
     )
+    if extra is not None:
+        estado = dataclasses.replace(estado, CONTRIBUICAO_EXTRA_MENSAL=extra)  # type: ignore[arg-type]
     return calcular_plano(estado, FonteParametrosArquivo().carregar("1.0.1"))
 
 

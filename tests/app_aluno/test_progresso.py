@@ -155,10 +155,14 @@ def test_t411_nao_sei_em_pergunta_que_nao_admite_mais_volta_a_ser_pendencia() ->
 
 
 def test_campo_opt_em_branco_nao_gera_pendencia() -> None:
-    """`B3.C01A` real: `obrigatoriedade=[OPT]`. Sem nenhuma resposta gravada,
-    `OPT` nunca entra na varredura de pendência. (`T-389`: era `B1.03A`.)"""
+    """Registro `OPT`: sem nenhuma resposta gravada, `OPT` nunca entra na
+    varredura de pendência. (`T-389`: era `B1.03A`; `T-428`: `B3.C01A` saiu, e
+    o registro real `B3.01` vira `OPT` no teste.)"""
     registros = _colecao_real()
-    registro_opt = next(r for r in registros if r.ID == "B3.C01A")
+    registro_opt = replace(
+        next(r for r in registros if r.ID == "B3.01"),
+        obrigatoriedade=frozenset({Obrigatoriedade.OPT}),
+    )
     assert registro_opt.obrigatoriedade == frozenset({Obrigatoriedade.OPT})
 
     respostas = RespostasCaso(respostas=())

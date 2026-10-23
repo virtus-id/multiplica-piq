@@ -380,3 +380,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-428` — Fim do esforço extra (B3.C01A)
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-427` · **Rastreia:** `RF-440`, `AC-436`
+- [x] `B3.C01A` removida; montagem com `CONTRIBUICAO_EXTRA_MENSAL = None`; testes que usavam a pergunta como `OPT` real passam a usar `B3.01` com a obrigatoriedade trocada
+
+**Status:** `[x] concluída (2026-10-22)`
+

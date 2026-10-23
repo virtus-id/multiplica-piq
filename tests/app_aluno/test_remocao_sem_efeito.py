@@ -228,6 +228,8 @@ _REMOVIDAS: tuple[tuple[str, str, str | None, ValorResposta], ...] = (
     ("B5.B05B", "DATA_VALIDADE_PROPOSTA", "DIVIDA_ID", "VALIDADE_DESCONHECIDA"),
     # `T-427`: a confirmação da ficha e o "tem mais dívida?" não mudam nada.
     ("B5.CHECK", "SYS (salvar/editar)", "DIVIDA_ID", "SIM_SALVAR_DIVIDA"),
+    # `T-428`: sem a contribuição extra o estado do motor é o mesmo (`None`).
+    ("B3.C01A", "CONTRIBUICAO_EXTRA_MENSAL", None, Decimal("500.00")),
     ("B5.FIM01", "SYS (loop)", "DIVIDA_ID", "NAO_ESTA_FOI_A_ULTIMA"),
 )
 
@@ -243,8 +245,8 @@ _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = (
 def test_perguntas_removidas_nao_existem_e_as_mantidas_continuam() -> None:
     ids = {r.ID for r in carregar_registros().registros}
 
-    assert len(_REMOVIDAS) == 145
-    assert len({ID for ID, *_ in _REMOVIDAS}) == 145
+    assert len(_REMOVIDAS) == 146
+    assert len({ID for ID, *_ in _REMOVIDAS}) == 146
     assert {ID for ID, *_ in _REMOVIDAS} & ids == set()
     assert set(_REMOVIDA_COM_VARIAVEL_DE_OUTRA) & ids == set()
     assert set(_MANTIDAS_QUE_OUTRAS_USAM) <= ids

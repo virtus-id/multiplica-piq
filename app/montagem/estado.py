@@ -1103,18 +1103,6 @@ def _capacidade_ataque_declarada(respostas: RespostasCaso) -> DinheiroTalvez:
     return traduzido
 
 
-def _contribuicao_extra_mensal(respostas: RespostasCaso) -> Dinheiro | None:
-    """`B3.C01A` (`CONTRIBUICAO_EXTRA_MENSAL`, `RF-78`) — OPT. Sem resposta,
-    "não sei" ou zero → `None` (o prognóstico não mostra o verde)."""
-    valor = respostas.valor("CONTRIBUICAO_EXTRA_MENSAL")
-    if valor is None:
-        return None
-    traduzido = _ou_desconhecido(valor)
-    if isinstance(traduzido, Decimal) and traduzido > 0:
-        return traduzido
-    return None
-
-
 def _inventario_completo(respostas: RespostasCaso) -> bool:
     """`B5.FIM02` (`CONFIRMACAO_FIM_CADASTRO`) — `RF-15`, `AC-07`. Domínio
     real de `valor_interno` (`collection/registros/bloco-05.yaml`, T-405):
@@ -1370,7 +1358,8 @@ def montar_estado_financeiro(
         DESPESAS_OPERACIONAIS_ATUAIS=_despesas_operacionais_atuais(respostas),
         DESPESAS_NAO_MENSAIS_NORMALIZADAS=_despesas_nao_mensais_normalizadas(respostas),
         CAPACIDADE_ATAQUE_DECLARADA=_capacidade_ataque_declarada(respostas),
-        CONTRIBUICAO_EXTRA_MENSAL=_contribuicao_extra_mensal(respostas),
+        # `T-428`: B3.C01A saiu; sem contribuição extra o prognóstico não mostra o verde.
+        CONTRIBUICAO_EXTRA_MENSAL=None,
         # `T-408`: B2.09, B2.10 e B2.10A saíram; só resta o valor da chamadora.
         ECONOMIA_POTENCIAL_IMEDIATA=(
             _ZERO if economia_nao_identificada is None else economia_nao_identificada
