@@ -42,7 +42,6 @@ import TelaLogin from './telas/TelaLogin'
 import TelaOperador from './telas/TelaOperador'
 import TelaPergunta from './telas/TelaPergunta'
 import TelaPlano from './telas/TelaPlano'
-import TelaProgresso from './telas/TelaProgresso'
 import TelaRespostas from './telas/TelaRespostas'
 import TelaRevisao from './telas/TelaRevisao'
 
@@ -518,22 +517,6 @@ export default function App() {
       )
     }
 
-    case 'progresso':
-      return (
-        <TelaProgresso
-          casoId={casoId}
-          inicio={inicio}
-          voltar={voltarAoInicio}
-          continuar={() => irPara({ tela: 'pergunta' })}
-          // `#fichas` é o CRUD de dívidas (`RF-53`, `AC-04`). No protótipo
-          // o acesso vinha de "Continuar de onde parei" (linha 285); aqui é
-          // um segundo caminho explícito, porque "continuar" agora vai para
-          // a próxima pergunta. Sem isto o aluno não tem como cadastrar nem
-          // remover dívida — regressão que a morte da barra de abas criou.
-          verFichas={(escopo) => irPara({ tela: 'fichas', escopo })}
-        />
-      )
-
     case 'fichas': {
       // `T-212`: o escopo vem da rota; `#fichas` sem escopo são as dívidas.
       // Escopo sem nome no mapa não tem tela (ex.: `ACAO_ID`).
@@ -633,6 +616,8 @@ export default function App() {
           voltar={voltarAoInicio}
           fase={inicio?.fase}
           continuar={() => irPara({ tela: 'pergunta' })}
+          // `#fichas` é o CRUD de dívidas e despesas (`RF-53`, `AC-04`).
+          verFichas={(escopo) => irPara({ tela: 'fichas', escopo })}
         />
       )
     }

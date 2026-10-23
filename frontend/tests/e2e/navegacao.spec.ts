@@ -288,7 +288,8 @@ test('AC-84: cada navegação foca o <h1> e atualiza document.title', async ({ p
   // `document.title` e o `<h1>` carregam o MESMO texto, e é isso que `AC-84`
   // pede: `aplicarFocoDeNavegacao` recebe o `titulo` que a tela deu à casca,
   // então os dois não podem divergir por construção.
-  const TITULO_DO_PROGRESSO = 'Onde você está'
+  // `T-425`: o destino `progresso` do servidor abre "Minhas respostas".
+  const TITULO_DO_PROGRESSO = 'Minhas respostas'
   await expect
     .poll(() => tituloDoDocumento(page))
     .toBe(`${TITULO_BASE} · ${TITULO_DO_PROGRESSO}`)
@@ -564,7 +565,7 @@ const INICIO_ACESSO = {
   versao_do_plano: null,
 }
 
-test('AC-83: o progresso dá acesso às fichas — o CRUD de dívidas de RF-53', async ({
+test('AC-83: "Minhas respostas" dá acesso às fichas — o CRUD de dívidas de RF-53', async ({
   page,
 }) => {
   await page.route(`**/caso/${CASO_ACESSO}/inicio`, (r) =>
@@ -597,11 +598,16 @@ test('AC-83: o progresso dá acesso às fichas — o CRUD de dívidas de RF-53',
     }),
   )
 
-  await page.goto(`/?caso=${CASO_ACESSO}#progresso`)
+  await page.route(`**/caso/${CASO_ACESSO}/respostas`, (r) =>
+    r.fulfill({ json: { CASO_ID: CASO_ACESSO, partes: partesVazias() } }),
+  )
+  await page.route(`**/caso/${CASO_ACESSO}/escopos`, (r) =>
+    r.fulfill({ json: { CASO_ID: CASO_ACESSO, escopos: [{ escopo: 'DIVIDA_ID', aberto: true }] } }),
+  )
 
-  const irParaFichas = page
-    .locator('.acoes')
-    .getByRole('button', { name: /dívidas/i })
+  await page.goto(`/?caso=${CASO_ACESSO}#respostas`)
+
+  const irParaFichas = page.getByRole('button', { name: 'Ver e editar minhas dívidas' })
   await expect(irParaFichas).toBeVisible()
   await irParaFichas.click()
 

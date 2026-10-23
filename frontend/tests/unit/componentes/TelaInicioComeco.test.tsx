@@ -11,8 +11,6 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import TelaInicio from "../../../src/telas/TelaInicio";
-import TelaProgresso from "../../../src/telas/TelaProgresso";
-import * as api from "../../../src/services/api";
 import type { Inicio } from "../../../src/tipos";
 
 afterEach(() => {
@@ -62,30 +60,6 @@ describe("Início — começar × continuar", () => {
 
     expect(
       screen.getByRole("button", { name: "Continuar de onde você parou" }),
-    ).toBeInTheDocument();
-  });
-});
-
-describe("Onde você está — começar × continuar", () => {
-  it.each([
-    [0, "Começar o questionário"],
-    [3, "Continuar de onde parei"],
-  ])('com %i respostas, o botão diz "%s"', async (respondidas, rotulo) => {
-    vi.spyOn(api, "listarEscopos").mockResolvedValue({
-      CASO_ID: "CASO-1",
-      escopos: [],
-    });
-    render(
-      <TelaProgresso
-        casoId="CASO-1"
-        inicio={inicio(respondidas)}
-        voltar={vi.fn()}
-        continuar={vi.fn()}
-      />,
-    );
-
-    expect(
-      await screen.findByRole("button", { name: rotulo }),
     ).toBeInTheDocument();
   });
 });
@@ -157,6 +131,8 @@ describe("Início — correção pedida pela conferência (T-333, RF-113)", () =
     await userEvent.click(
       screen.getByRole("button", { name: "Enviar para nova conferência" }),
     );
+    // `T-425`: o reenvio também é um envio e pede o mesmo aviso antes.
+    await userEvent.click(screen.getByRole("button", { name: "Enviar agora" }));
     expect(irPara).toHaveBeenLastCalledWith({ tela: "calculando" });
   });
 

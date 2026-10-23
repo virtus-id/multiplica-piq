@@ -14,6 +14,8 @@
  * — o `destino` vem do servidor (`RF-34`, Lei nº 3). O `switch` abaixo escolhe
  * o TEXTO e o enquadramento visual de cada fase, que é trabalho de interface.
  */
+import { useState } from 'react'
+
 import AcompanhamentoDoPlano, { AndamentoDoPlano } from '../componentes/AcompanhamentoDoPlano'
 import Botao from '../componentes/Botao'
 import { CartaoRetirarDaConferencia } from '../componentes/CartoesDoPlano'
@@ -29,7 +31,7 @@ interface TelaInicioProps {
    * tela (`T-190`).
    *
    * **Até `T-190`, esta tela buscava por conta própria** — a mesma
-   * requisição que `App.tsx` já eleva para `TelaProgresso`/`TelaAguardando`
+   * requisição que `App.tsx` já eleva para `TelaRespostas`
    * consumirem, duplicada aqui. Todo "voltar" (que sempre
    * cai no Início — `voltarAoInicio`) disparava as DUAS buscas em paralelo,
    * dobrando o número de conexões tiradas do pool compartilhado (`T-187`)
@@ -94,7 +96,8 @@ function rotaDoDestino(inicio: Inicio): Rota {
     case 'calculando':
       return { tela: 'calculando' }
     case 'progresso':
-      return { tela: 'progresso' }
+      // `T-425`: a tela de progresso saiu; "Minhas respostas" a substitui.
+      return { tela: 'respostas' }
     case 'plano':
       return { tela: 'plano' }
     default:
@@ -153,8 +156,8 @@ const TEXTO_DA_ETAPA: Readonly<
     detalhe: 'Antes do plano, as fichas precisam fechar com o que você declarou.',
   },
   calculando: {
-    rotulo: 'Montar o seu plano',
-    detalhe: 'Você respondeu tudo o que precisávamos.',
+    rotulo: 'Enviar para análise do especialista',
+    detalhe: 'Seu plano será calculado e conferido por nossa equipe.',
   },
   aguardando: {
     rotulo: 'Aguardar a conferência',
@@ -179,6 +182,9 @@ const CHAMADA_DA_FASE: Readonly<Record<Inicio['fase'], string>> = {
 }
 
 export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaInicioProps) {
+  // `T-425`: o envio ao especialista pede confirmação antes de calcular.
+  const [confirmandoEnvio, setConfirmandoEnvio] = useState(false)
+
   if (!inicio) {
     return (
       <Tela titulo="Início">
@@ -240,14 +246,15 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
       acoes={
         <>
           {/* `T-419`: na conferência não há o que fazer — sem botão, e sem tela de espera. */}
-          {etapa.destino !== 'aguardando' && (
-            <Botao onClick={() => irPara(rotaDoDestino(inicio))}>{texto.rotulo}</Botao>
-          )}
-          {/* O segundo botão NUNCA é uma alternativa de fluxo: é sempre uma
-              consulta ao que já existe. A escolha segue sendo uma só. */}
-          {fase === 'coleta' && (
-            <Botao variante="discreto" onClick={() => irPara({ tela: 'progresso' })}>
-              Ver meu progresso
+          {etapa.destino !== 'aguardando' && !confirmandoEnvio && (
+            <Botao
+              onClick={() =>
+                etapa.destino === 'calculando'
+                  ? setConfirmandoEnvio(true)
+                  : irPara(rotaDoDestino(inicio))
+              }
+            >
+              {texto.rotulo}
             </Botao>
           )}
           {/* `RF-68`: a porta de "Minhas respostas", e a ÚNICA. Sem ela a
@@ -334,6 +341,28 @@ export default function TelaInicio({ inicio, irPara, eRevisor, aoSair }: TelaIni
               </ul>
             </>
           )}
+        </div>
+      )}
+
+      {confirmandoEnvio && etapa.destino === 'calculando' && (
+        <div role="alertdialog" aria-labelledby="titulo-enviar-analise" className="cartao flex-col">
+          <strong id="titulo-enviar-analise">Enviar para análise do especialista?</strong>
+          <p className="m-0">
+            Depois de enviar, suas respostas ficam só para leitura até a conferência. Se quiser
+            mudar algo, retire o plano da conferência e edite.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Botao className="sm:!w-auto" onClick={() => irPara(rotaDoDestino(inicio))}>
+              Enviar agora
+            </Botao>
+            <Botao
+              variante="secundario"
+              className="sm:!w-auto"
+              onClick={() => setConfirmandoEnvio(false)}
+            >
+              Revisar antes
+            </Botao>
+          </div>
         </div>
       )}
 

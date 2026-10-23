@@ -35,7 +35,6 @@ export type Rota =
   | { tela: 'definir-senha'; token: string }
   | { tela: 'consentimento' }
   | { tela: 'inicio' }
-  | { tela: 'progresso' }
   /**
    * A lista de fichas de um escopo repetível (`T-212`). Sem `escopo`, as
    * dívidas (`DIVIDA_ID`), como sempre foi `#fichas`. `seguintes` são os
@@ -163,7 +162,6 @@ export function hashParaRota(hash: string): Rota {
     case 'entrada':
     case 'consentimento':
     case 'inicio':
-    case 'progresso':
     case 'calculando':
     case 'plano':
     case 'equipe-fila':

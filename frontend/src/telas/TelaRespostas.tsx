@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Botao from '../componentes/Botao'
 import Esqueleto from '../componentes/Esqueleto'
+import AtalhosDasFichas from '../componentes/respostas/AtalhosDasFichas'
 import BannerDeRespostas from '../componentes/respostas/BannerDeRespostas'
 import LinhaDaResposta, { type Rascunho } from '../componentes/respostas/LinhaDaResposta'
 import PaginaDeRespostas from '../componentes/respostas/PaginaDeRespostas'
@@ -48,9 +49,17 @@ interface TelaRespostasProps {
   fase?: Fase
   /** Segue a coleta — para responder o que uma alteração abriu. */
   continuar?: () => void
+  /** Abre a lista de fichas de um escopo (dívidas, despesas...) — `T-425`. */
+  verFichas?: (escopo: string) => void
 }
 
-export default function TelaRespostas({ casoId, voltar, fase, continuar }: TelaRespostasProps) {
+export default function TelaRespostas({
+  casoId,
+  voltar,
+  fase,
+  continuar,
+  verFichas,
+}: TelaRespostasProps) {
   const [respostas, setRespostas] = useState<RespostasDoCaso | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -238,6 +247,8 @@ export default function TelaRespostas({ casoId, voltar, fase, continuar }: TelaR
           {erro}
         </p>
       )}
+
+      {modo === 'editar' && verFichas && <AtalhosDasFichas casoId={casoId} aoAbrir={verFichas} />}
 
       <PaginaDeRespostas
         modo={modo}

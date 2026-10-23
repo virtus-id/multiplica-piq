@@ -175,3 +175,66 @@ describe('Início — "Quero editar minhas respostas" em conferência (AC-187)',
     ).not.toBeInTheDocument();
   });
 });
+
+describe("Início — envio ao especialista e fim da tela de progresso (T-425)", () => {
+  const COLETA_COMPLETA = {
+    estado: "COLETA_INICIAL",
+    fase: "coleta",
+    proxima_etapa: { destino: "calculando", ID_PERGUNTA: null, item_id: null },
+    plano_liberado: false,
+    versao_do_plano: null,
+    pode_retomar_edicao: false,
+  } as const;
+
+  it("o envio pede confirmação antes de levar ao cálculo", () => {
+    const irPara = renderizar(inicio(COLETA_COMPLETA));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enviar para análise do especialista" }),
+    );
+    // Só o clique não envia nada: antes, o aviso.
+    expect(irPara).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/suas respostas ficam só para leitura até a conferência/),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Enviar agora" }));
+    expect(irPara).toHaveBeenCalledWith({ tela: "calculando" });
+  });
+
+  it('"Revisar antes" desiste do envio', () => {
+    const irPara = renderizar(inicio(COLETA_COMPLETA));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enviar para análise do especialista" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Revisar antes" }));
+
+    expect(irPara).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Enviar para análise do especialista" }),
+    ).toBeInTheDocument();
+  });
+
+  it("não há mais o botão de progresso", () => {
+    renderizar(inicio(COLETA_COMPLETA));
+
+    expect(screen.queryByRole("button", { name: "Ver meu progresso" })).not.toBeInTheDocument();
+  });
+
+  it('o destino "progresso" do servidor (plano devolvido) abre "Minhas respostas"', () => {
+    const irPara = renderizar(
+      inicio({
+        estado: "REPROVADO",
+        fase: "reprovado",
+        proxima_etapa: { destino: "progresso", ID_PERGUNTA: null, item_id: null },
+        plano_liberado: false,
+        versao_do_plano: null,
+        pode_retomar_edicao: false,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Ver as suas respostas" }));
+    expect(irPara).toHaveBeenCalledWith({ tela: "respostas" });
+  });
+});

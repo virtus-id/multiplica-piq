@@ -357,3 +357,11 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-425` — Unificar progresso em "Minhas respostas" e confirmar o envio
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-424` · **Rastreia:** `RF-436`, `AC-432`
+- [x] `TelaProgresso` e a rota `#progresso` removidas; atalhos das fichas em "Minhas respostas" (`AtalhosDasFichas`)
+- [x] "Enviar para análise do especialista" com confirmação; destino `progresso` do servidor abre "Minhas respostas"
+
+**Status:** `[x] concluída (2026-10-22)`
+

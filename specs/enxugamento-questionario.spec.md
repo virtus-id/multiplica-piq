@@ -450,6 +450,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-429 | RF-433 | Dada "Minhas respostas", então as cinco partes aparecem na mesma página, o índice fixo leva a cada uma e destaca a visível, a busca encontra pergunta ou resposta, e visualizar e editar têm o mesmo layout (campos editáveis só na edição) | verificado (T-422) |
 | AC-430 | RF-434 | Dadas fichas de tipos diferentes, então cada título traz o tipo e o número dentro do tipo, e despesa não aparece como dívida | verificado (T-423) |
 | AC-431 | RF-435 | Dado o índice de "Minhas respostas" no computador, então as cinco partes aparecem numa linha, com texto curto e nome acessível completo | verificado (T-424) |
+| AC-432 | RF-436 | Dado o Início de um caso com tudo preenchido, então não há "Ver meu progresso", o envio tem confirmação, e as listas de fichas são alcançadas por "Minhas respostas" | verificado (T-425) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -504,6 +505,9 @@ Cada ficha ganha o título do seu tipo e o número dentro do tipo: "Dívida 1", 
 
 ### RF-435. Índice de "Minhas respostas" com textos curtos (2026-10-22)
 O índice fixo mostra um texto curto por parte — Compromisso, Controle dos gastos, Entradas e saídas, Salário e margem, Dívidas — para os cinco caberem numa linha no computador. O título completo continua na seção, no nome acessível e na dica do botão. No celular o índice segue rolando na horizontal.
+
+### RF-436. Fim da tela de progresso e envio ao especialista com confirmação (2026-10-22)
+O Início deixa de oferecer "Ver meu progresso" e a tela de progresso (`#progresso`) deixa de existir; ela substitui RF-31/AC-40. O que tinha de único, o acesso às listas de fichas (dívidas, despesas, rendas adicionais; RF-53, AC-04), passa para "Minhas respostas", num bloco "Dívidas e despesas cadastradas" só no modo editável. O destino `progresso` que o servidor ainda envia na fase de plano devolvido abre "Minhas respostas". O botão "Montar o seu plano" vira **"Enviar para análise do especialista"** e pede confirmação ("Depois de enviar, suas respostas ficam só para leitura até a conferência") antes de levar ao cálculo; vale também para o reenvio depois de uma devolução.
 
 ## 9. Non-Functional Requirements
 

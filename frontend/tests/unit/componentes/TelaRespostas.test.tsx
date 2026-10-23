@@ -250,3 +250,40 @@ describe("TelaRespostas — taxa e dinheiro como o aluno digitou (T-335)", () =>
     expect(screen.queryByText("0.08")).not.toBeInTheDocument();
   });
 });
+
+describe("TelaRespostas — atalhos das listas de fichas (T-425)", () => {
+  it("no modo editável traz as dívidas e as listas abertas, e abre a escolhida", async () => {
+    vi.spyOn(api, "obterPergunta").mockResolvedValue({ pergunta: null });
+    vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({ CASO_ID: "C1", partes: PARTES });
+    vi.spyOn(api, "listarEscopos").mockResolvedValue({
+      CASO_ID: "C1",
+      escopos: [
+        { escopo: "DIVIDA_ID", aberto: true },
+        { escopo: "RENDA_ADICIONAL_ID", aberto: true },
+        { escopo: "MARGEM_ID", aberto: false },
+      ],
+    });
+    const verFichas = vi.fn();
+    render(<TelaRespostas casoId="C1" voltar={vi.fn()} verFichas={verFichas} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Ver e editar: rendas adicionais" }));
+
+    expect(verFichas).toHaveBeenCalledWith("RENDA_ADICIONAL_ID");
+    expect(screen.getByRole("button", { name: "Ver e editar minhas dívidas" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /margens/ })).not.toBeInTheDocument();
+  });
+
+  it("só leitura (conferência): sem os atalhos", async () => {
+    vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({
+      CASO_ID: "C1",
+      partes: PARTES,
+      editavel: false,
+    });
+    const listar = vi.spyOn(api, "listarEscopos");
+    render(<TelaRespostas casoId="C1" voltar={vi.fn()} verFichas={vi.fn()} />);
+
+    await screen.findByText("Seu plano está em elaboração e análise.");
+    expect(screen.queryByText("Dívidas e despesas cadastradas")).not.toBeInTheDocument();
+    expect(listar).not.toHaveBeenCalled();
+  });
+});
