@@ -22,7 +22,13 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import Botao from '../componentes/Botao'
 import Esqueleto from '../componentes/Esqueleto'
 import Icone from '../componentes/Icone'
-import ListaDeDados from '../componentes/ListaDeDados'
+import PontoDePartida from '../componentes/PontoDePartida'
+import {
+  AnaliseFinanceira,
+  DadosQueProduziramOPlano,
+  ResumoExecutivo,
+  TabelaDeDividas,
+} from '../componentes/revisao/PartesDaConferencia'
 import PlanoDoAluno from '../componentes/PlanoDoAluno'
 import Tela from '../componentes/Tela'
 import {
@@ -190,6 +196,22 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
         </div>
       }
     >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="nota m-0">
+          Caso {dados.CASO_ID} · versão {fila.versao} · data de referência {fila.DATA_REFERENCIA}
+        </p>
+        {/* `RF-124`: a prévia do PDF que o aluno receberá. Link de verdade:
+            o download usa a navegação nativa e o cookie de sessão. */}
+        <a
+          className="btn-discreto !w-auto no-underline"
+          href={`/revisao/caso/${casoId}/plano/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Icone nome="baixar" />
+          Abrir prévia do aluno
+        </a>
+      </div>
       {erro && (
         <p role="alert" className="aviso-erro">
           {erro}
@@ -201,178 +223,167 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
         </p>
       )}
 
-      {/* `RF-121` (T-347): a conferência mostra o plano COMO O ALUNO O RECEBE — o
-          mesmo componente da tela dele — e, ao lado, o painel do revisor. No
-          monitor largo são duas colunas (plano do aluno na largura dele ·
-          painel); abaixo disso empilha, plano do aluno primeiro. */}
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,760px)_minmax(0,1fr)] xl:items-start">
-        <section aria-label="Como o aluno vai ver" className="flex min-w-0 flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="eyebrow">Como o aluno vai ver</span>
-            {/* `RF-124`: a prévia do PDF que o aluno receberá. Link de verdade:
-                o download usa a navegação nativa e o cookie de sessão. */}
-            <a
-              className="btn-discreto !w-auto no-underline"
-              href={`/revisao/caso/${casoId}/plano/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Icone nome="baixar" />
-              Abrir prévia do PDF
-            </a>
-          </div>
-          <div className="flex flex-col gap-4 rounded-piq border border-dashed border-line bg-surface p-4">
-            {/* Redação canônica do servidor — `AC-14`. Nunca reescrita aqui. */}
-            <h2 className="m-0">{plano.titulo}</h2>
-            <PlanoDoAluno plano={plano} revisor={{ entradas }} />
-          </div>
-        </section>
+      {/* `T-429` (`RF-441`): mesa de conferência — resumo executivo, análise
+          (~68%) e apoio à decisão (~32%). Só apresentação dos dados que a API
+          já entrega; o plano do aluno segue integral, fechado, no fim. */}
+      <ResumoExecutivo plano={plano} entradas={entradas} homologavel={homologacao?.homologavel} />
 
-        <aside aria-label="Painel do revisor" className="flex min-w-0 flex-col gap-4">
-      {/* `T-330`: o método é do caso, não da dívida — um destaque só, com o
-          critério em uma frase (do servidor). Substitui o "Detalhe técnico"
-          que repetia o mesmo texto do motor em cada posição. */}
-      <section className="cartao" aria-labelledby="titulo-metodo">
-        <span className="eyebrow">Método selecionado para este aluno</span>
-        <h2 id="titulo-metodo">
-          {fila.metodo} <small className="text-muted">· {fila.status_metodo}</small>
-        </h2>
-        {fila.criterio_metodo && <p>{fila.criterio_metodo}</p>}
-      </section>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,68fr)_minmax(0,32fr)] xl:items-start">
+        <div className="flex min-w-0 flex-col gap-4">
+          <AnaliseFinanceira plano={plano} />
+          <TabelaDeDividas plano={plano} entradas={entradas} />
 
-      {/* `T-266` — redação aprovada pelo produto (`T-289`, 2026-09-30). */}
-      {pendencias.length > 0 && (
-        <div role="alert" className="aviso-erro flex-col">
-          <p className="font-bold">
-            Não pode ser homologado ainda: confirme ou corrija estes dados antes de liberar.
-          </p>
-          <ul>
-            {pendencias.map((p) => (
-              <li key={`${p.item_id ?? 'caso'}-${p.ID_PERGUNTA}`}>
-                {p.nome ? `${p.nome} · ` : ''}
-                {p.enunciado} —{' '}
-                {p.motivo === 'AUSENTE' ? 'não informado' : 'pendente de confirmação'}
-              </li>
-            ))}
-          </ul>
+          {plano.ponto_de_partida && (
+            <PontoDePartida
+              ponto={plano.ponto_de_partida}
+              textos={plano.ponto_de_partida_textos ?? {}}
+              titulo="Seu ponto de partida"
+              mostrarValorExtra={!plano.MODO_ESTABILIZACAO && plano.ordem.length > 0}
+            />
+          )}
+
+          {/* `RF-123` (T-348): só em plano refeito. O servidor já manda tudo formatado. */}
+          {dados.mudancas && (
+            <section className="cartao" aria-labelledby="titulo-mudancas">
+              <h2 id="titulo-mudancas" className="m-0">
+                O que mudou desde a versão anterior
+              </h2>
+              {dados.mudancas.length === 0 ? (
+                <p className="m-0">Nada mudou nos dados de entrada desde a versão anterior.</p>
+              ) : (
+                <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                  {dados.mudancas.map((mudanca, i) => (
+                    <li key={`${mudanca.secao}-${mudanca.nome}-${i}`}>
+                      <span className="text-muted block text-xs">{mudanca.secao}</span>
+                      <strong>{mudanca.nome}</strong>:{' '}
+                      {mudanca.situacao === 'novo' && <span className="chip chip-atencao">novo</span>}
+                      {mudanca.situacao === 'removido' && <span className="chip chip-mudo">removido</span>}{' '}
+                      {mudanca.de !== null && <span className="text-muted tabular-nums">{mudanca.de}</span>}
+                      {mudanca.de !== null && mudanca.para !== null && ' → '}
+                      {mudanca.para !== null && <span className="tabular-nums font-bold">{mudanca.para}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          <DadosQueProduziramOPlano entradas={entradas} />
+
+          {/* `RF-121`: o plano COMO O ALUNO O RECEBE, com os detalhes do revisor.
+              Fechado para não competir com a análise; nada se perde. */}
+          <details className="cartao min-w-0">
+            <summary className="cursor-pointer font-bold">Plano como o aluno vai ver</summary>
+            <div className="flex flex-col gap-4 pt-3">
+              {/* Redação canônica do servidor — `AC-14`. Nunca reescrita aqui. */}
+              <h2 className="m-0">{plano.titulo}</h2>
+              <PlanoDoAluno plano={plano} revisor={{ entradas }} />
+            </div>
+          </details>
         </div>
-      )}
 
-      {(fontes.length > 0 || divergencias.length > 0 || datasDaInformacao.length > 0) && (
-        <div className="cartao">
-          <span className="eyebrow">Fonte de comprovação e avisos</span>
-          <ul>
-            {fontes.map((f) => (
-              <li key={`${f.item_id}-${f.origem}`}>
-                {f.nome} · {f.dado}: {f.rotulo}
-              </li>
-            ))}
-            {datasDaInformacao.map((d) => (
-              <li key={`data-${d.item_id}`}>
-                {d.nome} · informações consultadas ou atualizadas: {d.rotulo}
-              </li>
-            ))}
-            {divergencias.map((d, i) => (
-              <li key={`divergencia-${i}`}>
-                {`${d.nome} · desconto: valor em R$ e percentual não conferem`}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        <aside aria-label="Apoio à decisão" className="flex min-w-0 flex-col gap-4">
+          <h2 className="eyebrow m-0">Apoio à decisão</h2>
+          {/* `T-330`: o método é do caso, não da dívida — um destaque só, com o
+              critério em uma frase (do servidor). */}
+          <section className="cartao" aria-labelledby="titulo-metodo">
+            <span className="eyebrow">Método selecionado para este aluno</span>
+            <h3 id="titulo-metodo" className="m-0">
+              {fila.metodo} <small className="text-muted">· {fila.status_metodo}</small>
+            </h3>
+            {fila.criterio_metodo && <p className="m-0">{fila.criterio_metodo}</p>}
+          </section>
 
-      {/* `T-304` (`RF-96`, `DE-08`): o registro de homologação, lido do
-          snapshot em decisão. Item não derivável vem "não disponível" com o
-          motivo — nunca estimado. */}
-      {homologacao && (
-        <section className="cartao" aria-labelledby="titulo-homologacao">
-          <h2 id="titulo-homologacao" className="eyebrow">
-            Registro de homologação
-          </h2>
-          <dl className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[auto_minmax(0,1fr)]">
-            {ITENS_DE_HOMOLOGACAO.map(([chave, rotulo]) => {
-              const item = homologacao.itens[chave]
-              return (
-                <div key={chave} className="contents">
-                  <dt className="text-muted">{rotulo}</dt>
-                  <dd className="m-0 mb-2 min-w-0 tabular-nums [overflow-wrap:anywhere] sm:mb-0">
-                    {item ? textoDoItem(item.valor) : 'não disponível'}
-                    {item?.motivo && (
-                      <small className="block text-muted">{item.motivo}</small>
-                    )}
-                  </dd>
-                </div>
-              )
-            })}
-            <dt className="text-muted">Pode ser homologado</dt>
-            <dd className="m-0">{homologacao.homologavel ? 'sim' : 'não'}</dd>
-          </dl>
-        </section>
-      )}
-
-      {/* Os dois sinais seguem SEPARADOS — `AC-28`. A política do piloto
-          (100% dos planos) e o campo `REVISAO_HUMANA_OBRIGATORIA` do motor
-          (caso `S-04`) são motivos diferentes para o caso estar aqui, e
-          combiná-los num selo só esconderia qual dos dois se aplica. */}
-      <div className="flex flex-wrap gap-2">
-        {fila.entra_por_politica && <span className="chip chip-mudo">Política 100%</span>}
-        {fila.e_metodologico && (
-          <span className="chip chip-atencao">S-04 · revisão obrigatória</span>
-        )}
-      </div>
-
-        {/* `RF-123` (T-348): o que mudou nos dados de entrada desde a versão
-            anterior — só em plano refeito. O servidor já manda tudo formatado. */}
-        {dados.mudancas && (
-          <section className="cartao" aria-labelledby="titulo-mudancas">
-            <h2 id="titulo-mudancas" className="eyebrow">
-              O que mudou desde a versão anterior
-            </h2>
-            {dados.mudancas.length === 0 ? (
-              <p className="m-0">Nada mudou nos dados de entrada desde a versão anterior.</p>
-            ) : (
-              <ul className="m-0 flex list-none flex-col gap-2 p-0">
-                {dados.mudancas.map((mudanca, i) => (
-                  <li key={`${mudanca.secao}-${mudanca.nome}-${i}`}>
-                    <span className="text-muted block text-xs">{mudanca.secao}</span>
-                    <strong>{mudanca.nome}</strong>:{' '}
-                    {mudanca.situacao === 'novo' && <span className="chip chip-atencao">novo</span>}
-                    {mudanca.situacao === 'removido' && <span className="chip chip-mudo">removido</span>}{' '}
-                    {mudanca.de !== null && <span className="text-muted tabular-nums">{mudanca.de}</span>}
-                    {mudanca.de !== null && mudanca.para !== null && ' → '}
-                    {mudanca.para !== null && <span className="tabular-nums font-bold">{mudanca.para}</span>}
+          {/* `T-266` — redação aprovada pelo produto (`T-289`, 2026-09-30). */}
+          {pendencias.length > 0 && (
+            <div role="alert" className="aviso-erro flex-col">
+              <p className="font-bold">
+                Não pode ser homologado ainda: confirme ou corrija estes dados antes de liberar.
+              </p>
+              <ul>
+                {pendencias.map((p) => (
+                  <li key={`${p.item_id ?? 'caso'}-${p.ID_PERGUNTA}`}>
+                    {p.nome ? `${p.nome} · ` : ''}
+                    {p.enunciado} —{' '}
+                    {p.motivo === 'AUSENTE' ? 'não informado' : 'pendente de confirmação'}
                   </li>
                 ))}
               </ul>
-            )}
-          </section>
-        )}
+            </div>
+          )}
 
-        <details className="cartao min-w-0" open>
-          <summary className="eyebrow cursor-pointer">Dados que produziram o plano</summary>
-          {/* Nenhum campo é omitido: o revisor compara o plano contra o
-              estado COMPLETO, e campo fora da tela é campo que ninguém
-              confere. Os valores já vêm formatados pelo servidor — inclusive
-              `DESCONHECIDO`, que nunca pode aparecer como `0` (`AC-08`). */}
-          <ListaDeDados campos={entradas.campos} />
-          {entradas.dividas.map((divida) => (
-            <section key={divida.DIVIDA_ID} aria-label={divida.nome}>
-              <h3>
-                {divida.nome}
+          {(fontes.length > 0 || divergencias.length > 0 || datasDaInformacao.length > 0) && (
+            <div className="cartao">
+              <span className="eyebrow">Fonte de comprovação e avisos</span>
+              <ul>
+                {fontes.map((f) => (
+                  <li key={`${f.item_id}-${f.origem}`}>
+                    {f.nome} · {f.dado}: {f.rotulo}
+                  </li>
+                ))}
+                {datasDaInformacao.map((d) => (
+                  <li key={`data-${d.item_id}`}>
+                    {d.nome} · informações consultadas ou atualizadas: {d.rotulo}
+                  </li>
+                ))}
+                {divergencias.map((d, i) => (
+                  <li key={`divergencia-${i}`}>
+                    {`${d.nome} · desconto: valor em R$ e percentual não conferem`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* `T-304` (`RF-96`, `DE-08`): o registro de homologação, lido do
+              snapshot em decisão. Item não derivável vem "não disponível" com o
+              motivo — nunca estimado. */}
+          {homologacao && (
+            <section className="cartao" aria-labelledby="titulo-homologacao">
+              <h3 id="titulo-homologacao" className="eyebrow">
+                Registro de homologação
               </h3>
-              <ListaDeDados campos={divida.campos} />
+              <dl className="grid grid-cols-1 gap-x-4 gap-y-1">
+                {ITENS_DE_HOMOLOGACAO.map(([chave, rotulo]) => {
+                  const item = homologacao.itens[chave]
+                  return (
+                    <div key={chave} className="border-b border-line pb-1">
+                      <dt className="text-muted">{rotulo}</dt>
+                      <dd className="m-0 min-w-0 tabular-nums [overflow-wrap:anywhere]">
+                        {item ? textoDoItem(item.valor) : 'não disponível'}
+                        {item?.motivo && <small className="block text-muted">{item.motivo}</small>}
+                      </dd>
+                    </div>
+                  )
+                })}
+                <div>
+                  <dt className="text-muted">Pode ser homologado</dt>
+                  <dd className="m-0 font-bold">{homologacao.homologavel ? 'sim' : 'não'}</dd>
+                </div>
+              </dl>
             </section>
-          ))}
-          <h3>Como lida com os gastos</h3>
-          <ListaDeDados campos={entradas.perfil_comportamental} />
-          <h3>Sinais de comportamento</h3>
-          <ListaDeDados campos={entradas.sinais_comportamentais} />
-        </details>
+          )}
+
+          {/* Os dois sinais seguem SEPARADOS — `AC-28`: política do piloto
+              (100% dos planos) e `REVISAO_HUMANA_OBRIGATORIA` (`S-04`) são
+              motivos diferentes para o caso estar aqui. */}
+          <section className="cartao" aria-labelledby="titulo-sinais">
+            <h3 id="titulo-sinais" className="eyebrow">
+              Sinais e políticas
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {fila.entra_por_politica && <span className="chip chip-mudo">Política 100%</span>}
+              {fila.e_metodologico && <span className="chip chip-atencao">S-04 · revisão obrigatória</span>}
+              {!fila.entra_por_politica && !fila.e_metodologico && (
+                <span className="nota">Nenhum sinal ativo neste caso.</span>
+              )}
+            </div>
+          </section>
         </aside>
       </div>
 
       <div className="cartao">
-        <span className="eyebrow">Decisão</span>
+        <h2 className="eyebrow m-0">Decisão</h2>
         <div className="field">
           <label htmlFor="classificacao">Se encontrou um erro, classifique</label>
           <select

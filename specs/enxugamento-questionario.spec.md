@@ -455,6 +455,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-434 | RF-438 | Dada a ficha de dívida, então ela termina na última pergunta de dados, sem "Essa ficha está correta?" nem "tem mais dívida?" | verificado (T-427) |
 | AC-435 | RF-439 | Dada a edição de "Minhas respostas", então a lista traz os campos numa só requisição e a tela não pede uma pergunta por linha | verificado (T-427) |
 | AC-436 | RF-440 | Dado o questionário, então `B3.C01A` não existe, e o prognóstico mostra os caminhos vermelho e azul, sem o verde | verificado (T-428) |
+| AC-437 | RF-441 | Dado um caso em conferência, então a tela mostra resumo executivo, tabela de dívidas ligada por `DIVIDA_ID`, apoio à decisão e todos os dados de entrada, sem valor inventado e sem mudar a regra de liberação | verificado (T-429) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -524,6 +525,9 @@ Os botões de gerenciar fichas deixam de ser um bloco solto acima da página: ca
 
 ### RF-440. Sai "Se você fizesse um esforço extra…" (B3.C01A) (2026-10-22)
 Pergunta opcional, hipotética, que só alimentava o caminho "verde" do prognóstico. Sai do questionário (61 perguntas) e do cálculo: a montagem entrega sem contribuição extra, e o plano mostra os caminhos vermelho e azul. O motor segue sabendo calcular o verde para um snapshot que já o traga, mas o aplicativo não o produz mais.
+
+### RF-441. Mesa de conferência do revisor (2026-10-23)
+A tela de conferência vira um painel de análise: resumo executivo, análise financeira, dívidas do plano, ponto de partida, mudanças, dados de entrada e, ao lado, apoio à decisão. Só apresentação: mesmas APIs, cálculos e regras de homologação; dado ausente aparece como "não disponível".
 
 ## 9. Non-Functional Requirements
 

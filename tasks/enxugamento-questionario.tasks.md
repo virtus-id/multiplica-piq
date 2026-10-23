@@ -387,3 +387,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+
+### `T-429` — Mesa de conferência do revisor
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-428` · **Rastreia:** `RF-441`, `AC-437`
+- [x] `TelaEquipeCaso` recomposta: resumo executivo, análise e dívidas (colunas 68%/32%), apoio à decisão; só dados já entregues pela API
+
+**Status:** `[x] concluída (2026-10-23)`
