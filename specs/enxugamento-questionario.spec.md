@@ -536,7 +536,7 @@ A tela de conferência vira um painel de análise: faixa de indicadores, anális
 - **Saídas totais do mês** (renda → saídas → resultado fecham): soma, no servidor (`resumo.saidas_totais`), de `DESPESAS_OPERACIONAIS_ATUAIS` + `DESPESAS_NAO_MENSAIS_NORMALIZADAS` + `PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES`, as mesmas parcelas que o motor desconta em `RESULTADO_MENSAL_ATUAL` (o "Resultado do mês" do plano). Renda − saídas = resultado. O card traz o detalhe "Despesas + não mensais + dívidas" já formatado; a tela não soma.
 - **Dívidas:** a ordem do plano só leva as dívidas elegíveis. O indicador "Total de dívidas" conta as cadastradas (`estado_inputs.dividas`) e a tabela lista também as que estão fora da ordem (ordem "—", mês de quitação "não disponível"), ligadas por `DIVIDA_ID`.
 - **Total em dívidas:** soma dos `SALDO_DEVEDOR_ATUAL` informados, feita no servidor (campo aditivo `resumo` em `GET /api/revisao/caso/{id}`; a tela não calcula). Saldo desconhecido não entra e marca o total como parcial.
-- **Reserva:** o card "Total em reserva" mostra o `RESERVA_TOTAL` salvo pelo aluno e, embaixo, só "Uso: …" (`DISPOSICAO_USO_RESERVA`). "Aceita usar" só aparece com valor informado. Sem valor, o card vira "Possui reserva" com o `RESERVA_EXISTE`.
+- **Reserva:** o card "Total em reserva" mostra só o `RESERVA_TOTAL` salvo pelo aluno; sem valor, vira "Possui reserva" com o `RESERVA_EXISTE`. Os cards da faixa levam só campo e valor, sem legenda (total em dívidas parcial leva "(parcial)" no valor).
 
 ## 9. Non-Functional Requirements
 

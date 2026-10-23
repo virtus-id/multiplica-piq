@@ -39,7 +39,6 @@ interface Indicador {
   valor: string
   icone: NomeDoIcone
   tom: Tom
-  detalhe?: string
 }
 
 /** A faixa de leitura rápida. Indicador sem dado real não aparece. */
@@ -83,29 +82,21 @@ export function ResumoExecutivo({
   if (resumo?.total_em_dividas) {
     indicadores.push({
       rotulo: 'Total em dívidas',
-      valor: resumo.total_em_dividas,
+      valor: resumo.total_em_dividas + (resumo.total_em_dividas_parcial ? ' (parcial)' : ''),
       icone: 'taxa',
       tom: 'neutro',
-      detalhe: resumo.total_em_dividas_parcial ? 'Parcial: há dívida sem saldo informado' : 'Soma dos saldos devedores',
     })
   }
   const existe = campo(entradas.campos, 'RESERVA_EXISTE')
   if (existe) {
     const total = campo(entradas.campos, 'RESERVA_TOTAL')
     const valor = total && /\d/.test(total) ? total : undefined
-    const disposicao = campo(entradas.campos, 'DISPOSICAO_USO_RESERVA')
-    const maximo = campo(entradas.campos, 'VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO')
     // Com valor salvo pelo aluno, o destaque é o total; sem ele, só o "tem reserva".
-    // "Aceita usar" só entra quando há valor (nada de "Não informado" como ruído).
     indicadores.push({
       rotulo: valor ? 'Total em reserva' : 'Possui reserva',
       valor: valor ?? existe,
       icone: 'reserva',
       tom: 'neutro',
-      detalhe:
-        [disposicao && `Uso: ${disposicao}`, maximo && /\d/.test(maximo) && `Aceita usar: ${maximo}`]
-          .filter(Boolean)
-          .join(' · ') || undefined,
     })
   }
 
@@ -119,12 +110,6 @@ export function ResumoExecutivo({
           <dd className={`m-0 mt-1 text-lg font-bold tabular-nums [overflow-wrap:anywhere] ${COR_DO_TOM[i.tom]}`}>
             {i.valor}
           </dd>
-          {i.detalhe && (
-            // Uma linha só: o que não cabe vira reticências e o texto inteiro fica no `title`.
-            <dd className="m-0 truncate text-xs text-muted" title={i.detalhe}>
-              {i.detalhe}
-            </dd>
-          )}
         </div>
       ))}
     </dl>
