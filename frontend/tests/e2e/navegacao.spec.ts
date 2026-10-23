@@ -598,7 +598,7 @@ test('AC-83: "Minhas respostas" dá acesso às fichas — o CRUD de dívidas de 
     }),
   )
 
-  await page.route(`**/caso/${CASO_ACESSO}/respostas`, (r) =>
+  await page.route(`**/caso/${CASO_ACESSO}/respostas*`, (r) =>
     r.fulfill({ json: { CASO_ID: CASO_ACESSO, partes: partesVazias() } }),
   )
   await page.route(`**/caso/${CASO_ACESSO}/escopos`, (r) =>
@@ -1548,7 +1548,7 @@ test('AC-102/AC-103: salvar grava pela rota de sempre, com o item da ficha, e re
       json: { ID_PERGUNTA: 'B1.01', aviso: null, avanco_permitido: true, total_pendencias: 0 },
     })
   })
-  await page.route(`**/caso/${CASO_REVISAO}/respostas`, async (rota) => {
+  await page.route(`**/caso/${CASO_REVISAO}/respostas*`, async (rota) => {
     const partes = partesComRespostas()
     if (jaGravou) partes[0].respondidas[0].valores = ['O que eu escolhi depois']
     await rota.fulfill({ json: { CASO_ID: CASO_REVISAO, partes } })
@@ -1656,7 +1656,7 @@ test('AC-103: gravada a correção pela rota de correção, a página reabre com
         json: { ID_PERGUNTA: 'B1.01', aviso: null, avanco_permitido: true, total_pendencias: 0 },
       })
     })
-    await page.route(`**/caso/${CASO_REVISAO}/respostas`, async (rota) => {
+    await page.route(`**/caso/${CASO_REVISAO}/respostas*`, async (rota) => {
       const partes = partesComRespostas()
       if (jaCorrigiu) partes[0].respondidas[0].valores = ['O que eu escolhi depois']
       await rota.fulfill({ json: { CASO_ID: CASO_REVISAO, partes, editavel: false } })

@@ -673,6 +673,11 @@ export interface RespostaDada {
   /** `T-335`: como exibir `valores` — `TAXA` e `MOEDA` chegam crus do servidor. */
   tipo?: TipoResposta
   valores: string[]
+  /**
+   * `T-427`: a pergunta pronta para editar (tipo, opções, valor atual), só com
+   * `com_campos=1`. Evita uma requisição por linha na edição da página.
+   */
+  campo?: Pergunta
 }
 
 /**

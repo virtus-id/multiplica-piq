@@ -79,7 +79,9 @@ export default function TelaRespostas({
     setCarregando(true)
     setErro(null)
     try {
-      setRespostas(await obterRespostasDoCaso(casoId))
+      // `T-427`: com os campos de edição, numa só requisição; o servidor decide
+      // se o caso é editável e a tela só precisa deles nesse caso.
+      setRespostas(await obterRespostasDoCaso(casoId, { comCampos: true }))
     } catch {
       setErro('Não foi possível carregar as suas respostas.')
     } finally {
@@ -132,7 +134,7 @@ export default function TelaRespostas({
     if (ultimaPendencia !== null) setPendencias(ultimaPendencia)
     if (gravadas > 0) {
       try {
-        setRespostas(await obterRespostasDoCaso(casoId))
+        setRespostas(await obterRespostasDoCaso(casoId, { comCampos: true }))
         setVersao((atual) => atual + 1)
       } catch {
         setErro('As alterações foram salvas, mas não foi possível recarregar a lista.')

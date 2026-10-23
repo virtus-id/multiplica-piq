@@ -482,3 +482,39 @@ def test_t297_respostas_do_bloco_9_aparecem_na_revisao(
 # ---------------------------------------------------------------------------
 # `T-303` — opção que abre campo mostra o valor digitado.
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# `T-427` — `com_campos=1`: a lista já traz o campo de edição, numa requisição só.
+# ---------------------------------------------------------------------------
+
+
+def test_t427_sem_o_parametro_a_lista_nao_traz_campo(monkeypatch: pytest.MonkeyPatch) -> None:
+    cliente = _montar_cliente(monkeypatch, respostas=(_resposta(_PERGUNTA_B1, _VALOR_B1),))
+
+    parte = next(p for p in _partes(cliente) if p["bloco"] == 1)
+
+    assert all("campo" not in linha for linha in parte["respondidas"])
+
+
+def test_t427_com_campos_cada_resposta_leva_a_pergunta_pronta_para_editar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cliente = _montar_cliente(monkeypatch, respostas=(_resposta(_PERGUNTA_B1, _VALOR_B1),))
+
+    corpo = cliente.get(f"/caso/{_CASO}/respostas?com_campos=1").json()
+    linha = next(
+        r
+        for p in corpo["partes"]
+        if p["bloco"] == 1
+        for r in p["respondidas"]
+        if r["ID"] == _PERGUNTA_B1
+    )
+
+    campo = linha["campo"]
+    # O mesmo objeto que `GET /pergunta/{ID}` devolve: tipo, opções e valor atual.
+    assert campo["ID"] == _PERGUNTA_B1
+    assert campo["tipo"] == "SELECAO_UNICA"
+    assert campo["opcoes"]
+    assert campo["valor_atual"] is not None
+    assert campo["enunciado"] == linha["enunciado"]

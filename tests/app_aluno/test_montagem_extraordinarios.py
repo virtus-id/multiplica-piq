@@ -118,10 +118,10 @@ def test_t270_sim_em_b305_aponta_a_ficha_e_dois_itens_sao_independentes(
 def test_sem_tipo_a_ficha_extraordinaria_comeca_em_b305b(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """`T-404` (RF-418) — sem `B3.05A`, o "Sim" ou "Talvez" em `B3.05` abre a
+    """`T-404` (RF-418) — sem `B3.05A`, o "Sim" em `B3.05` abre a
     ficha em `B3.05B` (valor total esperado), para qualquer recurso."""
     cliente = _cliente_real(monkeypatch, tmp_path)
-    proxima = _responder(cliente, "B3.05", "TALVEZ").json()["proxima"]["pergunta"]
+    proxima = _responder(cliente, "B3.05", "SIM").json()["proxima"]["pergunta"]
     item = proxima["item_id"]
 
     assert proxima["ID"] == "B3.05B"

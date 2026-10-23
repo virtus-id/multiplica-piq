@@ -110,9 +110,14 @@ export function obterPergunta(
   casoId: string,
   idPergunta: string,
   itemId?: string,
+  sinal?: AbortSignal,
 ): Promise<RespostaPergunta> {
   const busca = itemId ? `?item_id=${encodeURIComponent(itemId)}` : ''
-  return pedir<RespostaPergunta>(`/caso/${casoId}/pergunta/${idPergunta}${busca}`)
+  // `sinal` cancela a busca quando a tela sai (`T-427`): sem ele as requisições
+  // pendentes seguiam ocupando as conexões do navegador.
+  return pedir<RespostaPergunta>(`/caso/${casoId}/pergunta/${idPergunta}${busca}`, {
+    signal: sinal,
+  })
 }
 
 /**
@@ -162,8 +167,14 @@ export function gravarResposta(
  * das partes e das linhas dentro delas é a ordem dos registros no servidor, a
  * mesma que a coleta percorre. Ver a nota de `perguntaAnterior`.
  */
-export function obterRespostasDoCaso(casoId: string): Promise<RespostasDoCaso> {
-  return pedir<RespostasDoCaso>(`/caso/${casoId}/respostas`)
+export function obterRespostasDoCaso(
+  casoId: string,
+  opcoes: { comCampos?: boolean } = {},
+): Promise<RespostasDoCaso> {
+  // `T-427`: `com_campos=1` traz cada resposta já com o campo de edição, numa
+  // só requisição (antes eram dezenas de `GET /pergunta/{ID}`).
+  const busca = opcoes.comCampos ? '?com_campos=1' : ''
+  return pedir<RespostasDoCaso>(`/caso/${casoId}/respostas${busca}`)
 }
 
 /**

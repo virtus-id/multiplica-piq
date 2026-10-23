@@ -522,43 +522,6 @@ perguntas:
       Não exigir upload universal.
 
   # Fechamento da ficha e do inventário
-  - ID: B5.CHECK
-    bloco: 5
-    enunciado: Essa ficha está correta?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "Sim, salvar dívida.", valor_interno: SIM_SALVAR_DIVIDA}
-      - {rotulo: Quero corrigir alguma informação., valor_interno: QUERO_CORRIGIR_ALGUMA_INFORMACAO}
-    VARIAVEL_GRAVADA: "SYS (salvar/editar)"
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "Corrigir → retorna à ficha."
-
-  - ID: B5.FIM01
-    bloco: 5
-    enunciado: >-
-      Você ainda precisa cadastrar alguma outra dívida ou operação
-      financeira?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "Sim, cadastrar outra.", valor_interno: SIM_CADASTRAR_OUTRA}
-      - {rotulo: "Não, esta foi a última.", valor_interno: NAO_ESTA_FOI_A_ULTIMA}
-    VARIAVEL_GRAVADA: "SYS (loop)"
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      Sim → nova ficha. Não → resumo + B5.FIM02.
-
   - ID: B5.FIM02
     bloco: 5
     enunciado: >-

@@ -452,6 +452,8 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-431 | RF-435 | Dado o índice de "Minhas respostas" no computador, então as cinco partes aparecem numa linha, com texto curto e nome acessível completo | verificado (T-424) |
 | AC-432 | RF-436 | Dado o Início de um caso com tudo preenchido, então não há "Ver meu progresso", o envio tem confirmação, e as listas de fichas são alcançadas por "Minhas respostas" | verificado (T-425) |
 | AC-433 | RF-437 | Dado o modo de edição, então cada botão de gerenciar fichas está na sua seção, e clicar numa parte do índice leva o topo dela para logo abaixo do índice, mesmo com os campos abrindo | verificado (T-426) |
+| AC-434 | RF-438 | Dada a ficha de dívida, então ela termina na última pergunta de dados, sem "Essa ficha está correta?" nem "tem mais dívida?" | verificado (T-427) |
+| AC-435 | RF-439 | Dada a edição de "Minhas respostas", então a lista traz os campos numa só requisição e a tela não pede uma pergunta por linha | verificado (T-427) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -512,6 +514,12 @@ O Início deixa de oferecer "Ver meu progresso" e a tela de progresso (`#progres
 
 ### RF-437. Atalhos das fichas na seção de cada uma e índice que chega ao destino (2026-10-22)
 Os botões de gerenciar fichas deixam de ser um bloco solto acima da página: cada um fica no cabeçalho da seção em que a ficha nasce (despesas, despesas não mensais, rendas adicionais e valores extraordinários na parte 3; dívidas na parte 5), com a redação "Gerenciar …" e só no modo de edição. O índice fixo leva a cada seção com o topo logo abaixo dele e corrige a chegada, porque no modo de edição os campos das linhas abrem durante a rolagem e mudam a altura da página.
+
+### RF-438. Saem "Essa ficha está correta?" e "Você ainda precisa cadastrar alguma outra dívida?" (2026-10-22)
+`B5.CHECK` e `B5.FIM01` não mudavam nada no cálculo: a ficha fecha quando a última pergunta é respondida, e "adicionar outra dívida" já é um botão da lista. Saem do questionário (62 perguntas), junto da guarda de "salvar a ficha" que só existia por causa de `B5.CHECK`. `B5.FIM02` (todas as dívidas foram cadastradas?) permanece.
+
+### RF-439. A edição de "Minhas respostas" não faz uma requisição por linha (2026-10-22)
+`GET /caso/{id}/respostas?com_campos=1` devolve, em cada resposta, também o campo pronto para editar (mesmo objeto de `GET /pergunta/{ID}`), só quando o caso é editável; sem o parâmetro a resposta é a de sempre. A página usa esse campo e só busca a pergunta de uma linha se ele faltar, cancelando a busca ao sair da tela.
 
 ## 9. Non-Functional Requirements
 

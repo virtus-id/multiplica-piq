@@ -300,3 +300,47 @@ describe("TelaRespostas — atalhos das fichas na seção de cada uma (T-425, T-
     expect(listar).not.toHaveBeenCalled();
   });
 });
+
+describe("TelaRespostas — o campo vem na lista (T-427)", () => {
+  it("com o campo embutido a edição não pede uma pergunta por linha", async () => {
+    const obterPergunta = vi.spyOn(api, "obterPergunta");
+    const obter = vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({
+      CASO_ID: "C1",
+      partes: [
+        {
+          bloco: 1,
+          rotulo: "Parte Um",
+          total_de_perguntas: 1,
+          respondidas: [
+            {
+              ...resposta("B1.01", null),
+              tipo: "TEXTO_CURTO",
+              campo: {
+                CASO_ID: "C1",
+                ID: "B1.01",
+                bloco: 1,
+                tipo: "TEXTO_CURTO",
+                enunciado: "Enunciado B1.01?",
+                opcoes: [],
+                escopo_repeticao: "NENHUM",
+                item_id: null,
+                posicao: null,
+                total_na_ficha: null,
+                admite_nao_sei: false,
+                valor_atual: "valor B1.01",
+                respondida_como_nao_sei: false,
+                valores_marcados: [],
+                aviso: null,
+              },
+            },
+          ],
+        },
+      ],
+    });
+    render(<TelaRespostas casoId="C1" voltar={vi.fn()} />);
+
+    expect(await screen.findByLabelText("Enunciado B1.01?")).toHaveValue("valor B1.01");
+    expect(obter).toHaveBeenCalledWith("C1", { comCampos: true });
+    expect(obterPergunta).not.toHaveBeenCalled();
+  });
+});

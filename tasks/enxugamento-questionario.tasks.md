@@ -372,3 +372,11 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-427` — Fim de B5.CHECK e B5.FIM01 e edição sem uma requisição por linha
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-426` · **Rastreia:** `RF-438`, `RF-439`, `AC-434`, `AC-435`
+- [x] `B5.CHECK` e `B5.FIM01` removidas, com a guarda de salvar a ficha
+- [x] `com_campos=1` na lista de respostas; a página usa o campo embutido e cancela a busca por linha ao sair
+
+**Status:** `[x] concluída (2026-10-22)`
+

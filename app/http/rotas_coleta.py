@@ -146,7 +146,7 @@ from app.montagem.entrada import avisos_da_gravacao, fotografia_do_mes
 from collection.carga import ColecaoDeRegistros, carregar_registros
 from collection.condicoes import avaliar
 from collection.materialidade import AvisoMaterialidade, avaliar_ao_responder
-from collection.registro import EscopoRepeticao, Obrigatoriedade, RegistroPergunta, TipoResposta
+from collection.registro import EscopoRepeticao, RegistroPergunta, TipoResposta
 from collection.repeticao import perguntas_da_ficha
 from collection.respostas import NAO_SEI, Resposta, RespostasCaso, ValorResposta
 from collection.validacao import validar_cruzada
@@ -653,19 +653,6 @@ def responder_pergunta(
         )
         return _resposta_de_erro(request, erro.mensagem, 400)
 
-    # `T-292`: "salvar" a ficha com pergunta obrigatória (`REP`) aberta e em
-    # branco naquele item é recusado, listando o que falta — nada é gravado.
-    if item_id is not None and valor == _SALVAR_FICHA.get(registro.VARIAVEL_GRAVADA):
-        faltam = _em_branco_antes_de(
-            colecao, registro, respostas_do_caso, repositorio_itens, CASO_ID, item_id
-        )
-        if faltam:
-            return _resposta_de_erro(
-                request,
-                f"{_MENSAGEM_FICHA_INCOMPLETA} {'; '.join(r.enunciado for r in faltam)}",
-                400,
-            )
-
     # Passo 6: gravação com transação confirmada. EC-05: falha nunca reporta
     # sucesso — devolve erro explícito e NÃO avança.
     #
@@ -902,34 +889,6 @@ def _proxima_do_item(
     )
     anexar_ao_payload(pergunta, colecao.registros, respostas, itens_por_escopo)
     return {"pergunta": pergunta, "coleta_completa": False}
-
-
-# `T-292` — a variável da confirmação da ficha (`B5.CHECK`) e o valor que a
-# salva. Chaves técnicas (`VARIAVEL_GRAVADA`/`valor_interno`).
-_SALVAR_FICHA: Final[Mapping[str, str]] = {"SYS (salvar/editar)": "SIM_SALVAR_DIVIDA"}
-
-
-def _em_branco_antes_de(
-    colecao: ColecaoDeRegistros,
-    registro: RegistroPergunta,
-    respostas: RespostasCaso,
-    repositorio_itens: RepositorioItens,
-    CASO_ID: str,
-    item_id: str,
-) -> tuple[RegistroPergunta, ...]:
-    """`T-292` — as perguntas `REP` abertas e em branco do item que vêm
-    ANTES de `registro` no percurso. As de depois (`B5.FIM01`) não contam:
-    são respondidas depois de salvar."""
-    posicao = {r.ID: indice for indice, r in enumerate(colecao.registros)}
-    por_id = {r.ID: r for r in colecao.registros}
-    return tuple(
-        por_id[p.ID]
-        for p in em_branco_no_item(
-            colecao.registros, respostas, _itens_por_escopo(repositorio_itens, CASO_ID), item_id
-        )
-        if posicao[p.ID] < posicao[registro.ID]
-        and Obrigatoriedade.REP in por_id[p.ID].obrigatoriedade
-    )
 
 
 # `T-291` — a variável de `B5.00`: a declaração das dívidas (`T-389`: `B5.00A`,

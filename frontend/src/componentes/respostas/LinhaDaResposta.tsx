@@ -49,17 +49,25 @@ export default function LinhaDaResposta({
   aoAlterar,
 }: LinhaDaRespostaProps) {
   const item = useRef<HTMLLIElement>(null)
-  const [pergunta, setPergunta] = useState<Pergunta | null>(null)
+  // O campo já vem na lista (`com_campos=1`); só sem ele a linha o busca (`T-427`).
+  const [buscada, setBuscada] = useState<Pergunta | null>(null)
+  const pergunta = resposta.campo ?? buscada
   const [falhou, setFalhou] = useState(false)
 
   useEffect(() => {
     if (modo !== 'editar' || pergunta || falhou) return
     let ativo = true
+    const cancelar = new AbortController()
     async function carregar() {
       try {
-        const dados = await obterPergunta(casoId, resposta.ID, resposta.item_id ?? undefined)
+        const dados = await obterPergunta(
+          casoId,
+          resposta.ID,
+          resposta.item_id ?? undefined,
+          cancelar.signal,
+        )
         if (!ativo) return
-        if (dados.pergunta) setPergunta(dados.pergunta)
+        if (dados.pergunta) setBuscada(dados.pergunta)
         else setFalhou(true)
       } catch {
         if (ativo) setFalhou(true)
@@ -69,6 +77,7 @@ export default function LinhaDaResposta({
       void carregar()
       return () => {
         ativo = false
+        cancelar.abort()
       }
     }
     const observador = new IntersectionObserver(
@@ -78,11 +87,12 @@ export default function LinhaDaResposta({
           void carregar()
         }
       },
-      { rootMargin: '400px 0px' },
+      { rootMargin: '150px 0px' },
     )
     observador.observe(item.current)
     return () => {
       ativo = false
+      cancelar.abort()
       observador.disconnect()
     }
   }, [modo, pergunta, falhou, casoId, resposta.ID, resposta.item_id])

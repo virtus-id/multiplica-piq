@@ -31,7 +31,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Annotated, Any, Final
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
 from app.casos.maquina import ESTADO_CASO, ErroTransicaoNaoDeclarada
@@ -47,7 +47,7 @@ from app.http.rotas_coleta import (
     obter_repositorio_itens,
     obter_repositorio_respostas,
 )
-from app.http.serializacao import serializar_valor
+from app.http.serializacao import serializar_pergunta, serializar_valor
 from collection.carga import ColecaoDeRegistros
 from collection.registro import EscopoRepeticao, RegistroPergunta, TipoResposta
 from collection.respostas import RespostasCaso, ValorResposta
@@ -88,6 +88,7 @@ def _serializar_resposta_dada(
     rotulo_do_item: str | None = None,
     itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]] | None = None,
     rotulos_dos_itens: Mapping[str, str] | None = None,
+    CASO_ID: str | None = None,
 ) -> dict[str, Any] | None:
     """Uma linha da revisão: a pergunta **e o que o aluno respondeu**.
 
@@ -99,7 +100,12 @@ def _serializar_resposta_dada(
 
     `None` quando a condição da pergunta fechou depois da resposta (`T-198`,
     `EC-24`): a resposta continua gravada, mas deixa de ser listada — a mesma
-    disciplina de `_campos_da_ficha`."""
+    disciplina de `_campos_da_ficha`.
+
+    Com `CASO_ID` (`com_campos=1`, `T-427`), a linha leva também `campo`: a
+    pergunta serializada como `GET /pergunta/{ID}` a devolve (tipo, opções,
+    valor atual…), para a edição na própria página não pedir uma pergunta por
+    linha. É o mesmo `contexto` já montado acima — nenhum cálculo a mais."""
     try:
         contexto = montar_contexto_pergunta(
             registro,
@@ -129,7 +135,7 @@ def _serializar_resposta_dada(
     if campo := _valor_do_campo(registro, contexto.valor_atual, respostas, item_id):
         rotulos = [campo]
 
-    return {
+    linha: dict[str, Any] = {
         "ID": registro.ID,
         "item_id": item_id,
         "enunciado": contexto.enunciado,
@@ -141,6 +147,9 @@ def _serializar_resposta_dada(
         # imporia um separador que é decisão de apresentação.
         "valores": rotulos,
     }
+    if CASO_ID is not None:
+        linha["campo"] = serializar_pergunta(contexto, CASO_ID=CASO_ID, item_id=item_id)
+    return linha
 
 
 def _valor_do_campo(
@@ -177,8 +186,12 @@ def respostas_do_caso(
     ],
     repositorio_itens: Annotated[RepositorioItens, Depends(obter_repositorio_itens)],
     repositorio_casos: Annotated[RepositorioCasos, Depends(obter_repositorio_casos)],
+    com_campos: Annotated[bool, Query()] = False,
 ) -> JSONResponse:
     """`RF-68`, `AC-100` — o que o aluno já respondeu, por parte.
+
+    `com_campos=1` (`T-427`): cada resposta leva também o `campo` — a pergunta
+    pronta para editar. Sem o parâmetro a resposta é a de sempre.
 
     **`AC-101`: parte sem resposta aparece assim mesmo**, com a lista vazia e
     o total de perguntas. Sumir da tela faria o aluno procurar onde ela foi
@@ -193,6 +206,12 @@ def respostas_do_caso(
         lambda: _itens_e_rotulos(repositorio_itens, CASO_ID, colecao),
     )
     respostas = RespostasCaso(respostas=respostas_brutas)
+
+    # `RF-114`: em cálculo ou conferência as respostas só se leem — o campo de
+    # edição não é montado nem enviado (`T-427`).
+    caso = repositorio_casos.buscar(CASO_ID)
+    estado = caso.estado if caso is not None else None
+    com_campos = com_campos and estado not in ESTADOS_SOMENTE_LEITURA
 
     partes: list[dict[str, Any]] = []
     for numero, rotulo, blocos in PARTES:
@@ -218,12 +237,15 @@ def respostas_do_caso(
                             rotulos.get(item_id),
                             itens_por_escopo,
                             rotulos,
+                            CASO_ID if com_campos else None,
                         )
                     ):
                         linhas.append(linha)
                 continue
             if _respondida(registro, respostas, None) and (
-                linha := _serializar_resposta_dada(registro, respostas, None)
+                linha := _serializar_resposta_dada(
+                    registro, respostas, None, CASO_ID=CASO_ID if com_campos else None
+                )
             ):
                 linhas.append(linha)
 
@@ -239,8 +261,6 @@ def respostas_do_caso(
     # `RF-114`/`RF-115` (T-336): o cliente não conhece estados — recebe o
     # veredito. Em cálculo ou conferência as respostas só se leem; só a
     # conferência permite retirar o plano para editar.
-    caso = repositorio_casos.buscar(CASO_ID)
-    estado = caso.estado if caso is not None else None
     return JSONResponse(
         {
             "CASO_ID": CASO_ID,

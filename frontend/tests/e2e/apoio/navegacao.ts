@@ -131,7 +131,7 @@ export async function interceptarBase(
   // (`AC-105`, segundo pé) e portanto não muda nenhum teste que não pediu a
   // navegação para trás. Quem quer respostas chama `interceptarRespostas`
   // depois — a última rota registrada vence no Playwright.
-  await page.route(`**/caso/${caso}/respostas`, async (rota) => {
+  await page.route(`**/caso/${caso}/respostas*`, async (rota) => {
     await rota.fulfill({ json: { CASO_ID: caso, partes: partesVazias() } })
   })
 
@@ -254,7 +254,7 @@ export async function interceptarRespostas(
   /** `editavel: false` = só leitura (conferência); ausente = editável. */
   extra: { editavel?: boolean; pode_retomar_edicao?: boolean } = {},
 ): Promise<void> {
-  await page.route(`**/caso/${caso}/respostas`, async (rota) => {
+  await page.route(`**/caso/${caso}/respostas*`, async (rota) => {
     await rota.fulfill({ json: { CASO_ID: caso, partes, ...extra } })
   })
 }
