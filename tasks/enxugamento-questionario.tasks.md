@@ -343,3 +343,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-423` — Título das fichas pelo tipo
+
+- **Tipo:** `FIX` · **Dependências:** `T-422` · **Rastreia:** `RF-434`, `AC-430`
+- [x] `agruparPorItem` usa o prefixo do identificador (`DESP`, `REND`, `EXT`, `NM`, `D`…); teste com tipos misturados
+
+**Status:** `[x] concluída (2026-10-22)`
+

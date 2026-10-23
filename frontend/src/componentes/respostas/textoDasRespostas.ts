@@ -50,10 +50,33 @@ export interface GrupoDeRespostas {
 }
 
 /**
+ * O tipo da ficha, pelo prefixo do identificador do item
+ * (`collection/repeticao.py::PREFIXO_POR_ESCOPO`). "DESP" vem antes de "D": a
+ * despesa mensal não é dívida, e antes confundir os dois chamava as despesas de
+ * "Dívida 2" a "Dívida 24".
+ */
+const TIPO_DA_FICHA: readonly (readonly [string, string])[] = [
+  ['DESP', 'Despesa'],
+  ['REND', 'Renda adicional'],
+  ['EXT', 'Valor extraordinário'],
+  ['NM', 'Despesa não mensal'],
+  ['D', 'Dívida'],
+  ['V', 'Vínculo'],
+  ['M', 'Margem'],
+  ['A', 'Ação'],
+]
+
+function tipoDaFicha(itemId: string): string {
+  return TIPO_DA_FICHA.find(([prefixo]) => itemId.startsWith(prefixo))?.[1] ?? 'Item'
+}
+
+/**
  * Junta as respostas de uma mesma ficha — `T-334`. O servidor entrega a
  * pergunta 1 de todas as dívidas, depois a 2…; aqui as soltas vão primeiro e
  * cada `item_id` vira um grupo, SEM reordenar as perguntas dentro dele. Os
- * dados de itens diferentes nunca se misturam.
+ * dados de itens diferentes nunca se misturam. O título é o tipo da ficha e o
+ * número DENTRO do tipo ("Despesa 3", "Dívida 1"): a numeração recomeça a cada
+ * tipo.
  */
 export function agruparPorItem(respondidas: readonly RespostaDada[]): GrupoDeRespostas[] {
   const soltas = respondidas.filter((r) => r.item_id === null)
@@ -63,14 +86,12 @@ export function agruparPorItem(respondidas: readonly RespostaDada[]): GrupoDeRes
   }
   const grupos: GrupoDeRespostas[] = []
   if (soltas.length) grupos.push({ itemId: null, titulo: null, respostas: soltas })
-  let n = 0
+  const contagem = new Map<string, number>()
   for (const [itemId, respostas] of porItem) {
-    n += 1
-    grupos.push({
-      itemId,
-      titulo: `${itemId.startsWith('D') ? 'Dívida' : 'Item'} ${n}`,
-      respostas,
-    })
+    const tipo = tipoDaFicha(itemId)
+    const n = (contagem.get(tipo) ?? 0) + 1
+    contagem.set(tipo, n)
+    grupos.push({ itemId, titulo: `${tipo} ${n}`, respostas })
   }
   return grupos
 }

@@ -448,6 +448,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-427 | RF-431 | Dado um caso em conferência, então o Início mostra as três etapas, o prazo e os dois botões; editar só retira o plano da fila depois da confirmação; sem permissão do servidor não há botão de editar | verificado (T-420) |
 | AC-428 | RF-432 | Dada qualquer tela do aluno com andamento, então há exatamente três etapas, uma só atual, e a primeira se chama "Preencha as informações" | verificado (T-421) |
 | AC-429 | RF-433 | Dada "Minhas respostas", então as cinco partes aparecem na mesma página, o índice fixo leva a cada uma e destaca a visível, a busca encontra pergunta ou resposta, e visualizar e editar têm o mesmo layout (campos editáveis só na edição) | verificado (T-422) |
+| AC-430 | RF-434 | Dadas fichas de tipos diferentes, então cada título traz o tipo e o número dentro do tipo, e despesa não aparece como dívida | verificado (T-423) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -496,6 +497,9 @@ A jornada "Onde você está" passa a ter três etapas em toda tela do aluno — 
 
 ### RF-433. "Minhas respostas" em uma página só, igual para ver e editar (2026-10-22)
 A tela deixa de ter menu lateral e de mostrar uma parte por vez. Todas as cinco partes aparecem em sequência numa página, cada uma com número, título, contagem e as perguntas com as respostas. No topo há um índice horizontal fixo que leva a cada parte por rolagem suave e destaca sozinho a parte que está à vista (no celular rola na horizontal), uma busca por pergunta ou resposta que leva ao item e o realça, e uma faixa de status. O layout é o mesmo nos dois modos: na visualização (cálculo, conferência, plano liberado) as respostas só se leem; na edição cada resposta vira o campo de sempre, com as mesmas máscaras, validações e campos condicionais. As alterações ficam em rascunho e o "Salvar alterações" grava cada uma pela rota de sempre, uma por vez, mostrando o erro na própria linha. O modo vem do servidor (`editavel`); a retirada do plano da conferência continua pedindo confirmação.
+
+### RF-434. Título das fichas em "Minhas respostas" pelo tipo (2026-10-22)
+Cada ficha ganha o título do seu tipo e o número dentro do tipo: "Dívida 1", "Despesa 1", "Renda adicional 1", "Despesa não mensal 1", "Valor extraordinário 1". A despesa mensal deixa de ser chamada de "Dívida", e a numeração recomeça a cada tipo.
 
 ## 9. Non-Functional Requirements
 

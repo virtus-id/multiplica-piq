@@ -76,6 +76,28 @@ describe("agruparPorItem", () => {
   });
 });
 
+describe("agruparPorItem — o título é o tipo da ficha", () => {
+  it("despesa não é dívida e a numeração recomeça a cada tipo", () => {
+    const grupos = agruparPorItem([
+      resposta("R1", "REND001"),
+      resposta("V1", "DESP001"),
+      resposta("V1", "DESP002"),
+      resposta("N1", "NM001"),
+      resposta("E1", "EXT001"),
+      resposta("B5.A", "D001"),
+    ]);
+
+    expect(grupos.map((g) => g.titulo)).toEqual([
+      "Renda adicional 1",
+      "Despesa 1",
+      "Despesa 2",
+      "Despesa não mensal 1",
+      "Valor extraordinário 1",
+      "Dívida 1",
+    ]);
+  });
+});
+
 describe("TelaRespostas — a página única (RF-433)", () => {
   it("mostra TODAS as partes na mesma página, inclusive a vazia, sem menu lateral", async () => {
     montar({ editavel: false, pode_retomar_edicao: true });
