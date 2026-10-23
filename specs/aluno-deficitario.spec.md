@@ -1,0 +1,58 @@
+# Spec: tratamento do aluno deficitário
+
+> Origem: reunião de 13 de outubro de 2026 (Rodrigo Chebli) e o pedido do produto de 2026-10-23.
+> Estado: **rascunho para aprovação**. Nenhuma regra financeira nova é ativada em produção sem a decisão marcada em `Open Questions`.
+
+## 1. Overview
+
+Hoje o aluno com resultado mensal negativo (`MODO_ESTABILIZACAO`, `RESULTADO_MENSAL_ATUAL < 0`) recebe só o aviso "Primeiro, equilibrar o seu mês" e o "quanto falta cortar" (`RF-418`). O motor já continua e devolve os cenários mesmo em déficit; o relatório é quem esconde ordem, método e prazos. Esta spec entrega ao aluno deficitário: a **ordem recomendada** de quitação, **três cenários** comparáveis (se nada mudar; economia de 5% da renda; economia de 10% da renda), orientações e a conferência do revisor, sem prometer uma quitação que o orçamento não sustenta.
+
+## 2. Princípios
+
+- O déficit não bloqueia o plano nem o envio. Não é pendência de homologação (`homologavel = not pendencias` não muda).
+- Ordem recomendada (estratégia) ≠ cronograma executável (depende de caixa). Nunca se apresenta a primeira como garantia da segunda.
+- Nenhum valor, taxa, prazo ou comportamento é inventado; o que não se calcula aparece como limitação.
+- Cálculo só pelo motor existente. Nada de IA generativa em resultado numérico.
+
+## 3. Functional Requirements
+
+### RF-446. Classificação financeira do caso
+O caso é **superavitário** (`RESULTADO_MENSAL_ATUAL > 0`), **equilibrado** (`= 0`) ou **deficitário** (`< 0`), pela definição oficial do motor (renda − despesas − não mensais − parcelas devidas). O snapshot guarda a classificação e o valor do déficit (`DEFICIT_MENSAL`).
+
+### RF-447. Ordem recomendada no déficit
+Com a ordem do motor (`ORDEM_QUITACAO`, método recomendado, justificativa por posição), o plano do deficitário mostra a ordem recomendada, o método, o porquê e as premissas, rotulada como **recomendação**, e não como cronograma de pagamento.
+
+### RF-448. Três cenários do deficitário
+1. **Se nada mudar:** o prognóstico "sem ação" do motor (pagamentos efetivos, sem amortização extra), com suas limitações explícitas. Não presume financiamento do déficit (cheque especial, cartão, empréstimo).
+2. **Economia de 5% da renda** e 3. **de 10%:** hipótese de redução de despesas igual a `RENDA_TOTAL_RECORRENTE × percentual`. A economia compensa primeiro o déficit. O motor recalcula o caso com as despesas reduzidas; só havendo resultado positivo existe capacidade de aporte. Cada cenário informa: resultado ajustado, se continua deficitário / equilibrado / com sobra, e os indicadores que o motor conseguir calcular. Percentuais são parâmetros versionados (`P_*`), nunca literais.
+Os cenários são **simulação**, nunca plano homologado, e ficam identificados assim no snapshot e no PDF.
+
+### RF-449. Horizontes de 12, 24 e 60 meses
+Quando o motor tem dado e regra, cada cenário mostra, em 12, 24 e 60 meses: resultado do mês, capacidade de aporte, saldo restante, pagamentos e juros projetados e dívidas quitadas. Indicador que o motor não calcula não é exibido. Mês de quitação só com pagamentos viáveis; caso contrário, "não executável" ou "insuficientemente determinado", com o motivo.
+
+### RF-450. Situações A, B e C
+A (sem sobra para extra): segue os pagamentos habituais, sem amortização extra. B (déficit com parcelas pagas): registra a limitação de como o déficit é coberto. C (não sustenta os pagamentos): sem trajetória de quitação, com orientação de reorganização. O critério que separa B de C não está definido (`OQ-1`).
+
+### RF-451. Introdução ao aluno e aulas
+Texto padrão **versionado**, de autoria do Rodrigo, com variáveis reais (déficit). Só aparece ao aluno depois de aprovado; antes, o aluno vê o aviso atual e o revisor vê o rascunho. Aulas só do catálogo real (`docs/curso-ssd/`), por mapeamento aprovado pelo especialista (`OQ-4`).
+
+### RF-452. Conferência do revisor
+A tela do revisor mostra, com dados reais: resultado negativo, déficit, método, ordem recomendada, premissas e resultado dos cenários de 5% e 10%, limitações e o que não está disponível. Déficit não vira pendência. Decisão, observação, mensagem ao aluno e histórico não mudam.
+
+### RF-453. PDF e experiência do aluno
+O PDF do deficitário preserva identidade e estrutura: introdução, estratégia, três cenários (neutro/vermelho, azul 5%, verde 10%, mesma escala), orientações e, só havendo projeção executável, as fichas mensais. Não se geram fichas com valores que o aluno não tem como pagar. Ao enviar, o aluno é avisado de que o orçamento não fecha e de que o plano terá cenários condicionais.
+
+### RF-454. Rastreabilidade
+O snapshot registra classificação, método, percentuais usados, resultados dos cenários, premissas e limitações, sem alterar versões anteriores. Alunos não deficitários não mudam.
+
+## 4. Open Questions (decisões que bloqueiam a ativação)
+
+- **OQ-1.** Critério que distingue a Situação B da C (quando se deixa de projetar pagamentos).
+- **OQ-2.** Base da renda dos percentuais: `RENDA_TOTAL_RECORRENTE` (proposta) ou outra.
+- **OQ-3.** Como representar dívida inadimplente ou em atraso na trajetória "se nada mudar".
+- **OQ-4.** Mapeamento aula ↔ perfil deficitário, e aprovação do texto do Rodrigo.
+- **OQ-5.** Quando um mês de quitação pode ser afirmado no deficitário.
+- **OQ-6.** Aplicar a economia por redução de `DESPESAS_OPERACIONAIS_ATUAIS` (proposta) ou outra rubrica.
+
+## 5. Fora do escopo
+Novos métodos de quitação, refinanciamento e portabilidade automáticos, contratação de crédito, mudança de fórmulas de juros e amortização.
