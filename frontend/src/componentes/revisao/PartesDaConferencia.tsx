@@ -94,15 +94,21 @@ export function ResumoExecutivo({
   }
   const existe = campo(entradas.campos, 'RESERVA_EXISTE')
   if (existe) {
-    const valor = campo(entradas.campos, 'RESERVA_TOTAL')
+    const total = campo(entradas.campos, 'RESERVA_TOTAL')
+    const valor = total && /\d/.test(total) ? total : undefined
     const disposicao = campo(entradas.campos, 'DISPOSICAO_USO_RESERVA')
     const maximo = campo(entradas.campos, 'VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO')
+    // Com valor salvo pelo aluno, o destaque é o total; sem ele, só o "tem reserva".
+    // "Aceita usar" só entra quando há valor (nada de "Não informado" como ruído).
     indicadores.push({
-      rotulo: 'Possui reserva',
-      valor: valor ? `${existe} · ${valor}` : existe,
+      rotulo: valor ? 'Total em reserva' : 'Possui reserva',
+      valor: valor ?? existe,
       icone: 'reserva',
       tom: 'neutro',
-      detalhe: [disposicao && `Uso: ${disposicao}`, maximo && `Aceita usar: ${maximo}`].filter(Boolean).join(' · ') || undefined,
+      detalhe:
+        [disposicao && `Uso: ${disposicao}`, maximo && /\d/.test(maximo) && `Aceita usar: ${maximo}`]
+          .filter(Boolean)
+          .join(' · ') || undefined,
     })
   }
 
