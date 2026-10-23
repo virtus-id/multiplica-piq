@@ -365,3 +365,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-426` — Atalhos das fichas por seção e índice confiável
+
+- **Tipo:** `FIX` · **Dependências:** `T-425` · **Rastreia:** `RF-437`, `AC-433`
+- [x] "Gerenciar …" no cabeçalho de cada seção (`AtalhosDaSecao`); índice com rolagem corrigida na chegada
+
+**Status:** `[x] concluída (2026-10-22)`
+

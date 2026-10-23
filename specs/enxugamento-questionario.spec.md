@@ -451,6 +451,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-430 | RF-434 | Dadas fichas de tipos diferentes, então cada título traz o tipo e o número dentro do tipo, e despesa não aparece como dívida | verificado (T-423) |
 | AC-431 | RF-435 | Dado o índice de "Minhas respostas" no computador, então as cinco partes aparecem numa linha, com texto curto e nome acessível completo | verificado (T-424) |
 | AC-432 | RF-436 | Dado o Início de um caso com tudo preenchido, então não há "Ver meu progresso", o envio tem confirmação, e as listas de fichas são alcançadas por "Minhas respostas" | verificado (T-425) |
+| AC-433 | RF-437 | Dado o modo de edição, então cada botão de gerenciar fichas está na sua seção, e clicar numa parte do índice leva o topo dela para logo abaixo do índice, mesmo com os campos abrindo | verificado (T-426) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -508,6 +509,9 @@ O índice fixo mostra um texto curto por parte — Compromisso, Controle dos gas
 
 ### RF-436. Fim da tela de progresso e envio ao especialista com confirmação (2026-10-22)
 O Início deixa de oferecer "Ver meu progresso" e a tela de progresso (`#progresso`) deixa de existir; ela substitui RF-31/AC-40. O que tinha de único, o acesso às listas de fichas (dívidas, despesas, rendas adicionais; RF-53, AC-04), passa para "Minhas respostas", num bloco "Dívidas e despesas cadastradas" só no modo editável. O destino `progresso` que o servidor ainda envia na fase de plano devolvido abre "Minhas respostas". O botão "Montar o seu plano" vira **"Enviar para análise do especialista"** e pede confirmação ("Depois de enviar, suas respostas ficam só para leitura até a conferência") antes de levar ao cálculo; vale também para o reenvio depois de uma devolução.
+
+### RF-437. Atalhos das fichas na seção de cada uma e índice que chega ao destino (2026-10-22)
+Os botões de gerenciar fichas deixam de ser um bloco solto acima da página: cada um fica no cabeçalho da seção em que a ficha nasce (despesas, despesas não mensais, rendas adicionais e valores extraordinários na parte 3; dívidas na parte 5), com a redação "Gerenciar …" e só no modo de edição. O índice fixo leva a cada seção com o topo logo abaixo dele e corrige a chegada, porque no modo de edição os campos das linhas abrem durante a rolagem e mudam a altura da página.
 
 ## 9. Non-Functional Requirements
 

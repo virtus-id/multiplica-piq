@@ -607,7 +607,7 @@ test('AC-83: "Minhas respostas" dá acesso às fichas — o CRUD de dívidas de 
 
   await page.goto(`/?caso=${CASO_ACESSO}#respostas`)
 
-  const irParaFichas = page.getByRole('button', { name: 'Ver e editar minhas dívidas' })
+  const irParaFichas = page.getByRole('button', { name: /Gerenciar dívidas/ })
   await expect(irParaFichas).toBeVisible()
   await irParaFichas.click()
 

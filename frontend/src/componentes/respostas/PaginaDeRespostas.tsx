@@ -41,6 +41,8 @@ interface PaginaDeRespostasProps {
   /** Muda a cada gravação: as linhas são refeitas com o que o servidor devolveu. */
   versao: number
   renderLinha: (resposta: RespostaDada, contexto: ContextoDaLinha) => ReactNode
+  /** Ações no cabeçalho de cada seção (ex.: gerenciar as fichas daquela parte). */
+  acoesDaSecao?: (bloco: number) => ReactNode
 }
 
 function domIdDaLinha(bloco: number, resposta: RespostaDada): string {
@@ -53,11 +55,41 @@ function reduzirMovimento(): boolean {
     : false
 }
 
-function rolarPara(id: string, bloco: 'start' | 'center' = 'start') {
-  document.getElementById(id)?.scrollIntoView({
-    behavior: reduzirMovimento() ? 'auto' : 'smooth',
-    block: bloco,
-  })
+/**
+ * Rola até o elemento, com o topo logo abaixo do índice fixo, e corrige a
+ * chegada (`T-426`). No modo de edição os campos das linhas abrem enquanto a
+ * rolagem passa por elas, e o conteúdo muda de altura: sem a correção a
+ * rolagem suave parava a alguns centímetros do destino e o índice parecia não
+ * levar à seção.
+ */
+function rolarPara(id: string, onde: 'start' | 'center' = 'start') {
+  const posicaoDoAlvo = () => {
+    const alvo = document.getElementById(id)
+    if (!alvo) return null
+    const indice = document.getElementById('indice-das-secoes')
+    const reservado = (indice?.offsetHeight ?? 0) + 12
+    const caixa = alvo.getBoundingClientRect()
+    const topo =
+      onde === 'center' ? caixa.top - (window.innerHeight - caixa.height) / 2 : caixa.top - reservado
+    return topo
+  }
+  const inicial = posicaoDoAlvo()
+  if (inicial === null) return
+  const reduzido = reduzirMovimento()
+  window.scrollBy({ top: inicial, behavior: reduzido ? 'auto' : 'smooth' })
+
+  // Confere depois que a rolagem assenta e ajusta o que faltou (até 3 vezes).
+  let tentativas = 0
+  const conferir = () => {
+    const resto = posicaoDoAlvo()
+    if (resto === null) return
+    if (Math.abs(resto) > 12 && tentativas < 3) {
+      tentativas += 1
+      window.scrollBy({ top: resto, behavior: 'auto' })
+      window.setTimeout(conferir, 350)
+    }
+  }
+  window.setTimeout(conferir, reduzido ? 50 : 700)
 }
 
 /**
@@ -103,6 +135,7 @@ function IndiceDeSecoes({
 
   return (
     <nav
+      id="indice-das-secoes"
       aria-label="Seções das respostas"
       className="sticky top-0 z-20 -mx-5 border-b border-line bg-bg px-5 py-2"
     >
@@ -214,12 +247,14 @@ function SecaoDeRespostas({
   versao,
   destacada,
   renderLinha,
+  acoes,
 }: {
   parte: ParteDasRespostas
   modo: Modo
   versao: number
   destacada: string | null
   renderLinha: PaginaDeRespostasProps['renderLinha']
+  acoes?: ReactNode
 }) {
   const idDoTitulo = `titulo-da-secao-${parte.bloco}`
   return (
@@ -229,7 +264,7 @@ function SecaoDeRespostas({
       aria-labelledby={idDoTitulo}
       className="scroll-mt-24 rounded-piq border border-line bg-surface p-4 lg:p-6"
     >
-      <header className="mb-3 flex items-start gap-3 border-b border-line pb-3">
+      <header className="mb-3 flex flex-wrap items-start gap-3 border-b border-line pb-3">
         <span
           aria-hidden="true"
           className="grid h-8 w-8 flex-none place-items-center rounded-full bg-accent-soft font-bold text-accent"
@@ -242,6 +277,7 @@ function SecaoDeRespostas({
           </h2>
           <small className="block text-muted">{contagemDaParte(parte)}</small>
         </div>
+        {acoes && <div className="w-full sm:ml-auto sm:w-auto">{acoes}</div>}
       </header>
 
       {parte.respondidas.length === 0 ? (
@@ -280,6 +316,7 @@ export default function PaginaDeRespostas({
   banner,
   versao,
   renderLinha,
+  acoesDaSecao,
 }: PaginaDeRespostasProps) {
   const [ativa, setAtiva] = useState<number | undefined>(partes[0]?.bloco)
   const [destacada, setDestacada] = useState<string | null>(null)
@@ -341,6 +378,7 @@ export default function PaginaDeRespostas({
           versao={versao}
           destacada={destacada}
           renderLinha={renderLinha}
+          acoes={acoesDaSecao?.(parte.bloco)}
         />
       ))}
     </div>

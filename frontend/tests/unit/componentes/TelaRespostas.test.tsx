@@ -16,6 +16,7 @@ import type { ParteDasRespostas, RespostaDada } from "../../../src/tipos";
 beforeEach(() => {
   // O happy-dom não rola: o que se prova é a chamada, não a animação.
   Element.prototype.scrollIntoView = vi.fn();
+  window.scrollBy = vi.fn();
 });
 
 afterEach(() => {
@@ -121,7 +122,7 @@ describe("TelaRespostas — a página única (RF-433)", () => {
 
     fireEvent.click(within(indice).getByRole("button", { name: "Parte Três" }));
 
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(window.scrollBy).toHaveBeenCalled();
     expect(within(indice).getByRole("button", { name: "Parte Três" })).toHaveAttribute(
       "aria-current",
       "true",
@@ -138,7 +139,7 @@ describe("TelaRespostas — a página única (RF-433)", () => {
     fireEvent.click(achado);
 
     expect(document.getElementById("resposta-3-B5.B-D001")).not.toBeNull();
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(window.scrollBy).toHaveBeenCalled();
   });
 
   it('"Não sei" antigo continua legível como resposta', async () => {
@@ -251,39 +252,51 @@ describe("TelaRespostas — taxa e dinheiro como o aluno digitou (T-335)", () =>
   });
 });
 
-describe("TelaRespostas — atalhos das listas de fichas (T-425)", () => {
-  it("no modo editável traz as dívidas e as listas abertas, e abre a escolhida", async () => {
+describe("TelaRespostas — atalhos das fichas na seção de cada uma (T-425, T-426)", () => {
+  const PARTES_COM_FICHAS: ParteDasRespostas[] = [
+    { bloco: 3, rotulo: "Parte Três", total_de_perguntas: 4, respondidas: [resposta("B3.X", null)] },
+    { bloco: 5, rotulo: "Parte Cinco", total_de_perguntas: 4, respondidas: [resposta("B5.X", "D001")] },
+  ];
+
+  it("cada botão fica na seção de onde a ficha nasce, e abre a lista escolhida", async () => {
     vi.spyOn(api, "obterPergunta").mockResolvedValue({ pergunta: null });
-    vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({ CASO_ID: "C1", partes: PARTES });
+    vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({ CASO_ID: "C1", partes: PARTES_COM_FICHAS });
     vi.spyOn(api, "listarEscopos").mockResolvedValue({
       CASO_ID: "C1",
       escopos: [
         { escopo: "DIVIDA_ID", aberto: true },
         { escopo: "RENDA_ADICIONAL_ID", aberto: true },
+        { escopo: "ITEM_DESPESA", aberto: true },
         { escopo: "MARGEM_ID", aberto: false },
       ],
     });
     const verFichas = vi.fn();
     render(<TelaRespostas casoId="C1" voltar={vi.fn()} verFichas={verFichas} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Ver e editar: rendas adicionais" }));
-
-    expect(verFichas).toHaveBeenCalledWith("RENDA_ADICIONAL_ID");
-    expect(screen.getByRole("button", { name: "Ver e editar minhas dívidas" })).toBeInTheDocument();
+    const parteTres = (await screen.findByRole("heading", { level: 2, name: "Parte Três" })).closest("section") as HTMLElement;
+    const parteCinco = screen.getByRole("heading", { level: 2, name: "Parte Cinco" }).closest("section") as HTMLElement;
+    // Despesas e rendas na parte 3; dívidas na 5; nada solto acima da página.
+    expect(await within(parteTres).findByRole("button", { name: /Gerenciar despesas/ })).toBeInTheDocument();
+    expect(within(parteTres).getByRole("button", { name: /Gerenciar rendas adicionais/ })).toBeInTheDocument();
+    expect(within(parteTres).queryByRole("button", { name: /dívidas/ })).not.toBeInTheDocument();
+    expect(within(parteCinco).getByRole("button", { name: /Gerenciar dívidas/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /margens/ })).not.toBeInTheDocument();
+
+    fireEvent.click(within(parteTres).getByRole("button", { name: /Gerenciar rendas adicionais/ }));
+    expect(verFichas).toHaveBeenCalledWith("RENDA_ADICIONAL_ID");
   });
 
-  it("só leitura (conferência): sem os atalhos", async () => {
+  it("só leitura (conferência): sem os atalhos e sem perguntar as listas", async () => {
     vi.spyOn(api, "obterRespostasDoCaso").mockResolvedValue({
       CASO_ID: "C1",
-      partes: PARTES,
+      partes: PARTES_COM_FICHAS,
       editavel: false,
     });
     const listar = vi.spyOn(api, "listarEscopos");
     render(<TelaRespostas casoId="C1" voltar={vi.fn()} verFichas={vi.fn()} />);
 
     await screen.findByText("Seu plano está em elaboração e análise.");
-    expect(screen.queryByText("Dívidas e despesas cadastradas")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Gerenciar/ })).not.toBeInTheDocument();
     expect(listar).not.toHaveBeenCalled();
   });
 });

@@ -27,7 +27,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Botao from '../componentes/Botao'
 import Esqueleto from '../componentes/Esqueleto'
-import AtalhosDasFichas from '../componentes/respostas/AtalhosDasFichas'
+import AtalhosDaSecao, { useEscoposAbertos } from '../componentes/respostas/AtalhosDasFichas'
 import BannerDeRespostas from '../componentes/respostas/BannerDeRespostas'
 import LinhaDaResposta, { type Rascunho } from '../componentes/respostas/LinhaDaResposta'
 import PaginaDeRespostas from '../componentes/respostas/PaginaDeRespostas'
@@ -69,6 +69,11 @@ export default function TelaRespostas({
   const [aviso, setAviso] = useState<string | null>(null)
   const [pendencias, setPendencias] = useState(0)
   const [versao, setVersao] = useState(0)
+  // As listas de fichas só interessam a quem pode editar (`T-426`).
+  const abertos = useEscoposAbertos(
+    casoId,
+    verFichas !== undefined && respostas !== null && respostas.editavel !== false,
+  )
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -248,13 +253,16 @@ export default function TelaRespostas({
         </p>
       )}
 
-      {modo === 'editar' && verFichas && <AtalhosDasFichas casoId={casoId} aoAbrir={verFichas} />}
-
       <PaginaDeRespostas
         modo={modo}
         partes={respostas.partes}
         versao={versao}
         renderLinha={renderizarLinha}
+        acoesDaSecao={
+          modo === 'editar' && verFichas
+            ? (bloco) => <AtalhosDaSecao bloco={bloco} abertos={abertos} aoAbrir={verFichas} />
+            : undefined
+        }
         banner={
           <BannerDeRespostas
             casoId={casoId}
