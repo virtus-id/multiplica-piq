@@ -29,7 +29,6 @@ import {
   ResumoExecutivo,
   TabelaDeDividas,
 } from '../componentes/revisao/PartesDaConferencia'
-import PlanoDoAluno from '../componentes/PlanoDoAluno'
 import Tela from '../componentes/Tela'
 import {
   type CasoParaRevisao,
@@ -226,7 +225,7 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
       {/* `T-429` (`RF-441`): mesa de conferência — resumo executivo, análise
           (~68%) e apoio à decisão (~32%). Só apresentação dos dados que a API
           já entrega; o plano do aluno segue integral, fechado, no fim. */}
-      <ResumoExecutivo plano={plano} entradas={entradas} homologavel={homologacao?.homologavel} />
+      <ResumoExecutivo plano={plano} entradas={entradas} resumo={dados.resumo} />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,68fr)_minmax(0,32fr)] xl:items-start">
         <div className="flex min-w-0 flex-col gap-4">
@@ -269,17 +268,6 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
           )}
 
           <DadosQueProduziramOPlano entradas={entradas} />
-
-          {/* `RF-121`: o plano COMO O ALUNO O RECEBE, com os detalhes do revisor.
-              Fechado para não competir com a análise; nada se perde. */}
-          <details className="cartao min-w-0">
-            <summary className="cursor-pointer font-bold">Plano como o aluno vai ver</summary>
-            <div className="flex flex-col gap-4 pt-3">
-              {/* Redação canônica do servidor — `AC-14`. Nunca reescrita aqui. */}
-              <h2 className="m-0">{plano.titulo}</h2>
-              <PlanoDoAluno plano={plano} revisor={{ entradas }} />
-            </div>
-          </details>
         </div>
 
         <aside aria-label="Apoio à decisão" className="flex min-w-0 flex-col gap-4">

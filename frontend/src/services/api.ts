@@ -438,6 +438,8 @@ export interface CasoParaRevisao {
   estado_inputs: EstadoInputs
   /** `RF-123`: o que mudou desde a versão anterior; `null` na versão 1. */
   mudancas?: MudancaDeEntrada[] | null
+  /** `RF-442`: totais do servidor para o painel do revisor. */
+  resumo?: { total_em_dividas: string | null; total_em_dividas_parcial: boolean }
   fila: ItemDaFila
 }
 

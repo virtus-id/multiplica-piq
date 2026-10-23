@@ -23,7 +23,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, date, datetime
-from typing import Annotated, Final, Literal, Protocol
+from decimal import Decimal
+from typing import Annotated, Any, Final, Literal, Protocol
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
@@ -111,6 +112,7 @@ from report.plano import (
     TextosCanonicosPlano,
     VocabularioDoCaso,
     carregar_textos_canonicos,
+    formatar_dinheiro_br,
     montar_contexto_estado_inputs,
     montar_contexto_plano,
     rotulo_de_codigo,
@@ -119,6 +121,15 @@ from report.plano import (
 REGRAS: Final[tuple[str, ...]] = ("RF-50", "RF-51", "AC-25", "AC-28")
 
 roteador = APIRouter(tags=["api-plano"])
+
+
+def _resumo_do_caso(snapshot: Any) -> dict[str, object]:
+    saldos = [d.SALDO_DEVEDOR_ATUAL for d in snapshot.estado_inputs.dividas]
+    informados = [v for v in saldos if isinstance(v, Decimal)]
+    return {
+        "total_em_dividas": formatar_dinheiro_br(sum(informados, Decimal(0))) if informados else None,
+        "total_em_dividas_parcial": len(informados) < len(saldos),
+    }
 
 # A rota de prévia fica sob a raiz da conferência (nome curto: limiar de `AC-37`).
 _RAIZ_DA_CONFERENCIA: Final[str] = "/revisao/caso/{CASO_ID_REVISAO}"
@@ -483,6 +494,9 @@ def caso_para_revisao(
             ),
             "estado_inputs": serializar_estado_inputs(estado_inputs),
             "mudancas": mudancas,
+            # `T-430` (`RF-442`): soma dos saldos informados, só para o painel do
+            # revisor. Saldo desconhecido não entra e marca o total como parcial.
+            "resumo": _resumo_do_caso(snapshot),
             "fila": serializar_item_da_fila(
                 item,
                 textos,

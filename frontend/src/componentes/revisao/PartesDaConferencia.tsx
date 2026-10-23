@@ -9,7 +9,7 @@
  */
 import { type ReactNode, useState } from 'react'
 
-import type { CampoDeEntrada, EstadoInputs } from '../../services/api'
+import type { CampoDeEntrada, CasoParaRevisao, EstadoInputs } from '../../services/api'
 import type { Plano, PosicaoDaOrdem } from '../../tipos'
 import Icone, { type NomeDoIcone } from '../Icone'
 import ListaDeDados from '../ListaDeDados'
@@ -39,26 +39,32 @@ interface Indicador {
   valor: string
   icone: NomeDoIcone
   tom: Tom
+  detalhe?: string
 }
 
 /** A faixa de leitura rápida. Indicador sem dado real não aparece. */
 export function ResumoExecutivo({
   plano,
   entradas,
-  homologavel,
+  resumo,
 }: {
   plano: Plano
   entradas: EstadoInputs
-  homologavel: boolean | undefined
+  resumo: CasoParaRevisao['resumo']
 }) {
   const renda = campo(entradas.campos, 'RENDA_TOTAL_RECORRENTE')
-  const despesas =
-    plano.ponto_de_partida?.despesas_mensais_totais ||
-    campo(entradas.campos, 'DESPESAS_OPERACIONAIS_ATUAIS')
+  // `ponto_de_partida.despesas_mensais_totais` é receitas − despesas (a sobra),
+  // não as despesas: o indicador lê o campo de despesas do estado de entrada.
+  const despesas = campo(entradas.campos, 'DESPESAS_OPERACIONAIS_ATUAIS')
+  const naoMensais = campo(entradas.campos, 'DESPESAS_NAO_MENSAIS_NORMALIZADAS')
   const resultado = plano.RESULTADO_CAIXA_OBSERVADO
   const indicadores: Indicador[] = []
   if (renda) indicadores.push({ rotulo: 'Renda total recorrente', valor: renda, icone: 'dinheiro', tom: 'neutro' })
-  if (despesas) indicadores.push({ rotulo: 'Despesas mensais', valor: despesas, icone: 'reserva', tom: 'neutro' })
+  if (despesas) indicadores.push({ rotulo: 'Despesas mensais', valor: despesas,
+      icone: 'reserva',
+      tom: 'neutro',
+      detalhe: naoMensais ? `Não mensais, no mês: ${naoMensais}` : undefined,
+    })
   if (resultado) {
     indicadores.push({
       rotulo: 'Resultado do mês',
@@ -69,21 +75,39 @@ export function ResumoExecutivo({
   }
   indicadores.push({
     rotulo: 'Dívidas no plano',
-    valor: String(plano.ordem.length),
+    // A ordem só leva as dívidas elegíveis; as cadastradas aparecem junto.
+    valor:
+      entradas.dividas.length > plano.ordem.length
+        ? `${plano.ordem.length} de ${entradas.dividas.length} cadastradas`
+        : String(plano.ordem.length),
     icone: 'bandeira',
     tom: 'neutro',
   })
-  if (homologavel !== undefined) {
+  if (resumo?.total_em_dividas) {
     indicadores.push({
-      rotulo: 'Pode ser homologado',
-      valor: homologavel ? 'Sim' : 'Não',
-      icone: 'conferencia',
-      tom: homologavel ? 'positivo' : 'atencao',
+      rotulo: 'Total em dívidas',
+      valor: resumo.total_em_dividas,
+      icone: 'taxa',
+      tom: 'neutro',
+      detalhe: resumo.total_em_dividas_parcial ? 'Parcial: há dívida sem saldo informado' : 'Soma dos saldos devedores',
+    })
+  }
+  const existe = campo(entradas.campos, 'RESERVA_EXISTE')
+  if (existe) {
+    const valor = campo(entradas.campos, 'RESERVA_TOTAL')
+    const disposicao = campo(entradas.campos, 'DISPOSICAO_USO_RESERVA')
+    const maximo = campo(entradas.campos, 'VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO')
+    indicadores.push({
+      rotulo: 'Possui reserva',
+      valor: valor ? `${existe} · ${valor}` : existe,
+      icone: 'reserva',
+      tom: 'neutro',
+      detalhe: [disposicao && `Uso: ${disposicao}`, maximo && `Aceita usar: ${maximo}`].filter(Boolean).join(' · ') || undefined,
     })
   }
 
   return (
-    <dl className="m-0 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+    <dl className="m-0 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6">
       {indicadores.map((i) => (
         <div key={i.rotulo} className="min-w-0 rounded-piq border border-line bg-surface px-3 py-2.5">
           <dt className="flex items-center gap-1.5 text-xs text-muted">
@@ -92,6 +116,7 @@ export function ResumoExecutivo({
           <dd className={`m-0 mt-1 text-lg font-bold tabular-nums [overflow-wrap:anywhere] ${COR_DO_TOM[i.tom]}`}>
             {i.valor}
           </dd>
+          {i.detalhe && <dd className="m-0 text-xs text-muted [overflow-wrap:anywhere]">{i.detalhe}</dd>}
         </div>
       ))}
     </dl>
@@ -163,7 +188,8 @@ function Celula({ valor }: { valor: string | undefined }) {
  */
 export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: EstadoInputs }) {
   const [abertas, setAbertas] = useState<Record<string, boolean>>({})
-  if (plano.ordem.length === 0) {
+  const foraDaOrdem = entradas.dividas.filter((d) => !plano.ordem.some((p) => p.DIVIDA_ID === d.DIVIDA_ID))
+  if (plano.ordem.length === 0 && foraDaOrdem.length === 0) {
     return (
       <section className="cartao" aria-labelledby="titulo-dividas-plano">
         <h2 id="titulo-dividas-plano" className="m-0">
@@ -249,9 +275,32 @@ export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: E
                 </FragmentoDaDivida>
               )
             })}
+            {foraDaOrdem.map((d) => (
+              <FragmentoDaDivida key={d.DIVIDA_ID}>
+                <tr className="border-b border-line align-top">
+                  <td className="px-2 py-2 text-muted">—</td>
+                  <td className="px-2 py-2">
+                    <strong className="block [overflow-wrap:anywhere]">{d.nome}</strong>
+                    <small className="text-muted">{d.DIVIDA_ID}</small>
+                  </td>
+                  <Celula valor={campo(d.campos, 'SALDO_DEVEDOR_ATUAL')} />
+                  <Celula valor={campo(d.campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} />
+                  <Celula valor={campo(d.campos, 'PARCELA_CONTRATUAL')} />
+                  <Celula valor={undefined} />
+                  <Celula valor={campo(d.campos, 'STATUS_DIVIDA')} />
+                  <td className="px-2 py-2" />
+                </tr>
+              </FragmentoDaDivida>
+            ))}
           </tbody>
         </table>
       </div>
+      {foraDaOrdem.length > 0 && (
+        <p className="nota m-0">
+          Dívidas com "—" estão cadastradas, mas fora da ordem de quitação do plano. Os dados delas estão em
+          "Dados que produziram o plano".
+        </p>
+      )}
     </section>
   )
 }

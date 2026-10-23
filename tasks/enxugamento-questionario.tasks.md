@@ -394,3 +394,12 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] `TelaEquipeCaso` recomposta: resumo executivo, análise e dívidas (colunas 68%/32%), apoio à decisão; só dados já entregues pela API
 
 **Status:** `[x] concluída (2026-10-23)`
+
+### `T-430` — Indicadores e dívidas da conferência
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-429` · **Rastreia:** `RF-441`, `RF-442`, `AC-438`
+- [x] Seção "Plano como o aluno vai ver" removida da tela do revisor
+- [x] Despesas mensais lidas de `DESPESAS_OPERACIONAIS_ATUAIS`; dívidas fora da ordem listadas e contadas
+- [x] "Pode ser homologado" sai da faixa; entram "Total em dívidas" (campo `resumo` aditivo na API) e "Possui reserva"
+
+**Status:** `[x] concluída (2026-10-23)`
