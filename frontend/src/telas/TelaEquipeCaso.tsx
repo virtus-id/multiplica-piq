@@ -25,6 +25,7 @@ import Icone from '../componentes/Icone'
 import PontoDePartida from '../componentes/PontoDePartida'
 import {
   AnaliseFinanceira,
+  CenariosDoDeficitario,
   DadosQueProduziramOPlano,
   ResumoExecutivo,
   TabelaDeDividas,
@@ -230,6 +231,7 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,68fr)_minmax(0,32fr)] xl:items-start">
         <div className="flex min-w-0 flex-col gap-4">
           <AnaliseFinanceira plano={plano} />
+          {dados.deficitario && <CenariosDoDeficitario bloco={dados.deficitario} />}
           <TabelaDeDividas plano={plano} entradas={entradas} />
 
           {plano.ponto_de_partida && (

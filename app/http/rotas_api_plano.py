@@ -124,6 +124,51 @@ REGRAS: Final[tuple[str, ...]] = ("RF-50", "RF-51", "AC-25", "AC-28")
 roteador = APIRouter(tags=["api-plano"])
 
 
+def _bloco_deficitario(snapshot: Any) -> dict[str, object] | None:
+    """`RF-452` (`T-438`) — o que o revisor confere num aluno deficitário, só
+    leitura do snapshot já formatada: déficit, o "se nada mudar" do motor e as
+    simulações de 5% e 10%. `None` fora do déficit. Déficit não é pendência."""
+    diagnostico = snapshot.diagnostico
+    if not diagnostico.MODO_ESTABILIZACAO:
+        return None
+    sem = snapshot.prognostico.sem_acao if snapshot.prognostico is not None else None
+    return {
+        "resultado_mensal": formatar_dinheiro_br(diagnostico.RESULTADO_MENSAL_ATUAL),
+        "deficit": formatar_dinheiro_br(diagnostico.DEFICIT_MENSAL),
+        "se_nada_mudar": None
+        if sem is None
+        else {
+            "horizonte_meses": sem.HORIZONTE_MESES,
+            "saldo_inicial": formatar_dinheiro_br(sem.SALDO_INICIAL_TOTAL),
+            "saldo_no_horizonte": formatar_dinheiro_br(sem.SALDO_NO_HORIZONTE),
+            "dividas_que_crescem": sem.DIVIDAS_QUE_CRESCEM,
+        },
+        "cenarios": None
+        if snapshot.cenarios_economia is None
+        else [
+            {
+                "percentual": f"{int(c.PERCENTUAL * 100)}%",
+                "economia_mensal": formatar_dinheiro_br(c.ECONOMIA_MENSAL),
+                "resultado_ajustado": formatar_dinheiro_br(c.RESULTADO_AJUSTADO),
+                "situacao": c.SITUACAO,
+                "executavel": c.EXECUTAVEL,
+                "capacidade_de_aporte": formatar_dinheiro_br(c.CAPACIDADE_ATAQUE_ATUAL),
+                "metodo": c.METODO,
+                "prazo_meses": c.PRAZO_TOTAL,
+                "custo_futuro_total": None
+                if c.CUSTO_FUTURO_TOTAL is None
+                else formatar_dinheiro_br(c.CUSTO_FUTURO_TOTAL),
+                "estourou_horizonte": c.ESTOUROU_HORIZONTE,
+                "saldos": [
+                    {"mes": mes, "saldo": formatar_dinheiro_br(saldo)}
+                    for mes, saldo in c.SALDOS_NOS_HORIZONTES
+                ],
+            }
+            for c in snapshot.cenarios_economia
+        ],
+    }
+
+
 def _resumo_do_caso(snapshot: Any) -> dict[str, object]:
     saldos = [d.SALDO_DEVEDOR_ATUAL for d in snapshot.estado_inputs.dividas]
     informados = [v for v in saldos if isinstance(v, Decimal)]
@@ -511,6 +556,7 @@ def caso_para_revisao(
             # `T-430` (`RF-442`): soma dos saldos informados, só para o painel do
             # revisor. Saldo desconhecido não entra e marca o total como parcial.
             "resumo": _resumo_do_caso(snapshot),
+            "deficitario": _bloco_deficitario(snapshot),
             "fila": serializar_item_da_fila(
                 item,
                 textos,

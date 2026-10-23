@@ -29,7 +29,7 @@
 
 ### `T-438` — Conferência do revisor
 - **Rastreia:** `RF-452` · **Dependências:** `T-436`
-- [ ] Bloco na API e na tela; déficit não é pendência.
+- [x] `deficitario` (aditivo) em `GET /api/revisao/caso/{id}` e `CenariosDoDeficitario` na conferência: resultado, déficit, "se nada mudar", cenários de 5% e 10% com situação, aporte, prazo e saldos, e as limitações. Déficit não vira pendência; ordem recomendada rotulada como estratégia. Os cenários só aparecem com os parâmetros 1.0.3 em vigor.
 
 ### `T-439` — Aviso ao aluno antes do envio
 - **Rastreia:** `RF-453`
