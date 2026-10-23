@@ -119,7 +119,12 @@ export function ResumoExecutivo({
           <dd className={`m-0 mt-1 text-lg font-bold tabular-nums [overflow-wrap:anywhere] ${COR_DO_TOM[i.tom]}`}>
             {i.valor}
           </dd>
-          {i.detalhe && <dd className="m-0 text-xs text-muted [overflow-wrap:anywhere]">{i.detalhe}</dd>}
+          {i.detalhe && (
+            // Uma linha só: o que não cabe vira reticências e o texto inteiro fica no `title`.
+            <dd className="m-0 truncate text-xs text-muted" title={i.detalhe}>
+              {i.detalhe}
+            </dd>
+          )}
         </div>
       ))}
     </dl>
