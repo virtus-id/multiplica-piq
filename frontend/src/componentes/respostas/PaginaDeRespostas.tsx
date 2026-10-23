@@ -61,6 +61,19 @@ function rolarPara(id: string, bloco: 'start' | 'center' = 'start') {
 }
 
 /**
+ * O texto curto de cada parte no índice (`T-424`), para os cinco caberem numa
+ * linha. É redação do produto, ligada ao número da parte; o título completo
+ * segue na seção, no nome acessível e na dica do botão.
+ */
+const ROTULO_CURTO: Readonly<Record<number, string>> = {
+  1: 'Compromisso',
+  2: 'Controle dos gastos',
+  3: 'Entradas e saídas',
+  4: 'Salário e margem',
+  5: 'Dívidas',
+}
+
+/**
  * O índice horizontal fixo no topo. São botões, não links com `#`: o `#` é da
  * rota do aplicativo, e um link de âncora a trocaria.
  */
@@ -93,22 +106,26 @@ function IndiceDeSecoes({
       aria-label="Seções das respostas"
       className="sticky top-0 z-20 -mx-5 border-b border-line bg-bg px-5 py-2"
     >
-      <ul className="m-0 flex list-none gap-2 overflow-x-auto p-0">
+      <ul className="m-0 flex list-none gap-1.5 overflow-x-auto p-0 lg:grid lg:grid-cols-5 lg:overflow-visible">
         {partes.map((parte) => {
           const eAtiva = parte.bloco === ativa
           return (
-            <li key={parte.bloco} className="flex-none">
+            <li key={parte.bloco} className="flex-none lg:flex-auto">
               <button
                 type="button"
                 aria-current={eAtiva ? 'true' : undefined}
+                // O nome acessível e a dica são o título completo; o texto curto é
+                // só para o índice caber numa linha.
+                aria-label={parte.rotulo}
+                title={parte.rotulo}
                 onClick={() => aoEscolher(parte.bloco)}
-                className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-bold ${
+                className={`w-full whitespace-nowrap rounded-full border px-2.5 py-1 text-center text-[0.82rem] font-bold ${
                   eAtiva
                     ? 'border-accent bg-accent-soft text-accent'
                     : 'border-line bg-surface text-muted'
                 }`}
               >
-                {parte.rotulo}
+                {ROTULO_CURTO[parte.bloco] ?? parte.rotulo}
               </button>
             </li>
           )

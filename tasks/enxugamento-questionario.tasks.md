@@ -350,3 +350,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
+### `T-424` — Índice com textos curtos
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-423` · **Rastreia:** `RF-435`, `AC-431`
+- [x] Textos curtos e espaçamento menor no índice; título completo no nome acessível
+
+**Status:** `[x] concluída (2026-10-22)`
+
