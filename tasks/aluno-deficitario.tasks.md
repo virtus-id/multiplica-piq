@@ -10,7 +10,9 @@
 
 ### `T-434` — Verificar o motor em déficit (gate)
 - **Rastreia:** `RF-446`, `RF-448`, `RF-449`
-- [ ] Rodar o motor, em leitura, sobre os casos deficitários reais e registrar o que acontece com ataque conservador negativo no ciclo mensal (ordem, prazos, saldos). Decide se o motor precisa de ajuste (com spec do motor) antes dos cenários.
+- [x] Rodar o motor, em leitura, sobre os casos deficitários reais e registrar o que acontece com ataque conservador negativo no ciclo mensal (ordem, prazos, saldos). Decide se o motor precisa de ajuste (com spec do motor) antes dos cenários.
+- **Resultado (2026-10-23, 2 casos deficitários dos 6 com plano, só leitura):** o motor roda sem erro e devolve ordem (9 e 1 dívida) e método. `CAPACIDADE_ATAQUE_ATUAL = 0`, mas a `CAPACIDADE_ATAQUE_CONSERVADORA` sai negativa (-9.029,74 e -1.194,78). O cenário recomendado fica com prazo 120 (teto do horizonte) e `ESTOUROU_HORIZONTE = True`: o plano "não quita em 10 anos", e o custo futuro vem de uma simulação com ataque negativo ou zero, então **não serve** como projeção de pagamento viável. O prognóstico "sem ação" mostra saldo de 4.710,18 em um caso e de 30.813.818,69 no outro após 120 meses (juros sobre parcelas que não cobrem os juros, sem financiar o déficit).
+- **Consequência:** os cenários de 5% e 10% devem ler o resultado ajustado e a capacidade de aporte; enquanto a capacidade for ≤ 0, o cenário não pode exibir prazo, custo nem fichas mensais (RF-450). O saldo de milhões do "se nada mudar" precisa de nota de limitação (juros compostos sobre parcela insuficiente) antes de ir ao aluno.
 
 ### `T-435` — Parâmetros 1.0.3 (5% e 10%)
 - **Rastreia:** `RF-448`
