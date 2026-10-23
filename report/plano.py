@@ -118,6 +118,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable, Mapping
+from contextvars import ContextVar
 from dataclasses import dataclass, field, fields, is_dataclass, replace
 from datetime import date
 from decimal import Decimal
@@ -506,6 +507,30 @@ def _apresentar_valor_de_apoio(nome: str, valor: Decimal | object) -> str:
     if formato == "escala":
         return formatar_escala_br(valor)
     return _formatar_valor_de_apoio(valor)
+
+
+#: `RF-445` — o mês de partida do calendário: a data da liberação (ou de hoje, na
+#: prévia). O Mês 1 é o mês SEGUINTE a ela. Fica em `ContextVar` só durante
+#: `montar_contexto_plano`, para as dezenas de rótulos de mês saírem do mesmo
+#: lugar sem passar um parâmetro por cada função. `None` (testes, snapshots
+#: sem data): os rótulos voltam a ser "Mês N".
+_MES_BASE: ContextVar[date | None] = ContextVar("mes_base_do_plano", default=None)
+_NOMES_DOS_MESES: Final[tuple[str, ...]] = (
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+)  # fmt: skip
+
+
+def rotulo_do_mes(numero: int, *, curto: bool = False, ordinal: str | None = None) -> str:
+    """O mês `numero` do plano como calendário: "Fevereiro/2025" (curto:
+    "Fev/2025"). Sem data base, a referência antiga: "Mês 3" (curto: "M3");
+    `ordinal` troca o número quando a referência antiga pede zeros à esquerda."""
+    base = _MES_BASE.get()
+    if base is None:
+        return f"M{numero}" if curto else f"Mês {ordinal or numero}"
+    ano, indice = divmod(base.year * 12 + base.month - 1 + numero, 12)
+    nome = _NOMES_DOS_MESES[indice]
+    return f"{nome[:3]}/{ano}" if curto else f"{nome}/{ano}"
 
 
 def _formatar_meses(prazo: int) -> str:
@@ -1041,6 +1066,8 @@ class ContextoPosicao:
     #: `T-304` (`DE-08`) — mês previsto de quitação, LIDO do cronograma
     #: gravado (`meses_de_quitacao`); `None` = não disponível.
     mes_de_quitacao: int | None = None
+    #: `RF-445` — o mesmo mês em calendário ("Agosto/2026"); vazio sem quitação prevista.
+    mes_de_quitacao_rotulo: str = ""
     #: Revisão de design (2026-10-03) — os números que o aluno quer ver em
     #: TODA dívida, qualquer que seja o método: quanto deve hoje, a parcela
     #: que paga hoje e a taxa de juros. `valores_de_apoio` varia por método
@@ -1156,6 +1183,8 @@ class ContextoAporte:
     ITEM_ID: str
     mes: int
     valor: str
+    #: `RF-445` — o mês em calendário ("Março/2025"); "Mês N" sem data base.
+    mes_rotulo: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -1191,6 +1220,7 @@ def _cenario_adicional(
                 ITEM_ID=aporte.ITEM_ID,
                 mes=aporte.mes,
                 valor=formatar_dinheiro_br(aporte.VALOR_DESTINADO),
+                mes_rotulo=rotulo_do_mes(aporte.mes),
             )
             for aporte in adicional_do_snapshot.aportes
         ),
@@ -1232,6 +1262,8 @@ class ContextoCaminho:
     #: `T-378`/`T-379` — as dívidas que marcam a barra, em ordem de quitação:
     #: "M7 · Quita Cheque Itaú". Vazio no vermelho.
     itens: tuple[str, ...] = ()
+    #: `RF-445` — o rótulo curto ("Ago/2025") de cada marco da barra, na ordem de `marcos`.
+    marcos_rotulos: tuple[str, ...] = ()
     #: "Economia frente ao plano base: R$ …" — só no plano acelerado.
     economia: str = ""
 
@@ -1316,6 +1348,9 @@ class ContextoPrognostico:
     caminhos: tuple[ContextoCaminho, ...]
     #: `T-377` — o plano seguido e (com valor extra) o acelerado, mês a mês.
     detalhes: tuple[ContextoPlanoDetalhado, ...] = ()
+    #: `RF-445` — as pontas do eixo das barras, em calendário.
+    eixo_inicio: str = ""
+    eixo_fim: str = ""
 
 
 def _numeros_das_dividas(snapshot: SnapshotOrdem) -> dict[str, int]:
@@ -1342,14 +1377,19 @@ def _com_marcos(
     por dívida ("M7 - Quita Cheque Itaú"), só no plano e no plano acelerado."""
     marcos = _marcos(quitacoes, numeros)
     nome_do = {numero: nomes.get(d, d) for d, numero in numeros.items()}
-    modelo = textos.get("item_quita", "M{mes} · Quita {nome}")
+    modelo = textos.get("item_quita", "{mes} · Quita {nome}")
     com_marcos = caminho.cor != "vermelho"
     return replace(
         caminho,
         marcos=marcos if com_marcos else (),
         quitacoes=marcos,
         rotulo_curto=textos.get(f"{caminho.cor}_curto", ""),
-        itens=tuple(modelo.format(mes=mes, nome=nome_do[n]) for mes, n in marcos)
+        itens=tuple(
+            modelo.format(mes=rotulo_do_mes(mes, curto=True), nome=nome_do[n]) for mes, n in marcos
+        )
+        if com_marcos
+        else (),
+        marcos_rotulos=tuple(rotulo_do_mes(mes, curto=True) for mes, _ in marcos)
         if com_marcos
         else (),
     )
@@ -1369,7 +1409,6 @@ def _meses_detalhados(
     lista = tuple(meses)
     largura = max(2, len(str(len(lista))))
     mes_primeira = min((mes for mes, _ in quitacoes_do_caminho), default=None)
-    palavra = textos.get("mes", "Mês")
 
     def _divida(divida_id: str) -> tuple[int, str]:
         return (numeros.get(divida_id, 0), nomes.get(divida_id, divida_id))
@@ -1383,7 +1422,11 @@ def _meses_detalhados(
         ordenadas = sorted(item.DIVIDAS, key=lambda d: numeros.get(d.DIVIDA_ID, 0))
         return ContextoPaginaDoMes(
             numero=f"{item.MES:0{largura}d}",
-            de_total=f"{item.MES:0{largura}d} de {len(lista)}",
+            de_total=(
+                f"Mês {item.MES:0{largura}d} de {len(lista)}"
+                if _MES_BASE.get() is None
+                else rotulo_do_mes(item.MES)
+            ),
             total_pagar=formatar_dinheiro_br(item.TOTAL_PAGAR),
             extra_aplicado=formatar_dinheiro_br(item.EXTRA_TOTAL),
             divida_apos=formatar_dinheiro_br(item.SALDO_TOTAL),
@@ -1412,7 +1455,7 @@ def _meses_detalhados(
     return tuple(
         ContextoMesDetalhado(
             pagina=_pagina(item),
-            rotulo=f"{palavra} {item.MES:0{largura}d}",
+            rotulo=rotulo_do_mes(item.MES, ordinal=f"{item.MES:0{largura}d}"),
             ancora=f"mes-{cor}-{item.MES:0{largura}d}",
             divida_da_vez=None if item.DIVIDA_ALVO is None else _divida(item.DIVIDA_ALVO),
             valor_extra=formatar_dinheiro_br(item.VALOR_EXTRA),
@@ -1456,7 +1499,7 @@ def _quando_cada_divida_termina(
 
     def _celula(marcos: tuple[tuple[int, int], ...], numero: int) -> str:
         quando = next((m for m, n in marcos if n == numero), None)
-        return nao_acaba if quando is None else f"{mes} {quando}"
+        return nao_acaba if quando is None else rotulo_do_mes(quando)
 
     return ContextoQuandoTermina(
         colunas=tuple(rotulo for rotulo, _, _ in colunas),
@@ -1535,7 +1578,11 @@ def _linhas_do_prognostico(
     saldo = formatar_dinheiro_br(sem.SALDO_NO_HORIZONTE)
 
     def _mes(n: int) -> str:
-        return f"{t.get('mes', 'Mês')} {n}"
+        return rotulo_do_mes(n)
+
+    def _quando(n: int) -> str:
+        # "Em Agosto/2026" (calendário) ou "No Mês 12" (sem data base).
+        return f"Em {rotulo_do_mes(n)}" if _MES_BASE.get() is not None else f"No {rotulo_do_mes(n)}"
 
     def _complemento(chave: str, valor: Any) -> str:
         """Frase "Até R$ … por mês"; ausente em snapshot anterior (sem o valor)."""
@@ -1566,7 +1613,7 @@ def _linhas_do_prognostico(
         cor="vermelho",
         titulo=t.get("vermelho_titulo", ""),
         veredito=t.get("vermelho_veredito_zerado" if zerado else "vermelho_veredito", "").format(
-            horizonte=sem.HORIZONTE_MESES, saldo=saldo
+            quando=_quando(sem.HORIZONTE_MESES), saldo=saldo
         ),
         nota=t.get("vermelho_nota", ""),
         marcador="",
@@ -1649,7 +1696,11 @@ def _linhas_do_prognostico(
             )
         )
     return ContextoPrognostico(
-        titulo=t.get("titulo", ""), introducao=t.get("introducao", ""), caminhos=tuple(caminhos)
+        titulo=t.get("titulo", ""),
+        introducao=t.get("introducao", ""),
+        caminhos=tuple(caminhos),
+        eixo_inicio=rotulo_do_mes(1),
+        eixo_fim=rotulo_do_mes(escala),
     )
 
 
@@ -1919,6 +1970,22 @@ def montar_contexto_plano(
     textos: TextosCanonicosPlano,
     vocabulario: VocabularioDoCaso | None = None,
     nome_do_aluno: str | None = None,
+    data_base: date | None = None,
+) -> ContextoPlano:
+    """`RF-445` — `data_base` é a data da liberação (ou de hoje, na prévia): o
+    Mês 1 do plano é o mês seguinte a ela, e todo mês sai como calendário."""
+    token = _MES_BASE.set(data_base)
+    try:
+        return _montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno)
+    finally:
+        _MES_BASE.reset(token)
+
+
+def _montar_contexto_plano(
+    snapshot: SnapshotOrdem,
+    textos: TextosCanonicosPlano,
+    vocabulario: VocabularioDoCaso | None = None,
+    nome_do_aluno: str | None = None,
 ) -> ContextoPlano:
     """RF-20, RF-22, AC-16, AC-17, AC-42 (T-60); EC-07, EC-08, EC-09 (T-62) —
     monta o contexto Jinja2 de `plano.html` a partir de um `SnapshotOrdem`
@@ -1982,6 +2049,11 @@ def montar_contexto_plano(
                 snapshot.METODO_RECOMENDADO_PIQ.value, {}
             ).get("primeira" if indice == 1 else "seguintes", ""),
             mes_de_quitacao=quitacoes.get(posicao_do_snapshot.DIVIDA_ID),
+            mes_de_quitacao_rotulo=(
+                rotulo_do_mes(quitacoes[posicao_do_snapshot.DIVIDA_ID])
+                if posicao_do_snapshot.DIVIDA_ID in quitacoes
+                else ""
+            ),
             fatos=_fatos_da_divida(dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID), textos),
             avisos=_avisos_da_divida(
                 posicao_do_snapshot.DIVIDA_ID, vocabulario or VocabularioDoCaso(), textos

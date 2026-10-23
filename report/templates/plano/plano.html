@@ -641,7 +641,7 @@
             <h3>{{ caminho.titulo }}</h3>
             <p class="caminho-nota">{{ caminho.nota }}</p>
             <p class="caminho-veredito">{{ caminho.veredito }}</p>
-            {{ visuais.barra_do_caminho(caminho, caminho.titulo ~ ". " ~ caminho.veredito, tp.get("eixo_inicio", mes ~ " 1"), mes ~ " " ~ caminho.escala) }}
+            {{ visuais.barra_do_caminho(caminho, caminho.titulo ~ ". " ~ caminho.veredito, prognostico.eixo_inicio or tp.get("eixo_inicio", mes ~ " 1"), prognostico.eixo_fim or (mes ~ " " ~ caminho.escala)) }}
             {% if caminho.itens %}
             <ul class="caminho-itens">
                 {% for texto in caminho.itens %}<li>{{ texto }}</li>{% endfor %}
@@ -743,7 +743,7 @@
             <div class="linha"><span class="linha-rotulo">{{ textos.resumo.get("custo_futuro_rotulo", "") }}</span><span class="linha-valor">{{ cenario_adicional.CUSTO_FUTURO_TOTAL }}</span></div>
             <div class="linha"><span class="linha-rotulo">Ordem de quitação</span><span class="linha-valor">{{ cenario_adicional.ordem | join(", ") }}</span></div>
             {% for item in cenario_adicional.itens %}
-            <div class="linha"><span class="linha-rotulo">{{ textos.grade_meses.get("rotulo_mes", "Mês") }} {{ item.mes }}</span><span class="linha-valor">{{ item.valor }}</span></div>
+            <div class="linha"><span class="linha-rotulo">{{ item.mes_rotulo or (textos.grade_meses.get("rotulo_mes", "Mês") ~ " " ~ item.mes) }}</span><span class="linha-valor">{{ item.valor }}</span></div>
             {% endfor %}
         </div>
     </section>

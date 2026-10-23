@@ -285,6 +285,8 @@ export interface PosicaoDaOrdem {
    * à mão nos testes de outras telas.
    */
   mes_de_quitacao?: number | null
+  /** O mesmo mês em calendário ("Agosto/2026"), vindo do servidor; vazio sem quitação prevista. */
+  mes_de_quitacao_rotulo?: string
   /**
    * Fonte de comprovação dos dados desta dívida — `RF-92`, `T-267`. O
    * rótulo do nível vem pronto do servidor (`textos-canonicos.yaml`);
@@ -470,7 +472,7 @@ export interface CaminhoDoPrognostico {
   mes_fim: number
   escala: number
   /** Mês e número (em "Suas dívidas") de cada dívida quitada neste caminho. */
-  marcos: { mes: number; numero: number }[]
+  marcos: { mes: number; numero: number; rotulo?: string }[]
   /** Dívidas que marcam a barra, em ordem de quitação (vazio no vermelho). */
   itens: string[]
   /** "Economia frente ao plano base: R$ …"; só no plano acelerado. */
@@ -537,6 +539,9 @@ export interface QuandoTermina {
 export interface PrognosticoDoPlano {
   titulo: string
   introducao: string
+  /** Pontas do eixo das barras, em calendário ("Fevereiro/2025"). */
+  eixo_inicio?: string
+  eixo_fim?: string
   caminhos: CaminhoDoPrognostico[]
   /** O plano seguido e (com valor extra) o acelerado, mês a mês. */
   detalhes?: PlanoDetalhado[]
@@ -561,7 +566,7 @@ export interface CenarioAdicional {
   CUSTO_FUTURO_TOTAL: string
   ordem: string[]
   /** `ITEM_ID` só no payload do REVISOR (`T-306`/plano amigável). */
-  itens: { ITEM_ID?: string; mes: number; valor: string }[]
+  itens: { ITEM_ID?: string; mes: number; mes_rotulo?: string; valor: string }[]
 }
 
 export interface RespostaPlano {

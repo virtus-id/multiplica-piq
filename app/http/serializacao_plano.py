@@ -192,6 +192,7 @@ def serializar_plano(
                 ),
                 # `T-304` (`DE-08`): lido do cronograma; `None` = não disponível.
                 "mes_de_quitacao": posicao.mes_de_quitacao,
+                "mes_de_quitacao_rotulo": posicao.mes_de_quitacao_rotulo,
                 # Revisão de design: os números fixos de toda dívida
                 # (deve hoje, parcela, juros), lidos e formatados.
                 "fatos": [{"rotulo": rotulo, "valor": valor} for rotulo, valor in posicao.fatos],
@@ -261,6 +262,7 @@ def serializar_plano(
                     # contou"), igual ao usado em `jornada`.
                     **({"ITEM_ID": item.ITEM_ID} if para_revisor else {}),
                     "mes": item.mes,
+                    "mes_rotulo": item.mes_rotulo,
                     "valor": item.valor,
                 }
                 for item in contexto.cenario_adicional.itens
@@ -300,6 +302,8 @@ def serializar_plano(
         else {
             "titulo": contexto.prognostico.titulo,
             "introducao": contexto.prognostico.introducao,
+            "eixo_inicio": contexto.prognostico.eixo_inicio,
+            "eixo_fim": contexto.prognostico.eixo_fim,
             "caminhos": [
                 {
                     "cor": caminho.cor,
@@ -313,7 +317,12 @@ def serializar_plano(
                     "mes_fim": caminho.mes_fim,
                     "escala": caminho.escala,
                     "marcos": [
-                        {"mes": mes, "numero": numero} for mes, numero in caminho.marcos
+                        {
+                            "mes": mes,
+                            "numero": numero,
+                            "rotulo": caminho.marcos_rotulos[i] if caminho.marcos_rotulos else "",
+                        }
+                        for i, (mes, numero) in enumerate(caminho.marcos)
                     ],
                     "itens": list(caminho.itens),
                     "economia": caminho.economia,

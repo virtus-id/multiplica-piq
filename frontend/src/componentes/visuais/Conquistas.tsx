@@ -34,7 +34,9 @@ export default function Conquistas({ ordem }: ConquistasProps) {
           </span>
           <span className="text-xs">Dívida {indice + 1}</span>
           <span className="text-muted text-xs">
-            {posicao.mes_de_quitacao ? `Mês ${posicao.mes_de_quitacao}` : 'não disponível'}
+            {posicao.mes_de_quitacao
+              ? (posicao.mes_de_quitacao_rotulo ?? `Mês ${posicao.mes_de_quitacao}`)
+              : 'não disponível'}
           </span>
         </div>
       ))}

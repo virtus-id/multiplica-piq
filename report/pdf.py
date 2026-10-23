@@ -69,6 +69,8 @@ REGRAS: `RF-20`, `RF-21`, `AC-14`, `AC-16`
 
 from __future__ import annotations
 
+from datetime import date
+
 from pathlib import Path
 from typing import Final
 
@@ -181,6 +183,7 @@ def gerar_html_do_plano_liberado(
     textos: TextosCanonicosPlano,
     vocabulario: VocabularioDoCaso | None = None,
     nome_do_aluno: str | None = None,
+    data_base: date | None = None,
 ) -> str:
     """Monta o contexto (`report/plano.py::montar_contexto_plano` — a MESMA
     montagem que a tela usa, Lei nº 3: só leitura de campo do snapshot) e
@@ -198,7 +201,7 @@ def gerar_html_do_plano_liberado(
 
     # `T-326`: o vocabulário do caso dá às dívidas o nome "tipo (credor)".
     # Revisão de design: o nome do aluno personaliza o cabeçalho.
-    contexto = montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno)
+    contexto = montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno, data_base)
     return renderizar_html_do_plano(contexto, textos)
 
 
@@ -207,6 +210,7 @@ def gerar_html_da_previa(
     textos: TextosCanonicosPlano,
     vocabulario: VocabularioDoCaso | None = None,
     nome_do_aluno: str | None = None,
+    data_base: date | None = None,
 ) -> str:
     """O HTML do plano para o REVISOR conferir antes de liberar — `RF-124`.
 
@@ -215,7 +219,10 @@ def gerar_html_da_previa(
     não exigir liberação e abrir com a faixa "Prévia — ainda não liberado".
     O PDF do aluno continua só do plano liberado (`AC-25`): esta função nunca
     é chamada por rota de aluno."""
-    contexto = montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno)
+    # `RF-445`: ainda sem liberação, o calendário parte de hoje (provisório).
+    contexto = montar_contexto_plano(
+        snapshot, textos, vocabulario, nome_do_aluno, data_base or date.today()
+    )
     return renderizar_html_do_plano(contexto, textos, previa=True)
 
 
@@ -240,6 +247,7 @@ def gerar_pdf_do_plano(
     textos: TextosCanonicosPlano,
     vocabulario: VocabularioDoCaso | None = None,
     nome_do_aluno: str | None = None,
+    data_base: date | None = None,
 ) -> bytes:
     """Gera os bytes do PDF do plano — `weasyprint.HTML(string=...).
     write_pdf()`, a API pública documentada da versão instalada
@@ -255,7 +263,9 @@ def gerar_pdf_do_plano(
     plano`/`gerar_html_do_plano_liberado` continuem plenamente testáveis e
     utilizáveis (inclusive pela tela, T-64) sem que a mera importação deste
     módulo por outro código exija a biblioteca nativa presente."""
-    html = gerar_html_do_plano_liberado(caso, snapshot, textos, vocabulario, nome_do_aluno)
+    html = gerar_html_do_plano_liberado(
+        caso, snapshot, textos, vocabulario, nome_do_aluno, data_base
+    )
 
     from weasyprint import HTML
 

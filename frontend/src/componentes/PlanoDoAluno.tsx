@@ -174,7 +174,7 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
                       </dt>
                       <dd className="m-0 font-bold">
                         {posicao.mes_de_quitacao
-                          ? `Mês ${posicao.mes_de_quitacao}`
+                          ? (posicao.mes_de_quitacao_rotulo ?? `Mês ${posicao.mes_de_quitacao}`)
                           : NAO_DISPONIVEL}
                       </dd>
                     </div>
@@ -362,7 +362,7 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
             <ul className="lista list-none p-0">
               {plano.cenario_adicional.itens.map((item, i) => (
                 <li key={item.ITEM_ID ?? `${item.mes}-${i}`} className="tabular-nums">
-                  {item.valor} no Mês {item.mes}
+                  {item.valor} em {item.mes_rotulo ?? `Mês ${item.mes}`}
                 </li>
               ))}
             </ul>

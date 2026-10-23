@@ -227,7 +227,7 @@ export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: E
                     <Celula valor={campo(campos, 'SALDO_DEVEDOR_ATUAL')} />
                     <Celula valor={campo(campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} />
                     <Celula valor={campo(campos, 'PARCELA_CONTRATUAL')} />
-                    <Celula valor={p.mes_de_quitacao != null ? `mês ${p.mes_de_quitacao}` : undefined} />
+                    <Celula valor={p.mes_de_quitacao != null ? (p.mes_de_quitacao_rotulo ?? `mês ${p.mes_de_quitacao}`) : undefined} />
                     <Celula valor={campo(campos, 'STATUS_DIVIDA')} />
                     <td className="px-2 py-2 text-right">
                       <button

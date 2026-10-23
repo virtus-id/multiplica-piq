@@ -450,9 +450,8 @@ cabecalho:
   preparado_sem_nome: "Plano preparado para você"
 
 explicacao_mes_1: >-
-  Os meses do plano são contados a partir de quando você começa a segui-lo.
-  O Mês 1 é o primeiro mês em que você faz o que está descrito aqui, e não
-  um mês específico do calendário.
+  O plano começa no mês seguinte à sua aprovação. Todos os meses abaixo
+  seguem o calendário.
 
 # Títulos das seções do documento, na ordem em que aparecem.
 secoes:
@@ -477,8 +476,8 @@ resumo:
     quitar as dívidas mais rápido.
   custo_futuro_rotulo: "é o total que você ainda vai pagar"
   custo_futuro_explicacao: >-
-    Soma de todas as parcelas e de todos os juros, do Mês 1 até a última
-    dívida ser quitada.
+    Soma de todas as parcelas e de todos os juros, do primeiro mês do plano até a
+    última dívida ser quitada.
 
 # "Seu ponto de partida": os números do mês do aluno, lidos do cálculo.
 ponto_de_partida:
@@ -754,22 +753,22 @@ sem_valor_extra: >-
 prognostico:
   titulo: "Seu plano em números"
   introducao: >-
-    O Mês 1 é o primeiro mês em que você começa a seguir o plano. Os três
+    O plano começa no mês seguinte à sua aprovação. Os três
     caminhos usam a mesma escala de meses e são projeções feitas a partir das
     suas respostas.
   eixo_inicio: "Mês 1"
-  item_quita: "M{mes} · Quita {nome}"
+  item_quita: "{mes} · Quita {nome}"
   # Cap. 6, "Seu plano detalhado" (mural), e cap. 7, "Mês a mês, em detalhe".
   mural_titulo: "Seu plano detalhado"
   mural_intro: >-
-    Cada quadro é um mês do plano, de Mês 01 até o fim. Pagar a mais é o valor,
+    Cada quadro é um mês do plano, do primeiro mês até o fim. Pagar a mais é o valor,
     além das parcelas de sempre, que vai inteiro para a dívida da vez. O troféu
     marca o mês em que uma dívida é quitada. Toque ou clique em um mês para ver
     o detalhe dele.
   meses_titulo: "Mês a mês, em detalhe"
   meses_intro: >-
-    O detalhe de cada mês, para você consultar e guardar. O Mês 01 é o mês em
-    que você começa a seguir o plano, e os meses seguintes contam a partir dele.
+    O detalhe de cada mês, para você consultar e guardar. O primeiro mês é o seguinte
+    à aprovação do plano, e os demais seguem o calendário.
   rotulo_deve: "Ainda deve"
   rotulo_extra_mes: "Pagar a mais"
   texto_quita: "Quita {nome}"
@@ -785,7 +784,7 @@ prognostico:
   # Página de cada mês (cap. 7) — modelo do produto, para imprimir e acompanhar.
   pagina_marca: "PLANO PREPARADO PARA VOCÊ"
   pagina_anexo: "ANEXO · PAGAMENTOS E EVOLUÇÃO DAS DÍVIDAS"
-  pagina_subtitulo: "Mês {de_total} · Quanto pagar e como cada dívida fica após o pagamento projetado."
+  pagina_subtitulo: "{de_total} · Quanto pagar e como cada dívida fica após o pagamento projetado."
   pagina_periodo: "Período de pagamento: ______ / ________"
   pagina_quitacao: "Quitação prevista"
   pagina_total_pagar: "Total a pagar neste mês"
@@ -823,8 +822,8 @@ prognostico:
   nao_acaba: "não acaba no período"
   vermelho_titulo: "Se nada mudar"
   vermelho_nota: "Pagamentos habituais, sem aporte e sem incorporar parcelas liberadas."
-  vermelho_veredito: "No Mês {horizonte}, você ainda deve {saldo}."
-  vermelho_veredito_zerado: "No Mês {horizonte}, suas dívidas teriam acabado sozinhas."
+  vermelho_veredito: "{quando}, você ainda deve {saldo}."
+  vermelho_veredito_zerado: "{quando}, suas dívidas teriam acabado sozinhas."
   azul_titulo: "Seguindo seu plano"
   azul_nota: "O plano que você acabou de ler, todo mês."
   azul_veredito: "Quitação prevista em {prazo}."

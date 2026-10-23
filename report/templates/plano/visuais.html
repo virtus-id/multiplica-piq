@@ -75,11 +75,12 @@
     {# Marcos: um ponto por dívida quitada, com "M<mês>" acima. Dois pontos
        próximos alternam a linha do rótulo para não se sobrepor. x = mês ÷ escala. #}
     {% for mes_do_marco, numero in caminho.marcos %}
+    {% set rotulo_do_marco = caminho.marcos_rotulos[loop.index0] if caminho.marcos_rotulos else "M" ~ mes_do_marco %}
     {% set x = [[560 * (mes_do_marco / caminho.escala), 8] | max, 552] | min %}
     {% if x - linhas.ultimo0 >= 30 %}{% set linha_y = 14 %}{% set linhas.ultimo0 = x %}
     {% else %}{% set linha_y = 26 %}{% set linhas.ultimo1 = x %}{% endif %}
     <circle cx="{{ x }}" cy="38" r="7" fill="{{ cor }}"></circle>
-    <text x="{{ x }}" y="{{ linha_y }}" font-size="10" font-weight="bold" text-anchor="middle" fill="{{ cor }}">M{{ mes_do_marco }}</text>
+    <text x="{{ x }}" y="{{ linha_y }}" font-size="10" font-weight="bold" text-anchor="middle" fill="{{ cor }}">{{ rotulo_do_marco }}</text>
     {% endfor %}
     <text x="0" y="62" font-size="10" fill="#5E6E72">{{ eixo_inicio }}</text>
     <text x="560" y="62" font-size="10" text-anchor="end" fill="#5E6E72">{{ eixo_fim }}</text>

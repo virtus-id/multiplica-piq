@@ -52,7 +52,15 @@ function linhasDosRotulos(marcos: { mes: number }[], escala: number): number[] {
   })
 }
 
-function Linha({ caminho, eixoInicio }: { caminho: CaminhoDoPrognostico; eixoInicio: string }) {
+function Linha({
+  caminho,
+  eixoInicio,
+  eixoFim,
+}: {
+  caminho: CaminhoDoPrognostico
+  eixoInicio: string
+  eixoFim: string
+}) {
   const cor = COR[caminho.cor]
   const marcos = caminho.marcos ?? []
   const linhas = linhasDosRotulos(marcos, caminho.escala)
@@ -81,14 +89,14 @@ function Linha({ caminho, eixoInicio }: { caminho: CaminhoDoPrognostico; eixoIni
               className={`absolute left-1/2 -translate-x-1/2 text-xs font-bold ${cor.texto}`}
               style={{ bottom: linhas[i] === 0 ? '1.1rem' : '2.1rem' }}
             >
-              M{marco.mes}
+              {marco.rotulo || `M${marco.mes}`}
             </span>
           </span>
         ))}
       </div>
       <div className="text-muted flex justify-between text-xs">
         <span>{eixoInicio}</span>
-        <span>Mês {caminho.escala}</span>
+        <span>{eixoFim}</span>
       </div>
       {(caminho.itens ?? []).length > 0 && (
         <ul
@@ -186,7 +194,8 @@ export default function PrognosticoDoPlano({
           <Linha
             key={caminho.cor}
             caminho={caminho}
-            eixoInicio={textos.eixo_inicio || 'Mês 1 (início)'}
+            eixoInicio={prognostico.eixo_inicio || textos.eixo_inicio || 'Mês 1 (início)'}
+            eixoFim={prognostico.eixo_fim || `Mês ${caminho.escala}`}
           />
         ))}
       </div>

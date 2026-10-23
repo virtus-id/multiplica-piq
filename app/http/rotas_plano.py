@@ -70,6 +70,7 @@ from persistencia.supabase.repositorio_snapshots import (
     ErroSnapshotNaoEncontrado,
     RepositorioSnapshotsSupabase,
 )
+from app.casos.liberacao import data_da_liberacao
 from report.pdf import ErroSnapshotNaoLiberado, gerar_pdf_do_plano
 from report.plano import carregar_textos_canonicos
 
@@ -168,7 +169,12 @@ def exportar_pdf_do_plano(
 
     try:
         pdf_bytes = gerar_pdf_do_plano(
-            caso, snapshot, textos, vocabulario, nome_do_dono_do_caso(contas, CASO_ID)
+            caso,
+            snapshot,
+            textos,
+            vocabulario,
+            nome_do_dono_do_caso(contas, CASO_ID),
+            data_da_liberacao(CASO_ID, snapshot.SNAPSHOT_ID),
         )
     except ErroSnapshotNaoLiberado as erro:
         # Defensivo: `caso.snapshot_liberado_id` já filtrou isso acima — só

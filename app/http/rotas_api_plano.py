@@ -107,6 +107,7 @@ from persistencia.app_aluno.itens import RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
 from persistencia.app_aluno.revisoes import RepositorioRevisoesSupabase
 from persistencia.supabase.repositorio_snapshots import ErroSnapshotNaoEncontrado
+from app.casos.liberacao import data_da_liberacao
 from report.pdf import gerar_pdf_de_previa, snapshot_tem_liberacao_registrada
 from report.plano import (
     TextosCanonicosPlano,
@@ -284,6 +285,7 @@ def plano_do_aluno(
         _vocabulario(colecao, respostas_do_caso, snapshot),
         # Revisão de design: o plano chama o aluno pelo nome.
         nome_do_dono_do_caso(contas, CASO_ID),
+        data_da_liberacao(CASO_ID, snapshot.SNAPSHOT_ID),
     )
     niveis = niveis_por_ficha(colecao.registros, respostas_do_caso, itens_por_escopo)
     return JSONResponse(
@@ -474,7 +476,8 @@ def caso_para_revisao(
 
     # `RF-121`: o plano chama o aluno pelo nome, como na tela dele.
     nome_do_aluno = _nome_do_aluno(emails, CASO_ID_REVISAO)
-    contexto = montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno)
+    # `RF-445`: na conferência o calendário parte de hoje (a liberação ainda não houve).
+    contexto = montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno, date.today())
     niveis = niveis_por_ficha(colecao.registros, respostas_do_caso, itens_por_escopo)
     item = montar_item_da_fila(CASO_ID_REVISAO, snapshot)
     # `AC-29`: plano e `estado_inputs` na MESMA resposta. O revisor compara

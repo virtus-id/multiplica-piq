@@ -1,7 +1,7 @@
 /**
  * "Seu plano detalhado" (mural) e "Mês a mês, em detalhe" — `T-377`.
  * O mural tem um bloco por mês de cada plano; cada bloco é um link (âncora) para
- * o cartão do mês logo abaixo. O rótulo é a referência "Mês 01", nunca uma data.
+ * o cartão do mês logo abaixo. O rótulo é o mês em calendário (RF-445); sem data base, "Mês 01".
  * Todo número e texto chega pronto do servidor (Lei nº 3).
  */
 import { useEffect, useState } from 'react'

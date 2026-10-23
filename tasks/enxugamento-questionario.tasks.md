@@ -419,3 +419,12 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Bloco de refinamento no CSS de `plano.html`, sem mudar conteúdo nem medidas das fichas
 
 **Status:** `[x] concluída (2026-10-23)`
+
+### `T-433` — Meses do plano em calendário
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-432` · **Rastreia:** `RF-445`, `AC-440`
+- [x] `rotulo_do_mes` e `data_base` em `montar_contexto_plano`; `app/casos/liberacao.py` lê a data da liberação
+- [x] Rótulos de calendário em quitações, mural, fichas, eixo e marcos das barras, prognóstico e cenário adicional (HTML/PDF e API)
+- [x] Frontend lê os rótulos do servidor (`mes_de_quitacao_rotulo`, `marcos[].rotulo`, `eixo_*`, `mes_rotulo`)
+
+**Status:** `[x] concluída (2026-10-23)`

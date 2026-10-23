@@ -458,6 +458,7 @@ O responsável do produto explicou que as dúvidas do especialista vinham de a p
 | AC-437 | RF-441 | Dado um caso em conferência, então a tela mostra resumo executivo, tabela de dívidas ligada por `DIVIDA_ID`, apoio à decisão e todos os dados de entrada, sem valor inventado e sem mudar a regra de liberação | verificado (T-429) |
 | AC-438 | RF-442 | Dado um caso com 3 dívidas cadastradas e 1 na ordem do plano, então o indicador mostra "1 de 3 cadastradas", a tabela lista as 3 e o total em dívidas soma os saldos informados (parcial se faltar saldo) | verificado (T-430) |
 | AC-439 | RF-443 | Dado o questionário, então `B3.C02` (quer ver o plano acelerado?) e `B3.C02A` (quanto a mais por mês), só com "sim", existem; com valor maior que zero o plano mostra o cenário "Potencializando seu plano" e, sem a resposta, só os dois primeiros | verificado (T-431) |
+| AC-440 | RF-445 | Dado um plano liberado em janeiro/2025, então o Mês 1 aparece como Fevereiro/2025 e todo mês do plano (mural, fichas, quitações, eixo das barras, prognóstico) sai em calendário, nunca como número | verificado (T-433) |
 
 ### RF-420. Saem as 17 perguntas que o motor não lê (2026-10-22)
 Levantamento de uso de todas as perguntas (leitura do motor, da montagem, do plano e do revisor). Saem, por decisão do produto ("o que está sem uso pode remover"), as perguntas sem consumidor no cálculo: `B2.13`; `B2.09`, `B2.10` e `B2.10A`; `B3.C00A`; `B3.C02`, `B3.C02A`, `B3.C02B` e `B3.C02C`; `B4.01` e `B4.01A`; `B4.04` e `B4.I01`; `B5.G01`; `B5.B05`, `B5.B05A` e `B5.B05B`. Questionário de 84 para 67 perguntas na coleta.
@@ -544,6 +545,9 @@ O terceiro cenário do item 5 do PDF (verde, RF-78) volta a ser alimentado, agor
 
 ### RF-444. Acabamento visual do PDF do plano (2026-10-23)
 Só apresentação, no CSS de `report/templates/plano/plano.html`: números tabulares e alinhados, cards dos três cenários com a cor de cada um (vermelho, azul, verde), cartões e capa com mais respiro e contraste. Textos, ordem das seções, regras, cálculos, classes dos testes e tamanhos das fichas mensais (uma folha A4 por mês) ficam como estavam.
+
+### RF-445. Meses do plano em calendário (2026-10-23)
+O Mês 1 do plano é o mês seguinte à data em que o revisor o liberou (na prévia da conferência, o mês seguinte a hoje). Todo mês do plano sai como calendário ("Fevereiro/2025"; nas marcas da barra, "Fev/2025") em vez de "Mês N": quitação de cada dívida, mural, fichas mensais, "quando cada dívida termina", eixo e marcos das barras, prognóstico e cenário adicional. A data vem da trilha de revisões (`decidido_em` da liberação, fuso de São Paulo) e o rótulo é montado no servidor (`report.plano.rotulo_do_mes`); a tela não calcula datas. Sem data base (sem conexão ou sem registro), o plano mantém "Mês N". Substitui a regra anterior "referência de mês, nunca uma data".
 
 ## 9. Non-Functional Requirements
 
