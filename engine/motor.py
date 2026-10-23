@@ -142,6 +142,7 @@ from engine.ordem import consolidar_ORDEM_STATUS, publicar_ORDEM_QUITACAO
 from engine.parametros import Parametros
 from engine.precisao import CONTEXTO_MOTOR, dinheiro
 from engine.prioridade_ordem import aplicar_prioridade_ordem
+from engine.cenarios_economia import calcular_cenarios_economia
 from engine.prognostico import calcular_prognostico
 from engine.snapshot import SnapshotOrdem, montar_SnapshotOrdem
 from engine.status_metodo import derivar_METODO_RECOMENDADO_PIQ
@@ -390,6 +391,7 @@ def calcular_plano(
     anterior: SnapshotOrdem | None = None,
     evento: EVENTO_RECALCULO | None = None,
     motivo: str = "",
+    _com_cenarios_economia: bool = True,
 ) -> SnapshotOrdem:
     """Ponto de entrada único do motor — §5 do plano, os 11 passos (ver
     docstring do módulo para o detalhamento passo a passo). Devolve o
@@ -632,4 +634,14 @@ def calcular_plano(
             anterior=anterior,
             projecao_extraordinarios=projecao_extraordinarios,
             prognostico=prognostico,
+            # RF-448: só no déficit, e nunca dentro da própria simulação (sem recursão).
+            cenarios_economia=(
+                calcular_cenarios_economia(
+                    estado,
+                    parametros,
+                    lambda e, p: calcular_plano(e, p, _com_cenarios_economia=False),
+                )
+                if _com_cenarios_economia and diagnostico.MODO_ESTABILIZACAO
+                else None
+            ),
         )

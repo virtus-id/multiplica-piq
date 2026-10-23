@@ -94,6 +94,7 @@ from engine.extraordinarios import PROJECAO_VAZIA, ProjecaoExtraordinarios
 from engine.gates import AcaoRequerida
 from engine.ordem import PosicaoOrdem, ResultadoOrdemPublicada
 from engine.parametros import Parametros
+from engine.cenarios_economia import CenarioDeEconomia
 from engine.prognostico import Prognostico
 from engine.status_metodo import ResultadoMetodoRecomendado
 from engine.tipos import EVENTO_RECALCULO, METODO, ORDEM_STATUS, STATUS_METODO
@@ -149,6 +150,10 @@ class SnapshotOrdem:
     # RF-77 (T-169): o que acontece se o aluno não fizer nada. `None` sem
     # dívida simulável — e para snapshot gravado antes desta rodada.
     prognostico: Prognostico | None = None
+    # RF-448 (T-436): simulações de economia do aluno deficitário (5% e 10% da
+    # renda). `None` fora do déficit, em versão de parâmetros sem os percentuais
+    # e em snapshot anterior. Hipótese, nunca plano homologado.
+    cenarios_economia: tuple[CenarioDeEconomia, ...] | None = None
 
 
 def _serializar_canonico(valor: object) -> object:
@@ -254,6 +259,7 @@ def montar_SnapshotOrdem(
     anterior: SnapshotOrdem | None = None,
     projecao_extraordinarios: ProjecaoExtraordinarios = PROJECAO_VAZIA,
     prognostico: Prognostico | None = None,
+    cenarios_economia: tuple[CenarioDeEconomia, ...] | None = None,
 ) -> SnapshotOrdem:
     """`RF-10` · `V-01..V-03` · `AC-16` · `AC-18` — monta e carimba o
     `SnapshotOrdem` final a partir dos resultados JÁ CALCULADOS pelos
@@ -317,4 +323,5 @@ def montar_SnapshotOrdem(
         PARAMETROS_VERSION=parametros.PARAMETROS_VERSION,
         projecao_extraordinarios=projecao_extraordinarios,
         prognostico=prognostico,
+        cenarios_economia=cenarios_economia,
     )

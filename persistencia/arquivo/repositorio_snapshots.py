@@ -89,6 +89,7 @@ from engine.extraordinarios import (
 from engine.gates import AcaoRequerida
 from engine.ordem import PosicaoOrdem
 from engine.portas import RepositorioSnapshots
+from engine.cenarios_economia import CenarioDeEconomia
 from engine.prognostico import (
     DividaNoMes,
     MesDoPlano,
@@ -740,6 +741,32 @@ def _meses_do_plano(bruto: list[dict[str, Any]] | None) -> tuple[MesDoPlano, ...
     )
 
 
+def _cenarios_economia(bruto: list[dict[str, Any]] | None) -> tuple[CenarioDeEconomia, ...] | None:
+    """RF-448 — `SnapshotOrdem.cenarios_economia`; snapshot anterior não tem a chave."""
+    if bruto is None:
+        return None
+    return tuple(
+        CenarioDeEconomia(
+            PERCENTUAL=_decimal(c["PERCENTUAL"]),
+            ECONOMIA_MENSAL=_decimal(c["ECONOMIA_MENSAL"]),
+            RESULTADO_AJUSTADO=_decimal(c["RESULTADO_AJUSTADO"]),
+            SITUACAO=c["SITUACAO"],
+            CAPACIDADE_ATAQUE_ATUAL=_decimal(c["CAPACIDADE_ATAQUE_ATUAL"]),
+            EXECUTAVEL=c["EXECUTAVEL"],
+            METODO=c.get("METODO"),
+            PRAZO_TOTAL=c.get("PRAZO_TOTAL"),
+            CUSTO_FUTURO_TOTAL=(
+                None if c.get("CUSTO_FUTURO_TOTAL") is None else _decimal(c["CUSTO_FUTURO_TOTAL"])
+            ),
+            ESTOUROU_HORIZONTE=c.get("ESTOUROU_HORIZONTE"),
+            SALDOS_NOS_HORIZONTES=tuple(
+                (int(mes), _decimal(saldo)) for mes, saldo in c.get("SALDOS_NOS_HORIZONTES") or ()
+            ),
+        )
+        for c in bruto
+    )
+
+
 def _prognostico(bruto: dict[str, Any] | None) -> Prognostico | None:
     """RF-77 — `SnapshotOrdem.prognostico`; snapshot anterior não tem a chave."""
     if bruto is None:
@@ -833,4 +860,5 @@ def _desserializar_snapshot(bruto: dict[str, Any]) -> SnapshotOrdem:
         PARAMETROS_VERSION=bruto["PARAMETROS_VERSION"],
         projecao_extraordinarios=_projecao_extraordinarios(bruto.get("projecao_extraordinarios")),
         prognostico=_prognostico(bruto.get("prognostico")),
+        cenarios_economia=_cenarios_economia(bruto.get("cenarios_economia")),
     )

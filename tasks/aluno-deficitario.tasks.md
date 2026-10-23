@@ -21,7 +21,7 @@
 
 ### `T-436` — Classificação e cenários de economia no motor
 - **Rastreia:** `RF-446`, `RF-448`, `RF-449`, `RF-454` · **Dependências:** `T-434`, `T-435`
-- [ ] `calcular_cenarios_economia`; campo opcional no snapshot; persistência tolerante.
+- [x] `engine/cenarios_economia.py::calcular_cenarios_economia` (o motor recalcula com `DESPESAS_OPERACIONAIS_ATUAIS` reduzida em renda × percentual; sem fórmula nova), chamado por `calcular_plano` só em `MODO_ESTABILIZACAO` e sem recursão; campo opcional `SnapshotOrdem.cenarios_economia`; persistência tolerante (Supabase `dados_completos` e leitura em arquivo). Versão de parâmetros sem os percentuais → `None` (nada muda hoje, com a 1.0.2 vigente). Não executável (sem capacidade de aporte) → sem prazo, custo nem saldos. Saldos em 12/24/60 meses só nos executáveis; o "se nada mudar" nos horizontes fica para a T-437.
 
 ### `T-437` — Apresentação do deficitário (relatório e PDF)
 - **Rastreia:** `RF-447`, `RF-450`, `RF-451`, `RF-453` · **Dependências:** `T-436`
