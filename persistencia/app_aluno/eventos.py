@@ -2,7 +2,7 @@
 `AC-40` (T-21), consumido por `app/casos/progresso.py::
 transicionar_e_registrar`.
 
-Grava e lê `app_aluno.eventos_caso` (`persistencia/supabase/migracoes/
+Grava e lê `piq_app_aluno.eventos_caso` (`persistencia/supabase/migracoes/
 002_app_aluno.sql`, T-21) — tabela já criada por aquela migração e, até esta
 tarefa, sem nenhum repositório que a usasse (confirmado por busca: nenhum
 `.py` do projeto referenciava `eventos_caso` antes de `T-87`). Mesmo padrão
@@ -10,12 +10,12 @@ de conexão/transação/commit/rollback de `persistencia/app_aluno/casos.py`
 (T-23) e `persistencia/app_aluno/respostas.py` (T-22): reaproveita
 `obter_pool`/`ErroConexaoAusente` de `persistencia.supabase.conexao`
 (genéricos, não amarrados a um schema) — o MESMO pool do processo inteiro,
-`T-187`, nunca uma conexão própria — com `search_path=app_aluno` fixado a
+`T-187`, nunca uma conexão própria — com `search_path=piq_app_aluno` fixado a
 cada checkout.
 
 **Registrar um evento na trilha NUNCA muda `estado`.** `registrar` só faz um
 `INSERT` em `eventos_caso` — nenhuma linha deste módulo toca a coluna
-`estado` de `app_aluno.casos`, nem chama `app.casos.maquina.transicionar`
+`estado` de `piq_app_aluno.casos`, nem chama `app.casos.maquina.transicionar`
 nem `persistencia.app_aluno.casos.RepositorioCasos.transicionar_estado*`.
 `estado_de`/`estado_para` (colunas opcionais da migração) existem para as
 transições REAIS registrarem de onde/para onde foi o estado — este
@@ -43,7 +43,7 @@ from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
 REGRAS: Final[tuple[str, ...]] = ("RF-31", "AC-40", "AC-35")
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 
 class ErroGravacaoEventoCaso(Exception):
@@ -112,7 +112,7 @@ class RepositorioEventosCaso(Protocol):
 
     def registrar(self, evento: EventoCaso) -> None:
         """Grava uma linha em `eventos_caso`. Nunca decide sobre `estado` de
-        `app_aluno.casos` — só registra o fato na trilha (`RF-31`,
+        `piq_app_aluno.casos` — só registra o fato na trilha (`RF-31`,
         `AC-40`)."""
         ...
 
@@ -123,14 +123,14 @@ class RepositorioEventosCaso(Protocol):
 
 
 class RepositorioEventosCasoSupabase:
-    """Implementa `RepositorioEventosCaso` sobre `app_aluno.eventos_caso`."""
+    """Implementa `RepositorioEventosCaso` sobre `piq_app_aluno.eventos_caso`."""
 
     def registrar(self, evento: EventoCaso) -> None:
         try:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.eventos_caso (
+                    INSERT INTO piq_app_aluno.eventos_caso (
                         evento_id, "CASO_ID", tipo_evento, estado_de,
                         estado_para, detalhe, ocorrido_em
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -159,7 +159,7 @@ class RepositorioEventosCasoSupabase:
                 """
                 SELECT evento_id, "CASO_ID", tipo_evento, estado_de,
                        estado_para, detalhe, ocorrido_em
-                FROM app_aluno.eventos_caso
+                FROM piq_app_aluno.eventos_caso
                 WHERE "CASO_ID" = %s
                 """,
                 (caso_id,),
@@ -177,7 +177,7 @@ class RepositorioEventosCasoSupabase:
                 """
                 SELECT evento_id, "CASO_ID", tipo_evento, estado_de,
                        estado_para, detalhe, ocorrido_em
-                FROM app_aluno.eventos_caso
+                FROM piq_app_aluno.eventos_caso
                 WHERE "CASO_ID" = ANY(%s)
                 """,
                 (list(caso_ids),),

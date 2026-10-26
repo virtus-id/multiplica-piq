@@ -46,16 +46,16 @@ def _database_url() -> str:
 
 def _conta_e_caso_novos(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
     """Mesmo helper de `test_persistencia_revisoes.py` — conta + caso
-    mínimos, isolados por execução (FK de `app_aluno.revisoes`)."""
+    mínimos, isolados por execução (FK de `piq_app_aluno.revisoes`)."""
     conta_id = f"TESTE_T73_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T73_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, 'CADASTRADO', CURRENT_DATE, '1.0.0')
         """,
@@ -70,7 +70,7 @@ def test_ac27_delete_de_registro_de_revisao_gravado_pelo_repositorio_e_recusado(
     prova o mesmo ponto por SQL direto) continua existindo e inalterado após
     uma tentativa de `DELETE` direto na tabela."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioRevisoesSupabase()
@@ -89,9 +89,9 @@ def test_ac27_delete_de_registro_de_revisao_gravado_pelo_repositorio_e_recusado(
 
     with psycopg.connect(_database_url()) as conexao_ataque:
         with conexao_ataque.cursor() as cursor_ataque, pytest.raises(psycopg.Error):
-            cursor_ataque.execute("SET search_path TO app_aluno, public")
+            cursor_ataque.execute("SET search_path TO piq_app_aluno, public")
             cursor_ataque.execute(
-                "DELETE FROM app_aluno.revisoes WHERE revisao_id = %s",
+                "DELETE FROM piq_app_aluno.revisoes WHERE revisao_id = %s",
                 (revisao_id,),
             )
         conexao_ataque.rollback()

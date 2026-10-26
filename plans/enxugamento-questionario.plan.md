@@ -164,7 +164,7 @@ Sem mudança (as funções puras novas do motor estão na seção 0, D1): Python
 
 ## 11. Data Model
 
-Registros YAML em `collection/registros/` (versão `1.3.0`; 98 perguntas após a T-398, mais `B3.C00A` e `B3.C02C` da T-399). Respostas em `app_aluno.respostas` seguem a chave `(caso, variável, item)`; as de perguntas removidas ficam órfãs, sem leitura. A coluna `casos.estado` é texto sem restrição; os três estados pós-entrega saíram do enum na T-400, depois de conferir por leitura que nenhum caso estava neles.
+Registros YAML em `collection/registros/` (versão `1.3.0`; 98 perguntas após a T-398, mais `B3.C00A` e `B3.C02C` da T-399). Respostas em `piq_app_aluno.respostas` seguem a chave `(caso, variável, item)`; as de perguntas removidas ficam órfãs, sem leitura. A coluna `casos.estado` é texto sem restrição; os três estados pós-entrega saíram do enum na T-400, depois de conferir por leitura que nenhum caso estava neles.
 
 ## 12. Data Flow
 

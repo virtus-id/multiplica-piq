@@ -29,17 +29,17 @@ def _database_url() -> str:
 
 
 def _conta_e_caso_novos(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
-    """Cria conta + caso mínimos (FK de `app_aluno.consentimentos` via
-    `app_aluno.casos`) e devolve o `CASO_ID` novo, isolado por execução."""
+    """Cria conta + caso mínimos (FK de `piq_app_aluno.consentimentos` via
+    `piq_app_aluno.casos`) e devolve o `CASO_ID` novo, isolado por execução."""
     conta_id = f"TESTE_T35_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T35_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, 'CADASTRADO', CURRENT_DATE, '1.0.0')
         """,
@@ -52,7 +52,7 @@ def test_registro_gravado_e_consultavel_por_caso() -> None:
     """Critério de aceite: "o registro grava versão do texto, aceite e
     data, e é consultável por caso"."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioConsentimentosSupabase()
@@ -76,7 +76,7 @@ def test_listar_do_caso_sem_consentimento_devolve_vazio() -> None:
     """Caso sem nenhum consentimento registrado devolve tupla vazia — nunca
     lança, nunca inventa um registro (`AC-39`: a ausência é o estado real)."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioConsentimentosSupabase()

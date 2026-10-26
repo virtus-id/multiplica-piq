@@ -1,4 +1,4 @@
-"""Semeia `motor_calculo.parametros` a partir do arquivo canônico.
+"""Semeia `piq_motor_calculo.parametros` a partir do arquivo canônico.
 
 As migrações (`persistencia/supabase/migracoes/001_inicial.sql`) criam a
 tabela **vazia**, por decisão registrada lá: elas são só DDL. Mas quatro
@@ -53,7 +53,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 PASTA_PARAMETROS = RAIZ / "parameters"
 VERSAO_PADRAO = "1.0.1"
 VARIAVEL_VERSAO_VIGENTE = "PARAMETROS_VERSION_VIGENTE"
-TABELA = "motor_calculo.parametros"
+TABELA = "piq_motor_calculo.parametros"
 
 
 def arquivo_da_versao(versao: str | None) -> Path:
@@ -87,7 +87,7 @@ def _converter(chave: str, valor: Any) -> Any:
 
 
 def main(argumentos: list[str] | None = None) -> int:
-    leitor = argparse.ArgumentParser(description="Semeia motor_calculo.parametros.")
+    leitor = argparse.ArgumentParser(description="Semeia piq_motor_calculo.parametros.")
     leitor.add_argument("--versao", help="PARAMETROS_VERSION a semear (ex.: 1.0.2)")
     arquivo = arquivo_da_versao(leitor.parse_args(argumentos).versao)
     bruto = carregar_canonico(arquivo)

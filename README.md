@@ -183,7 +183,7 @@ a envie ao git ou a um chat.
 |---|---|
 | `DATABASE_URL` | Postgres do Supabase, **Session pooler (porta 5432)** |
 | `CHAVE_ASSINATURA_SESSAO` | assina o cookie; trocar desloga todos |
-| `PARAMETROS_VERSION_VIGENTE` | versão dos parâmetros (`1.0.1`); deve existir em `motor_calculo.parametros` |
+| `PARAMETROS_VERSION_VIGENTE` | versão dos parâmetros (`1.0.1`); deve existir em `piq_motor_calculo.parametros` |
 | `URL_BASE_APP` | domínio público, **sem barra no fim** |
 | `SEGREDO_PROVISIONAMENTO` | senha que a automação (n8n) envia para criar contas |
 | `SMTP_SERVIDOR`, `SMTP_PORTA` | AWS SES por SMTP |

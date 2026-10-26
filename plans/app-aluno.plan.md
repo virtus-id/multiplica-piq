@@ -98,7 +98,7 @@ motor por HTTP/JSON" antes de qualquer consideração de conforto.
 | **Jinja2 + HTML server-side, progressive enhancement** | renderização da coleta e do plano | `RF-03`, NFR de acessibilidade e responsividade. A coleta é **gerada a partir de registros**: o servidor já tem o registro da pergunta em Python, e renderizá-lo direto elimina uma duplicação do modelo de pergunta em JS. Formulário HTML nativo dá WCAG 2.1 AA e navegação por teclado por padrão, e funciona a 360 px. Descartado **SPA (React/Vue)**: duplicaria o grafo condicional (`RF-05`) no cliente — dois lugares onde a regra de exibição pode divergir —, e o volume do piloto (`OQ-06`: 1 a 3 alunos) não paga esse custo. **Revisto em 2026-09-14 — ver a nota abaixo:** a recusa vale para o SPA que **avalia condicional no cliente**, não para o desenho de `RF-45`. |
 | **HTMX** (~14 KB, sem build) | avaliação incremental sem recarregar página | `RF-10`, `OQ-08`. Salvar a cada resposta (`AC-02`) e avisar **na hora** sobre "não sei" (`OQ-08`) exigem uma requisição por resposta. HTMX faz isso com atributo no HTML gerado, mantendo **o servidor como única autoridade** sobre condicional e materialidade. Descartado **JS manual**: reintroduziria lógica de exibição no cliente. Descartado **recarga de página inteira**: violaria o p95 < 500 ms por transição. |
 | **`decimal` (stdlib) via `engine/precisao.dinheiro()`** | fronteira de conversão formulário → motor | `RF-13`, `AC-09`, `AC-10`. A função de recusa de `float` **já existe e é testada** no motor; a fronteira desta feature a reusa em vez de escrever uma segunda. Zero dependência nova. Descartado qualquer parser monetário de terceiro: introduziria `float` no caminho (`EC-01`). |
-| **Postgres/Supabase via psycopg 3** — schema **`app_aluno`** | respostas, contas, estado do caso, fila de revisão, consentimento | `RF-10`, `RF-19`, `RF-23`, `RF-30`, NFR de segurança. Reusa `persistencia/supabase/conexao.py`. `numeric` ↔ `Decimal` nativo em psycopg mantém `RF-13` de ponta a ponta. **Schema dedicado `app_aluno`**, separado de `motor_calculo`, exatamente como a NFR de segurança manda: os snapshots continuam sendo escritos **só** por `RepositorioSnapshots`, e nenhuma tabela desta feature duplica `motor_calculo.snapshots`. Descartado **SQLite local**: perderia o `REVOKE`+trigger de `V-01` e exigiria migração depois. |
+| **Postgres/Supabase via psycopg 3** — schema **`app_aluno`** | respostas, contas, estado do caso, fila de revisão, consentimento | `RF-10`, `RF-19`, `RF-23`, `RF-30`, NFR de segurança. Reusa `persistencia/supabase/conexao.py`. `numeric` ↔ `Decimal` nativo em psycopg mantém `RF-13` de ponta a ponta. **Schema dedicado `app_aluno`**, separado de `motor_calculo`, exatamente como a NFR de segurança manda: os snapshots continuam sendo escritos **só** por `RepositorioSnapshots`, e nenhuma tabela desta feature duplica `piq_motor_calculo.snapshots`. Descartado **SQLite local**: perderia o `REVOKE`+trigger de `V-01` e exigiria migração depois. |
 | **Argon2id** (`argon2-cffi`) | hash de senha | `RF-02`, NFR de segurança ("senha nunca armazenada em texto claro"). Vencedor do Password Hashing Competition e recomendação OWASP corrente. Dependência nova, uma linha de justificativa: escrever hash de senha à mão é o erro clássico desta camada. Descartado **bcrypt** (limite de 72 bytes, sem resistência a GPU comparável) e **Supabase Auth** (ver §6: acoplaria autenticação ao fornecedor e a `RF-02` exige apenas login/senha próprio). |
 | **`itsdangerous`** (via `SessionMiddleware` do Starlette) | sessão assinada em cookie | `RF-02`, `AC-03`. Cookie assinado, `HttpOnly`+`Secure`+`SameSite=Lax`. A 1–3 alunos em série (`OQ-06`), sessão em cookie assinado dispensa Redis. Isolamento é verificado **no servidor a cada requisição** (§5), nunca no cookie. |
 | **WeasyPrint** | PDF exportável sob demanda | `RF-20`, `RF-21`, `OQ-09`. Renderiza o **mesmo HTML/CSS da tela** — a redação canônica de `Q-03` e o carimbo `V-03` existem em **um só template**, então `AC-14`/`AC-16` valem para tela e PDF sem duplicar texto normativo. Descartado **ReportLab** (layout imperativo: segunda redação do texto canônico, risco direto a `AC-14`) e **wkhtmltopdf** (binário externo descontinuado). |
@@ -608,7 +608,7 @@ def perguntas_do_bloco_11(a: AcaoRequerida) -> tuple[str, ...]: ...
     # que seja a resposta de OQ-15.
 ```
 
-### 4.5. Persistência desta feature — schema `app_aluno`
+### 4.5. Persistência desta feature — schema `piq_app_aluno`
 
 ```sql
 -- persistencia/supabase/migracoes/002_app_aluno.sql
@@ -624,7 +624,7 @@ CREATE SCHEMA IF NOT EXISTS app_aluno;
 --                 numeric, NUNCA double precision (RF-13)
 -- itens_repetidos (RF-04): DIVIDA_ID/MARGEM_ID/VINCULO_ID estáveis por caso
 -- revisoes        (RF-24): append-only — REVOKE UPDATE, DELETE + trigger,
---                 mesmo padrão de motor_calculo.snapshots (AC-27)
+--                 mesmo padrão de piq_motor_calculo.snapshots (AC-27)
 -- consentimentos  (RF-30): versão do texto, aceite, data (AC-39)
 -- eventos_caso    (RF-31): trilha de progresso e transições (AC-40)
 ```
@@ -758,7 +758,7 @@ recálculo ⇒ calcular_plano(..., anterior=snapshot_corrente, evento=...)
 | **`engine.motor.calcular_plano`** | `(estado, parametros, anterior=None, evento=None, motivo="") -> SnapshotOrdem`. Chamada **em processo** | — | Função pura, sem I/O | `ErroInvariante` propaga: `ERRO_DE_CALCULO`, nada ao aluno (`EC-03`) |
 | **`FonteParametros.carregar(versao)`** | `engine/portas.py` — adaptador Supabase já existente | `DATABASE_URL` (env) | — | `ErroParametros`: não calcula, estado preservado (`EC-04`) |
 | **`RepositorioSnapshots.anexar/obter/historico`** | `engine/portas.py` — adaptador Supabase já existente. **Único caminho de escrita de snapshot** (`AC-43`) | `DATABASE_URL` (env) | Sem verbo de mutação, por desenho | Falha de `anexar` ⇒ o caso **não** avança (`EC-06`) |
-| **Supabase/Postgres — schema `app_aluno`** | Tabelas desta feature, via `persistencia/supabase/conexao.py` | `DATABASE_URL` (env), TLS | Free tier: **pausa após ~7 dias sem atividade** | `EC-05`: resposta não é dada como salva; o aluno vê e repete |
+| **Supabase/Postgres — schema `piq_app_aluno`** | Tabelas desta feature, via `persistencia/supabase/conexao.py` | `DATABASE_URL` (env), TLS | Free tier: **pausa após ~7 dias sem atividade** | `EC-05`: resposta não é dada como salva; o aluno vê e repete |
 | **Navegador do aluno** | React + TypeScript (SPA) consumindo API JSON (`T-140`..`T-145`) | Cookie de sessão assinado, `HttpOnly`/`Secure`/`SameSite=Lax` | 360 px a desktop; WCAG 2.1 AA | **Exige JavaScript** — `RF-49`/`EC-21` revogados por `OQ-29` |
 
 **Risco operacional do free tier, dimensionado para `OQ-06`.** Com 1 a 3 alunos
@@ -785,9 +785,9 @@ Quatro lugares onde estado vive, com dono explícito. Nenhum deles duplica outro
 
 | Estado | Dono | Vida | Invalidação |
 | --- | --- | --- | --- |
-| Respostas da coleta | `app_aluno.respostas` (banco) | Permanente, por caso | Nunca apagadas; reabertura marca a pergunta como pendente **sem** apagar o valor anterior (`RF-27`) |
-| Estado do caso | `app_aluno.casos.estado` | Permanente | Só por transição nomeada (`RF-01`) |
-| Snapshots | `motor_calculo.snapshots` (**já existente**) | Permanente, append-only | **Nunca** — `V-01`, `REVOKE`+trigger (`AC-32`) |
+| Respostas da coleta | `piq_app_aluno.respostas` (banco) | Permanente, por caso | Nunca apagadas; reabertura marca a pergunta como pendente **sem** apagar o valor anterior (`RF-27`) |
+| Estado do caso | `piq_app_aluno.casos.estado` | Permanente | Só por transição nomeada (`RF-01`) |
+| Snapshots | `piq_motor_calculo.snapshots` (**já existente**) | Permanente, append-only | **Nunca** — `V-01`, `REVOKE`+trigger (`AC-32`) |
 | Sessão | Cookie assinado | Expira | Logout/expiração. **Nunca** contém dado financeiro nem autoriza acesso: o isolamento é reverificado no servidor a cada requisição (`AC-03`) |
 
 ### 7.1. Máquina de estados do caso (`RF-01`) — não é wizard linear
@@ -1041,7 +1041,7 @@ visível **no plano**, que não previa nenhuma das três.
 | Divergência | O que o plano previa | O que foi construído | Origem |
 | --- | --- | --- | --- |
 | **`app/eventos/eventos.py`** e `persistencia/app_aluno/eventos.py::RepositorioEventosCaso` | §3/§4.5 previam a tabela `eventos_caso` e o dado que ela guarda, mas não nomeavam um repositório próprio nem um wrapper de transição — a trilha aparecia como consequência de `RF-31`, sem mecanismo de gravação especificado | Um repositório dedicado (`RepositorioEventosCaso`, com implementação Postgres e arquivo, mesmo padrão de `respostas.py`/`casos.py`/`itens.py`) e um wrapper único, `app/casos/progresso.py::transicionar_e_registrar(*, repositorio_casos, repositorio_eventos, caso_id, de, para, agora=None, detalhe=None)`, que valida a transição contra `app.casos.maquina.transicionar`, persiste por `transicionar_estado_se` (a variante condicional de `T-56`) e só então grava um `EventoCaso`. Os cinco pontos de transição de produção (`rotas_consentimento.py`, `rotas_calculo.py`, `app/revisao/fila.py`, `app/casos/acompanhamento.py`, `app/motor/executor.py`) foram migrados para chamar o wrapper em vez de duplicar a lógica em cada um | `T-91` (`RF-31`, `AC-40`, `EC-14`) |
-| **Guarda de papel de revisor** (`e_revisor` em `app_aluno.contas`, migração `003_papel_revisor.sql`, `app/http/sessao.py::exigir_papel_revisor`) | Nenhuma seção do plano previa um segundo tipo de conta. §4.5 modela `contas` como uma única entidade (aluno); a fila de revisão (§7.1, `AGUARDANDO_REVISAO`) não tinha modelo de autorização — `T-69` (Entrega 8) documentou isso como limitação conhecida do piloto, deliberadamente sem autenticação própria, remetendo o fechamento a "controle de rede/infra, fora do escopo deste backlog" | Decisão do usuário (não do desenvolvedor, registrada em `T-100`): `/revisao/*` passou a exigir sessão autenticada **e** o campo `e_revisor = true` na conta, com `401`/`403` — nunca `404` — para quem não tem o papel. Não recria o sistema de papéis que `OQ-03` descartou (não há revisor A vs. revisor B com filas distintas): distingue apenas "é revisor" de "é aluno" | `T-100` (`RF-23`, `RF-25`) |
+| **Guarda de papel de revisor** (`e_revisor` em `piq_app_aluno.contas`, migração `003_papel_revisor.sql`, `app/http/sessao.py::exigir_papel_revisor`) | Nenhuma seção do plano previa um segundo tipo de conta. §4.5 modela `contas` como uma única entidade (aluno); a fila de revisão (§7.1, `AGUARDANDO_REVISAO`) não tinha modelo de autorização — `T-69` (Entrega 8) documentou isso como limitação conhecida do piloto, deliberadamente sem autenticação própria, remetendo o fechamento a "controle de rede/infra, fora do escopo deste backlog" | Decisão do usuário (não do desenvolvedor, registrada em `T-100`): `/revisao/*` passou a exigir sessão autenticada **e** o campo `e_revisor = true` na conta, com `401`/`403` — nunca `404` — para quem não tem o papel. Não recria o sistema de papéis que `OQ-03` descartou (não há revisor A vs. revisor B com filas distintas): distingue apenas "é revisor" de "é aluno" | `T-100` (`RF-23`, `RF-25`) |
 | **Correção de conversão dos nove `TipoResposta`** em `app/http/rotas_coleta.py` | §5.1 (passo "conversão decimal") e §3 (`app/montagem/conversao.py`) descreviam a fronteira `Decimal` única para `MOEDA`/`TAXA`, mas não detalhavam a conversão dos demais sete tipos de resposta na rota HTTP — implicitamente presumido correto | `T-95` descobriu que `SELECAO_MULTIPLA`, `NUMERO`, `DATA`, `ESCALA_0_10` caíam em `return valor_bruto` (string crua), tornando a resposta gravada estruturalmente incompatível com `app/montagem/estado.py` (que exige `frozenset[str]`/`int`/`date`). Corrigido em `T-101`: cada tipo agora converte para o tipo Python correto na rota, recusando entrada inválida pelo mesmo caminho de erro de `MOEDA`/`TAXA` (`EC-01`), nunca truncando nem coagindo | `T-101` (`RF-11`, `RF-13`, `AC-08`, `AC-13`) |
 
 Nenhuma das três altera a Arquitetura (§1), a Lei nº 3, a fronteira com
@@ -1592,7 +1592,7 @@ de `AcaoRequerida`, `engine.ciclo_mensal` além de `ErroInvariante`,
 **Nenhum estado novo, em nenhuma camada.** Verificado item a item:
 
 - **Nenhuma tabela nova, nenhuma migração nova.** As seis respostas do Bloco 4
-  já são gravadas por `app_aluno.respostas` como qualquer outra (`RF-10`) —
+  já são gravadas por `piq_app_aluno.respostas` como qualquer outra (`RF-10`) —
   esta fatia só passa a **lê-las**.
 - **Nenhum membro novo em `EscopoRepeticao`.** A fatia lê apenas campos
   escalares, por `respostas.valor(...)`. Os membros para investimento/imóvel/
@@ -2445,7 +2445,7 @@ Nenhuma camada nova. A rodada se distribui pelas costuras que já existem:
 collection/registros/*.yaml (v1.0.3) ──► collection/ (esquema: +4 campos opcionais, +1 escopo, +1 origem de opções)
         │
         ▼
-app/http/rotas_coleta · rotas_fichas ──► app_aluno.respostas / itens_repetidos (+item_pai_id, migração 007)
+app/http/rotas_coleta · rotas_fichas ──► piq_app_aluno.respostas / itens_repetidos (+item_pai_id, migração 007)
         │
         ├──► app/montagem/ ── agregações de entrada: fotografia, desconto, rateio, renda dos vínculos,
         │                      recursos extraordinários item a item
@@ -2671,7 +2671,7 @@ def liberar(*, ..., pendencias_homologacao: tuple[PendenciaHomologacao, ...]) ->
 
 ```sql
 -- 007_item_pai.sql — RF-90, AC-137, EC-35. Só DDL (disciplina de 002–006).
-ALTER TABLE app_aluno.itens_repetidos ADD COLUMN IF NOT EXISTS item_pai_id text;
+ALTER TABLE piq_app_aluno.itens_repetidos ADD COLUMN IF NOT EXISTS item_pai_id text;
 -- identificador LEGÍVEL do pai (ex.: V001), mesmo caso; validado em app (rotas_fichas),
 -- como toda regra — nenhuma FK, porque a PK é a chave persistida "CASO_ID:V001".
 
@@ -2749,7 +2749,7 @@ cenário recomendado (`AC-152`).
 ## R9.7. State Management
 
 Nada novo em sessão ou cliente. Três fatos novos persistem: respostas das
-perguntas novas (`app_aluno.respostas`, sem mudança de esquema — a chave já é
+perguntas novas (`piq_app_aluno.respostas`, sem mudança de esquema — a chave já é
 `(caso, variável, item)`), `item_pai_id` e o `CenarioAdicional` dentro do
 snapshot (motor). Pendências de inventário, níveis de comprovação,
 conferências e pendências de homologação são **derivados a cada leitura** das

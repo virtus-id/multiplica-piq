@@ -1,5 +1,5 @@
 """Adaptadores de persistência desta feature (`app-aluno`) — schema dedicado
-`app_aluno`, separado de `motor_calculo` (NFR de segurança).
+`piq_app_aluno`, separado de `piq_motor_calculo` (NFR de segurança).
 
 Cobre só o que é desta feature: respostas de coleta, contas, estado do caso,
 itens repetidos, fila de revisão, consentimentos e eventos do caso — nunca

@@ -1,13 +1,13 @@
 """Adaptador Supabase/Postgres de revisões — `RF-24` (`AC-27`), T-67.
 
-Grava e lê `app.revisao.fila.RegistroRevisao` em `app_aluno.revisoes`
+Grava e lê `app.revisao.fila.RegistroRevisao` em `piq_app_aluno.revisoes`
 (`persistencia/supabase/migracoes/002_app_aluno.sql`, T-21), schema dedicado
 desta feature. Mesmo padrão de conexão/transação de `persistencia/app_aluno/
 casos.py`, `respostas.py` e `consentimentos.py` (T-22/T-23/T-35): reaproveita
 `obter_pool`/`ErroConexaoAusente` de `persistencia.supabase.conexao`
 (genéricos, não amarrados a um schema) — o MESMO pool do processo inteiro,
-`T-187`, nunca uma conexão própria — com `search_path=app_aluno` fixado a
-cada checkout (a conexão física pode ter servido `motor_calculo` no
+`T-187`, nunca uma conexão própria — com `search_path=piq_app_aluno` fixado a
+cada checkout (a conexão física pode ter servido `piq_motor_calculo` no
 checkout anterior).
 
 **Append-only, mesmo padrão estrutural de `RepositorioSnapshots`
@@ -16,7 +16,7 @@ checkout anterior).
 `Protocol`: a violação de `AC-27` ("o registro não pode ser alterado nem
 removido por nenhuma rota") é estruturalmente INEXPRIMÍVEL nesta interface,
 não uma checagem em runtime — não há verbo de mutação para nenhuma rota
-chamar. A tabela `app_aluno.revisoes` reforça a mesma garantia do lado do
+chamar. A tabela `piq_app_aluno.revisoes` reforça a mesma garantia do lado do
 banco (`REVOKE UPDATE, DELETE FROM PUBLIC` + trigger
 `impedir_sobrescrita_revisao_v01`, T-21): mesmo um adaptador futuro com bug
 que tentasse `UPDATE`/`DELETE` diretamente via SQL seria recusado pelo
@@ -61,7 +61,7 @@ from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
 REGRAS: Final[tuple[str, ...]] = ("RF-24", "AC-27")
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 
 class ErroGravacaoRevisao(Exception):
@@ -74,7 +74,7 @@ class ErroGravacaoRevisao(Exception):
 @contextmanager
 def _conectar() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     """Mesmo padrão de `persistencia/app_aluno/casos.py::_conectar`:
-    `search_path` fixado em `app_aluno`, commit ao sair sem exceção,
+    `search_path` fixado em `piq_app_aluno`, commit ao sair sem exceção,
     rollback e propagação ao sair com exceção."""
     pool = obter_pool()
     conexao = pool.getconn()
@@ -151,14 +151,14 @@ class RepositorioRevisoes(Protocol):
 
 
 class RepositorioRevisoesSupabase:
-    """Implementa `RepositorioRevisoes` sobre `app_aluno.revisoes`."""
+    """Implementa `RepositorioRevisoes` sobre `piq_app_aluno.revisoes`."""
 
     def gravar(self, revisao_id: str, registro: RegistroRevisao) -> None:
         try:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.revisoes (
+                    INSERT INTO piq_app_aluno.revisoes (
                         revisao_id, snapshot_id, "CASO_ID", decisao, autor,
                         decidido_em, classificacao_erro, observacao, mensagem_aluno
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -193,7 +193,7 @@ class RepositorioRevisoesSupabase:
                 """
                 SELECT revisao_id, snapshot_id, "CASO_ID", decisao, autor,
                        decidido_em, classificacao_erro, observacao, mensagem_aluno
-                FROM app_aluno.revisoes
+                FROM piq_app_aluno.revisoes
                 WHERE revisao_id = %s
                 """,
                 (revisao_id,),
@@ -208,7 +208,7 @@ class RepositorioRevisoesSupabase:
                 """
                 SELECT revisao_id, snapshot_id, "CASO_ID", decisao, autor,
                        decidido_em, classificacao_erro, observacao, mensagem_aluno
-                FROM app_aluno.revisoes
+                FROM piq_app_aluno.revisoes
                 WHERE "CASO_ID" = %s
                 ORDER BY decidido_em ASC
                 """,
@@ -229,7 +229,7 @@ class RepositorioRevisoesSupabase:
                 """
                 SELECT revisao_id, snapshot_id, "CASO_ID", decisao, autor,
                        decidido_em, classificacao_erro, observacao, mensagem_aluno
-                FROM app_aluno.revisoes
+                FROM piq_app_aluno.revisoes
                 WHERE "CASO_ID" = ANY(%s)
                 ORDER BY decidido_em ASC
                 """,

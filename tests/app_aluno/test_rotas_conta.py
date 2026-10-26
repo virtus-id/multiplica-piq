@@ -47,7 +47,7 @@ _CHAVE_TESTE = "chave-de-teste-para-assinatura-de-sessao-nao-usar-em-producao"
 class _CadastroContaDublê:
     """Dublê em memória de `CadastroConta` — grava em dicionários, nunca
     toca banco. `emails_existentes` simula a restrição `UNIQUE` de
-    `app_aluno.contas` sem precisar de Postgres."""
+    `piq_app_aluno.contas` sem precisar de Postgres."""
 
     def __init__(self) -> None:
         self.contas: dict[str, Conta] = {}

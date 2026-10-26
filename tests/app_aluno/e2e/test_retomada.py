@@ -127,10 +127,10 @@ def _database_url() -> str:
 
 def _caso_id_da_conta(email: str) -> str:
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         cursor.execute(
-            'SELECT "CASO_ID" FROM app_aluno.casos WHERE conta_id = ('
-            "SELECT conta_id FROM app_aluno.contas WHERE email = %s)",
+            'SELECT "CASO_ID" FROM piq_app_aluno.casos WHERE conta_id = ('
+            "SELECT conta_id FROM piq_app_aluno.contas WHERE email = %s)",
             (email,),
         )
         linha = cursor.fetchone()

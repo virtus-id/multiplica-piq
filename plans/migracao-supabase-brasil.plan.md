@@ -26,7 +26,7 @@ Fora do escopo: Auth, Storage e Edge Functions do Supabase. O PIQ usa só o Post
 ## Decisões
 
 1. **`pg_dump` + `psql`, e não as migrações `001`–`010`.** O dump leva schema e dados juntos e
-   elimina divergência entre as migrações e o banco real (inclusive `motor_calculo.parametros`,
+   elimina divergência entre as migrações e o banco real (inclusive `piq_motor_calculo.parametros`,
    que o cálculo exige com `PARAMETROS_VERSION_VIGENTE=1.0.1`).
 2. **Rodar no servidor, em container** (`postgres:17-alpine`): o Mac não tem `psql`, e o servidor
    já tem Docker. Quem fala com os dois bancos é o servidor.
@@ -52,8 +52,8 @@ Fora do escopo: Auth, Storage e Edge Functions do Supabase. O PIQ usa só o Post
 |---|---|---|
 | 1 | **Backup da origem**: `pg_dump` completo para arquivo fora do repositório (`~/backups/`, fora do git) | arquivo > 0 e legível com `pg_restore -l` |
 | 2 | **Teste de conexão** com os dois bancos a partir do servidor | `select 1` nos dois |
-| 3 | **Ensaio** (piq-api ainda apontando para a origem): `pg_dump` dos schemas `app_aluno` e `motor_calculo` → restauração no destino | sem erro na restauração |
-| 4 | **Conferir**: mesma lista de tabelas, colunas e contagem de linhas por tabela, origem × destino; `motor_calculo.parametros` com `1.0.1` | contagens idênticas |
+| 3 | **Ensaio** (piq-api ainda apontando para a origem): `pg_dump` dos schemas `piq_app_aluno` e `motor_calculo` → restauração no destino | sem erro na restauração |
+| 4 | **Conferir**: mesma lista de tabelas, colunas e contagem de linhas por tabela, origem × destino; `piq_motor_calculo.parametros` com `1.0.1` | contagens idênticas |
 | 5 | **Janela**: `docker stop piq-api piq-web` | `/saude` fora do ar |
 | 6 | **Dump final** e restauração limpa no destino (`--clean --if-exists`), repetindo a conferência do passo 4 | contagens idênticas |
 | 7 | **Trocar** `DATABASE_URL` pelo valor do destino no `segredos.enc.env`; commit e push | `git status` limpo |
@@ -79,7 +79,7 @@ isso a reversão só é segura enquanto o PIQ não tiver alunos reais, ou nos pr
 | Versão do `pg_dump` menor que a do servidor | usar a imagem `postgres:17-alpine` |
 | Senha com caractere especial na URL | codificar; testar no passo 2 |
 | Autenticação falhando em loop bloqueia o IP (`ECIRCUITBREAKER`) | testar com **uma** tentativa antes; não deixar o `piq-api` reiniciar em loop com URL errada |
-| Dados e referências a usuários do schema `auth` | o PIQ tem os próprios `app_aluno.contas`; confirmar no passo 3 que não há FK para `auth.*` |
+| Dados e referências a usuários do schema `auth` | o PIQ tem os próprios `piq_app_aluno.contas`; confirmar no passo 3 que não há FK para `auth.*` |
 | Parâmetros do cálculo ausentes no destino | passo 4 confere `PARAMETROS_VERSION`; reserva: `scripts/semear_parametros.py` |
 | Esquecer o banco antigo ligado e pagando | desativar o projeto da origem só após alguns dias de uso estável |
 

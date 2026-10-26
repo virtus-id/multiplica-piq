@@ -41,7 +41,7 @@ def test_estado_caso_tem_exatamente_os_nove_membros_do_plano() -> None:
     assert len(ESTADO_CASO) == 9
     # Nome do membro e valor da string devem coincidir caractere por
     # caractere — nenhuma tradução entre o identificador Python e o valor
-    # persistido na coluna `app_aluno.casos.estado`.
+    # persistido na coluna `piq_app_aluno.casos.estado`.
     for membro in ESTADO_CASO:
         assert membro.name == membro.value
 

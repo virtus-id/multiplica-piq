@@ -79,11 +79,11 @@ O comando é conveniência. O efeito é uma coluna:
 
 ```sql
 -- conceder
-UPDATE app_aluno.contas SET e_revisor = true  WHERE email = 'pessoa@exemplo.br';
+UPDATE piq_app_aluno.contas SET e_revisor = true  WHERE email = 'pessoa@exemplo.br';
 -- tirar
-UPDATE app_aluno.contas SET e_revisor = false WHERE email = 'pessoa@exemplo.br';
+UPDATE piq_app_aluno.contas SET e_revisor = false WHERE email = 'pessoa@exemplo.br';
 -- conferir
-SELECT email, conta_id, criado_em FROM app_aluno.contas WHERE e_revisor = true;
+SELECT email, conta_id, criado_em FROM piq_app_aluno.contas WHERE e_revisor = true;
 ```
 
 Escrevendo o e-mail **em minúsculas** — é assim que ele é gravado, e o SQL

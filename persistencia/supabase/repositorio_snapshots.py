@@ -1,7 +1,7 @@
 """Adaptador Supabase/Postgres de `RepositorioSnapshots` — RF-10, RF-12,
 `V-01..V-03`.
 
-Grava um `SnapshotOrdem` por linha em `motor_calculo.snapshots`: os valores
+Grava um `SnapshotOrdem` por linha em `piq_motor_calculo.snapshots`: os valores
 DECISIVOS do cenário recomendado (`CUSTO_FUTURO_TOTAL`, `PRAZO_TOTAL`,
 capacidades) são colunas `numeric`/`integer` de primeira classe — não apenas
 campos dentro de um blob `jsonb` (critério de aceite 1 de T-75). O restante
@@ -52,7 +52,7 @@ REGRAS: Final[tuple[str, ...]] = ("RF-10", "RF-12", "V-01", "V-02", "V-03")
 
 
 class ErroSnapshotNaoEncontrado(Exception):
-    """Levantado por `obter()` quando nenhuma linha de `motor_calculo.
+    """Levantado por `obter()` quando nenhuma linha de `piq_motor_calculo.
     snapshots` tem o `SNAPSHOT_ID` pedido — mesmo espírito de
     `persistencia.arquivo.repositorio_snapshots.ErroSnapshotNaoEncontrado`:
     falha ruidosa, nunca um `None`/objeto fabricado."""
@@ -60,7 +60,7 @@ class ErroSnapshotNaoEncontrado(Exception):
 
 class RepositorioSnapshotsSupabase(RepositorioSnapshots):
     """Implementa `RepositorioSnapshots` (`engine/portas.py`) gravando em
-    `motor_calculo.snapshots` — uma linha por `SnapshotOrdem`, sempre via
+    `piq_motor_calculo.snapshots` — uma linha por `SnapshotOrdem`, sempre via
     `INSERT` (nunca `UPDATE`/`DELETE`, `V-01`).
 
     Expõe exatamente os três métodos da porta: `anexar`, `obter`,
@@ -70,7 +70,7 @@ class RepositorioSnapshotsSupabase(RepositorioSnapshots):
     """
 
     def anexar(self, s: SnapshotOrdem) -> None:
-        """`V-01`: grava `s` como uma nova linha em `motor_calculo.snapshots`.
+        """`V-01`: grava `s` como uma nova linha em `piq_motor_calculo.snapshots`.
 
         Idempotente por `SNAPSHOT_ID` (`ON CONFLICT DO NOTHING`, ver
         docstring do módulo). `s` não é mutado em nenhum passo — é `frozen`
@@ -84,7 +84,7 @@ class RepositorioSnapshotsSupabase(RepositorioSnapshots):
         with conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO motor_calculo.snapshots (
+                INSERT INTO piq_motor_calculo.snapshots (
                     "SNAPSHOT_ID", versao, snapshot_anterior_id,
                     "DATA_REFERENCIA", "MOTIVO_RECALCULO", "EVENTO_RECALCULO",
                     hash_inputs,
@@ -135,19 +135,19 @@ class RepositorioSnapshotsSupabase(RepositorioSnapshots):
             )
 
     def obter(self, snapshot_id: str) -> SnapshotOrdem:
-        """Busca a linha de `SNAPSHOT_ID = snapshot_id` em `motor_calculo.
+        """Busca a linha de `SNAPSHOT_ID = snapshot_id` em `piq_motor_calculo.
         snapshots` e reconstrói o `SnapshotOrdem`. `ErroSnapshotNaoEncontrado`
         se nenhuma linha combinar."""
         with conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
-                'SELECT * FROM motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
+                'SELECT * FROM piq_motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
                 (snapshot_id,),
             )
             linha = cursor.fetchone()
             if linha is None:
                 raise ErroSnapshotNaoEncontrado(
                     f"nenhum snapshot com SNAPSHOT_ID={snapshot_id!r} em "
-                    "motor_calculo.snapshots"
+                    "piq_motor_calculo.snapshots"
                 )
             colunas = [descricao.name for descricao in cursor.description or ()]
             bruto = dict(zip(colunas, linha, strict=True))
@@ -163,7 +163,7 @@ class RepositorioSnapshotsSupabase(RepositorioSnapshots):
         campo `caso_id` próprio em `SnapshotOrdem`/na tabela.
         """
         with conectar() as conexao, conexao.cursor() as cursor:
-            cursor.execute('SELECT * FROM motor_calculo.snapshots')
+            cursor.execute('SELECT * FROM piq_motor_calculo.snapshots')
             colunas = [descricao.name for descricao in cursor.description or ()]
             brutos_por_snapshot_id: dict[str, dict[str, Any]] = {}
             for linha in cursor.fetchall():

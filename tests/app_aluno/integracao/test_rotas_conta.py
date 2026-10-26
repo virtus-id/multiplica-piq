@@ -49,7 +49,7 @@ def cliente(monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
 def _contar_contas_por_email(email: str) -> int:
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SELECT count(*) FROM app_aluno.contas WHERE email = %s", (email,))
+        cursor.execute("SELECT count(*) FROM piq_app_aluno.contas WHERE email = %s", (email,))
         linha = cursor.fetchone()
         assert linha is not None
         return int(linha[0])
@@ -59,8 +59,8 @@ def _contar_casos_por_conta_email(email: str) -> int:
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
         cursor.execute(
             """
-            SELECT count(*) FROM app_aluno.casos c
-            JOIN app_aluno.contas a ON a.conta_id = c.conta_id
+            SELECT count(*) FROM piq_app_aluno.casos c
+            JOIN piq_app_aluno.contas a ON a.conta_id = c.conta_id
             WHERE a.email = %s
             """,
             (email,),
@@ -87,8 +87,8 @@ def test_cadastro_cria_conta_e_caso_em_cadastrado_no_banco_real(cliente: TestCli
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
         cursor.execute(
             """
-            SELECT c.estado FROM app_aluno.casos c
-            JOIN app_aluno.contas a ON a.conta_id = c.conta_id
+            SELECT c.estado FROM piq_app_aluno.casos c
+            JOIN piq_app_aluno.contas a ON a.conta_id = c.conta_id
             WHERE a.email = %s
             """,
             (email,),

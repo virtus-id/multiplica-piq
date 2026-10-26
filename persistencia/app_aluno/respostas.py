@@ -1,14 +1,14 @@
 """Adaptador Supabase/Postgres de respostas de coleta — `RF-10`, `RF-11`,
 `RF-13` (`AC-02`, `EC-05`, `EC-10`).
 
-Grava e lê `collection.respostas.Resposta` em `app_aluno.respostas`
+Grava e lê `collection.respostas.Resposta` em `piq_app_aluno.respostas`
 (`persistencia/supabase/migracoes/002_app_aluno.sql`, T-21), schema dedicado
-desta feature — nunca `motor_calculo` (NFR de segurança). Reaproveita
+desta feature — nunca `piq_motor_calculo` (NFR de segurança). Reaproveita
 `obter_pool`/`ErroConexaoAusente` de `persistencia.supabase.conexao`
 (genéricos, não amarrados a um schema) — o MESMO pool do processo inteiro,
-`T-187`, nunca uma conexão própria — mas `search_path=app_aluno` é fixado
+`T-187`, nunca uma conexão própria — mas `search_path=piq_app_aluno` é fixado
 por este módulo a cada checkout, nunca pela função `conectar()` daquele
-módulo, que continua fixando `search_path=motor_calculo` para o adaptador
+módulo, que continua fixando `search_path=piq_motor_calculo` para o adaptador
 do motor. `engine/` e a lógica de `fonte_parametros.py`/
 `repositorio_snapshots.py` (os outros dois módulos Supabase do motor)
 seguem intocados por esta tarefa.
@@ -92,13 +92,13 @@ REGRAS: Final[tuple[str, ...]] = (
     "AC-39",
 )
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 # `T-217` — exclui as respostas de item removido. A chave persistida do item é
 # `"<CASO_ID>:<item_id legível>"` (`persistencia/app_aluno/itens.py`).
 _SEM_ITEM_REMOVIDO: Final[str] = """
     AND NOT EXISTS (
-        SELECT 1 FROM app_aluno.itens_repetidos i
+        SELECT 1 FROM piq_app_aluno.itens_repetidos i
         WHERE i.item_id = r."CASO_ID" || ':' || r.item_id
           AND i.removido_em IS NOT NULL
     )
@@ -124,7 +124,7 @@ class ErroGravacaoResposta(Exception):
 
 class ErroCasoInexistenteParaResposta(Exception):
     """Levantado quando `gravar` é chamado com um `CASO_ID` que não existe em
-    `app_aluno.casos` — a guarda de consentimento (`RF-30`, `AC-39`) precisa
+    `piq_app_aluno.casos` — a guarda de consentimento (`RF-30`, `AC-39`) precisa
     de um `estado` real para decidir; um caso inexistente nunca é tratado
     como "estado que permite resposta" por omissão."""
 
@@ -132,7 +132,7 @@ class ErroCasoInexistenteParaResposta(Exception):
 @contextmanager
 def _conectar() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     """Retira uma conexão do pool compartilhado (`T-187`), com
-    `search_path` fixado em `app_aluno` — nunca `motor_calculo` nem
+    `search_path` fixado em `piq_app_aluno` — nunca `piq_motor_calculo` nem
     `public`. Mesmo padrão de `persistencia.supabase.conexao.conectar`
     (commit ao sair sem exceção, rollback e propagação ao sair com
     exceção), reescrito aqui porque aquele módulo fixa `search_path` para
@@ -231,7 +231,7 @@ class RepositorioRespostas(Protocol):
 
 
 class RepositorioRespostasSupabase:
-    """Implementa `RepositorioRespostas` sobre `app_aluno.respostas`."""
+    """Implementa `RepositorioRespostas` sobre `piq_app_aluno.respostas`."""
 
     def gravar(self, resposta: Resposta) -> None:
         """`RF-30`/`AC-39`: ANTES de qualquer `INSERT`, lê o `estado` corrente
@@ -252,7 +252,7 @@ class RepositorioRespostasSupabase:
         `datetime.now()` no momento em que este método roda (os dois quase
         sempre coincidem, mas `respondida_em` é o valor que o chamador já
         decidiu ser "quando a resposta ocorreu", a mesma fonte que a
-        própria linha de `app_aluno.respostas` grava). Toda gravação de
+        própria linha de `piq_app_aluno.respostas` grava). Toda gravação de
         resposta atualiza a trilha do caso — não só transições de estado."""
         item_id = resposta.item_id or ""
         valor_texto, valor_numerico, valor_nao_sei = _serializar_valor(resposta.valor)
@@ -261,7 +261,7 @@ class RepositorioRespostasSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT estado FROM app_aluno.casos WHERE "CASO_ID" = %s
+                    SELECT estado FROM piq_app_aluno.casos WHERE "CASO_ID" = %s
                     """,
                     (resposta.CASO_ID,),
                 )
@@ -278,7 +278,7 @@ class RepositorioRespostasSupabase:
 
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.respostas (
+                    INSERT INTO piq_app_aluno.respostas (
                         "CASO_ID", "ID_PERGUNTA", item_id,
                         valor_texto, valor_numerico, valor_nao_sei,
                         "QUESTIONARIO_VERSION", respondida_em
@@ -307,7 +307,7 @@ class RepositorioRespostasSupabase:
                 # resposta gravada sem a trilha atualizada (ou vice-versa).
                 cursor.execute(
                     """
-                    UPDATE app_aluno.casos
+                    UPDATE piq_app_aluno.casos
                     SET ultima_interacao_em = %s
                     WHERE "CASO_ID" = %s
                     """,
@@ -343,7 +343,7 @@ class RepositorioRespostasSupabase:
                 SELECT "CASO_ID", "ID_PERGUNTA", item_id,
                        valor_texto, valor_numerico, valor_nao_sei,
                        "QUESTIONARIO_VERSION", respondida_em
-                FROM app_aluno.respostas r
+                FROM piq_app_aluno.respostas r
                 WHERE "CASO_ID" = %s {_SEM_ITEM_REMOVIDO}
                 """,
                 (caso_id,),
@@ -372,7 +372,7 @@ class RepositorioRespostasSupabase:
                 SELECT "CASO_ID", "ID_PERGUNTA", item_id,
                        valor_texto, valor_numerico, valor_nao_sei,
                        "QUESTIONARIO_VERSION", respondida_em
-                FROM app_aluno.respostas r
+                FROM piq_app_aluno.respostas r
                 WHERE "CASO_ID" = ANY(%s) {_SEM_ITEM_REMOVIDO}
                 """,
                 (list(caso_ids),),

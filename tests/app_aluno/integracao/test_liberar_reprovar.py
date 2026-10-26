@@ -114,17 +114,17 @@ def _snapshot_real(tmp_path: Path, sufixo: str) -> SnapshotOrdem:
 
 def _conta_e_caso_em_aguardando_revisao(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
     """Cria conta + caso mínimos já em `AGUARDANDO_REVISAO` (FK de
-    `app_aluno.revisoes`/pré-condição de `liberar`/`reprovar`), isolado por
+    `piq_app_aluno.revisoes`/pré-condição de `liberar`/`reprovar`), isolado por
     execução (`uuid4`)."""
     conta_id = f"TESTE_T68_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T68_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, 'AGUARDANDO_REVISAO', CURRENT_DATE, '1.0.0')
         """,
@@ -136,11 +136,11 @@ def _conta_e_caso_em_aguardando_revisao(cursor: psycopg.Cursor[tuple[object, ...
 def test_liberar_registra_decisao_e_preenche_snapshot_liberado_id_no_banco(
     tmp_path: Path,
 ) -> None:
-    """Critério 1, contra Postgres real: após `liberar`, `app_aluno.revisoes`
-    tem exatamente um registro `LIBERADO` e `app_aluno.casos.
+    """Critério 1, contra Postgres real: após `liberar`, `piq_app_aluno.revisoes`
+    tem exatamente um registro `LIBERADO` e `piq_app_aluno.casos.
     snapshot_liberado_id` aponta para o snapshot liberado."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_em_aguardando_revisao(cursor)
 
     snapshot = _snapshot_real(tmp_path, "liberacao")
@@ -182,7 +182,7 @@ def test_reprovar_registra_decisao_e_nao_preenche_snapshot_liberado_id_ec12(
     coleta (`RF-113`), `snapshot_liberado_id` continua `None`, e a
     revisão gravada é `REPROVADO` com autor e data."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_em_aguardando_revisao(cursor)
 
     snapshot = _snapshot_real(tmp_path, "reprovacao")
@@ -228,7 +228,7 @@ def test_duas_liberacoes_concorrentes_do_mesmo_caso_produzem_um_unico_vencedor(
     `snapshot_liberado_id` apontando para exatamente uma das duas tentativas
     — nunca dois estados conflitantes."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_em_aguardando_revisao(cursor)
 
     snapshot_a = _snapshot_real(tmp_path, "concorrente-a")
@@ -289,7 +289,7 @@ def test_liberar_apos_ja_liberado_e_recusado_sequencialmente(tmp_path: Path) -> 
     — nunca devolve sucesso silencioso (decisão de RECUSA, não idempotência,
     documentada na docstring de `app/revisao/fila.py`)."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_em_aguardando_revisao(cursor)
 
     repositorio_revisoes = RepositorioRevisoesSupabase()

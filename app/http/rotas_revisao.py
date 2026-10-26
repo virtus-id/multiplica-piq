@@ -53,7 +53,7 @@ implantação. Isto ficou registrado como `Open Question` de segurança do
 piloto — não uma omissão silenciosa.
 
 **`T-100` fechou essa lacuna**, sem recriar o sistema de papéis que `OQ-03`
-descartou: `app_aluno.contas.e_revisor` (`persistencia/supabase/migracoes/
+descartou: `piq_app_aluno.contas.e_revisor` (`persistencia/supabase/migracoes/
 003_papel_revisor.sql`) e `Depends(exigir_papel_revisor)` (`app/http/
 isolamento.py`) agora exigem, no servidor, que a sessão pertença a uma conta
 com `e_revisor = true` — ANTES de `RepositorioCasos.listar_por_estado` ser

@@ -115,7 +115,7 @@ ainda, então esta função passa para o próximo registro, sem inventar item.
 **Pergunta cuja condição virou falsa depois de respondida (não reexibida
 nem apagada)**: a resposta antiga permanece em `respostas` (nunca é
 deletada nem sobrescrita por este módulo — o único gravador de
-`app_aluno.respostas` é `persistencia/app_aluno/respostas.py`, T-22); esta
+`piq_app_aluno.respostas` é `persistencia/app_aluno/respostas.py`, T-22); esta
 função simplesmente não a aponta como próxima, porque (a) ela JÁ tem uma
 resposta gravada — não passa no critério de "em branco" — e (b), mesmo que
 não tivesse, `_e_pergunta_aberta` abaixo a excluiria por a condição ser
@@ -143,7 +143,7 @@ não introduzir uma rota nova por fora do que a tarefa pediu.
 ---
 
 **`T-91` — a trilha de eventos de TODA transição da máquina (`RF-31`,
-`AC-40`, `EC-14`).** Até esta tarefa, `app_aluno.eventos_caso` só registrava
+`AC-40`, `EC-14`).** Até esta tarefa, `piq_app_aluno.eventos_caso` só registrava
 um fato — a alteração cadastral (`registrar_alteracao_cadastral`, `T-87`),
 que NUNCA transiciona o caso. As transições de estado propriamente ditas
 (`app/http/rotas_consentimento.py`, `app/http/rotas_calculo.py`,

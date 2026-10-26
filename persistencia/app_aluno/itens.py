@@ -1,12 +1,12 @@
 """Adaptador Supabase/Postgres de itens repetidos — `RF-04` (`EC-10`).
 
-Grava e lê `app_aluno.itens_repetidos` (`persistencia/supabase/migracoes/
+Grava e lê `piq_app_aluno.itens_repetidos` (`persistencia/supabase/migracoes/
 002_app_aluno.sql`, T-21). Mesmo padrão de conexão/transação/commit/rollback
 de `persistencia/app_aluno/respostas.py` (T-22) e `persistencia/app_aluno/
 casos.py` (T-23): reaproveita `obter_pool`/`ErroConexaoAusente` de
 `persistencia.supabase.conexao` — o MESMO pool do processo inteiro,
-`T-187`, nunca uma conexão própria — com `search_path=app_aluno` fixado a
-cada checkout (a conexão física pode ter servido `motor_calculo` no
+`T-187`, nunca uma conexão própria — com `search_path=piq_app_aluno` fixado a
+cada checkout (a conexão física pode ter servido `piq_motor_calculo` no
 checkout anterior).
 
 **Este módulo fornece a implementação REAL de
@@ -102,7 +102,7 @@ from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
 REGRAS: Final[tuple[str, ...]] = ("RF-04", "EC-10")
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 # Separador entre CASO_ID e o identificador legível na CHAVE PERSISTIDA
 # (coluna item_id, PK global) — nunca aparece no identificador LEGÍVEL
@@ -120,7 +120,7 @@ class ErroGravacaoItem(Exception):
 
 @dataclass(frozen=True, slots=True)
 class ItemRepetido:
-    """Uma linha de `app_aluno.itens_repetidos` — a identidade estável de
+    """Uma linha de `piq_app_aluno.itens_repetidos` — a identidade estável de
     uma ficha (dívida, vínculo, margem, item de despesa, ação, renda
     adicional ou despesa não-mensal) por caso (`RF-04`, T-15). `item_id` aqui
     é sempre o identificador LEGÍVEL
@@ -163,7 +163,7 @@ def _identificador_legivel(chave_persistida: str, caso_id: str) -> str:
 @contextmanager
 def _conectar() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     """Mesmo padrão de `_conectar` em `persistencia/app_aluno/respostas.py`
-    e `persistencia/app_aluno/casos.py`: `search_path=app_aluno`, commit ao
+    e `persistencia/app_aluno/casos.py`: `search_path=piq_app_aluno`, commit ao
     sair sem exceção, rollback e propagação ao sair com exceção."""
     pool = obter_pool()
     conexao = pool.getconn()
@@ -238,7 +238,7 @@ class RepositorioItens(Protocol):
 
 
 class RepositorioItensSupabase:
-    """Implementa `RepositorioItens` sobre `app_aluno.itens_repetidos`."""
+    """Implementa `RepositorioItens` sobre `piq_app_aluno.itens_repetidos`."""
 
     def proximo_identificador(
         self,
@@ -259,7 +259,7 @@ class RepositorioItensSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT item_id FROM app_aluno.itens_repetidos
+                    SELECT item_id FROM piq_app_aluno.itens_repetidos
                     WHERE "CASO_ID" = %s AND escopo = %s
                     FOR UPDATE
                     """,
@@ -272,7 +272,7 @@ class RepositorioItensSupabase:
 
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.itens_repetidos
+                    INSERT INTO piq_app_aluno.itens_repetidos
                         (item_id, "CASO_ID", escopo, origem, item_pai_id)
                     VALUES (%s, %s, %s, %s, %s)
                     """,
@@ -300,7 +300,7 @@ class RepositorioItensSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE app_aluno.itens_repetidos
+                    UPDATE piq_app_aluno.itens_repetidos
                     SET removido_em = %s
                     WHERE item_id = %s
                     """,
@@ -316,7 +316,7 @@ class RepositorioItensSupabase:
         try:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
-                    "UPDATE app_aluno.itens_repetidos SET nome = %s WHERE item_id = %s",
+                    "UPDATE piq_app_aluno.itens_repetidos SET nome = %s WHERE item_id = %s",
                     (nome, _chave_persistida(caso_id, item_id)),
                 )
         except ErroConexaoAusente:
@@ -336,7 +336,7 @@ class RepositorioItensSupabase:
                 f"""
                 SELECT item_id, "CASO_ID", escopo, removido_em, criado_em, origem, nome,
                        item_pai_id
-                FROM app_aluno.itens_repetidos
+                FROM piq_app_aluno.itens_repetidos
                 WHERE "CASO_ID" = %s {filtro_removidos}
                 ORDER BY criado_em
                 """,
@@ -365,7 +365,7 @@ class RepositorioItensSupabase:
                 f"""
                 SELECT item_id, "CASO_ID", escopo, removido_em, criado_em, origem, nome,
                        item_pai_id
-                FROM app_aluno.itens_repetidos
+                FROM piq_app_aluno.itens_repetidos
                 WHERE "CASO_ID" = ANY(%s) {filtro_removidos}
                 ORDER BY "CASO_ID", criado_em
                 """,

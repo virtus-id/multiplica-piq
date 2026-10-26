@@ -1,14 +1,14 @@
 """Adaptador Supabase/Postgres de consentimento — `RF-30`, `AC-39` (`PEND-01`).
 
 Grava e lê `app.consentimento.registro.RegistroConsentimento` em
-`app_aluno.consentimentos` (`persistencia/supabase/migracoes/
+`piq_app_aluno.consentimentos` (`persistencia/supabase/migracoes/
 002_app_aluno.sql`, T-21), schema dedicado desta feature. Mesmo padrão de
 conexão/transação de `persistencia/app_aluno/casos.py` e `respostas.py`
 (T-22/T-23): reaproveita `obter_pool`/`ErroConexaoAusente` de
 `persistencia.supabase.conexao` (genéricos, não amarrados a um schema) — o
 MESMO pool do processo inteiro, `T-187`, nunca uma conexão própria — com
-`search_path=app_aluno` fixado a cada checkout (a conexão física pode ter
-servido `motor_calculo` no checkout anterior).
+`search_path=piq_app_aluno` fixado a cada checkout (a conexão física pode ter
+servido `piq_motor_calculo` no checkout anterior).
 
 **Este módulo só grava o CARIMBO de aceite — nunca o texto.** `versao_texto`
 é o identificador da versão (`QUESTIONARIO_VERSION` do texto vigente, lido
@@ -36,7 +36,7 @@ from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
 REGRAS: Final[tuple[str, ...]] = ("RF-30", "AC-39")
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 
 class ErroGravacaoConsentimento(Exception):
@@ -49,7 +49,7 @@ class ErroGravacaoConsentimento(Exception):
 @contextmanager
 def _conectar() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     """Mesmo padrão de `persistencia/app_aluno/respostas.py::_conectar`:
-    `search_path` fixado em `app_aluno`, commit ao sair sem exceção,
+    `search_path` fixado em `piq_app_aluno`, commit ao sair sem exceção,
     rollback e propagação ao sair com exceção."""
     pool = obter_pool()
     conexao = pool.getconn()
@@ -98,14 +98,14 @@ class RepositorioConsentimentos(Protocol):
 
 
 class RepositorioConsentimentosSupabase:
-    """Implementa `RepositorioConsentimentos` sobre `app_aluno.consentimentos`."""
+    """Implementa `RepositorioConsentimentos` sobre `piq_app_aluno.consentimentos`."""
 
     def gravar(self, consentimento_id: str, registro: RegistroConsentimento) -> None:
         try:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.consentimentos (
+                    INSERT INTO piq_app_aluno.consentimentos (
                         consentimento_id, "CASO_ID", versao_texto,
                         aceite, aceito_em
                     ) VALUES (%s, %s, %s, %s, %s)
@@ -130,7 +130,7 @@ class RepositorioConsentimentosSupabase:
             cursor.execute(
                 """
                 SELECT consentimento_id, "CASO_ID", versao_texto, aceite, aceito_em
-                FROM app_aluno.consentimentos
+                FROM piq_app_aluno.consentimentos
                 WHERE "CASO_ID" = %s
                 ORDER BY aceito_em ASC
                 """,

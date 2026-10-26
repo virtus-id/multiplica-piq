@@ -30,17 +30,17 @@ def _database_url() -> str:
 
 
 def _conta_e_caso_novos(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
-    """Cria conta + caso mínimos (FK de `app_aluno.revisoes` via
-    `app_aluno.casos`) e devolve o `CASO_ID` novo, isolado por execução."""
+    """Cria conta + caso mínimos (FK de `piq_app_aluno.revisoes` via
+    `piq_app_aluno.casos`) e devolve o `CASO_ID` novo, isolado por execução."""
     conta_id = f"TESTE_T67_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T67_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, 'CADASTRADO', CURRENT_DATE, '1.0.0')
         """,
@@ -52,7 +52,7 @@ def _conta_e_caso_novos(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
 def test_liberacao_e_gravada_com_autor_e_data_e_consultavel_por_caso() -> None:
     """`AC-27`: autor e data são gravados, e o registro é consultável."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioRevisoesSupabase()
@@ -86,7 +86,7 @@ def test_reprovacao_tambem_e_gravada_com_classificacao_e_observacao() -> None:
     """Liberação **e** reprovação são ambas registradas — pelo mesmo
     caminho de `gravar`, sem método separado."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioRevisoesSupabase()
@@ -123,7 +123,7 @@ def test_listar_do_caso_sem_revisao_devolve_vazio() -> None:
     """Caso sem nenhuma revisão registrada devolve tupla vazia — nunca
     lança, nunca inventa um registro."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioRevisoesSupabase()
@@ -134,7 +134,7 @@ def test_listar_do_caso_sem_revisao_devolve_vazio() -> None:
 def _inserir_revisao_minima(
     cursor: psycopg.Cursor[tuple[object, ...]], caso_id: str
 ) -> tuple[str, str]:
-    """Insere uma linha mínima diretamente por SQL em `app_aluno.revisoes`
+    """Insere uma linha mínima diretamente por SQL em `piq_app_aluno.revisoes`
     — mesmo precedente de `test_snapshot_imutavel.py::_inserir_snapshot_
     minimo` (T-26): o objetivo é provar a recusa de `UPDATE`/`DELETE` pelo
     banco, não exercitar o adaptador. Devolve `(revisao_id, autor_original)`
@@ -143,7 +143,7 @@ def _inserir_revisao_minima(
     autor_original = f"TESTE_T67_autor_original_{uuid.uuid4().hex}"
     cursor.execute(
         """
-        INSERT INTO app_aluno.revisoes (
+        INSERT INTO piq_app_aluno.revisoes (
             revisao_id, snapshot_id, "CASO_ID", decisao, autor, decidido_em
         ) VALUES (%s, %s, %s, 'LIBERADO', %s, now())
         """,
@@ -154,7 +154,7 @@ def _inserir_revisao_minima(
 
 def _ler_autor(cursor: psycopg.Cursor[tuple[object, ...]], revisao_id: str) -> str:
     cursor.execute(
-        "SELECT autor FROM app_aluno.revisoes WHERE revisao_id = %s",
+        "SELECT autor FROM piq_app_aluno.revisoes WHERE revisao_id = %s",
         (revisao_id,),
     )
     linha = cursor.fetchone()
@@ -167,18 +167,18 @@ def _ler_autor(cursor: psycopg.Cursor[tuple[object, ...]], revisao_id: str) -> s
 def test_update_direto_em_revisoes_e_recusado_e_registro_permanece_inalterado() -> None:
     """`UPDATE`/`DELETE` direto na tabela é recusado pelo banco (`REVOKE` +
     trigger de `T-21`). Um `UPDATE` real via `psycopg` contra
-    `app_aluno.revisoes` levanta erro do Postgres, e após a tentativa (com
+    `piq_app_aluno.revisoes` levanta erro do Postgres, e após a tentativa (com
     rollback) o valor original de `autor` continua exatamente o mesmo."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
         revisao_id, autor_original = _inserir_revisao_minima(cursor, caso_id)
 
     with psycopg.connect(_database_url()) as conexao_ataque:
         with conexao_ataque.cursor() as cursor_ataque, pytest.raises(psycopg.Error) as excinfo:
-            cursor_ataque.execute("SET search_path TO app_aluno, public")
+            cursor_ataque.execute("SET search_path TO piq_app_aluno, public")
             cursor_ataque.execute(
-                "UPDATE app_aluno.revisoes SET autor = %s WHERE revisao_id = %s",
+                "UPDATE piq_app_aluno.revisoes SET autor = %s WHERE revisao_id = %s",
                 ("TESTE_T67_tentativa_de_sobrescrita", revisao_id),
             )
         conexao_ataque.rollback()
@@ -188,7 +188,7 @@ def test_update_direto_em_revisoes_e_recusado_e_registro_permanece_inalterado() 
     )
 
     with psycopg.connect(_database_url()) as conexao_leitura, conexao_leitura.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         autor_apos_tentativa = _ler_autor(cursor, revisao_id)
 
     assert autor_apos_tentativa == autor_original, (
@@ -201,15 +201,15 @@ def test_delete_direto_em_revisoes_e_recusado_e_registro_permanece() -> None:
     """`DELETE` direto na tabela também é recusado pelo banco — a linha
     continua existindo após a tentativa (com rollback)."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
         revisao_id, autor_original = _inserir_revisao_minima(cursor, caso_id)
 
     with psycopg.connect(_database_url()) as conexao_ataque:
         with conexao_ataque.cursor() as cursor_ataque, pytest.raises(psycopg.Error) as excinfo:
-            cursor_ataque.execute("SET search_path TO app_aluno, public")
+            cursor_ataque.execute("SET search_path TO piq_app_aluno, public")
             cursor_ataque.execute(
-                "DELETE FROM app_aluno.revisoes WHERE revisao_id = %s",
+                "DELETE FROM piq_app_aluno.revisoes WHERE revisao_id = %s",
                 (revisao_id,),
             )
         conexao_ataque.rollback()
@@ -219,7 +219,7 @@ def test_delete_direto_em_revisoes_e_recusado_e_registro_permanece() -> None:
     )
 
     with psycopg.connect(_database_url()) as conexao_leitura, conexao_leitura.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         autor_apos_tentativa = _ler_autor(cursor, revisao_id)
 
     assert autor_apos_tentativa == autor_original, (

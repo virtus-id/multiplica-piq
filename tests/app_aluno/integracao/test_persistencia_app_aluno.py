@@ -56,7 +56,7 @@ _MOTIVO_SKIP = "DATABASE_URL não definida — teste requer banco real (marcador
 
 
 def _caso_novo_no_banco(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
-    """Cria conta + caso mínimos (FK de `app_aluno.respostas`/`.casos`) e
+    """Cria conta + caso mínimos (FK de `piq_app_aluno.respostas`/`.casos`) e
     devolve o `CASO_ID` novo, isolado por execução (`uuid4`) — mesmo padrão
     de `test_persistencia_respostas.py`/`test_persistencia_casos.py`.
 
@@ -68,12 +68,12 @@ def _caso_novo_no_banco(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
     conta_id = f"TESTE_T25_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T25_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, 'COLETA_INICIAL', CURRENT_DATE, '1.0.0')
         """,
@@ -103,7 +103,7 @@ def test_paridade_respostas_arquivo_x_postgres_mesma_sequencia_de_operacoes(
     por `str()` exato (nunca só `==` numérico, que mascararia perda de
     escala)."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _caso_novo_no_banco(cursor)
 
     repositorio_postgres = RepositorioRespostasSupabase()
@@ -213,9 +213,9 @@ def test_paridade_casos_arquivo_x_postgres_mesma_sequencia_de_operacoes(
     observável, campo a campo."""
     conta_id = f"TESTE_T25_CONTA_{uuid.uuid4().hex}"
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         cursor.execute(
-            "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+            "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
             (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
         )
 
@@ -284,7 +284,7 @@ def test_ac02_resposta_gravada_e_legivel_por_nova_consulta_imediatamente() -> No
     está lá. Sem esperar commit assíncrono nem depender de cache: a consulta
     é uma chamada de leitura independente, contra o banco real."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _caso_novo_no_banco(cursor)
 
     repositorio = RepositorioRespostasSupabase()

@@ -42,17 +42,17 @@ def _conta_e_caso_novos(
     *,
     estado: str = "CADASTRADO",
 ) -> str:
-    """Cria conta + caso mínimos (FK de `app_aluno.casos`) e devolve o
+    """Cria conta + caso mínimos (FK de `piq_app_aluno.casos`) e devolve o
     `CASO_ID` novo, isolado por execução (`uuid4`)."""
     conta_id = f"TESTE_T23_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T23_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, %s, CURRENT_DATE, '1.0.0')
         """,
@@ -83,9 +83,9 @@ def test_caso_id_e_identidade_propria_e_snapshot_raiz_so_apos_primeiro_snapshot(
     conta_id = f"TESTE_T23_CONTA_{uuid.uuid4().hex}"
 
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         cursor.execute(
-            "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+            "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
             (conta_id, f"{conta_id}@teste.invalido", "hash-fake"),
         )
 
@@ -132,7 +132,7 @@ def test_transicao_de_estado_adquire_for_update_antes_de_gravar() -> None:
     bloqueada — só retorna após o commit da primeira. Usa `statement_timeout`
     baixo na segunda conexão para provar o bloqueio sem travar o teste."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioCasosSupabase()
@@ -144,9 +144,9 @@ def test_transicao_de_estado_adquire_for_update_antes_de_gravar() -> None:
         conexao_1 = psycopg.connect(_database_url())
         try:
             with conexao_1.cursor() as cursor:
-                cursor.execute("SET search_path TO app_aluno, public")
+                cursor.execute("SET search_path TO piq_app_aluno, public")
                 cursor.execute(
-                    'SELECT "CASO_ID" FROM app_aluno.casos WHERE "CASO_ID" = %s FOR UPDATE',
+                    'SELECT "CASO_ID" FROM piq_app_aluno.casos WHERE "CASO_ID" = %s FOR UPDATE',
                     (caso_id,),
                 )
                 cursor.fetchone()
@@ -166,11 +166,11 @@ def test_transicao_de_estado_adquire_for_update_antes_de_gravar() -> None:
     conexao_2 = psycopg.connect(_database_url())
     try:
         with conexao_2.cursor() as cursor:
-            cursor.execute("SET search_path TO app_aluno, public")
+            cursor.execute("SET search_path TO piq_app_aluno, public")
             cursor.execute("SET statement_timeout = '300ms'")
             with pytest.raises(psycopg.errors.QueryCanceled):
                 cursor.execute(
-                    'SELECT "CASO_ID" FROM app_aluno.casos WHERE "CASO_ID" = %s FOR UPDATE',
+                    'SELECT "CASO_ID" FROM piq_app_aluno.casos WHERE "CASO_ID" = %s FOR UPDATE',
                     (caso_id,),
                 )
         conexao_2.rollback()
@@ -198,7 +198,7 @@ def test_duas_transicoes_concorrentes_nao_produzem_estados_divergentes() -> None
     primeira (serialização real, não simulada); (2) o caso termina em
     EXATAMENTE um dos dois estados — nunca um valor corrompido/misto."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     eventos: list[tuple[float, str]] = []
@@ -214,18 +214,18 @@ def test_duas_transicoes_concorrentes_nao_produzem_estados_divergentes() -> None
         conexao_thread = psycopg.connect(_database_url())
         try:
             with conexao_thread.cursor() as cursor:
-                cursor.execute("SET search_path TO app_aluno, public")
+                cursor.execute("SET search_path TO piq_app_aluno, public")
             barreira.wait()
             with conexao_thread.cursor() as cursor:
                 cursor.execute(
-                    'SELECT "CASO_ID" FROM app_aluno.casos WHERE "CASO_ID" = %s FOR UPDATE',
+                    'SELECT "CASO_ID" FROM piq_app_aluno.casos WHERE "CASO_ID" = %s FOR UPDATE',
                     (caso_id,),
                 )
                 cursor.fetchone()
                 _registrar(f"{novo_estado.value}:LOCK_ADQUIRIDO")
                 time.sleep(atraso_segundos)
                 cursor.execute(
-                    'UPDATE app_aluno.casos SET estado = %s, ultima_interacao_em = now() '
+                    'UPDATE piq_app_aluno.casos SET estado = %s, ultima_interacao_em = now() '
                     'WHERE "CASO_ID" = %s',
                     (novo_estado.value, caso_id),
                 )
@@ -278,7 +278,7 @@ def test_ultima_interacao_em_e_gravada_e_legivel_na_trilha() -> None:
     algo") e o valor é lido de volta por `buscar` — a mesma consulta que a
     trilha de atividade do caso usaria."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioCasosSupabase()
@@ -321,7 +321,7 @@ def test_itens_repetidos_geram_identificadores_estaveis_e_nao_reaproveitados() -
     libera seu número para um item novo (mesmo critério de `AC-04`/T-15,
     agora contra a persistência real)."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioItensSupabase()
@@ -347,7 +347,7 @@ def test_itens_repetidos_de_escopos_diferentes_tem_sequencias_independentes() ->
     """Escopos diferentes (`DIVIDA_ID`, `MARGEM_ID`) não compartilham
     contador — cada um começa em 001 dentro do mesmo caso."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioItensSupabase()
@@ -364,7 +364,7 @@ def test_t253_item_pai_id_gravado_e_lido() -> None:
     """`AC-137` (`T-253`, migração `007`): `item_pai_id` faz round-trip;
     item sem pai lê `None`."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     repositorio = RepositorioItensSupabase()

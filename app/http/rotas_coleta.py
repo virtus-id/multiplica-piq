@@ -717,7 +717,7 @@ def responder_pergunta(
     # `ID` codificado aqui.
     # Duas consultas independentes em paralelo (`T-191`). `itens_por_escopo`
     # lê `app_aluno.itens`, nunca tocada pelo `gravar` acima (que só grava em
-    # `app_aluno.respostas`/atualiza `casos.ultima_interacao_em`, T-91) —
+    # `piq_app_aluno.respostas`/atualiza `casos.ultima_interacao_em`, T-91) —
     # rodar ao lado da releitura pós-gravação de `respostas` não arrisca
     # nada.
     respostas_brutas, (itens_por_escopo, rotulos) = duas_em_paralelo(

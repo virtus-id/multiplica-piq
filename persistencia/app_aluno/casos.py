@@ -1,14 +1,14 @@
 """Adaptador Supabase/Postgres de `Caso` — `RF-01`, `RF-04`, `RF-31`
 (`EC-10`, `EC-14`).
 
-Grava e lê `Caso` em `app_aluno.casos` (`persistencia/supabase/migracoes/
+Grava e lê `Caso` em `piq_app_aluno.casos` (`persistencia/supabase/migracoes/
 002_app_aluno.sql`, T-21), schema dedicado desta feature. Mesmo padrão de
 conexão/transação/commit/rollback de `persistencia/app_aluno/respostas.py`
 (T-22): reaproveita `obter_pool`/`ErroConexaoAusente` de
 `persistencia.supabase.conexao` (genéricos, não amarrados a um schema) — o
 MESMO pool do processo inteiro, `T-187`, nunca uma conexão própria — com
-`search_path=app_aluno` fixado a cada checkout (a conexão física pode ter
-servido `motor_calculo` no checkout anterior).
+`search_path=piq_app_aluno` fixado a cada checkout (a conexão física pode ter
+servido `piq_motor_calculo` no checkout anterior).
 
 **`ESTADO_CASO`/`Caso` nascem em `app/casos/maquina.py` (T-33), não aqui.**
 T-23 originalmente definiu os dois tipos provisoriamente aqui, antes de a
@@ -102,7 +102,7 @@ REGRAS: Final[tuple[str, ...]] = (
     "EC-14",
 )
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 # Reexportados para quem já importa `ESTADO_CASO`/`Caso` deste módulo
 # (T-23) — a definição canônica agora vive em `app/casos/maquina.py` (T-33).
@@ -118,7 +118,7 @@ __all__ = [
 
 class ErroCasoInexistente(Exception):
     """Levantado quando uma operação referencia um `CASO_ID` que não existe
-    em `app_aluno.casos` — nunca silenciosamente ignorado."""
+    em `piq_app_aluno.casos` — nunca silenciosamente ignorado."""
 
 
 class ErroGravacaoCaso(Exception):
@@ -131,10 +131,10 @@ class ErroGravacaoCaso(Exception):
 @contextmanager
 def _conectar() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     """Mesmo padrão de `persistencia/app_aluno/respostas.py::_conectar`:
-    `search_path` fixado em `app_aluno`, commit ao sair sem exceção,
+    `search_path` fixado em `piq_app_aluno`, commit ao sair sem exceção,
     rollback e propagação ao sair com exceção. `conectar()` daquele módulo
     não serve aqui mesmo com o pool compartilhado (`T-187`): fixa
-    `search_path=motor_calculo`, o schema errado para este adaptador."""
+    `search_path=piq_motor_calculo`, o schema errado para este adaptador."""
     pool = obter_pool()
     conexao = pool.getconn()
     try:
@@ -185,7 +185,7 @@ class RepositorioCasos(Protocol):
 
     def criar(self, caso: Caso) -> None:
         """Cadastra um novo `Caso`. `CASO_ID` é identidade própria de
-        `app_aluno`, gerada pelo chamador antes desta chamada (`OQ-11`) —
+        `piq_app_aluno`, gerada pelo chamador antes desta chamada (`OQ-11`) —
         este método não gera identificador, só persiste o que recebe."""
         ...
 
@@ -292,14 +292,14 @@ class RepositorioCasos(Protocol):
 
 
 class RepositorioCasosSupabase:
-    """Implementa `RepositorioCasos` sobre `app_aluno.casos`."""
+    """Implementa `RepositorioCasos` sobre `piq_app_aluno.casos`."""
 
     def criar(self, caso: Caso) -> None:
         try:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.casos (
+                    INSERT INTO piq_app_aluno.casos (
                         "CASO_ID", conta_id, estado, "DATA_REFERENCIA",
                         "QUESTIONARIO_VERSION", snapshot_raiz_id,
                         snapshot_liberado_id, ultima_interacao_em, criado_em
@@ -331,7 +331,7 @@ class RepositorioCasosSupabase:
                 SELECT "CASO_ID", conta_id, estado, "DATA_REFERENCIA",
                        "QUESTIONARIO_VERSION", snapshot_raiz_id,
                        snapshot_liberado_id, ultima_interacao_em, criado_em
-                FROM app_aluno.casos
+                FROM piq_app_aluno.casos
                 WHERE "CASO_ID" = %s
                 """,
                 (caso_id,),
@@ -362,7 +362,7 @@ class RepositorioCasosSupabase:
                 SELECT "CASO_ID", conta_id, estado, "DATA_REFERENCIA",
                        "QUESTIONARIO_VERSION", snapshot_raiz_id,
                        snapshot_liberado_id, ultima_interacao_em, criado_em
-                FROM app_aluno.casos
+                FROM piq_app_aluno.casos
                 WHERE "CASO_ID" = ANY(%s)
                 """,
                 (list(caso_ids),),
@@ -381,7 +381,7 @@ class RepositorioCasosSupabase:
         with _conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT 1 FROM app_aluno.casos
+                SELECT 1 FROM piq_app_aluno.casos
                 WHERE "CASO_ID" = %s AND conta_id = %s
                 """,
                 (caso_id, conta_id),
@@ -403,7 +403,7 @@ class RepositorioCasosSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT "CASO_ID" FROM app_aluno.casos
+                    SELECT "CASO_ID" FROM piq_app_aluno.casos
                     WHERE "CASO_ID" = %s
                     FOR UPDATE
                     """,
@@ -416,7 +416,7 @@ class RepositorioCasosSupabase:
 
                 cursor.execute(
                     """
-                    UPDATE app_aluno.casos
+                    UPDATE piq_app_aluno.casos
                     SET estado = %s, ultima_interacao_em = %s
                     WHERE "CASO_ID" = %s
                     """,
@@ -458,7 +458,7 @@ class RepositorioCasosSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT "CASO_ID" FROM app_aluno.casos
+                    SELECT "CASO_ID" FROM piq_app_aluno.casos
                     WHERE "CASO_ID" = %s
                     FOR UPDATE
                     """,
@@ -471,7 +471,7 @@ class RepositorioCasosSupabase:
 
                 cursor.execute(
                     """
-                    UPDATE app_aluno.casos
+                    UPDATE piq_app_aluno.casos
                     SET estado = %s, ultima_interacao_em = %s
                     WHERE "CASO_ID" = %s AND estado = %s
                     """,
@@ -504,7 +504,7 @@ class RepositorioCasosSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE app_aluno.casos
+                    UPDATE piq_app_aluno.casos
                     SET ultima_interacao_em = %s
                     WHERE "CASO_ID" = %s
                     """,
@@ -528,7 +528,7 @@ class RepositorioCasosSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE app_aluno.casos
+                    UPDATE piq_app_aluno.casos
                     SET snapshot_raiz_id = %s
                     WHERE "CASO_ID" = %s
                     """,
@@ -552,7 +552,7 @@ class RepositorioCasosSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE app_aluno.casos
+                    UPDATE piq_app_aluno.casos
                     SET snapshot_liberado_id = %s
                     WHERE "CASO_ID" = %s
                     """,
@@ -577,7 +577,7 @@ class RepositorioCasosSupabase:
         with _conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT "CASO_ID" FROM app_aluno.casos
+                SELECT "CASO_ID" FROM piq_app_aluno.casos
                 WHERE estado = %s
                 """,
                 (estado.value,),
@@ -605,7 +605,7 @@ class RepositorioCasosSupabase:
             cursor.execute(
                 """
                 SELECT "CASO_ID"
-                  FROM app_aluno.casos
+                  FROM piq_app_aluno.casos
                  WHERE conta_id = %s
                  ORDER BY criado_em DESC
                 """,
@@ -618,6 +618,6 @@ class RepositorioCasosSupabase:
         """`RF-35` (T-102) — uma única consulta sem filtro de `estado`;
         nenhuma lógica de painel aqui, só enumeração de `CASO_ID`."""
         with _conectar() as conexao, conexao.cursor() as cursor:
-            cursor.execute("""SELECT "CASO_ID" FROM app_aluno.casos""")
+            cursor.execute("""SELECT "CASO_ID" FROM piq_app_aluno.casos""")
             linhas = cursor.fetchall()
         return tuple(str(linha[0]) for linha in linhas)

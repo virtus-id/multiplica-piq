@@ -1,6 +1,6 @@
 """Adaptador Supabase/Postgres de `FonteParametros` — RF-13, RF-12, AC-17.
 
-Lê a linha de `motor_calculo.parametros` cuja `PARAMETROS_VERSION` combina
+Lê a linha de `piq_motor_calculo.parametros` cuja `PARAMETROS_VERSION` combina
 com a versão pedida e constrói um `Parametros` — mesma interface pública de
 `persistencia/arquivo/fonte_parametros.py::FonteParametrosArquivo`, trocando
 JSON+jsonschema por uma consulta `numeric` ↔ `Decimal` nativa do `psycopg 3`
@@ -35,7 +35,7 @@ _CHAVES_REGRA: Final[frozenset[str]] = frozenset(
 
 
 class FonteParametrosSupabase(FonteParametros):
-    """Lê parâmetros de `motor_calculo.parametros` (Supabase/Postgres).
+    """Lê parâmetros de `piq_motor_calculo.parametros` (Supabase/Postgres).
 
     Mesmo contrato público de `FonteParametrosArquivo`: `carregar(versao)`
     devolve um `Parametros` validado e carimbado, ou levanta `ErroParametros`
@@ -48,18 +48,18 @@ class FonteParametrosSupabase(FonteParametros):
 
     def carregar(self, versao: str) -> Parametros:
         """RF-13/AC-17: busca a linha de `PARAMETROS_VERSION = versao` em
-        `motor_calculo.parametros` e constrói um `Parametros`. `ErroParametros`
+        `piq_motor_calculo.parametros` e constrói um `Parametros`. `ErroParametros`
         se a versão não existir na tabela — nunca `None`/objeto fabricado.
         """
         with conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
-                'SELECT * FROM motor_calculo.parametros WHERE "PARAMETROS_VERSION" = %s',
+                'SELECT * FROM piq_motor_calculo.parametros WHERE "PARAMETROS_VERSION" = %s',
                 (versao,),
             )
             linha = cursor.fetchone()
             if linha is None:
                 raise ErroParametros(
-                    f"Nenhuma linha em motor_calculo.parametros para "
+                    f"Nenhuma linha em piq_motor_calculo.parametros para "
                     f"PARAMETROS_VERSION={versao!r}"
                 )
             colunas = [descricao.name for descricao in cursor.description or ()]

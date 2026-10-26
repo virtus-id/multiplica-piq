@@ -1,7 +1,7 @@
-"""`UPDATE`/`DELETE` real sobre `motor_calculo.snapshots` é recusado pelo
+"""`UPDATE`/`DELETE` real sobre `piq_motor_calculo.snapshots` é recusado pelo
 banco — RF-19, AC-32, T-26.
 
-`AC-32`: "`UPDATE` e `DELETE` reais sobre `motor_calculo.snapshots` são
+`AC-32`: "`UPDATE` e `DELETE` reais sobre `piq_motor_calculo.snapshots` são
 recusados, e o snapshot permanece inalterado." Este módulo prova, contra
 Postgres REAL (nunca dublê), a defesa dupla de `001_inicial.sql`: `REVOKE
 UPDATE, DELETE ... FROM PUBLIC` e a trigger `impedir_sobrescrita_v01`
@@ -17,7 +17,7 @@ conftest.py`, T-05) — marcação individual, não `pytestmark` de módulo, par
 que `test_skip_gracioso_sem_database_url_nao_e_erro_nem_falha` (que roda
 sempre, mesmo padrão de T-76) não seja ela própria pulada.
 
-**Dados de teste marcados.** `motor_calculo.snapshots` é append-only por
+**Dados de teste marcados.** `piq_motor_calculo.snapshots` é append-only por
 design (`V-01`): não há como o teste apagar as linhas que grava. Toda linha
 inserida por este módulo usa `MOTIVO_RECALCULO` prefixado com
 `TESTE_T26_`, mesmo padrão de `TESTE_T76_` (T-76) e `TESTE_T23_` (T-23).
@@ -25,7 +25,7 @@ inserida por este módulo usa `MOTIVO_RECALCULO` prefixado com
 Inserção mínima, sem depender do motor. Diferente de
 `tests/integracao/test_repositorio_snapshots.py` (que monta um
 `SnapshotOrdem` completo via `GAB-C`), este módulo insere uma linha mínima
-diretamente por SQL (`INSERT INTO motor_calculo.snapshots (...) VALUES
+diretamente por SQL (`INSERT INTO piq_motor_calculo.snapshots (...) VALUES
 (...)`) preenchendo só as colunas `NOT NULL` — o objetivo do teste é a
 recusa de `UPDATE`/`DELETE` pelo banco, não o round-trip de um snapshot
 real (já coberto por T-76/T-25). Isso também evita acoplar este teste de
@@ -54,8 +54,8 @@ def _database_url() -> str:
 
 
 def _inserir_snapshot_minimo(cursor: psycopg.Cursor[tuple[object, ...]]) -> tuple[str, str]:
-    """Insere a linha mínima válida em `motor_calculo.snapshots` — só as
-    colunas `NOT NULL` (ver `\\d motor_calculo.snapshots` em
+    """Insere a linha mínima válida em `piq_motor_calculo.snapshots` — só as
+    colunas `NOT NULL` (ver `\\d piq_motor_calculo.snapshots` em
     `001_inicial.sql`) — e devolve `(SNAPSHOT_ID, MOTIVO_RECALCULO)` para
     comparação posterior. `SNAPSHOT_ID` é único por execução (`uuid4`), já
     que a tabela é append-only e nunca pode ser limpa entre execuções."""
@@ -63,7 +63,7 @@ def _inserir_snapshot_minimo(cursor: psycopg.Cursor[tuple[object, ...]]) -> tupl
     motivo_original = f"TESTE_T26_motivo_original_{uuid.uuid4().hex}"
     cursor.execute(
         """
-        INSERT INTO motor_calculo.snapshots (
+        INSERT INTO piq_motor_calculo.snapshots (
             "SNAPSHOT_ID", versao, "DATA_REFERENCIA", "MOTIVO_RECALCULO", hash_inputs,
             "METODO_RECOMENDADO_PIQ", "STATUS_METODO", "ORDEM_STATUS",
             "REVISAO_HUMANA_OBRIGATORIA", "CUSTO_FUTURO_TOTAL",
@@ -88,7 +88,7 @@ def _ler_motivo_recalculo(
     cursor: psycopg.Cursor[tuple[object, ...]], snapshot_id: str
 ) -> str:
     cursor.execute(
-        'SELECT "MOTIVO_RECALCULO" FROM motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
+        'SELECT "MOTIVO_RECALCULO" FROM piq_motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
         (snapshot_id,),
     )
     linha = cursor.fetchone()
@@ -100,7 +100,7 @@ def _ler_motivo_recalculo(
 
 @pytest.mark.requer_banco
 def test_ac32_update_direto_em_snapshots_e_recusado_e_snapshot_permanece_inalterado() -> None:
-    """`AC-32`: um `UPDATE` real via `psycopg` contra `motor_calculo.
+    """`AC-32`: um `UPDATE` real via `psycopg` contra `piq_motor_calculo.
     snapshots` levanta erro do Postgres (`REVOKE` + trigger `impedir_
     sobrescrita_v01`, `V-01`) — e, após a tentativa (com rollback), o valor
     original de `MOTIVO_RECALCULO` continua exatamente o mesmo, lido numa
@@ -113,7 +113,7 @@ def test_ac32_update_direto_em_snapshots_e_recusado_e_snapshot_permanece_inalter
     with psycopg.connect(_database_url()) as conexao_ataque:
         with conexao_ataque.cursor() as cursor_ataque, pytest.raises(psycopg.Error) as excinfo:
             cursor_ataque.execute(
-                'UPDATE motor_calculo.snapshots SET "MOTIVO_RECALCULO" = %s '
+                'UPDATE piq_motor_calculo.snapshots SET "MOTIVO_RECALCULO" = %s '
                 'WHERE "SNAPSHOT_ID" = %s',
                 ("TESTE_T26_tentativa_de_sobrescrita_V01", snapshot_id),
             )
@@ -124,7 +124,7 @@ def test_ac32_update_direto_em_snapshots_e_recusado_e_snapshot_permanece_inalter
     )
 
     with psycopg.connect(_database_url()) as conexao_leitura, conexao_leitura.cursor() as cursor:
-        cursor.execute("SET search_path TO motor_calculo, public")
+        cursor.execute("SET search_path TO piq_motor_calculo, public")
         motivo_apos_tentativa = _ler_motivo_recalculo(cursor, snapshot_id)
 
     assert motivo_apos_tentativa == motivo_original, (
@@ -135,7 +135,7 @@ def test_ac32_update_direto_em_snapshots_e_recusado_e_snapshot_permanece_inalter
 
 @pytest.mark.requer_banco
 def test_ac32_delete_direto_em_snapshots_e_recusado_e_snapshot_permanece_inalterado() -> None:
-    """`AC-32`: um `DELETE` real via `psycopg` contra `motor_calculo.
+    """`AC-32`: um `DELETE` real via `psycopg` contra `piq_motor_calculo.
     snapshots` também é recusado pelo banco — e, após a tentativa (com
     rollback), a linha ainda existe e seu conteúdo não mudou."""
     from persistencia.supabase.conexao import conectar
@@ -146,7 +146,7 @@ def test_ac32_delete_direto_em_snapshots_e_recusado_e_snapshot_permanece_inalter
     with psycopg.connect(_database_url()) as conexao_ataque:
         with conexao_ataque.cursor() as cursor_ataque, pytest.raises(psycopg.Error) as excinfo:
             cursor_ataque.execute(
-                'DELETE FROM motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
+                'DELETE FROM piq_motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
                 (snapshot_id,),
             )
         conexao_ataque.rollback()
@@ -156,9 +156,9 @@ def test_ac32_delete_direto_em_snapshots_e_recusado_e_snapshot_permanece_inalter
     )
 
     with psycopg.connect(_database_url()) as conexao_leitura, conexao_leitura.cursor() as cursor:
-        cursor.execute("SET search_path TO motor_calculo, public")
+        cursor.execute("SET search_path TO piq_motor_calculo, public")
         cursor.execute(
-            'SELECT "MOTIVO_RECALCULO" FROM motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
+            'SELECT "MOTIVO_RECALCULO" FROM piq_motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
             (snapshot_id,),
         )
         linha = cursor.fetchone()

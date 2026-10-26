@@ -1,7 +1,7 @@
 """Round-trip de `RepositorioSnapshotsSupabase` e prova de `V-01` contra o
 banco real — `RF-10`, `RF-12`, `RF-13`, `T-76`.
 
-Critério de aceite 2 de `T-76`: `UPDATE` direto em `motor_calculo.snapshots`
+Critério de aceite 2 de `T-76`: `UPDATE` direto em `piq_motor_calculo.snapshots`
 falha no teste (`V-01`) — aqui, explicitamente como teste de INTEGRAÇÃO
 (reaproveita a mesma prova de `tests/regras/test_supabase_adaptadores.py`,
 T-75, citando `V-01` no nome e na docstring).
@@ -16,7 +16,7 @@ Critério de aceite 4: sem `DATABASE_URL`, todo teste deste módulo é pulado
 com mensagem explícita — mesmo padrão de `tests/regras/test_supabase_adaptadores.py`
 (T-75).
 
-**Dados de teste marcados.** `motor_calculo.snapshots` é append-only por
+**Dados de teste marcados.** `piq_motor_calculo.snapshots` é append-only por
 design (`V-01`): não há como o teste apagar as linhas que grava. Toda linha
 inserida por este módulo usa `MOTIVO_RECALCULO` prefixado com `TESTE_T76_`,
 mesmo padrão já adotado por T-75.
@@ -47,7 +47,7 @@ def _snapshot_com_decimais_de_alta_precisao() -> SnapshotOrdem:
     """Monta um `SnapshotOrdem` real (`GAB-C`, via `_montar_snapshot_gab_c`,
     mesmo padrão de `tests/regras/test_snapshot.py`) e substitui os campos
     `Decimal` decisivos — os que viram coluna `numeric` de primeira classe
-    em `motor_calculo.snapshots` (T-75) — por valores de MUITAS casas
+    em `piq_motor_calculo.snapshots` (T-75) — por valores de MUITAS casas
     decimais, escolhidos para que um arredondamento incorreto (ex.:
     passagem por `float`, truncamento em `numeric` com escala fixa) mudasse
     o valor observável. `dataclasses.replace` preserva o restante da árvore
@@ -176,7 +176,7 @@ def test_round_trip_preserva_decimal_de_alta_precisao_sem_perda_de_casa() -> Non
 @pytest.mark.skipif(_DATABASE_URL_AUSENTE, reason=_MOTIVO_SKIP)
 def test_V01_update_direto_na_tabela_snapshots_falha_no_teste_de_integracao() -> None:
     """Critério de aceite 2 de `T-76`, explícito como teste de INTEGRAÇÃO:
-    um `UPDATE` real via `psycopg` contra `motor_calculo.snapshots` é
+    um `UPDATE` real via `psycopg` contra `piq_motor_calculo.snapshots` é
     recusado pelo banco (`REVOKE UPDATE` + trigger `impedir_sobrescrita_v01`,
     `migracoes/001_inicial.sql`) — `V-01`, ordem/snapshot nunca sobrescritos.
     Reaproveita a prova de `tests/regras/test_supabase_adaptadores.py`
@@ -193,7 +193,7 @@ def test_V01_update_direto_na_tabela_snapshots_falha_no_teste_de_integracao() ->
     with conectar() as conexao:
         with conexao.cursor() as cursor, pytest.raises(psycopg.Error):
             cursor.execute(
-                'UPDATE motor_calculo.snapshots SET "MOTIVO_RECALCULO" = %s '
+                'UPDATE piq_motor_calculo.snapshots SET "MOTIVO_RECALCULO" = %s '
                 'WHERE "SNAPSHOT_ID" = %s',
                 ("tentativa de sobrescrita — V-01", snapshot.SNAPSHOT_ID),
             )

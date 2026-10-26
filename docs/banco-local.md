@@ -65,17 +65,17 @@ docker exec piq-postgres pg_isready -U postgres -d piq
 ## 2. Aplicar as migrações, nesta ordem
 
 ```bash
-for m in 001_inicial 002_app_aluno 003_papel_revisor; do
+for m in 001_inicial 002_app_aluno 003_papel_revisor 004_primeiro_acesso 005_bloqueio_reembolso 006_itens_despesa_origem 007_item_pai 008_extraordinarios_por_item 009_nome_da_conta 010_mensagem_ao_aluno 011_parametros_economia 012_prefixo_piq_nos_schemas; do
   docker exec -i piq-postgres psql -U postgres -d piq -v ON_ERROR_STOP=1 \
     < "persistencia/supabase/migracoes/$m.sql"
 done
 ```
 
-Resultado esperado: schema `app_aluno` com 7 tabelas e `motor_calculo` com 2.
+Resultado esperado: schema `piq_app_aluno` com 8 tabelas e `piq_motor_calculo` com 2.
 
 ## 3. Semear os parâmetros
 
-As migrações criam `motor_calculo.parametros` **vazia** — são só DDL, por
+As migrações criam `piq_motor_calculo.parametros` **vazia** — são só DDL, por
 decisão registrada em `001_inicial.sql`. Quatro testes de paridade comparam a
 linha do Postgres campo a campo com `parameters/parametros-1.0.1.json`, então
 sem a linha eles falham.
@@ -163,12 +163,12 @@ começa limpa, e nenhum estado de teste sobrevive para contaminar a próxima.
 
 ## Uma observação sobre imutabilidade
 
-`002_app_aluno.sql` protege `app_aluno.revisoes` de duas formas: `REVOKE
+`002_app_aluno.sql` protege `piq_app_aluno.revisoes` de duas formas: `REVOKE
 UPDATE, DELETE ... FROM PUBLIC` **e** uma trigger que levanta exceção. Aqui a
 conexão é `postgres`, superusuário — e `REVOKE` não restringe superusuário.
 
-Isso foi verificado, não suposto: um `UPDATE` direto em `app_aluno.revisoes`
-como `postgres` é recusado com `RF-24: app_aluno.revisoes é append-only`. É a
+Isso foi verificado, não suposto: um `UPDATE` direto em `piq_app_aluno.revisoes`
+como `postgres` é recusado com `RF-24: piq_app_aluno.revisoes é append-only`. É a
 **trigger** que sustenta `V-01`/`AC-27` neste ambiente, e ela funciona. Vale
 saber, porque num banco onde só o `REVOKE` existisse, estes testes passariam
 sem provar nada.

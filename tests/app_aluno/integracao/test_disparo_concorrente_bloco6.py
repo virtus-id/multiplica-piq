@@ -42,12 +42,12 @@ def _conta_e_caso_novos(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
     conta_id = f"TESTE_T56_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T56_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, 'COLETA_INICIAL', CURRENT_DATE, '1.0.0')
         """,
@@ -66,7 +66,7 @@ def test_duas_chamadas_concorrentes_de_transicionar_estado_se_resultam_em_uma_un
     `calcular_plano` na rota real, `app/http/rotas_calculo.py::
     disparar_calculo`) — a outra recebe `None`, sem gravar nada."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     resultados: dict[str, Caso | None] = {}
@@ -122,7 +122,7 @@ def test_segunda_chamada_so_adquire_lock_apos_commit_da_primeira() -> None:
     que a primeira já commitou — nunca lê o estado "no meio" da primeira
     transação."""
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _conta_e_caso_novos(cursor)
 
     eventos: list[tuple[float, str]] = []
@@ -138,11 +138,11 @@ def test_segunda_chamada_so_adquire_lock_apos_commit_da_primeira() -> None:
         conexao_thread = psycopg.connect(_database_url())
         try:
             with conexao_thread.cursor() as cursor:
-                cursor.execute("SET search_path TO app_aluno, public")
+                cursor.execute("SET search_path TO piq_app_aluno, public")
             barreira.wait()
             with conexao_thread.cursor() as cursor:
                 cursor.execute(
-                    'SELECT "CASO_ID" FROM app_aluno.casos WHERE "CASO_ID" = %s FOR UPDATE',
+                    'SELECT "CASO_ID" FROM piq_app_aluno.casos WHERE "CASO_ID" = %s FOR UPDATE',
                     (caso_id,),
                 )
                 cursor.fetchone()
@@ -150,7 +150,7 @@ def test_segunda_chamada_so_adquire_lock_apos_commit_da_primeira() -> None:
                 time.sleep(atraso_segundos)
                 cursor.execute(
                     """
-                    UPDATE app_aluno.casos
+                    UPDATE piq_app_aluno.casos
                     SET estado = 'CALCULANDO', ultima_interacao_em = now()
                     WHERE "CASO_ID" = %s AND estado = 'COLETA_INICIAL'
                     """,

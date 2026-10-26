@@ -4,8 +4,8 @@
 (T-23), cada um em `persistencia/app_aluno/{contas,casos}.py`, abrem e
 COMMITAM a própria conexão internamente — chamá-los em sequência não seria
 atômico (a conta commitaria antes de o caso sequer começar a ser gravado).
-Como `app_aluno.contas` e `app_aluno.casos` vivem no MESMO banco Postgres
-(schema `app_aluno`; `casos.conta_id` é FK de `contas.conta_id`), a
+Como `piq_app_aluno.contas` e `piq_app_aluno.casos` vivem no MESMO banco Postgres
+(schema `piq_app_aluno`; `casos.conta_id` é FK de `contas.conta_id`), a
 atomicidade real exige as duas gravações na MESMA conexão/transação — este
 módulo existe só para isso: `cadastrar_conta_e_caso` retira UMA conexão do
 pool compartilhado (`obter_pool`, `T-187`, genérico, e `app.http.senhas.
@@ -51,7 +51,7 @@ from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
 REGRAS: Final[tuple[str, ...]] = ("RF-02", "AC-03")
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 def _questionario_version_corrente() -> str:
     """A versão do questionário que o caso novo carrega — `T-179`.
@@ -81,10 +81,10 @@ class ErroCadastro(Exception):
 @contextmanager
 def _conectar() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     """Mesmo padrão de `persistencia/app_aluno/casos.py::_conectar`:
-    `search_path` fixado em `app_aluno`, commit ao sair sem exceção,
+    `search_path` fixado em `piq_app_aluno`, commit ao sair sem exceção,
     rollback e propagação ao sair com exceção. `conectar()` daquele módulo
     não serve aqui mesmo com o pool compartilhado (`T-187`): fixa
-    `search_path=motor_calculo`, o schema errado para este adaptador."""
+    `search_path=piq_motor_calculo`, o schema errado para este adaptador."""
     pool = obter_pool()
     conexao = pool.getconn()
     try:
@@ -125,12 +125,12 @@ def provisionar_conta_e_caso(email: str, nome: str | None = None) -> tuple[Conta
     try:
         with _conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO app_aluno.contas "
+                "INSERT INTO piq_app_aluno.contas "
                 "(conta_id, email, senha_hash, criado_em, nome) VALUES (%s, %s, NULL, %s, %s)",
                 (conta_id, email, agora, nome),
             )
             cursor.execute(
-                'INSERT INTO app_aluno.casos ("CASO_ID", conta_id, estado, '
+                'INSERT INTO piq_app_aluno.casos ("CASO_ID", conta_id, estado, '
                 '"DATA_REFERENCIA", "QUESTIONARIO_VERSION", snapshot_raiz_id, '
                 "snapshot_liberado_id, ultima_interacao_em, criado_em) "
                 "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
@@ -186,12 +186,12 @@ def cadastrar_conta_e_caso(email: str, senha: str) -> tuple[Conta, Caso]:
     try:
         with _conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO app_aluno.contas "
+                "INSERT INTO piq_app_aluno.contas "
                 "(conta_id, email, senha_hash, criado_em) VALUES (%s, %s, %s, %s)",
                 (conta_id, email, senha_hash, agora),
             )
             cursor.execute(
-                'INSERT INTO app_aluno.casos ("CASO_ID", conta_id, estado, '
+                'INSERT INTO piq_app_aluno.casos ("CASO_ID", conta_id, estado, '
                 '"DATA_REFERENCIA", "QUESTIONARIO_VERSION", snapshot_raiz_id, '
                 "snapshot_liberado_id, ultima_interacao_em, criado_em) "
                 "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",

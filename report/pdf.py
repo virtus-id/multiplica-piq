@@ -19,7 +19,7 @@ ainda não existe: nenhuma tarefa concluída até aqui popula
 `Caso.snapshot_liberado_id` a partir de uma aprovação humana de fato. Em vez
 de inventar um novo conceito de "liberação" paralelo, esta tarefa REAPROVEITA
 o campo que já existe (`persistencia/app_aluno/casos.py::Caso.
-snapshot_liberado_id`, coluna `app_aluno.casos.snapshot_liberado_id`, T-21/
+snapshot_liberado_id`, coluna `piq_app_aluno.casos.snapshot_liberado_id`, T-21/
 T-23) com a semântica que `RepositorioCasos.registrar_snapshot_liberado`
 já documenta: "o snapshot mais recentemente LIBERADO em revisão (`OQ-09`)".
 A regra operacional desta tarefa é, portanto, exatamente:

@@ -1,15 +1,15 @@
 """Adaptador Supabase/Postgres de `Conta` — `RF-02` (NFR de segurança: senha
 nunca armazenada em texto claro nem registrada em log).
 
-Grava e lê contas em `app_aluno.contas` (`persistencia/supabase/migracoes/
+Grava e lê contas em `piq_app_aluno.contas` (`persistencia/supabase/migracoes/
 002_app_aluno.sql`, T-21: `conta_id`, `email UNIQUE`, `senha_hash`,
 `criado_em`). Mesmo padrão de conexão/transação/commit/rollback de
 `persistencia/app_aluno/respostas.py` e `persistencia/app_aluno/casos.py`
 (T-22/T-23): reaproveita `obter_pool`/`ErroConexaoAusente` de
 `persistencia.supabase.conexao` (genéricos, não amarrados a um schema) — o
 MESMO pool do processo inteiro, `T-187`, nunca uma conexão própria — com
-`search_path=app_aluno` fixado a cada checkout (a conexão física pode ter
-servido `motor_calculo` no checkout anterior).
+`search_path=piq_app_aluno` fixado a cada checkout (a conexão física pode ter
+servido `piq_motor_calculo` no checkout anterior).
 
 **Hash, nunca senha em texto claro.** Este módulo NUNCA recebe nem grava a
 senha em texto claro numa coluna: `criar` recebe a senha em texto claro do
@@ -29,7 +29,7 @@ resultado de erro não vaza qual dos dois casos ocorreu, que é o critério de
 aceite de T-28).
 
 **`e_revisor` (`RF-23`, `RF-25`, T-100).** Extensão pequena e necessária
-desta tarefa: `app_aluno.contas.e_revisor` (`persistencia/supabase/
+desta tarefa: `piq_app_aluno.contas.e_revisor` (`persistencia/supabase/
 migracoes/003_papel_revisor.sql`) distingue papel de revisor do papel de
 aluno — `NOT NULL DEFAULT false`, nenhuma conta vira revisora por acidente.
 `buscar_por_id` (novo método) é o que `app/http/isolamento.py::
@@ -60,7 +60,7 @@ permanente de manter a porta aberta.
 O SQL equivalente continua válido para quem administra o banco direto:
 
 ```sql
-UPDATE app_aluno.contas SET e_revisor = true WHERE email = 'revisor@exemplo.invalido';
+UPDATE piq_app_aluno.contas SET e_revisor = true WHERE email = 'revisor@exemplo.invalido';
 ```
 
 Direção de dependência: este módulo importa de `app.http.senhas` (hash/
@@ -85,7 +85,7 @@ from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
 REGRAS: Final[tuple[str, ...]] = ("RF-02", "RF-23", "RF-25")
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,7 +132,7 @@ class ErroGravacaoConta(Exception):
 @contextmanager
 def _conectar() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     """Mesmo padrão de `persistencia/app_aluno/casos.py::_conectar`:
-    `search_path` fixado em `app_aluno`, commit ao sair sem exceção,
+    `search_path` fixado em `piq_app_aluno`, commit ao sair sem exceção,
     rollback e propagação ao sair com exceção."""
     pool = obter_pool()
     conexao = pool.getconn()
@@ -229,7 +229,7 @@ class ContaDoCaso:
 
 
 class RepositorioContasSupabase:
-    """Implementa `RepositorioContas` sobre `app_aluno.contas`."""
+    """Implementa `RepositorioContas` sobre `piq_app_aluno.contas`."""
 
     def criar(self, conta_id: str, email: str, senha: str) -> None:
         # A senha em texto claro vive só nesta variável local, hasheada
@@ -239,7 +239,7 @@ class RepositorioContasSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.contas (conta_id, email, senha_hash, criado_em)
+                    INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash, criado_em)
                     VALUES (%s, %s, %s, %s)
                     """,
                     (conta_id, email, senha_hash, datetime.now(UTC)),
@@ -267,7 +267,7 @@ class RepositorioContasSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.contas (conta_id, email, senha_hash, criado_em)
+                    INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash, criado_em)
                     VALUES (%s, %s, NULL, %s)
                     """,
                     (conta_id, email, datetime.now(UTC)),
@@ -295,7 +295,7 @@ class RepositorioContasSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE app_aluno.contas
+                    UPDATE piq_app_aluno.contas
                     SET senha_hash = %s
                     WHERE conta_id = %s
                     """,
@@ -319,7 +319,7 @@ class RepositorioContasSupabase:
             cursor.execute(
                 """
                 SELECT conta_id, email, senha_hash, criado_em, e_revisor, bloqueado_em
-                FROM app_aluno.contas
+                FROM piq_app_aluno.contas
                 WHERE email = %s
                 """,
                 (email,),
@@ -337,7 +337,7 @@ class RepositorioContasSupabase:
             cursor.execute(
                 """
                 SELECT conta_id, email, senha_hash, criado_em, e_revisor, bloqueado_em
-                FROM app_aluno.contas
+                FROM piq_app_aluno.contas
                 WHERE conta_id = %s
                 """,
                 (conta_id,),
@@ -368,8 +368,8 @@ class RepositorioContasSupabase:
             cursor.execute(
                 """
                 SELECT c."CASO_ID", ct.email, ct.e_revisor, ct.nome
-                FROM app_aluno.casos c
-                JOIN app_aluno.contas ct ON ct.conta_id = c.conta_id
+                FROM piq_app_aluno.casos c
+                JOIN piq_app_aluno.contas ct ON ct.conta_id = c.conta_id
                 WHERE c."CASO_ID" = ANY(%s)
                 """,
                 (list(caso_ids),),
@@ -424,7 +424,7 @@ class RepositorioContasSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE app_aluno.contas
+                    UPDATE piq_app_aluno.contas
                     SET bloqueado_em = COALESCE(bloqueado_em, %s)
                     WHERE conta_id = %s
                     """,
@@ -442,7 +442,7 @@ class RepositorioContasSupabase:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE app_aluno.contas
+                    UPDATE piq_app_aluno.contas
                     SET nome = %s
                     WHERE conta_id = %s AND nome IS NULL
                     """,
@@ -473,7 +473,7 @@ def promover_a_revisor(email: str) -> None:
         with _conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
                 """
-                UPDATE app_aluno.contas
+                UPDATE piq_app_aluno.contas
                 SET e_revisor = true
                 WHERE email = %s
                 """,
@@ -510,7 +510,7 @@ def revogar_revisor(email: str) -> None:
         with _conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
                 """
-                UPDATE app_aluno.contas
+                UPDATE piq_app_aluno.contas
                 SET e_revisor = false
                 WHERE email = %s
                 """,
@@ -543,7 +543,7 @@ def listar_revisores() -> tuple[Conta, ...]:
             cursor.execute(
                 """
                 SELECT conta_id, email, senha_hash, criado_em, e_revisor, bloqueado_em
-                FROM app_aluno.contas
+                FROM piq_app_aluno.contas
                 WHERE e_revisor = true
                 ORDER BY criado_em, email
                 """

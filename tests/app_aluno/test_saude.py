@@ -14,7 +14,7 @@ dado do aluno é tocada.
 `app/http/rotas_consentimento.py`/`isolamento.py`: dependência sobrescrita
 via `app.dependency_overrides`), sem exigir `DATABASE_URL`. Os dois testes
 `requer_banco` confirmam contra Postgres real que a query de fato só usa
-`SELECT 1`, sem qualquer tabela de `app_aluno`.
+`SELECT 1`, sem qualquer tabela de `piq_app_aluno`.
 
 REGRAS: RF-10, EC-05
 """
@@ -117,7 +117,7 @@ def test_tocar_banco_nao_referencia_nenhuma_tabela_de_dado_do_aluno() -> None:
     string FORA DE DOCSTRING (a docstring do módulo cita os nomes das
     tabelas só para EXPLICAR que elas não são tocadas — mesma isenção de
     docstring de `tests/app_aluno/estatica/test_sem_conteudo_de_
-    questionario_no_codigo.py`) contém o nome de uma tabela de `app_aluno`
+    questionario_no_codigo.py`) contém o nome de uma tabela de `piq_app_aluno`
     (`contas`, `casos`, `respostas`, `itens_repetidos`, `revisoes`,
     `consentimentos`, `eventos_caso`) nem um verbo de mutação SQL
     (`INSERT`/`UPDATE`/`DELETE`). A única string de query tolerada é

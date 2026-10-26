@@ -14,7 +14,7 @@ de `historico` fora de ordem, etc. — o mesmo nível de cobertura que
 teste deste módulo é pulado com mensagem explícita — mesmo padrão que `T-76`
 formaliza com mais testes de integração.
 
-**Dados de teste marcados.** `motor_calculo.snapshots` é append-only por
+**Dados de teste marcados.** `piq_motor_calculo.snapshots` é append-only por
 design (`V-01`, `migracoes/001_inicial.sql`): não há como o teste apagar as
 linhas que grava. Toda linha inserida por este módulo usa `MOTIVO_RECALCULO`
 prefixado com `TESTE_T75_`, para ficar claramente identificável como dado de
@@ -40,7 +40,7 @@ _MOTIVO_SKIP = "DATABASE_URL não definida — adaptador Supabase é opcional (p
 def test_fonte_parametros_supabase_carrega_parametros_identicos_ao_arquivo() -> None:
     """`FonteParametrosSupabase.carregar("1.0.1")` devolve um `Parametros`
     com os mesmos valores que `FonteParametrosArquivo` — prova mínima de
-    que a leitura de `motor_calculo.parametros` funciona contra o banco
+    que a leitura de `piq_motor_calculo.parametros` funciona contra o banco
     real. Pré-requisito: a linha `PARAMETROS_VERSION = '1.0.1'` já existe
     na tabela (carregada a partir de `parameters/parametros-1.0.1.json`
     pela rotina de seed do ambiente — fora do escopo desta tarefa criar
@@ -73,7 +73,7 @@ def test_fonte_parametros_supabase_carrega_parametros_identicos_ao_arquivo() -> 
 def test_snapshots_colunas_decisivas_sao_numeric_nao_apenas_jsonb() -> None:
     """Critério de aceite 1 de `T-75`: `CUSTO_FUTURO_TOTAL`, capacidades e
     `PRAZO_TOTAL` são colunas `numeric`/`integer` de primeira classe em
-    `motor_calculo.snapshots` — consulta real a `information_schema.columns`,
+    `piq_motor_calculo.snapshots` — consulta real a `information_schema.columns`,
     não inspeção do código Python."""
     from persistencia.supabase.conexao import conectar
 
@@ -82,7 +82,7 @@ def test_snapshots_colunas_decisivas_sao_numeric_nao_apenas_jsonb() -> None:
             """
             SELECT column_name, data_type
             FROM information_schema.columns
-            WHERE table_schema = 'motor_calculo' AND table_name = 'snapshots'
+            WHERE table_schema = 'piq_motor_calculo' AND table_name = 'snapshots'
             """
         )
         tipos_por_coluna = {nome: tipo for nome, tipo in cursor.fetchall()}
@@ -125,7 +125,7 @@ def test_anexar_e_obter_round_trip_minimo_e_idempotente() -> None:
 
     with conectar() as conexao, conexao.cursor() as cursor:
         cursor.execute(
-            'SELECT count(*) FROM motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
+            'SELECT count(*) FROM piq_motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
             (snapshot.SNAPSHOT_ID,),
         )
         (total,) = cursor.fetchone()  # type: ignore[misc]
@@ -142,7 +142,7 @@ def test_anexar_e_obter_round_trip_minimo_e_idempotente() -> None:
 @pytest.mark.skipif(_DATABASE_URL_AUSENTE, reason=_MOTIVO_SKIP)
 def test_update_e_delete_em_snapshots_sao_recusados_pelo_banco() -> None:
     """Critério de aceite 2 de `T-75`: `UPDATE`/`DELETE` reais em
-    `motor_calculo.snapshots` são recusados pelo banco (`REVOKE` + trigger
+    `piq_motor_calculo.snapshots` são recusados pelo banco (`REVOKE` + trigger
     `impedir_sobrescrita_v01`) — executados de fato via `psycopg`, erro do
     Postgres capturado, nunca simulado."""
     import psycopg
@@ -163,7 +163,7 @@ def test_update_e_delete_em_snapshots_sao_recusados_pelo_banco() -> None:
     with conectar() as conexao:
         with conexao.cursor() as cursor, pytest.raises(psycopg.Error):
             cursor.execute(
-                'UPDATE motor_calculo.snapshots SET "MOTIVO_RECALCULO" = %s '
+                'UPDATE piq_motor_calculo.snapshots SET "MOTIVO_RECALCULO" = %s '
                 'WHERE "SNAPSHOT_ID" = %s',
                 ("tentativa de sobrescrita", snapshot.SNAPSHOT_ID),
             )
@@ -171,7 +171,7 @@ def test_update_e_delete_em_snapshots_sao_recusados_pelo_banco() -> None:
 
         with conexao.cursor() as cursor, pytest.raises(psycopg.Error):
             cursor.execute(
-                'DELETE FROM motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
+                'DELETE FROM piq_motor_calculo.snapshots WHERE "SNAPSHOT_ID" = %s',
                 (snapshot.SNAPSHOT_ID,),
             )
         conexao.rollback()

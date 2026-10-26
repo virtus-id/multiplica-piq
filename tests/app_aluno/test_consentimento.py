@@ -113,9 +113,9 @@ def _carregar_texto_fabricado(diretorio: Path) -> TextoConsentimento:
 
 def _total_de_respostas(caso_id: str) -> int:
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         cursor.execute(
-            'SELECT count(*) FROM app_aluno.respostas WHERE "CASO_ID" = %s',
+            'SELECT count(*) FROM piq_app_aluno.respostas WHERE "CASO_ID" = %s',
             (caso_id,),
         )
         (total,) = cursor.fetchone()  # type: ignore[misc]
@@ -138,7 +138,7 @@ def test_ac39_cadastro_real_recusa_gravacao_e_apos_consentimento_real_a_mesma_gr
 ) -> None:
     """`AC-39`, fim-a-fim: (1) cadastro REAL via `POST /conta/cadastro` cria
     conta+caso em `CADASTRADO`, ambos persistidos de verdade; (2) tentativa
-    de gravar resposta sobre ESSE `CASO_ID` é recusada, e `app_aluno.
+    de gravar resposta sobre ESSE `CASO_ID` é recusada, e `piq_app_aluno.
     respostas` continua com zero linhas; (3) `POST /caso/{CASO_ID}/
     consentimento` (a mesma rota real de T-36) registra o aceite e
     transiciona o caso para `CONSENTIMENTO_REGISTRADO`; (3b) como a rota de
@@ -157,9 +157,9 @@ def test_ac39_cadastro_real_recusa_gravacao_e_apos_consentimento_real_a_mesma_gr
     assert resposta_cadastro.status_code == 201  # `201 Created` (T-144)
 
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
-        cursor.execute('SELECT "CASO_ID" FROM app_aluno.casos WHERE conta_id = ('
-                        "SELECT conta_id FROM app_aluno.contas WHERE email = %s)", (email,))
+        cursor.execute("SET search_path TO piq_app_aluno, public")
+        cursor.execute('SELECT "CASO_ID" FROM piq_app_aluno.casos WHERE conta_id = ('
+                        "SELECT conta_id FROM piq_app_aluno.contas WHERE email = %s)", (email,))
         linha = cursor.fetchone()
     assert linha is not None, "cadastro real deveria ter criado um caso para a conta"
     (caso_id,) = linha
@@ -200,10 +200,10 @@ def test_registro_de_consentimento_real_guarda_autor_versao_e_data(
     )
 
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         cursor.execute(
-            'SELECT "CASO_ID" FROM app_aluno.casos WHERE conta_id = ('
-            "SELECT conta_id FROM app_aluno.contas WHERE email = %s)",
+            'SELECT "CASO_ID" FROM piq_app_aluno.casos WHERE conta_id = ('
+            "SELECT conta_id FROM piq_app_aluno.contas WHERE email = %s)",
             (email,),
         )
         (caso_id,) = cursor.fetchone()  # type: ignore[misc]

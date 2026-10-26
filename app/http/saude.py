@@ -14,7 +14,7 @@ ao processo ASGI, exatamente como o plano descreve ("keep-alive agendado",
 sem introduzir `apscheduler`/similar fora do extra `app` já decidido).
 
 **A query é mínima e só de leitura, por desenho.** `SELECT 1` puro — sem
-nome de tabela, sem schema, sem `app_aluno.contas`/`.respostas`/`.casos`.
+nome de tabela, sem schema, sem `piq_app_aluno.contas`/`.respostas`/`.casos`.
 Nenhum dado do aluno é lido, listado ou tocado por esta rota (critério de
 aceite desta tarefa); o único propósito é manter a conexão viva contra o
 projeto Supabase, não inspecionar ou validar dado nenhum. Por não depender

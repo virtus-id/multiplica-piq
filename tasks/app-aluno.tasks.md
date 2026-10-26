@@ -74,7 +74,7 @@ para o recongelamento de hashes que acompanhou este fechamento).
 > **`persistencia/` já existe** para snapshots e parâmetros. As tarefas de
 > persistência daqui cobrem só o que é desta feature: respostas de coleta,
 > contas, estado do caso, itens repetidos, fila de revisão, consentimentos e
-> eventos do caso — no schema dedicado `app_aluno`.
+> eventos do caso — no schema dedicado `piq_app_aluno`.
 >
 > **Convenções** (`sdd.config.md` §4, §5, §7): identificadores em pt-BR,
 > idênticos aos da spec e da canônica **caractere por caractere**; nenhum
@@ -604,7 +604,7 @@ observável do gerador. Cada teste cita seu `AC-NN` no nome.
 
 ---
 
-## Entrega 3 — Persistência desta feature: o schema `app_aluno`
+## Entrega 3 — Persistência desta feature: o schema `piq_app_aluno`
 
 ### `T-21` — Escrever a migração `002_app_aluno.sql` com o schema dedicado
 
@@ -623,7 +623,7 @@ aqui**: snapshot só entra por `RepositorioSnapshots.anexar` (`AC-43`).
 **Critérios de aceite**
 
 - [x] `respostas` tem PK `(CASO_ID, ID_PERGUNTA, item_id)` e colunas `valor_texto`, `valor_numerico numeric`, `valor_nao_sei boolean` — `numeric`, nunca `double precision`
-- [x] `revisoes` tem `REVOKE UPDATE, DELETE ... FROM PUBLIC` e trigger de recusa, no mesmo padrão de `motor_calculo.snapshots`
+- [x] `revisoes` tem `REVOKE UPDATE, DELETE ... FROM PUBLIC` e trigger de recusa, no mesmo padrão de `piq_motor_calculo.snapshots`
 - [x] `casos` tem `CASO_ID`, `conta_id`, `estado`, `DATA_REFERENCIA`, `QUESTIONARIO_VERSION`, `snapshot_raiz_id`, `snapshot_liberado_id`, `ultima_interacao_em`
 - [x] Nenhuma tabela de snapshot é criada, e nenhum `INSERT` de snapshot existe no arquivo
 - [x] O SQL contém apenas DDL e a função de recusa — nenhum gate, ranqueamento ou fórmula da §11 em `plpgsql`
@@ -742,12 +742,12 @@ decimal exato.
 Duas travas. Estática: nenhum `INSERT`, `UPDATE` ou `DELETE` sobre tabela de
 snapshot aparece em `app/`, `collection/`, `report/` ou
 `persistencia/app_aluno/`. Integração: `UPDATE`/`DELETE` real sobre
-`motor_calculo.snapshots` é recusado pelo banco.
+`piq_motor_calculo.snapshots` é recusado pelo banco.
 
 **Critérios de aceite**
 
 - [x] `AC-43`: o teste estático falha se qualquer SQL desta feature mencionar a tabela de snapshots com verbo de mutação
-- [x] `AC-32`: `UPDATE` e `DELETE` reais sobre `motor_calculo.snapshots` são recusados, e o snapshot permanece inalterado
+- [x] `AC-32`: `UPDATE` e `DELETE` reais sobre `piq_motor_calculo.snapshots` são recusados, e o snapshot permanece inalterado
 - [x] O teste estático cobre também `002_app_aluno.sql`
 - [x] O teste de integração é `requer_banco` e pulado com mensagem sem `DATABASE_URL`
 
@@ -1992,7 +1992,7 @@ acesso anônimo a dado sensível (dívida, renda, negativação).
 
 **Critérios de aceite**
 
-- [x] Migração adiciona `e_revisor boolean NOT NULL DEFAULT false` a `app_aluno.contas` — nenhuma conta existente vira revisora por acidente — validado contra Postgres real (container efêmero, migrações `001`+`002` aplicadas, uma conta inserida ANTES de `003_papel_revisor.sql`; após a migração, `e_revisor` da conta pré-existente é `false`)
+- [x] Migração adiciona `e_revisor boolean NOT NULL DEFAULT false` a `piq_app_aluno.contas` — nenhuma conta existente vira revisora por acidente — validado contra Postgres real (container efêmero, migrações `001`+`002` aplicadas, uma conta inserida ANTES de `003_papel_revisor.sql`; após a migração, `e_revisor` da conta pré-existente é `false`)
 - [x] `GET /revisao/fila` (as rotas de decisão de `T-71` ainda não existem — `exigir_papel_revisor` é o mecanismo genérico já pronto para elas reutilizarem) recusa com `401`/`403` uma sessão sem `e_revisor = true`, antes de qualquer leitura de caso — a dependência é declarada na assinatura da rota, resolvida pelo FastAPI antes do corpo do handler chamar `RepositorioCasos.listar_por_estado`
 - [x] Uma conta de aluno comum (`e_revisor = false`) autenticada recebe `403` ao acessar `/revisao/*` — nunca `404` (a existência da tela não é segredo, o acesso é)
 - [x] O provisionamento de uma conta revisora é documentado (`persistencia/app_aluno/contas.py::promover_a_revisor`, com o SQL manual equivalente na docstring) e citado como fora de escopo de UI
@@ -2774,7 +2774,7 @@ pela MESMA função que a rota já usava (`evento_da_resposta_b11_q01`, T-82,
 sobre `app.eventos.mapeamento.evento_recalculo_da_resposta`, T-81) e só
 chamam `disparar_recalculo`/`disparar_recalculo_async` (T-86) quando o
 resultado não é `None`; caso contrário chamam `registrar_alteracao_
-cadastral` (nova), que grava a trilha (`app_aluno.eventos_caso`, T-21) sem
+cadastral` (nova), que grava a trilha (`piq_app_aluno.eventos_caso`, T-21) sem
 tocar `estado`. `app/http/rotas_bloco11.py` (T-82) não foi tocada: ela já
 não disparava recálculo algum (só devolvia o evento identificado no JSON),
 então já satisfazia "nenhuma rota constrói `EVENTO_RECALCULO` a partir de
@@ -2783,7 +2783,7 @@ tarefa — confirmado por auditoria de AST (`tests/app_aluno/
 test_processar_resposta_bloco_11_ac35.py::
 test_unico_ponto_de_construcao_de_evento_recalculo_a_partir_de_resposta`)
 sobre TODO `app/`, não só sobre este módulo. Mecanismo de trilha NOVO:
-`app_aluno.eventos_caso` (T-21) não tinha nenhum repositório até esta
+`piq_app_aluno.eventos_caso` (T-21) não tinha nenhum repositório até esta
 tarefa — `persistencia/app_aluno/eventos.py::RepositorioEventosCaso`
 (Postgres) e a extensão de `persistencia/app_aluno/arquivo.py`
 (`RepositorioEventosCasoArquivo`) foram criados como o "repositório simples"
@@ -8129,7 +8129,7 @@ compra aprovada → webhook → POST /api/provisionamento/conta (segredo)
                           → entra com e-mail + senha, de qualquer aparelho
 ```
 
-**O que muda no schema.** `app_aluno.contas.senha_hash` é `NOT NULL` — a
+**O que muda no schema.** `piq_app_aluno.contas.senha_hash` é `NOT NULL` — a
 conta não pode nascer sem senha. A migração `004` o torna anulável e
 acrescenta a tabela de token de primeiro acesso (uso único, com expiração).
 Conta sem `senha_hash` **não autentica**: `autenticar` recusa antes de
@@ -13524,7 +13524,7 @@ trilha da `proxima_pergunta` via `app/http/jornada.py::parte_da_pergunta`).
 
 Decisão do produto (2026-10-02): "Pegue do cadastro da Hotmart o nome do aluno."
 
-- [x] Coluna `nome` (nula) em `app_aluno.contas`, por migração — `009_nome_da_conta.sql` (**não aplicada** em banco nenhum)
+- [x] Coluna `nome` (nula) em `piq_app_aluno.contas`, por migração — `009_nome_da_conta.sql` (**não aplicada** em banco nenhum)
 - [x] Webhook `PURCHASE_APPROVED`: grava `data.buyer.name` (aparado; vazio → nulo); conta já existente sem nome ganha o nome; nunca sobrescreve nome existente com vazio
 - [x] Painel de usuários: coluna **Nome** antes do E-mail; sem nome → "—"
 - [x] Nome não aparece em rota de aluno nem em log

@@ -35,9 +35,9 @@
   "persistencia/arquivo/__init__.py": "612b4cb22445f7d5d20a10240752ae6bdd22ed33171502a42cc2341f9673aaf2",
   "persistencia/arquivo/fonte_parametros.py": "b8b5f962445b648c43be91298306a318884667bdfac64cad60e3eab9c5f588ad",
   "persistencia/arquivo/repositorio_snapshots.py": "e899e0d8bb3b0880601e95effb79b16fd91a60dec25365251bf0266ba6d15e62",
-  "persistencia/supabase/__init__.py": "c56f0fafb1722a78e919ad0b2fb2a48d215b20bcbddd5688413f431b2289fc5b",
-  "persistencia/supabase/conexao.py": "316dd230e3d5e0d9ee91009e1a8ff8381fe632cf71dd5d68c8b200dac3818f74",
-  "persistencia/supabase/fonte_parametros.py": "22083ce07144d03c77bc87ea734196541a8a89562f8fa3b2ce17a70f25f4d6d6",
+  "persistencia/supabase/__init__.py": "6c3ccd46a342ff245b9c1e81dd5dd6e9fb667743cb1a98ff8a8d4c31be5f3af1",
+  "persistencia/supabase/conexao.py": "771ede6721f08d822eb33da256de45a1ea9b21ecd1d61802b7d85c0bd98f82d9",
+  "persistencia/supabase/fonte_parametros.py": "5b5bc67526a8b4f3065880540cad6efa243929b557512b3ddaf9b0c789b6e043",
   "persistencia/supabase/migracoes/001_inicial.sql": "fc4669726a709b07beeb0b6402a008c475cc41f87696cd31b0196ca8df2e249f",
-  "persistencia/supabase/repositorio_snapshots.py": "464979d88687b861efd2c043e50f0711e5dee33f4976c6aa7e2610995d865d82"
+  "persistencia/supabase/repositorio_snapshots.py": "b43b50ab7c93626dfa2b1c9c89309129a0496e57c8e1ca8b1b7737c0e6a485b8"
 }

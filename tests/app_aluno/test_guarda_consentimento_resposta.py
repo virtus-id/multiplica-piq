@@ -242,7 +242,7 @@ def test_gravar_com_coleta_inicial_e_aceito_e_insert_e_executado(
 def test_gravar_com_caso_inexistente_e_recusado_sem_assumir_estado_liberado(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Um `CASO_ID` que não existe em `app_aluno.casos` nunca é tratado como
+    """Um `CASO_ID` que não existe em `piq_app_aluno.casos` nunca é tratado como
     "estado que permite resposta" por omissão — a ausência de linha vira
     `ErroCasoInexistenteParaResposta`, nunca uma gravação silenciosa."""
     conexao_dublê = _ConexaoComEstado(None)

@@ -128,10 +128,10 @@ def _caso_pronto_para_coleta(cliente_http_real: TestClient) -> str:
     assert resposta_cadastro.status_code == 201  # `201 Created` (T-144)
 
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         cursor.execute(
-            'SELECT "CASO_ID" FROM app_aluno.casos WHERE conta_id = ('
-            "SELECT conta_id FROM app_aluno.contas WHERE email = %s)",
+            'SELECT "CASO_ID" FROM piq_app_aluno.casos WHERE conta_id = ('
+            "SELECT conta_id FROM piq_app_aluno.contas WHERE email = %s)",
             (email,),
         )
         (caso_id,) = cursor.fetchone()  # type: ignore[misc]
@@ -147,15 +147,15 @@ def _caso_pronto_para_coleta(cliente_http_real: TestClient) -> str:
 
 def _total_de_respostas(caso_id: str, id_pergunta: str | None = None) -> int:
     with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         if id_pergunta is None:
             cursor.execute(
-                'SELECT count(*) FROM app_aluno.respostas WHERE "CASO_ID" = %s',
+                'SELECT count(*) FROM piq_app_aluno.respostas WHERE "CASO_ID" = %s',
                 (caso_id,),
             )
         else:
             cursor.execute(
-                'SELECT count(*) FROM app_aluno.respostas '
+                'SELECT count(*) FROM piq_app_aluno.respostas '
                 'WHERE "CASO_ID" = %s AND "ID_PERGUNTA" = %s',
                 (caso_id, id_pergunta),
             )

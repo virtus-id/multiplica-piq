@@ -6,7 +6,7 @@ não pode vazar para o histórico do repositório. Ausência de `DATABASE_URL`
 levanta `ErroConexaoAusente` explícito: nenhum adaptador Supabase funciona
 "por acidente" com uma string embutida.
 
-Todas as conexões abertas aqui operam contra o schema `motor_calculo`
+Todas as conexões abertas aqui operam contra o schema `piq_motor_calculo`
 (`search_path` fixado na sessão) — nunca `public` nem qualquer schema de
 outro sistema hospedado no mesmo banco (`ads_*`, `core_*`, `trv_*`, `vtr_*`,
 ver migração `001_inicial.sql`).
@@ -47,7 +47,7 @@ from psycopg_pool import ConnectionPool
 REGRAS: Final[tuple[str, ...]] = ("RF-12", "RF-13")
 
 _NOME_VARIAVEL_AMBIENTE: Final[str] = "DATABASE_URL"
-_SCHEMA: Final[str] = "motor_calculo"
+_SCHEMA: Final[str] = "piq_motor_calculo"
 
 # `max_connections` do Postgres é 60 (medido 2026-09-23) — compartilhado com
 # TODOS os sistemas hospedados no mesmo projeto Supabase (`ads_*`, `core_*`,
@@ -126,13 +126,13 @@ def obter_pool() -> ConnectionPool:
 @contextmanager
 def conectar() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
     """Retira uma conexão do pool compartilhado (`obter_pool`), com
-    `search_path` fixado em `motor_calculo` — todas as consultas feitas
+    `search_path` fixado em `piq_motor_calculo` — todas as consultas feitas
     dentro do `with` resolvem tabelas sem qualificação de schema contra
-    `motor_calculo`, nunca contra `public` ou os schemas de outros sistemas
+    `piq_motor_calculo`, nunca contra `public` ou os schemas de outros sistemas
     que compartilham o mesmo banco.
 
     **O `SET search_path` roda a CADA checkout, não uma vez só.** A mesma
-    conexão física pode ter servido `app_aluno` no checkout anterior — sem
+    conexão física pode ter servido `piq_app_aluno` no checkout anterior — sem
     fixar de novo aqui, uma consulta sem qualificação de schema resolveria
     contra o schema errado, silenciosamente.
 

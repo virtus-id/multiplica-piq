@@ -144,7 +144,7 @@ def test_ec05_falha_de_gravacao_propaga_excecao_e_nunca_comita(monkeypatch: Any)
 
 
 def _caso_novo(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
-    """Cria conta + caso mínimos (FK de `app_aluno.respostas`) e devolve o
+    """Cria conta + caso mínimos (FK de `piq_app_aluno.respostas`) e devolve o
     `CASO_ID` novo, isolado por execução (`uuid4`) — não colide com dados de
     execuções anteriores num banco de teste persistente.
 
@@ -157,12 +157,12 @@ def _caso_novo(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
     conta_id = f"TESTE_T22_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T22_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, 'COLETA_INICIAL', CURRENT_DATE, '1.0.0')
         """,
@@ -178,7 +178,7 @@ def test_ac02_gravar_e_listar_do_caso_le_a_resposta_antes_da_proxima_pergunta() 
     from persistencia.supabase.conexao import obter_database_url
 
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _caso_novo(cursor)
 
     repositorio = RepositorioRespostasSupabase()
@@ -207,7 +207,7 @@ def test_gravar_nao_sei_produz_linha_distinguivel_de_ausencia() -> None:
     from persistencia.supabase.conexao import obter_database_url
 
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _caso_novo(cursor)
 
     repositorio = RepositorioRespostasSupabase()
@@ -223,11 +223,11 @@ def test_gravar_nao_sei_produz_linha_distinguivel_de_ausencia() -> None:
     )
 
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         cursor.execute(
             """
             SELECT valor_texto, valor_numerico, valor_nao_sei
-            FROM app_aluno.respostas
+            FROM piq_app_aluno.respostas
             WHERE "CASO_ID" = %s AND "ID_PERGUNTA" = %s AND item_id = ''
             """,
             (caso_id, "B1.02"),
@@ -257,7 +257,7 @@ def test_round_trip_decimal_alta_precisao_preserva_string_exata() -> None:
     from persistencia.supabase.conexao import obter_database_url
 
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _caso_novo(cursor)
 
     repositorio = RepositorioRespostasSupabase()
@@ -290,7 +290,7 @@ def test_ec10_regravar_mesma_chave_sobrescreve_sem_merge() -> None:
     from persistencia.supabase.conexao import obter_database_url
 
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         caso_id = _caso_novo(cursor)
 
     repositorio = RepositorioRespostasSupabase()
@@ -319,10 +319,10 @@ def test_ec10_regravar_mesma_chave_sobrescreve_sem_merge() -> None:
     )
 
     with psycopg.connect(obter_database_url()) as conexao, conexao.cursor() as cursor:
-        cursor.execute("SET search_path TO app_aluno, public")
+        cursor.execute("SET search_path TO piq_app_aluno, public")
         cursor.execute(
             """
-            SELECT count(*) FROM app_aluno.respostas
+            SELECT count(*) FROM piq_app_aluno.respostas
             WHERE "CASO_ID" = %s AND "ID_PERGUNTA" = %s AND item_id = %s
             """,
             (caso_id, "B5.VALOR", "D001"),

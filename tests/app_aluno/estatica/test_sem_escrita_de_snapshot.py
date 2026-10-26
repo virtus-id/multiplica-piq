@@ -4,10 +4,10 @@ AC-43.
 `AC-43`: "o teste estático falha se qualquer SQL desta feature mencionar a
 tabela de snapshots com verbo de mutação." A única porta de escrita de
 snapshot é `RepositorioSnapshots.anexar` (`engine/portas.py`), sobre
-`motor_calculo.snapshots` — e essa porta é implementada e chamada de dentro do
+`piq_motor_calculo.snapshots` — e essa porta é implementada e chamada de dentro do
 slug `motor-calculo`, fora do escopo deste backlog (`app-aluno`). Nenhuma
 tarefa de `app-aluno` deveria conter, em código Python OU em SQL de migração,
-um `INSERT`/`UPDATE`/`DELETE` que mute `motor_calculo.snapshots` diretamente.
+um `INSERT`/`UPDATE`/`DELETE` que mute `piq_motor_calculo.snapshots` diretamente.
 
 Dois alvos, duas técnicas — a mesma dualidade de `test_sem_conteudo_de_
 questionario_no_codigo.py` (T-08): AST para `.py`, varredura textual para
@@ -35,10 +35,10 @@ removedor precisa ser estendido.
 
 Verbo de mutação sobre a tabela de snapshot: a regex casa `INSERT INTO`,
 `UPDATE` e `DELETE FROM` (com variação de espaço em branco) imediatamente
-seguidos do nome qualificado `motor_calculo.snapshots` (com ou sem aspas
+seguidos do nome qualificado `piq_motor_calculo.snapshots` (com ou sem aspas
 duplas no nome da tabela, já que SQL não exige aspas para um identificador em
-minúsculas). Isso NÃO inclui `REVOKE UPDATE, DELETE ON motor_calculo.snapshots`
-nem `BEFORE UPDATE OR DELETE ON motor_calculo.snapshots` (a trigger de
+minúsculas). Isso NÃO inclui `REVOKE UPDATE, DELETE ON piq_motor_calculo.snapshots`
+nem `BEFORE UPDATE OR DELETE ON piq_motor_calculo.snapshots` (a trigger de
 `001_inicial.sql`) — ambos são declarações de PERMISSÃO/GATILHO, não comandos
 de mutação; a regex exige o verbo em posição de COMANDO (`INSERT INTO`/
 `UPDATE <tabela> SET`/`DELETE FROM`), nunca em posição de cláusula
@@ -66,8 +66,8 @@ ARQUIVOS_SQL_AUDITADOS: Final[tuple[str, ...]] = (
 )
 
 # Nome qualificado da tabela de snapshot (confirmado em 001_inicial.sql):
-# `motor_calculo.snapshots`. Aceita variação de aspas duplas no identificador.
-_NOME_TABELA_SNAPSHOT: Final[str] = r'"?motor_calculo"?\."?snapshots"?'
+# `piq_motor_calculo.snapshots`. Aceita variação de aspas duplas no identificador.
+_NOME_TABELA_SNAPSHOT: Final[str] = r'"?piq_motor_calculo"?\."?snapshots"?'
 
 # Padrões de MUTAÇÃO real sobre a tabela — verbo em posição de COMANDO, nunca
 # em cláusula de permissão (`REVOKE ... ON`) ou de gatilho (`BEFORE ... ON`).
@@ -179,7 +179,7 @@ def _arquivos_py_das_pastas_auditadas() -> list[Path]:
 def test_ac43_nenhum_py_da_feature_contem_sql_de_mutacao_sobre_snapshot() -> None:
     """AC-43: nenhum `.py` de `app/`, `collection/`, `report/` ou
     `persistencia/app_aluno/` contém, como literal de string, um comando SQL
-    de `INSERT`/`UPDATE`/`DELETE` sobre `motor_calculo.snapshots`."""
+    de `INSERT`/`UPDATE`/`DELETE` sobre `piq_motor_calculo.snapshots`."""
     violacoes: list[ViolacaoEscritaSnapshot] = []
     for arquivo in _arquivos_py_das_pastas_auditadas():
         codigo_fonte = arquivo.read_text(encoding="utf-8")
@@ -196,9 +196,9 @@ def test_ac43_nenhum_py_da_feature_contem_sql_de_mutacao_sobre_snapshot() -> Non
 def test_ac43_nenhuma_migracao_desta_feature_contem_sql_de_mutacao_sobre_snapshot() -> None:
     """AC-43: nem `001_inicial.sql` nem `002_app_aluno.sql` contêm um
     `INSERT`/`UPDATE`/`DELETE` de comando (fora de comentário) sobre
-    `motor_calculo.snapshots`. A única exceção normativa conhecida —
-    `REVOKE UPDATE, DELETE ON motor_calculo.snapshots FROM PUBLIC` e a
-    trigger `BEFORE UPDATE OR DELETE ON motor_calculo.snapshots` de
+    `piq_motor_calculo.snapshots`. A única exceção normativa conhecida —
+    `REVOKE UPDATE, DELETE ON piq_motor_calculo.snapshots FROM PUBLIC` e a
+    trigger `BEFORE UPDATE OR DELETE ON piq_motor_calculo.snapshots` de
     `001_inicial.sql` — não é uma mutação, é a própria defesa contra
     mutação, e não casa com os padrões de comando usados aqui (ver docstring
     do módulo)."""
@@ -216,12 +216,12 @@ def test_ac43_nenhuma_migracao_desta_feature_contem_sql_de_mutacao_sobre_snapsho
 
 
 def test_detector_pega_insert_proposital_em_sql(tmp_path: Path) -> None:
-    """Prova sintética: um `INSERT INTO motor_calculo.snapshots` fabricado é
+    """Prova sintética: um `INSERT INTO piq_motor_calculo.snapshots` fabricado é
     detectado pelo removedor de comentários + regex, sem depender de um
     arquivo real violador (as migrações reais não têm essa violação)."""
     sql_com_violacao = (
         "-- comentário legítimo sobre snapshots, não é mutação\n"
-        "INSERT INTO motor_calculo.snapshots (\"SNAPSHOT_ID\") VALUES ('X');\n"
+        "INSERT INTO piq_motor_calculo.snapshots (\"SNAPSHOT_ID\") VALUES ('X');\n"
     )
     caminho = tmp_path / "caso_proposital.sql"
     caminho.write_text(sql_com_violacao, encoding="utf-8")
@@ -233,9 +233,9 @@ def test_detector_pega_insert_proposital_em_sql(tmp_path: Path) -> None:
 
 
 def test_detector_pega_update_proposital_em_sql(tmp_path: Path) -> None:
-    """Prova sintética: `UPDATE motor_calculo.snapshots SET ...` é
+    """Prova sintética: `UPDATE piq_motor_calculo.snapshots SET ...` é
     detectado."""
-    sql_com_violacao = 'UPDATE motor_calculo.snapshots SET "MOTIVO_RECALCULO" = \'x\';\n'
+    sql_com_violacao = 'UPDATE piq_motor_calculo.snapshots SET "MOTIVO_RECALCULO" = \'x\';\n'
     caminho = tmp_path / "caso_proposital.sql"
     caminho.write_text(sql_com_violacao, encoding="utf-8")
 
@@ -245,8 +245,8 @@ def test_detector_pega_update_proposital_em_sql(tmp_path: Path) -> None:
 
 
 def test_detector_pega_delete_proposital_em_sql(tmp_path: Path) -> None:
-    """Prova sintética: `DELETE FROM motor_calculo.snapshots` é detectado."""
-    sql_com_violacao = "DELETE FROM motor_calculo.snapshots WHERE \"SNAPSHOT_ID\" = 'X';\n"
+    """Prova sintética: `DELETE FROM piq_motor_calculo.snapshots` é detectado."""
+    sql_com_violacao = "DELETE FROM piq_motor_calculo.snapshots WHERE \"SNAPSHOT_ID\" = 'X';\n"
     caminho = tmp_path / "caso_proposital.sql"
     caminho.write_text(sql_com_violacao, encoding="utf-8")
 
@@ -257,12 +257,12 @@ def test_detector_pega_delete_proposital_em_sql(tmp_path: Path) -> None:
 
 def test_detector_pega_insert_proposital_em_string_python(tmp_path: Path) -> None:
     """Prova sintética: um literal de string em `.py` contendo
-    `INSERT INTO motor_calculo.snapshots` é detectado — cobre o caso de um
+    `INSERT INTO piq_motor_calculo.snapshots` é detectado — cobre o caso de um
     agente futuro montar SQL de mutação diretamente em código de
     `app/`/`collection/`/`report/`/`persistencia/app_aluno/`."""
     codigo_com_violacao = '''
 def gravar_snapshot_por_engano() -> str:
-    return "INSERT INTO motor_calculo.snapshots (\\"SNAPSHOT_ID\\") VALUES ('X')"
+    return "INSERT INTO piq_motor_calculo.snapshots (\\"SNAPSHOT_ID\\") VALUES ('X')"
 '''
     caminho = tmp_path / "caso_proposital.py"
     caminho.write_text(codigo_com_violacao, encoding="utf-8")
@@ -274,13 +274,13 @@ def gravar_snapshot_por_engano() -> str:
 
 def test_detector_nao_acusa_comentario_narrativo_sobre_snapshot(tmp_path: Path) -> None:
     """Prova de ausência de falso positivo: um comentário que MENCIONA
-    "UPDATE" e "motor_calculo.snapshots" lado a lado, em prosa narrativa
+    "UPDATE" e "piq_motor_calculo.snapshots" lado a lado, em prosa narrativa
     (exatamente o estilo das docstrings de 001_inicial.sql/002_app_aluno.sql),
     não é reportado — porque comentários são removidos antes da busca."""
     sql_valido = (
-        "-- Esta migração nunca faz UPDATE ou DELETE em motor_calculo.snapshots:\n"
+        "-- Esta migração nunca faz UPDATE ou DELETE em piq_motor_calculo.snapshots:\n"
         "-- a única porta de escrita é RepositorioSnapshots.anexar.\n"
-        "CREATE SCHEMA IF NOT EXISTS app_aluno;\n"
+        "CREATE SCHEMA IF NOT EXISTS piq_app_aluno;\n"
     )
     caminho = tmp_path / "caso_comentario_narrativo.sql"
     caminho.write_text(sql_valido, encoding="utf-8")
@@ -292,17 +292,17 @@ def test_detector_nao_acusa_comentario_narrativo_sobre_snapshot(tmp_path: Path) 
 
 def test_detector_nao_acusa_revoke_nem_trigger_sobre_snapshot(tmp_path: Path) -> None:
     """Prova de ausência de falso positivo: `REVOKE UPDATE, DELETE ON
-    motor_calculo.snapshots FROM PUBLIC` e `BEFORE UPDATE OR DELETE ON
-    motor_calculo.snapshots` (a defesa de V-01, não uma mutação) não são
+    piq_motor_calculo.snapshots FROM PUBLIC` e `BEFORE UPDATE OR DELETE ON
+    piq_motor_calculo.snapshots` (a defesa de V-01, não uma mutação) não são
     reportados — o verbo aparece em posição de cláusula de permissão/gatilho,
     nunca em posição de comando (`INSERT INTO`/`UPDATE ... SET`/
     `DELETE FROM`)."""
     sql_valido = (
-        "REVOKE UPDATE, DELETE ON motor_calculo.snapshots FROM PUBLIC;\n"
+        "REVOKE UPDATE, DELETE ON piq_motor_calculo.snapshots FROM PUBLIC;\n"
         "CREATE TRIGGER impedir_sobrescrita_v01\n"
-        "    BEFORE UPDATE OR DELETE ON motor_calculo.snapshots\n"
+        "    BEFORE UPDATE OR DELETE ON piq_motor_calculo.snapshots\n"
         "    FOR EACH ROW\n"
-        "    EXECUTE FUNCTION motor_calculo.impedir_sobrescrita_v01();\n"
+        "    EXECUTE FUNCTION piq_motor_calculo.impedir_sobrescrita_v01();\n"
     )
     caminho = tmp_path / "caso_revoke_trigger.sql"
     caminho.write_text(sql_valido, encoding="utf-8")

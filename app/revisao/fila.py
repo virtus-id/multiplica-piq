@@ -37,7 +37,7 @@ PADRÃO ESTRUTURAL de `engine/portas.py::RepositorioSnapshots` — só métodos
 de gravação (`gravar`) e leitura (`obter`, `listar_do_caso`). **Não existe
 `atualizar` nem `remover`** no `Protocol`: a violação de imutabilidade é
 estruturalmente INEXPRIMÍVEL, não uma checagem em runtime, exatamente como
-lá. A tabela `app_aluno.revisoes` (`002_app_aluno.sql`, T-21) reforça a
+lá. A tabela `piq_app_aluno.revisoes` (`002_app_aluno.sql`, T-21) reforça a
 mesma garantia do lado do banco (`REVOKE UPDATE, DELETE` + trigger
 `impedir_sobrescrita_revisao_v01`).
 
@@ -271,7 +271,7 @@ def listar_fila_de_revisao(
     nunca levanta um item inventado.
 
     **`RepositorioSnapshots.historico` é indexado pelo `SNAPSHOT_ID` da
-    RAIZ da cadeia (`engine/portas.py`), não pelo `CASO_ID` de `app_aluno`**
+    RAIZ da cadeia (`engine/portas.py`), não pelo `CASO_ID` de `piq_app_aluno`**
     (identidades distintas, `OQ-11` — ver `Caso.snapshot_raiz_id`,
     `app/casos/maquina.py`). Por isso esta função consulta o histórico por
     `caso.snapshot_raiz_id`, nunca por `caso_id` diretamente.
@@ -355,7 +355,7 @@ class RegistroRevisao:
     os dois (`AC-27`: "autor e data são gravados"). A imutabilidade DEPOIS
     de gravado (nenhuma rota pode alterar ou remover) é responsabilidade de
     `persistencia/app_aluno/revisoes.py::RepositorioRevisoes` (interface sem
-    `atualizar`/`remover`) e da tabela `app_aluno.revisoes` (`REVOKE
+    `atualizar`/`remover`) e da tabela `piq_app_aluno.revisoes` (`REVOKE
     UPDATE, DELETE` + trigger, T-21) — este dataclass não persiste nada por
     si só, só representa o valor imutável em memória.
 

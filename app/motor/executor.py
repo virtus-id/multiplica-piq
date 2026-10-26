@@ -166,7 +166,7 @@ chamador — nunca um retorno "degradado" no lugar de um `SnapshotOrdem`.
 `_transicionar_para_erro` (`EC-04`/`EC-03`) e as duas transições de
 `executar_calculo_com_timeout_async` (`EC-06`: `CALCULANDO → ERRO_DE_CALCULO`
 seguida de `ERRO_DE_CALCULO → estado_anterior_do_caso`) persistiam o novo
-`estado` sem deixar rastro em `app_aluno.eventos_caso` — só o log estruturado
+`estado` sem deixar rastro em `piq_app_aluno.eventos_caso` — só o log estruturado
 de `_registrar_evento` (`logging`, não a trilha persistida). `RF-31`/`AC-40`
 exigem que TODA transição da máquina grave um evento na trilha, não só as
 que passam por `app/casos/progresso.py::transicionar_e_registrar` em

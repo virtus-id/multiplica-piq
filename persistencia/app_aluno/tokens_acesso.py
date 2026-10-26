@@ -51,7 +51,7 @@ from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
 REGRAS: Final[tuple[str, ...]] = ("RF-02",)
 
-_SCHEMA: Final[str] = "app_aluno"
+_SCHEMA: Final[str] = "piq_app_aluno"
 
 #: Quanto tempo o link vale. 48 horas cobre com folga quem compra à noite e
 #: só abre o e-mail no dia seguinte, sem deixar uma credencial viva por
@@ -125,7 +125,7 @@ class RepositorioTokensAcesso(Protocol):
 
 class RepositorioTokensAcessoSupabase:
     """Implementa `RepositorioTokensAcesso` sobre
-    `app_aluno.tokens_primeiro_acesso`."""
+    `piq_app_aluno.tokens_primeiro_acesso`."""
 
     def emitir(self, conta_id: str, validade: timedelta | None = None) -> TokenEmitido:
         # 32 bytes de entropia — `token_urlsafe(32)` produz ~43 caracteres
@@ -142,7 +142,7 @@ class RepositorioTokensAcessoSupabase:
                 # token foi emitido e substituído tem valor de auditoria.
                 cursor.execute(
                     """
-                    UPDATE app_aluno.tokens_primeiro_acesso
+                    UPDATE piq_app_aluno.tokens_primeiro_acesso
                     SET usado_em = %s
                     WHERE conta_id = %s AND usado_em IS NULL
                     """,
@@ -150,7 +150,7 @@ class RepositorioTokensAcessoSupabase:
                 )
                 cursor.execute(
                     """
-                    INSERT INTO app_aluno.tokens_primeiro_acesso
+                    INSERT INTO piq_app_aluno.tokens_primeiro_acesso
                         (token_hash, conta_id, criado_em, expira_em)
                     VALUES (%s, %s, %s, %s)
                     """,
@@ -171,7 +171,7 @@ class RepositorioTokensAcessoSupabase:
                 # linha, porque o primeiro já preencheu `usado_em`.
                 cursor.execute(
                     """
-                    UPDATE app_aluno.tokens_primeiro_acesso
+                    UPDATE piq_app_aluno.tokens_primeiro_acesso
                     SET usado_em = %s
                     WHERE token_hash = %s
                       AND usado_em IS NULL

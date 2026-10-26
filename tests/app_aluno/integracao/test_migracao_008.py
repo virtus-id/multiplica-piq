@@ -38,12 +38,12 @@ def _caso(cursor: psycopg.Cursor[tuple[object, ...]]) -> str:
     conta_id = f"TESTE_T271_CONTA_{uuid.uuid4().hex}"
     caso_id = f"TESTE_T271_CASO_{uuid.uuid4().hex}"
     cursor.execute(
-        "INSERT INTO app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
+        "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash) VALUES (%s, %s, %s)",
         (conta_id, f"{conta_id}@teste.invalido", "hash-fake-de-teste"),
     )
     cursor.execute(
         """
-        INSERT INTO app_aluno.casos
+        INSERT INTO piq_app_aluno.casos
             ("CASO_ID", conta_id, estado, "DATA_REFERENCIA", "QUESTIONARIO_VERSION")
         VALUES (%s, %s, 'COLETA_INICIAL', CURRENT_DATE, '1.0.0')
         """,
@@ -57,7 +57,7 @@ def _responder_legado(cursor: psycopg.Cursor[tuple[object, ...]], caso_id: str) 
     for variavel, texto in zip(_VARIAVEIS, textos, strict=True):
         cursor.execute(
             """
-            INSERT INTO app_aluno.respostas
+            INSERT INTO piq_app_aluno.respostas
                 ("CASO_ID", "ID_PERGUNTA", item_id, valor_texto, valor_numerico,
                  "QUESTIONARIO_VERSION")
             VALUES (%s, %s, '', %s, %s, '1.0.0')
@@ -68,7 +68,9 @@ def _responder_legado(cursor: psycopg.Cursor[tuple[object, ...]], caso_id: str) 
 
 @pytest.mark.requer_banco
 def test_t271_legado_vai_para_ext001_e_rodar_duas_vezes_e_rodar_uma() -> None:
-    sql = _MIGRACAO.read_text(encoding="utf-8")
+    # A 008 foi escrita antes da 012 (prefixo `piq_` nos schemas) e cita o nome antigo;
+    # o banco de teste já está renomeado, então o SQL é lido com o nome atual.
+    sql = _MIGRACAO.read_text(encoding="utf-8").replace("app_aluno.", "piq_app_aluno.")
     with psycopg.connect(_database_url()) as conexao:
         try:
             with conexao.cursor() as cursor:
@@ -77,7 +79,7 @@ def test_t271_legado_vai_para_ext001_e_rodar_duas_vezes_e_rodar_uma() -> None:
                 ja_tem_item = _caso(cursor)
                 _responder_legado(cursor, ja_tem_item)
                 cursor.execute(
-                    "INSERT INTO app_aluno.itens_repetidos (item_id, \"CASO_ID\", escopo)"
+                    "INSERT INTO piq_app_aluno.itens_repetidos (item_id, \"CASO_ID\", escopo)"
                     " VALUES (%s, %s, 'RECURSO_EXTRAORDINARIO_ID')",
                     (f"{ja_tem_item}:EXT001", ja_tem_item),
                 )
@@ -85,14 +87,14 @@ def test_t271_legado_vai_para_ext001_e_rodar_duas_vezes_e_rodar_uma() -> None:
                 def estado() -> tuple[list[tuple[object, ...]], list[tuple[object, ...]]]:
                     cursor.execute(
                         """
-                        SELECT "CASO_ID", "ID_PERGUNTA", item_id FROM app_aluno.respostas
+                        SELECT "CASO_ID", "ID_PERGUNTA", item_id FROM piq_app_aluno.respostas
                         WHERE "CASO_ID" IN (%s, %s) ORDER BY 1, 2
                         """,
                         (legado, ja_tem_item),
                     )
                     respostas = cursor.fetchall()
                     cursor.execute(
-                        "SELECT item_id, escopo FROM app_aluno.itens_repetidos"
+                        "SELECT item_id, escopo FROM piq_app_aluno.itens_repetidos"
                         " WHERE \"CASO_ID\" IN (%s, %s) ORDER BY 1",
                         (legado, ja_tem_item),
                     )

@@ -9,7 +9,7 @@ membro, nunca instanciado fora da constante) — mas são conceitos DISTINTOS:
 (RF-12), fora desta tarefa — este módulo nunca importa de `engine.tipos`.
 
 `NAO_SEI` é resposta de PRIMEIRA CLASSE: distinguível de "não respondido"
-(ausência da linha em `app_aluno.respostas`) e de qualquer valor concreto.
+(ausência da linha em `piq_app_aluno.respostas`) e de qualquer valor concreto.
 `None` significa exclusivamente "não perguntado" — NUNCA "não sei". Por isso
 `ValorResposta` não inclui `None` no tipo-soma: uma pergunta sem resposta é a
 ausência de um `Resposta`, não um `Resposta` com `valor=None`.
