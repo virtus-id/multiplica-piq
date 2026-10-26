@@ -26,4 +26,4 @@
 
 ### `T-445` — Virada em produção
 - **Rastreia:** `RF-455`, `RF-456` · **Dependências:** `T-441` a `T-444`, `OQ-1`, `OQ-2`
-- [ ] Executar o roteiro do plano. **Não feito sem autorização explícita.**
+- [x] Executado em 2026-10-26 com autorização do produto. A 011 ainda não estava em produção e rodou antes da 012, na mesma transação (10 tabelas e 15 contas conferidas antes do commit). Imagem nova construída antes da janela. **Incidente:** a API antiga não foi parada antes da migração (a cadeia de comandos parou no `docker tag`), então o login ficou fora por alguns minutos até a imagem nova subir. Conferido depois: `/saude/banco` ok, login e `/api/conta/eu` ok, sem erro de schema nos logs. A `OQ-1` (consumidores externos) segue sem resposta. Reversão, se preciso: `ALTER SCHEMA piq_app_aluno RENAME TO app_aluno` (idem motor), `git revert` e `docker compose up -d --build`.
