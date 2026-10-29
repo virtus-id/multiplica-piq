@@ -134,7 +134,7 @@ def test_numeros_do_mes_no_negativo_fecham_entre_si() -> None:
     assert contexto.FALTA_CORTAR == formatar_dinheiro_br(d.DEFICIT_MENSAL)
     html = _html(snapshot)
     assert formatar_dinheiro_br(d.RESULTADO_MENSAL_ATUAL) in html
-    assert formatar_dinheiro_br(d.DEFICIT_MENSAL) in html
+    # `RF-473`: o PDF mostra só o resultado negativo; o déficit segue no contexto (tela).
 
 
 def test_estabilizacao_mostra_avisos_de_atraso_e_garantia_com_responsabilidade() -> None:
