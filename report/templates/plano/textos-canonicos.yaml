@@ -693,6 +693,11 @@ estabilizacao:
     porque depende de quanto ficar livre para atacar as dívidas. A quitação
     só começa quando o mês fechar com saldo positivo.
   metodo_rotulo: "Método recomendado"
+  # RF-473 (T-452). Sugestão, a validar pelo produto.
+  falta_cortar_rotulo: "Para zerar, faltam cortar por mês"
+  passos_titulo: "O que fazer agora"
+  passo_1: "Veja, na próxima página, os seus maiores gastos e marque o que dá para reduzir, pausar ou eliminar."
+  passo_2: "Corte até o mês deixar de fechar no negativo. A aula 5 do curso mostra como."
   # RF-471. Sugestão, a validar pelo produto.
   aviso_titulo: "Isto ainda não é uma instrução de pagamento"
   aviso_1: "A ordem de quitação é uma simulação provisória. Não antecipe pagamentos com base nela."

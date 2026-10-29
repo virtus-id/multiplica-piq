@@ -1,45 +1,45 @@
 {#
-    Modo estabilização — EC-09, RF-15, RF-21 (T-62); revisão de design
-    (2026-10-03).
+    Modo estabilização — EC-09, RF-15, RF-21 (T-62); `RF-468` a `RF-471` (T-437, T-450);
+    `RF-473` (T-452): um número e uma ação.
 
     Incluído por `plano.html` no lugar da ordem e do cronograma quando
     `cenario == ESTABILIZACAO` (`snapshot.diagnostico.MODO_ESTABILIZACAO`).
-    Recebe `RESULTADO_CAIXA_OBSERVADO` (já formatado), `textos`, `ns` e
-    `cabecalho_da_secao`.
+    Recebe `RESULTADO_CAIXA_OBSERVADO` e `FALTA_CORTAR` (já formatados),
+    `textos`, `ns` e `cabecalho_da_secao`. Nenhum valor é calculado aqui (AC-42).
 
-    REGRA DE REDAÇÃO (EC-09, GAB-04/AC-11): a palavra "sobra" (e sinônimos
-    como "superávit") NUNCA qualifica RESULTADO_CAIXA_OBSERVADO, mesmo
-    positivo: em modo estabilização ele não é dinheiro livre para quitar
-    dívidas. O método e a ordem aparecem como segunda fase, condicionada ao
-    equilíbrio do mês. `textos.estabilizacao.texto` segue a mesma regra.
-
-    `RF-468` a `RF-470` (T-437): o deficitário recebe um plano PROVISÓRIO que
-    manda ESTANCAR primeiro. Em ordem: o resultado do mês em destaque e o
-    quanto falta para zerar; os maiores gastos do próprio aluno; e a ordem de
-    quitação como RECOMENDAÇÃO, sem prazo, sem mês de quitação e sem
-    cronograma (a capacidade de ataque ainda é desconhecida). Nenhum valor é
-    calculado aqui (AC-42): tudo chega pronto do servidor.
+    REGRA DE REDAÇÃO (EC-09, GAB-04/AC-11): o resultado do mês nunca é chamado
+    de "sobra". Sem prazo, sem mês de quitação e sem cronograma: a capacidade
+    de ataque ainda é desconhecida.
 #}
 {% import "visuais.html" as visuais %}
+{% set t = textos.estabilizacao %}
 <section class="secao">
-    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.estabilizacao.get("titulo", "Primeiro, estancar o problema"), "conferencia") }}
-    <div class="caixa resultado-negativo">
-        <div class="resultado-rotulo">{{ textos.estabilizacao.get("resultado_rotulo", "") }}</div>
-        <div class="resultado-valor">{{ RESULTADO_CAIXA_OBSERVADO }}</div>
-    </div>
-    <div class="aviso" style="margin-top: 4mm;">
-        <p style="margin: 0;">{{ textos.estabilizacao.get("texto", "").format(valor=RESULTADO_CAIXA_OBSERVADO) }}</p>
-        {% if FALTA_CORTAR is defined and textos.estabilizacao.get("falta_cortar") %}
-        <p style="margin: 8px 0 0 0;"><strong>{{ textos.estabilizacao.falta_cortar.format(valor=FALTA_CORTAR) }}</strong></p>
+    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("titulo", "Primeiro, estancar o problema"), "conferencia") }}
+    <div class="estatisticas">
+        <div class="estatistica negativa">
+            <div class="estatistica-rotulo">{{ t.get("resultado_rotulo", "") }}</div>
+            <div class="estatistica-valor">{{ RESULTADO_CAIXA_OBSERVADO }}</div>
+        </div>
+        {% if FALTA_CORTAR is defined and t.get("falta_cortar_rotulo") %}
+        <div class="estatistica">
+            <div class="estatistica-rotulo">{{ t.falta_cortar_rotulo }}</div>
+            <div class="estatistica-valor">{{ FALTA_CORTAR }}</div>
+        </div>
         {% endif %}
-        {% if textos.estabilizacao.get("depois_de_zerar") %}
-        <p style="margin: 8px 0 0 0;">{{ textos.estabilizacao.depois_de_zerar }}</p>
-        {% endif %}
     </div>
-    {% if textos.estabilizacao.get("aviso_1") %}
-    <div class="aviso" style="margin-top: 4mm;">
-        <p style="margin: 0 0 1mm;"><strong>{{ textos.estabilizacao.get("aviso_titulo", "") }}</strong></p>
-        <ul style="margin: 0; padding-left: 5mm;">{% for chave in ("aviso_1", "aviso_2", "aviso_3") %}<li>{{ textos.estabilizacao.get(chave, "") }}</li>{% endfor %}</ul>
+    <p>{{ t.get("texto", "").format(valor=RESULTADO_CAIXA_OBSERVADO) }}</p>
+    {% if t.get("passo_1") %}
+    <h3 class="subtitulo">{{ t.get("passos_titulo", "") }}</h3>
+    <ol class="passos">
+        <li>{{ t.get("passo_1", "") }}</li>
+        <li>{{ t.get("passo_2", "") }}</li>
+    </ol>
+    {% endif %}
+    {% if t.get("depois_de_zerar") %}<p class="muted">{{ t.depois_de_zerar }}</p>{% endif %}
+    {% if t.get("aviso_1") %}
+    <div class="nota-lateral">
+        <strong>{{ t.get("aviso_titulo", "") }}</strong>
+        <ul>{% for chave in ("aviso_1", "aviso_2", "aviso_3") %}<li>{{ t.get(chave, "") }}</li>{% endfor %}</ul>
     </div>
     {% endif %}
 </section>
@@ -47,8 +47,8 @@
 {% if maiores_gastos %}
 {% if ns is defined %}{% set ns.n = ns.n + 1 %}{% endif %}
 <section class="secao">
-    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.estabilizacao.get("gastos_titulo", ""), "dinheiro") }}
-    <p class="intro">{{ textos.estabilizacao.get("gastos_intro", "") }}</p>
+    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("gastos_titulo", ""), "dinheiro") }}
+    <p class="intro">{{ t.get("gastos_intro", "") }}</p>
     <div class="linhas">
         {% for nome, valor in maiores_gastos %}
         <div class="linha saida"><span class="linha-rotulo">{{ nome }}</span><span class="linha-valor">{{ valor }}</span></div>
@@ -60,14 +60,14 @@
 {% if ordem %}
 {% if ns is defined %}{% set ns.n = ns.n + 1 %}{% endif %}
 <section class="secao">
-    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.estabilizacao.get("ordem_titulo", ""), "dinheiro") }}
-    <p class="intro">{{ textos.estabilizacao.get("ordem_intro", "") }}</p>
-    {% if metodo %}<p class="muted pequeno">{{ textos.estabilizacao.get("metodo_rotulo", "") }}: {{ metodo }}</p>{% endif %}
+    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("ordem_titulo", ""), "dinheiro") }}
+    <p class="intro">{{ t.get("ordem_intro", "") }}</p>
+    {% if metodo %}<p class="muted pequeno">{{ t.get("metodo_rotulo", "") }}: {{ metodo }}</p>{% endif %}
     {% for posicao in ordem %}
-    <div class="caixa" style="margin-top: 3mm;">
-        <p style="margin: 0 0 1mm;"><strong>{{ posicao.indice }}. {{ posicao.nome }}</strong></p>
+    <div class="ordem-linha">
+        <strong>{{ posicao.indice }}. {{ posicao.nome }}</strong>
         {% if posicao.fatos %}
-        <p class="muted pequeno" style="margin: 0;">{% for rotulo, valor in posicao.fatos %}{{ rotulo }}: {{ valor }}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+        <div class="muted pequeno">{% for rotulo, valor in posicao.fatos %}{{ rotulo }}: {{ valor }}{% if not loop.last %} · {% endif %}{% endfor %}</div>
         {% endif %}
     </div>
     {% endfor %}

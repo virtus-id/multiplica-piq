@@ -196,7 +196,8 @@ def test_rf468_deficitario_ve_o_resultado_em_destaque_e_o_valor_para_zerar() -> 
     assert "Primeiro, estancar o problema" in html
     assert "Seu mês fecha em" in html
     assert html.count("R$ -1.000,00") >= 2
-    assert "faltam cortar R$ 1.000,00 por mês" in html
+    assert "faltam cortar por mês" in html
+    assert 'estatistica-valor">R$ 1.000,00<' in html
     assert "provisório" in html
 
 

@@ -49,3 +49,7 @@
 - **Rastreia:** `RF-472`
 - [x] `report/consistencia.py::verificar_consistencia`, `aviso_de_conferencia` no contexto, PDF, serialização e tela; testes em `tests/app_aluno/test_consistencia_do_relatorio.py`.
 - **Divergência de negócio, não tratada:** `DEFICIT_MENSAL` (o "faltam cortar") usa as parcelas devidas (`PARCELA_CONTRATUAL`), e "Seu mês fecha em" usa as efetivamente pagas. Quando uma dívida paga menos que a parcela, os dois números diferem. Pendente de decisão do produto.
+
+### `T-452` — PDF do deficitário: um número e uma ação
+- **Rastreia:** `RF-473`
+- [x] `estabilizacao.html` (cartões lado a lado, passos, aviso leve, ordem compacta), CSS em `plano.html`, textos em `textos-canonicos.yaml`; capa do curso fora da primeira página do deficitário.

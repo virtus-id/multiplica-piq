@@ -58,6 +58,9 @@ No relatório do deficitário, um aviso explícito e visível diz que a ordem de
 ### RF-472. Conferência de consistência dos números
 Antes de apresentar o plano, o relatório confere identidades que o motor garante: renda − despesas − parcelas = resultado do mês; soma dos saldos das dívidas = saldo inicial do prognóstico; em cada mês, início + juros − pago = saldo, habitual + extra = total a pagar e soma por dívida = saldo do mês; ordem sem dívida repetida ou fora do inventário; aporte do cenário acelerado = valor informado pelo aluno. Se alguma falhar, o PDF e a tela mostram o aviso "números não conferidos" e não corrigem nada. Vale para todo plano, deficitário ou não.
 
+### RF-473. PDF do deficitário: um número e uma ação
+A primeira página do PDF do deficitário traz o resultado do mês e o quanto falta cortar lado a lado, o texto do problema, "O que fazer agora" em dois passos e o aviso de que a ordem provisória não é instrução de pagamento (RF-471). A apresentação do curso deixa a primeira página (a seção do curso, mais adiante, já faz a ligação). A ordem provisória é uma lista compacta, sem uma caixa por dívida. Só apresentação: nenhum número novo, e as demais seções e os textos aprovados seguem como estão. Textos novos (passos, rótulo) sugeridos, a validar.
+
 ### RF-454. Rastreabilidade
 O snapshot registra classificação, método, percentuais usados, resultados dos cenários, premissas e limitações, sem alterar versões anteriores. Alunos não deficitários não mudam.
 

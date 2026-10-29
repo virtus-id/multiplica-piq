@@ -130,6 +130,21 @@
             break-inside: avoid;
         }
         .muted { color: #5E6E72; }
+        /* Deficitário: um número, uma ação (RF-473). Leve: sem caixas pesadas. */
+        .estatisticas { display: flex; gap: 4mm; margin-bottom: 4mm; break-inside: avoid; }
+        .estatistica { flex: 1; border: 1px solid #D9E0DC; border-radius: 3mm; padding: 3mm 4mm; }
+        .estatistica.negativa { border-color: #A63A2C; }
+        .estatistica-rotulo { font-size: 8.5pt; color: #5E6E72; text-transform: uppercase; letter-spacing: 0.05em; }
+        .estatistica-valor { font-family: "Source Serif 4", Georgia, serif; font-size: 20pt; font-weight: bold; line-height: 1.2; }
+        .estatistica.negativa .estatistica-valor { color: #A63A2C; }
+        .passos { margin: 0 0 4mm 0; padding: 0; list-style: none; counter-reset: passo; }
+        .passos li { counter-increment: passo; position: relative; padding-left: 8mm; margin-bottom: 2mm; break-inside: avoid; }
+        .passos li::before { content: counter(passo); position: absolute; left: 0; top: 0.3mm; width: 5.5mm; height: 5.5mm; border-radius: 50%; background: #0F6B50; color: #FFFFFF; font-size: 8.5pt; font-weight: bold; text-align: center; line-height: 5.5mm; }
+        .nota-lateral { border-left: 1.2mm solid #C98A00; padding: 1mm 0 1mm 4mm; margin: 0 0 4mm 0; break-inside: avoid; }
+        .nota-lateral strong { color: #8A5A00; }
+        .nota-lateral ul { margin: 1mm 0 0 0; padding-left: 4mm; }
+        .ordem-linha { padding: 2mm 0; border-bottom: 1px solid #E3E8E5; break-inside: avoid; }
+        .ordem-linha:last-child { border-bottom: 0; }
         .pequeno { font-size: 9pt; }
         /* Resultado negativo do deficitário (RF-468): o vermelho é o mesmo
            das saídas, e o valor vem com sinal e com texto, nunca só com cor. */
@@ -544,7 +559,8 @@
         {% endif %}
     </div>
 
-    {% if curso_ssd and curso_ssd.apresentacao %}
+    {# Deficitário: a capa já leva ao número e à ação; a ligação com o curso fica na seção do curso. #}
+    {% if curso_ssd and curso_ssd.apresentacao and not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
     <section class="apresentacao">
         <h2>{{ curso_ssd.apresentacao_titulo }}</h2>
         {% for paragrafo in curso_ssd.apresentacao %}
