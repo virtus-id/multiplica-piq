@@ -33,40 +33,60 @@ def _x(valor: Decimal, base: Decimal) -> str:
     return f"{float(valor / base * _LARGURA):.1f}"
 
 
-def barra_da_renda(renda: Decimal, partes: tuple[Parte, ...]) -> str:
-    """Uma barra com as saídas empilhadas e uma marca na renda; o que passa da
-    marca é o que falta (vermelho). `""` sem renda positiva ou sem saída."""
+def barras_entrada_e_saida(
+    renda: Decimal,
+    partes: tuple[Parte, ...],
+    rotulo_entrada: str,
+    rotulo_saida: str,
+    texto_entrada: str,
+    texto_saida: str,
+) -> str:
+    """Duas barras verticais na mesma escala: a entrada (verde) e a saída, uma
+    só barra empilhada com um grupo por cor. A linha tracejada marca a renda na
+    barra da saída; o que passa dela é o que falta. `""` sem renda positiva ou
+    sem saída. Os textos já chegam formatados (só se desenha)."""
     saidas = tuple(p for p in partes if p.valor > 0)
     if renda <= 0 or not saidas:
         return ""
     total = sum((p.valor for p in saidas), Decimal(0))
     base = max(renda, total)
-    corpo: list[str] = []
-    cursor = Decimal(0)
+    chao, topo, largura = 136.0, 24.0, 96.0
+    altura = chao - topo
+
+    def h(valor: Decimal) -> float:
+        return float(valor / base) * altura
+
+    x_entrada, x_saida = 70.0, 200.0
+    fonte = 'font-family="Inter, DejaVu Sans, sans-serif"'
+    corpo = [
+        f'<rect x="{x_entrada}" y="{chao - h(renda):.1f}" width="{largura}" '
+        f'height="{h(renda):.1f}" rx="6" fill="{COR_RENDA}"/>'
+    ]
+    y = chao
     for parte in saidas:
-        inicio, fim = cursor, cursor + parte.valor
-        cursor = fim
-        # a parte (ou o pedaço dela) que ultrapassa a renda fica vermelha
-        dentro_fim = min(fim, renda)
-        if dentro_fim > inicio:
-            corpo.append(
-                f'<rect x="{_x(inicio, base)}" y="14" width="{_x(dentro_fim - inicio, base)}" '
-                f'height="26" fill="{parte.cor}"/>'
-            )
-        fora_inicio = max(inicio, renda)
-        if fim > fora_inicio:
-            corpo.append(
-                f'<rect x="{_x(fora_inicio, base)}" y="14" width="{_x(fim - fora_inicio, base)}" '
-                f'height="26" fill="{COR_FALTA}"/>'
-            )
-    marca = _x(renda, base)
+        alto = h(parte.valor)
+        y -= alto
+        corpo.append(
+            f'<rect x="{x_saida}" y="{y:.1f}" width="{largura}" '
+            f'height="{alto:.1f}" fill="{parte.cor}"/>'
+        )
+    y_renda = chao - h(renda)
+    topo_saida = chao - h(total)
     return (
-        f'<svg viewBox="0 0 {_LARGURA} 54" width="100%" role="img" '
-        f'aria-label="Para onde vai a sua renda">'
-        f'<rect x="0" y="14" width="{_LARGURA}" height="26" rx="4" fill="{_TRILHA}"/>'
+        '<svg viewBox="0 0 400 160" width="100%" role="img" aria-label="Entrada e saída do mês">'
         f"<g>{''.join(corpo)}</g>"
-        f'<line x1="{marca}" y1="6" x2="{marca}" y2="48" stroke="{COR_RENDA}" stroke-width="2.5"/>'
-        f'<circle cx="{marca}" cy="6" r="3.5" fill="{COR_RENDA}"/>'
+        f'<line x1="20" y1="{chao}" x2="380" y2="{chao}" stroke="#CBD5D1" stroke-width="1"/>'
+        f'<line x1="{x_entrada - 20}" y1="{y_renda:.1f}" '
+        f'x2="{x_saida + largura + 20}" y2="{y_renda:.1f}" '
+        f'stroke="{COR_RENDA}" stroke-width="1.5" stroke-dasharray="5 4"/>'
+        f'<text x="{x_entrada + largura / 2}" y="{chao - h(renda) - 7:.1f}" text-anchor="middle" '
+        f'{fonte} font-size="13" font-weight="700" fill="{COR_RENDA}">{texto_entrada}</text>'
+        f'<text x="{x_saida + largura / 2}" y="{topo_saida - 7:.1f}" text-anchor="middle" '
+        f'{fonte} font-size="13" font-weight="700" fill="#0B1F2A">{texto_saida}</text>'
+        f'<text x="{x_entrada + largura / 2}" y="154" text-anchor="middle" {fonte} '
+        f'font-size="12" font-weight="600" fill="#64748B">{rotulo_entrada}</text>'
+        f'<text x="{x_saida + largura / 2}" y="154" text-anchor="middle" {fonte} '
+        f'font-size="12" font-weight="600" fill="#64748B">{rotulo_saida}</text>'
         "</svg>"
     )
 
