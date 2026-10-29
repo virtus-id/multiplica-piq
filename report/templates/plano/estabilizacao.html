@@ -20,12 +20,6 @@
             <div class="estatistica-rotulo">{{ t.get("resultado_rotulo", "") }}</div>
             <div class="estatistica-valor">{{ RESULTADO_CAIXA_OBSERVADO }}</div>
         </div>
-        {% if FALTA_CORTAR is defined and t.get("falta_cortar_rotulo") %}
-        <div class="estatistica">
-            <div class="estatistica-rotulo">{{ t.falta_cortar_rotulo }}</div>
-            <div class="estatistica-valor">{{ FALTA_CORTAR }}</div>
-        </div>
-        {% endif %}
     </div>
     {% if grafico_renda %}
     <div class="grafico">
