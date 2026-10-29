@@ -49,3 +49,16 @@
 - **Rastreia:** `RF-472`
 - [x] `report/consistencia.py::verificar_consistencia`, `aviso_de_conferencia` no contexto, PDF, serialização e tela; testes em `tests/app_aluno/test_consistencia_do_relatorio.py`.
 - **Divergência de negócio, não tratada:** `DEFICIT_MENSAL` (o "faltam cortar") usa as parcelas devidas (`PARCELA_CONTRATUAL`), e "Seu mês fecha em" usa as efetivamente pagas. Quando uma dívida paga menos que a parcela, os dois números diferem. Pendente de decisão do produto.
+
+### `T-452` — PDF do deficitário: um número e uma ação
+- **Rastreia:** `RF-473`
+- [x] `estabilizacao.html` (cartões lado a lado, passos, aviso leve, ordem compacta), CSS em `plano.html`, textos em `textos-canonicos.yaml`; capa do curso fora da primeira página do deficitário.
+
+### `T-453` — Gráficos do PDF do deficitário
+- **Rastreia:** `RF-474`
+- [x] `report/graficos.py` (SVG), `grafico_renda`/`legenda_renda`/`larguras_dos_gastos` no contexto e no PDF, rótulos em `graficos` (YAML), testes em `test_pendencias_do_relatorio.py`.
+- **Fora do escopo (próxima rodada):** gráficos do não deficitário (curva do saldo nos 3 cenários e linha do tempo das quitações).
+
+### `T-454` — Visual moderno do PDF
+- **Rastreia:** `RF-475`
+- [x] Fontes Inter em `report/fontes/` + `@font-face` em `plano.html`; `base_url` no weasyprint (`report/pdf.py`); capa, cabeçalhos, cartões e resultado restilizados.

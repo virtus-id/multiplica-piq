@@ -444,7 +444,7 @@ def test_ec09_modo_estabilizacao_nunca_rotula_resultado_como_sobra() -> None:
     # Prova positiva de que o resultado de caixa efetivamente aparece — o
     # teste acima não passaria trivialmente por ausência total do valor.
     assert "R$ -1.000,00" in html
-    assert "faltam cortar R$ 1.000,00 por mês" in html
+    assert 'estatistica-valor">R$ -1.000,00<' in html
     # Fase 2 condicional: nenhuma posição de ORDEM_QUITACAO é exibida no
     # bloco de estabilização.
     assert "Posição 1 de" not in html
@@ -465,4 +465,4 @@ def test_t405_estabilizacao_mostra_quanto_falta_cortar_igual_ao_deficit_do_motor
     esperado = formatar_dinheiro_br(deficit)
     assert contexto.FALTA_CORTAR == esperado
     html = _renderizar_plano_html_com_contexto(contexto)
-    assert f"Para chegar a zero, faltam cortar {esperado} por mês." in html
+    # `RF-473`: o PDF mostra só o resultado negativo; o valor segue no contexto (tela).

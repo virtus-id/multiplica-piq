@@ -87,6 +87,7 @@ from report.plano import (
 
 REGRAS: Final[tuple[str, ...]] = ("RF-20", "RF-21", "AC-14", "AC-16")
 
+_DIRETORIO_RAIZ_REPORT: Final[Path] = Path(__file__).resolve().parent
 _DIRETORIO_TEMPLATES_PLANO: Final[Path] = Path(__file__).resolve().parent / "templates" / "plano"
 
 
@@ -167,6 +168,9 @@ def renderizar_html_do_plano(
         avisos_gerais=contexto.avisos_gerais,
         duvidas=contexto.duvidas,
         maiores_gastos=contexto.maiores_gastos,
+        grafico_renda=contexto.grafico_renda,
+        legenda_renda=contexto.legenda_renda,
+        larguras_dos_gastos=contexto.larguras_dos_gastos,
         provisorio=contexto.provisorio,
         # Plano amigável (2026-10-03) — seções novas da "consultoria
         # individual"; `textos` traz só os títulos/textos fixos que não são
@@ -242,7 +246,7 @@ def gerar_pdf_de_previa(
 
     from weasyprint import HTML
 
-    return bytes(HTML(string=html).write_pdf())
+    return bytes(HTML(string=html, base_url=str(_DIRETORIO_RAIZ_REPORT) + "/").write_pdf())
 
 
 def gerar_pdf_do_plano(
@@ -273,4 +277,4 @@ def gerar_pdf_do_plano(
 
     from weasyprint import HTML
 
-    return bytes(HTML(string=html).write_pdf())
+    return bytes(HTML(string=html, base_url=str(_DIRETORIO_RAIZ_REPORT) + "/").write_pdf())

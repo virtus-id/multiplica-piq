@@ -662,6 +662,16 @@ sobre_este_plano: >-
   mais completas e corretas elas estiverem, mais preciso ele fica. Antes de
   chegar até você, ele foi conferido pela nossa equipe.
 
+# RF-474: rótulos dos gráficos do deficitário. Sugestão, a validar.
+graficos:
+  renda_titulo: "Para onde vai a sua renda"
+  renda_nota: "A marca verde é a sua renda. O que passa dela, em vermelho, é o que falta."
+  renda: "Sua renda"
+  dia_a_dia: "Gastos do dia a dia"
+  nao_mensais: "Gastos não mensais"
+  parcelas: "Parcelas de dívidas"
+  falta: "O que passa da renda"
+
 # Estabilização: explica RESULTADO_CAIXA_OBSERVADO em palavras, nunca com a
 # palavra "sobra" (GAB-04). Sugestão, a validar.
 #
@@ -693,6 +703,10 @@ estabilizacao:
     porque depende de quanto ficar livre para atacar as dívidas. A quitação
     só começa quando o mês fechar com saldo positivo.
   metodo_rotulo: "Método recomendado"
+  # RF-473 (T-452). Sugestão, a validar pelo produto.
+  passos_titulo: "O que fazer agora"
+  passo_1: "Veja, na próxima página, os seus maiores gastos e marque o que dá para reduzir, pausar ou eliminar."
+  passo_2: "Corte até o mês deixar de fechar no negativo. A aula 5 do curso mostra como."
   # RF-471. Sugestão, a validar pelo produto.
   aviso_titulo: "Isto ainda não é uma instrução de pagamento"
   aviso_1: "A ordem de quitação é uma simulação provisória. Não antecipe pagamentos com base nela."

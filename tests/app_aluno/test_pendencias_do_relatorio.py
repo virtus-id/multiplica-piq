@@ -9,6 +9,7 @@ REGRAS: `RF-461`, `RF-462`, `RF-463`, `RF-464`, `RF-465`, `RF-466`, `RF-467`
 
 from __future__ import annotations
 
+import re
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
@@ -24,6 +25,7 @@ from engine.snapshot import SnapshotOrdem
 from engine.tipos import DESCONHECIDO, ORDEM_STATUS
 from persistencia.app_aluno.itens import ItemRepetido
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
+from report.graficos import barra_da_renda, larguras_dos_gastos
 from report.pdf import renderizar_html_do_plano
 from report.plano import (
     _CAMPOS_MATERIAIS_DA_DIVIDA,
@@ -196,7 +198,7 @@ def test_rf468_deficitario_ve_o_resultado_em_destaque_e_o_valor_para_zerar() -> 
     assert "Primeiro, estancar o problema" in html
     assert "Seu mês fecha em" in html
     assert html.count("R$ -1.000,00") >= 2
-    assert "faltam cortar R$ 1.000,00 por mês" in html
+    assert 'estatistica-valor">R$ -1.000,00<' in html
     assert "provisório" in html
 
 
@@ -207,7 +209,9 @@ def test_rf469_deficitario_ve_os_maiores_gastos_sem_meta_inventada() -> None:
     assert "Onde olhar nos seus gastos" in html
     assert html.index("Aluguel") < html.index("Mercado")
     assert "R$ 2.500,00" in html and "R$ 1.800,00" in html
-    assert "%" not in html[html.index("Onde olhar nos seus gastos") :][:900]
+    # A largura das barras (`style="width: N%"`) é geometria; nenhuma meta em % no texto.
+    trecho = html[html.index("Onde olhar nos seus gastos") :][:1400]
+    assert "%" not in re.sub(r'style="[^"]*"', "", trecho)
 
 
 def test_rf469_plano_normal_nao_mostra_o_bloco_dos_gastos() -> None:
@@ -289,3 +293,23 @@ def test_rf471_deficitario_ve_que_a_ordem_provisoria_nao_e_instrucao_de_pagament
     )
     _c, html_normal = _contexto(normal)
     assert "Isto ainda não é uma instrução de pagamento" not in html_normal
+
+
+def test_rf474_deficitario_tem_graficos_com_os_numeros_do_plano() -> None:
+    """RF-474: barra da renda (SVG) com a marca da renda e o que passa dela em
+    vermelho; plano normal e sem dado não têm gráfico."""
+    gastos = (("Aluguel", Decimal("2500")), ("Mercado", Decimal("1800")))
+    contexto, html = _contexto(_snapshot_base(), VocabularioDoCaso(maiores_gastos=gastos))
+
+    assert "<svg" in contexto.grafico_renda and "#A63A2C" in contexto.grafico_renda
+    assert [valor for _r, valor, _c in contexto.legenda_renda][0] == "R$ 8.000,00"
+    assert contexto.larguras_dos_gastos == ("100.0", "72.0")
+    assert "Para onde vai a sua renda" in html
+
+    normal = replace(
+        _snapshot_base(),
+        diagnostico=replace(_snapshot_base().diagnostico, MODO_ESTABILIZACAO=False),
+    )
+    sem_grafico, html_normal = _contexto(normal)
+    assert sem_grafico.grafico_renda == "" and "Para onde vai a sua renda" not in html_normal
+    assert barra_da_renda(Decimal(0), ()) == "" and larguras_dos_gastos(()) == ()
