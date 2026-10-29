@@ -31,6 +31,7 @@ jobs:
           shopt -s nullglob
 
           for plan in plans/*.plan.md; do
+            grep -q "^Plano operacional" "$plan" && continue  # operacional (ex.: migração): sem spec de produto
             slug=$(basename "$plan" .plan.md)
             if [ ! -f "specs/$slug.spec.md" ]; then
               echo "::error file=$plan::Plano sem spec. Crie specs/$slug.spec.md primeiro."
@@ -82,6 +83,7 @@ jobs:
           REQUIRED=("Architecture" "Tech Stack" "Data Model" "Data Flow" "Error Handling" "Testing Strategy" "Traceability")
 
           for plan in plans/*.plan.md; do
+            grep -q "^Plano operacional" "$plan" && continue  # operacional (ex.: migração): sem spec de produto
             for section in "${REQUIRED[@]}"; do
               grep -qi "$section" "$plan" || {
                 echo "::error file=$plan::Seção obrigatória ausente: $section"
