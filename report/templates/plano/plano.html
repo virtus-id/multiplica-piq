@@ -138,11 +138,21 @@
         .estatistica-valor { font-family: "Source Serif 4", Georgia, serif; font-size: 20pt; font-weight: bold; line-height: 1.2; }
         .estatistica.negativa .estatistica-valor { color: #A63A2C; }
         .passos { margin: 0 0 4mm 0; padding: 0; list-style: none; counter-reset: passo; }
-        .passos li { counter-increment: passo; position: relative; padding-left: 8mm; margin-bottom: 2mm; break-inside: avoid; }
+        .passos li { counter-increment: passo; position: relative; padding-left: 8mm; margin-bottom: 1mm; break-inside: avoid; }
         .passos li::before { content: counter(passo); position: absolute; left: 0; top: 0.3mm; width: 5.5mm; height: 5.5mm; border-radius: 50%; background: #0F6B50; color: #FFFFFF; font-size: 8.5pt; font-weight: bold; text-align: center; line-height: 5.5mm; }
         .nota-lateral { border-left: 1.2mm solid #C98A00; padding: 1mm 0 1mm 4mm; margin: 0 0 4mm 0; break-inside: avoid; }
         .nota-lateral strong { color: #8A5A00; }
         .nota-lateral ul { margin: 1mm 0 0 0; padding-left: 4mm; }
+        .grafico { margin: 0 0 4mm 0; break-inside: avoid; }
+        .grafico-titulo { font-weight: bold; margin-bottom: 1mm; }
+        .legenda { margin: 2mm 0 1mm 0; font-size: 9pt; }
+        .legenda::after { content: ""; display: block; clear: both; }
+        .legenda-item { display: block; float: left; width: 31%; margin: 0 2% 0.5mm 0; white-space: nowrap; }
+        .legenda-item i { display: inline-block; width: 2.6mm; height: 2.6mm; border-radius: 50%; margin-right: 1.5mm; }
+        .gastos-grafico { break-inside: avoid; }
+        .gasto-linha { display: flex; justify-content: space-between; margin-top: 2.5mm; }
+        .gasto-trilha { height: 2.2mm; border-radius: 1.1mm; background: #E8EDEA; margin-top: 0.8mm; }
+        .gasto-barra { height: 2.2mm; border-radius: 1.1mm; background: #1F4E5F; }
         .ordem-linha { padding: 2mm 0; border-bottom: 1px solid #E3E8E5; break-inside: avoid; }
         .ordem-linha:last-child { border-bottom: 0; }
         .pequeno { font-size: 9pt; }
@@ -548,7 +558,8 @@
         </div>
         <h1>{{ titulo }}</h1>
         <p class="lead">{{ corpo }}</p>
-        {% if textos.explicacao_mes_1 %}
+        {# Deficitário não tem meses: a nota sobre o calendário não se aplica. #}
+        {% if textos.explicacao_mes_1 and not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
         <p class="nota-meses">{{ textos.explicacao_mes_1 }}</p>
         {% endif %}
         {% if aviso_de_conferencia %}

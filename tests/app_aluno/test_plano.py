@@ -168,6 +168,8 @@ def test_nenhuma_variavel_nova_de_rotulo_visual_para_a_ordem() -> None:
         "rotulos_de_apoio",
         "explicacao_da_posicao",
         "rotulos_de_pendencia",
+        # `T-452` (RF-474): rótulos dos gráficos do deficitário, não da ordem.
+        "graficos",
         # `T-267` (RF-91): rótulo do NÍVEL de comprovação, não da ordem.
         "rotulos_de_comprovacao",
         # `T-276` (RF-98): rótulo da seção do cenário adicional, não da ordem.

@@ -27,21 +27,29 @@
         </div>
         {% endif %}
     </div>
+    {% if grafico_renda %}
+    <div class="grafico">
+        <div class="grafico-titulo">{{ textos.graficos.get("renda_titulo", "") }}</div>
+        {{ grafico_renda | safe }}
+        <div class="legenda">{% for rotulo, valor, cor in legenda_renda %}<span class="legenda-item"><i style="background: {{ cor }};"></i>{{ rotulo }} <strong>{{ valor }}</strong></span>{% endfor %}</div>
+        <div class="muted pequeno">{{ textos.graficos.get("renda_nota", "") }}</div>
+    </div>
+    {% endif %}
     <p>{{ t.get("texto", "").format(valor=RESULTADO_CAIXA_OBSERVADO) }}</p>
     {% if t.get("passo_1") %}
-    <h3 class="subtitulo">{{ t.get("passos_titulo", "") }}</h3>
+    <h3 class="subtitulo" style="margin: 2mm 0 1.5mm;">{{ t.get("passos_titulo", "") }}</h3>
     <ol class="passos">
         <li>{{ t.get("passo_1", "") }}</li>
         <li>{{ t.get("passo_2", "") }}</li>
     </ol>
     {% endif %}
-    {% if t.get("depois_de_zerar") %}<p class="muted">{{ t.depois_de_zerar }}</p>{% endif %}
     {% if t.get("aviso_1") %}
     <div class="nota-lateral">
         <strong>{{ t.get("aviso_titulo", "") }}</strong>
         <ul>{% for chave in ("aviso_1", "aviso_2", "aviso_3") %}<li>{{ t.get(chave, "") }}</li>{% endfor %}</ul>
     </div>
     {% endif %}
+    {% if t.get("depois_de_zerar") %}<p class="muted">{{ t.depois_de_zerar }}</p>{% endif %}
 </section>
 
 {% if maiores_gastos %}
@@ -49,9 +57,10 @@
 <section class="secao">
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("gastos_titulo", ""), "dinheiro") }}
     <p class="intro">{{ t.get("gastos_intro", "") }}</p>
-    <div class="linhas">
+    <div class="gastos-grafico">
         {% for nome, valor in maiores_gastos %}
-        <div class="linha saida"><span class="linha-rotulo">{{ nome }}</span><span class="linha-valor">{{ valor }}</span></div>
+        <div class="gasto-linha"><span>{{ nome }}</span><strong>{{ valor }}</strong></div>
+        {% if larguras_dos_gastos %}<div class="gasto-trilha"><div class="gasto-barra" style="width: {{ larguras_dos_gastos[loop.index0] }}%;"></div></div>{% endif %}
         {% endfor %}
     </div>
 </section>

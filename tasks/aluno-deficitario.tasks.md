@@ -53,3 +53,8 @@
 ### `T-452` — PDF do deficitário: um número e uma ação
 - **Rastreia:** `RF-473`
 - [x] `estabilizacao.html` (cartões lado a lado, passos, aviso leve, ordem compacta), CSS em `plano.html`, textos em `textos-canonicos.yaml`; capa do curso fora da primeira página do deficitário.
+
+### `T-453` — Gráficos do PDF do deficitário
+- **Rastreia:** `RF-474`
+- [x] `report/graficos.py` (SVG), `grafico_renda`/`legenda_renda`/`larguras_dos_gastos` no contexto e no PDF, rótulos em `graficos` (YAML), testes em `test_pendencias_do_relatorio.py`.
+- **Fora do escopo (próxima rodada):** gráficos do não deficitário (curva do saldo nos 3 cenários e linha do tempo das quitações).

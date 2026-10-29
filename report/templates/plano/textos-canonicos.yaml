@@ -662,6 +662,16 @@ sobre_este_plano: >-
   mais completas e corretas elas estiverem, mais preciso ele fica. Antes de
   chegar até você, ele foi conferido pela nossa equipe.
 
+# RF-474: rótulos dos gráficos do deficitário. Sugestão, a validar.
+graficos:
+  renda_titulo: "Para onde vai a sua renda"
+  renda_nota: "A marca verde é a sua renda. O que passa dela, em vermelho, é o que falta."
+  renda: "Sua renda"
+  dia_a_dia: "Gastos do dia a dia"
+  nao_mensais: "Gastos não mensais"
+  parcelas: "Parcelas de dívidas"
+  falta: "O que passa da renda"
+
 # Estabilização: explica RESULTADO_CAIXA_OBSERVADO em palavras, nunca com a
 # palavra "sobra" (GAB-04). Sugestão, a validar.
 #

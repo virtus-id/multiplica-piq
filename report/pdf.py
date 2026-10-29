@@ -167,6 +167,9 @@ def renderizar_html_do_plano(
         avisos_gerais=contexto.avisos_gerais,
         duvidas=contexto.duvidas,
         maiores_gastos=contexto.maiores_gastos,
+        grafico_renda=contexto.grafico_renda,
+        legenda_renda=contexto.legenda_renda,
+        larguras_dos_gastos=contexto.larguras_dos_gastos,
         provisorio=contexto.provisorio,
         # Plano amigável (2026-10-03) — seções novas da "consultoria
         # individual"; `textos` traz só os títulos/textos fixos que não são

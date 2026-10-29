@@ -133,6 +133,15 @@ from engine.precisao import quantizar_exibicao
 from engine.snapshot import SnapshotOrdem
 from engine.tipos import DESCONHECIDO, ORDEM_STATUS, Desconhecido, DinheiroTalvez
 from report.consistencia import verificar_consistencia
+from report.graficos import (
+    COR_DIA_A_DIA,
+    COR_FALTA,
+    COR_NAO_MENSAIS,
+    COR_PARCELAS,
+    Parte,
+    barra_da_renda,
+    larguras_dos_gastos,
+)
 
 REGRAS: Final[tuple[str, ...]] = (
     "RF-20",
@@ -271,6 +280,7 @@ class TextosCanonicosPlano:
     #: `B5.00` (`fichas_faltando`) e a frase `responsabilidade`, que fecha
     #: todos eles.
     avisos: Mapping[str, str] = field(default_factory=dict)
+    graficos: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -408,6 +418,7 @@ def carregar_textos_canonicos(
         incomodo=_mapa("incomodo"),
         sem_valor_extra=str(bruto.get("sem_valor_extra") or ""),
         avisos=_mapa("avisos"),
+        graficos=_mapa("graficos"),
     )
 
 
@@ -1224,6 +1235,11 @@ class ContextoPlano:
     #: `RF-469` (`T-437`): os maiores gastos do aluno, (nome, valor formatado),
     #: do maior para o menor. Só o modo estabilização usa; vazio sem itens.
     maiores_gastos: tuple[tuple[str, str], ...] = ()
+    #: `RF-474`: gráficos do deficitário (SVG) e a legenda da barra da renda
+    #: `(rótulo, valor, cor)`; vazios sem dado.
+    grafico_renda: str = ""
+    legenda_renda: tuple[tuple[str, str, str], ...] = ()
+    larguras_dos_gastos: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1608,7 +1624,7 @@ def _prognostico(
 
 
 def _sem_centavos(valor: str) -> str:
-    """"R$ 600,00" → "R$ 600" (só formatação; com centavos, fica como está)."""
+    """ "R$ 600,00" → "R$ 600" (só formatação; com centavos, fica como está)."""
     return valor.removesuffix(",00")
 
 
@@ -1971,6 +1987,52 @@ def _resumo_das_despesas(
     }
 
 
+def _graficos_do_deficitario(
+    snapshot: SnapshotOrdem, vocabulario: VocabularioDoCaso | None, textos: TextosCanonicosPlano
+) -> dict[str, Any]:
+    """`RF-474`: só no modo estabilização. Lê os mesmos números do "ponto de
+    partida"; os rótulos vêm do YAML (`graficos`)."""
+    if not snapshot.diagnostico.MODO_ESTABILIZACAO:
+        return {}
+    estado, diagnostico = snapshot.estado_inputs, snapshot.diagnostico
+    rotulos = textos.graficos
+    partes = (
+        Parte(rotulos.get("dia_a_dia", ""), estado.DESPESAS_OPERACIONAIS_ATUAIS, COR_DIA_A_DIA),
+        Parte(
+            rotulos.get("nao_mensais", ""),
+            estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS,
+            COR_NAO_MENSAIS,
+        ),
+        Parte(
+            rotulos.get("parcelas", ""),
+            diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES,
+            COR_PARCELAS,
+        ),
+    )
+    legenda = (
+        (rotulos.get("renda", ""), formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE), "#0F6B50"),
+        *((p.rotulo, formatar_dinheiro_br(p.valor), p.cor) for p in partes if p.valor > 0),
+        *(
+            (
+                (
+                    rotulos.get("falta", ""),
+                    formatar_dinheiro_br(diagnostico.DEFICIT_MENSAL),
+                    COR_FALTA,
+                ),
+            )
+            if diagnostico.DEFICIT_MENSAL > 0
+            else ()
+        ),
+    )
+    return {
+        "grafico_renda": barra_da_renda(estado.RENDA_TOTAL_RECORRENTE, partes),
+        "legenda_renda": legenda,
+        "larguras_dos_gastos": larguras_dos_gastos(
+            vocabulario.maiores_gastos if vocabulario else ()
+        ),
+    }
+
+
 def _ponto_de_partida(
     snapshot: SnapshotOrdem, resumo: ResumoDasDespesas | None, textos: TextosCanonicosPlano
 ) -> ContextoPontoDePartida:
@@ -2146,6 +2208,7 @@ def _montar_contexto_plano(
             (nome, formatar_dinheiro_br(valor))
             for nome, valor in (vocabulario.maiores_gastos if vocabulario else ())
         ),
+        **_graficos_do_deficitario(snapshot, vocabulario, textos),
         ordem=ordem,
         # `T-177`: com unidade. `PRAZO_TOTAL` é contagem de meses (`int`),
         # não `Decimal` — não passa por formatação monetária.
@@ -2163,9 +2226,7 @@ def _montar_contexto_plano(
         # `T-407` (RF-419): o nome do campo ficou, o valor é o resultado
         # ESTRUTURAL (`RESULTADO_MENSAL_ATUAL`), o mesmo que ativa o modo e
         # gera `FALTA_CORTAR`; só é exibido em estabilização.
-        RESULTADO_CAIXA_OBSERVADO=formatar_dinheiro_br(
-            snapshot.diagnostico.RESULTADO_MENSAL_ATUAL
-        ),
+        RESULTADO_CAIXA_OBSERVADO=formatar_dinheiro_br(snapshot.diagnostico.RESULTADO_MENSAL_ATUAL),
         FALTA_CORTAR=formatar_dinheiro_br(snapshot.diagnostico.DEFICIT_MENSAL),
         reserva_mobilizavel=_reserva_mobilizavel(snapshot),
         cenario_adicional=_cenario_adicional(snapshot, textos, nomes),
