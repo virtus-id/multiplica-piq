@@ -664,13 +664,15 @@ sobre_este_plano: >-
 
 # RF-474: rótulos dos gráficos do deficitário. Sugestão, a validar.
 graficos:
-  renda_titulo: "Para onde vai a sua renda"
-  renda_nota: "A marca verde é a sua renda. O que passa dela, em vermelho, é o que falta."
+  renda_titulo: "Entrada e saída do seu mês"
+  renda_nota: "A linha tracejada marca a sua renda. O quanto a saída passa dela é o que falta."
+  entrada: "Entrada"
+  saida: "Saída"
+  falta: "Saída acima da renda"
   renda: "Sua renda"
   dia_a_dia: "Gastos do dia a dia"
   nao_mensais: "Gastos não mensais"
   parcelas: "Parcelas de dívidas"
-  falta: "O que passa da renda"
 
 # Estabilização: explica RESULTADO_CAIXA_OBSERVADO em palavras, nunca com a
 # palavra "sobra" (GAB-04). Sugestão, a validar.

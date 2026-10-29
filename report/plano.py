@@ -139,7 +139,7 @@ from report.graficos import (
     COR_NAO_MENSAIS,
     COR_PARCELAS,
     Parte,
-    barra_da_renda,
+    barras_entrada_e_saida,
     larguras_dos_gastos,
 )
 
@@ -2012,6 +2012,7 @@ def _graficos_do_deficitario(
     legenda = (
         (rotulos.get("renda", ""), formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE), "#0F6B50"),
         *((p.rotulo, formatar_dinheiro_br(p.valor), p.cor) for p in partes if p.valor > 0),
+        # `RF-419`: o quanto a saída passa da renda aparece ao lado do gráfico.
         *(
             (
                 (
@@ -2025,7 +2026,14 @@ def _graficos_do_deficitario(
         ),
     )
     return {
-        "grafico_renda": barra_da_renda(estado.RENDA_TOTAL_RECORRENTE, partes),
+        "grafico_renda": barras_entrada_e_saida(
+            estado.RENDA_TOTAL_RECORRENTE,
+            partes,
+            rotulos.get("entrada", ""),
+            rotulos.get("saida", ""),
+            formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE),
+            formatar_dinheiro_br(sum((p.valor for p in partes), Decimal(0))),
+        ),
         "legenda_renda": legenda,
         "larguras_dos_gastos": larguras_dos_gastos(
             vocabulario.maiores_gastos if vocabulario else ()

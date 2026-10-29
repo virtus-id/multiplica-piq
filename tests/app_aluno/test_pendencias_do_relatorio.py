@@ -25,7 +25,7 @@ from engine.snapshot import SnapshotOrdem
 from engine.tipos import DESCONHECIDO, ORDEM_STATUS
 from persistencia.app_aluno.itens import ItemRepetido
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
-from report.graficos import barra_da_renda, larguras_dos_gastos
+from report.graficos import barras_entrada_e_saida, larguras_dos_gastos
 from report.pdf import renderizar_html_do_plano
 from report.plano import (
     _CAMPOS_MATERIAIS_DA_DIVIDA,
@@ -301,15 +301,19 @@ def test_rf474_deficitario_tem_graficos_com_os_numeros_do_plano() -> None:
     gastos = (("Aluguel", Decimal("2500")), ("Mercado", Decimal("1800")))
     contexto, html = _contexto(_snapshot_base(), VocabularioDoCaso(maiores_gastos=gastos))
 
-    assert "<svg" in contexto.grafico_renda and "#A63A2C" in contexto.grafico_renda
+    assert "<svg" in contexto.grafico_renda and "Entrada" in contexto.grafico_renda
+    assert "Saída" in contexto.grafico_renda and "R$ 8.000,00" in contexto.grafico_renda
     assert [valor for _r, valor, _c in contexto.legenda_renda][0] == "R$ 8.000,00"
     assert contexto.larguras_dos_gastos == ("100.0", "72.0")
-    assert "Para onde vai a sua renda" in html
+    assert "Entrada e saída do seu mês" in html
 
     normal = replace(
         _snapshot_base(),
         diagnostico=replace(_snapshot_base().diagnostico, MODO_ESTABILIZACAO=False),
     )
     sem_grafico, html_normal = _contexto(normal)
-    assert sem_grafico.grafico_renda == "" and "Para onde vai a sua renda" not in html_normal
-    assert barra_da_renda(Decimal(0), ()) == "" and larguras_dos_gastos(()) == ()
+    assert sem_grafico.grafico_renda == "" and "Entrada e saída do seu mês" not in html_normal
+    assert (
+        barras_entrada_e_saida(Decimal(0), (), "", "", "", "") == ""
+        and larguras_dos_gastos(()) == ()
+    )

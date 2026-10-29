@@ -95,14 +95,13 @@
         .secao { margin-bottom: 8mm; }
         .secao-cabecalho {
             break-after: avoid;
-            display: flex;
-            align-items: center;
-            gap: 3mm;
+            display: table;
+            width: 100%;
             margin: 3mm 0 4mm;
         }
+        .secao-cabecalho > * { display: table-cell; vertical-align: middle; }
         .secao-numero {
-            display: inline-block;
-            width: 7mm;
+            width: 10mm;
             height: 7mm;
             line-height: 7mm;
             text-align: center;
@@ -111,10 +110,9 @@
             color: #0B6B54;
             font-weight: 700;
             font-size: 10pt;
-            flex: none;
         }
-        .secao-cabecalho h2 { font-size: 16pt; flex: 1; color: #0B1F2A; font-weight: 700; }
-        .secao-icone { color: #9BB3AB; }
+        .secao-cabecalho h2 { padding-left: 3mm; font-size: 16pt; line-height: 1.2; color: #0B1F2A; font-weight: 700; }
+        .secao-icone { width: 8mm; text-align: right; color: #9BB3AB; }
         .intro { color: #64748B; margin-bottom: 4mm; break-after: avoid; }
         .caixa {
             background: #F4F7F6;
@@ -139,10 +137,16 @@
         .muted { color: #5E6E72; }
         /* Deficitário: um número, uma ação (RF-473). Leve: sem caixas pesadas. */
         .estatisticas { margin-bottom: 4mm; break-inside: avoid; }
-        .estatistica { width: 62%; background: #F4F7F6; border-radius: 4mm; padding: 4mm 6mm 3.5mm; }
+        .duplo { display: table; width: 100%; table-layout: fixed; margin-bottom: 4mm; break-inside: avoid; }
+        .duplo-esq { display: table-cell; width: 45%; vertical-align: top; padding-right: 6mm; }
+        .duplo-dir { display: table-cell; width: 55%; vertical-align: top; }
+        .duplo-dir svg { width: 100%; }
+        .duplo-esq .legenda-item { float: none; display: block; width: auto; margin: 0 0 1mm 0; white-space: normal; }
+        .duplo-esq .legenda { margin: 3mm 0 2mm; }
+        .estatistica { width: auto; background: #F4F7F6; border-radius: 4mm; padding: 4mm 6mm 3.5mm; }
         .estatistica.negativa { background: #FCEDEB; }
         .estatistica-rotulo { font-size: 8pt; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1mm; }
-        .estatistica-valor { font-size: 30pt; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; margin: 0; }
+        .estatistica-valor { white-space: nowrap; font-size: 25pt; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; margin: 0; }
         .estatistica.negativa .estatistica-valor { color: #C0392B; }
         .passos { margin: 0 0 4mm 0; padding: 0; list-style: none; counter-reset: passo; }
         .passos li { counter-increment: passo; position: relative; padding-left: 8mm; margin-bottom: 1mm; break-inside: avoid; }
