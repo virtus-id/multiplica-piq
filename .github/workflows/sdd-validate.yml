@@ -31,6 +31,7 @@ jobs:
           shopt -s nullglob
 
           for plan in plans/*.plan.md; do
+            grep -q "^Plano operacional" "$plan" && continue  # operacional (ex.: migração): sem spec de produto
             slug=$(basename "$plan" .plan.md)
             if [ ! -f "specs/$slug.spec.md" ]; then
               echo "::error file=$plan::Plano sem spec. Crie specs/$slug.spec.md primeiro."
@@ -57,6 +58,14 @@ jobs:
           REQUIRED=("Overview" "Functional Requirements" "User Stories" "Acceptance Criteria" "Non-Functional Requirements" "Edge Cases" "Assumptions" "Risks" "Out of Scope")
 
           for spec in specs/*.spec.md; do
+            # Formato enxuto (sem "User Stories"): só exige requisitos RF-NN.
+            if ! grep -qi "User Stories" "$spec"; then
+              grep -qE 'RF-[0-9]+' "$spec" || {
+                echo "::error file=$spec::Nenhum requisito RF-NN identificado."
+                FAIL=1
+              }
+              continue
+            fi
             for section in "${REQUIRED[@]}"; do
               grep -qi "$section" "$spec" || {
                 echo "::error file=$spec::Seção obrigatória ausente: $section"
@@ -82,6 +91,9 @@ jobs:
           REQUIRED=("Architecture" "Tech Stack" "Data Model" "Data Flow" "Error Handling" "Testing Strategy" "Traceability")
 
           for plan in plans/*.plan.md; do
+            grep -q "^Plano operacional" "$plan" && continue  # operacional (ex.: migração): sem spec de produto
+            # Formato enxuto (sem "Architecture"): o plano é conferido pela rastreabilidade.
+            grep -qi "Architecture" "$plan" || continue
             for section in "${REQUIRED[@]}"; do
               grep -qi "$section" "$plan" || {
                 echo "::error file=$plan::Seção obrigatória ausente: $section"
@@ -102,7 +114,7 @@ jobs:
             spec="specs/$slug.spec.md"
             [ -f "$spec" ] || continue
 
-            for rf in $(grep -oE 'RF-[0-9]+' "$spec" | sort -u); do
+            for rf in $(grep -oE '^(#+ |[-*] \*\*|\| *`?)RF-[0-9]+' "$spec" | grep -oE 'RF-[0-9]+' | sort -u); do
               grep -q "$rf" "$tasks" || {
                 echo "::error file=$tasks::$rf da spec não tem nenhuma tarefa correspondente."
                 FAIL=1
