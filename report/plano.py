@@ -135,7 +135,6 @@ from engine.tipos import DESCONHECIDO, ORDEM_STATUS, Desconhecido, DinheiroTalve
 from report.consistencia import verificar_consistencia
 from report.graficos import (
     COR_DIA_A_DIA,
-    COR_FALTA,
     COR_NAO_MENSAIS,
     COR_PARCELAS,
     Parte,
@@ -2012,18 +2011,6 @@ def _graficos_do_deficitario(
     legenda = (
         (rotulos.get("renda", ""), formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE), "#0F6B50"),
         *((p.rotulo, formatar_dinheiro_br(p.valor), p.cor) for p in partes if p.valor > 0),
-        # `RF-419`: o quanto a saída passa da renda aparece ao lado do gráfico.
-        *(
-            (
-                (
-                    rotulos.get("falta", ""),
-                    formatar_dinheiro_br(diagnostico.DEFICIT_MENSAL),
-                    COR_FALTA,
-                ),
-            )
-            if diagnostico.DEFICIT_MENSAL > 0
-            else ()
-        ),
     )
     return {
         "grafico_renda": barras_entrada_e_saida(

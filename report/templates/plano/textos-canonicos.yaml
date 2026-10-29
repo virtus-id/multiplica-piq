@@ -668,7 +668,6 @@ graficos:
   renda_nota: "A linha tracejada marca a sua renda. O quanto a saída passa dela é o que falta."
   entrada: "Entrada"
   saida: "Saída"
-  falta: "Saída acima da renda"
   renda: "Sua renda"
   dia_a_dia: "Gastos do dia a dia"
   nao_mensais: "Gastos não mensais"
