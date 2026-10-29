@@ -132,6 +132,7 @@ from engine.estado import Divida, EstadoFinanceiro
 from engine.precisao import quantizar_exibicao
 from engine.snapshot import SnapshotOrdem
 from engine.tipos import DESCONHECIDO, ORDEM_STATUS, Desconhecido, DinheiroTalvez
+from report.consistencia import verificar_consistencia
 
 REGRAS: Final[tuple[str, ...]] = (
     "RF-20",
@@ -1211,6 +1212,8 @@ class ContextoPlano:
     #: T-352 — plano normal sem valor extra no mês (capacidade 0, sem
     #: estabilização): o aviso ao aluno; vazio nos demais casos.
     aviso_sem_valor_extra: str = ""
+    #: `RF-472`: preenchido quando `verificar_consistencia` acha identidade que não fecha.
+    aviso_de_conferencia: str = ""
     #: `RF-412` — avisos do plano inteiro (`B5.00`: faltam fichas declaradas).
     avisos_gerais: tuple[str, ...] = ()
     #: `RF-465` (`T-447`): plano provisório (ordem `PROVISORIA` ou modo
@@ -2191,6 +2194,11 @@ def _montar_contexto_plano(
             textos,
             snapshot.METODO_RECOMENDADO_PIQ.value,
             snapshot.diagnostico.MODO_ESTABILIZACAO,
+        ),
+        aviso_de_conferencia=(
+            textos.avisos.get("numeros_nao_conferidos", "")
+            if verificar_consistencia(snapshot)
+            else ""
         ),
         aviso_sem_valor_extra=(
             textos.sem_valor_extra

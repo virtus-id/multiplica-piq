@@ -76,6 +76,13 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
         </section>
       )}
 
+      {/* `RF-472`: os números não passaram na conferência automática. */}
+      {plano.aviso_de_conferencia && (
+        <p className="aviso-atencao m-0 font-bold" role="alert">
+          {plano.aviso_de_conferencia}
+        </p>
+      )}
+
       {/* `T-352`: plano normal sem valor extra neste mês. */}
       {plano.aviso_sem_valor_extra && (
         <p className="aviso-atencao m-0" role="status">

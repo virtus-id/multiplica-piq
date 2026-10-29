@@ -472,6 +472,7 @@ def serializar_plano(
             ],
         },
         "aviso_sem_valor_extra": contexto.aviso_sem_valor_extra,
+        "aviso_de_conferencia": contexto.aviso_de_conferencia,
         "pendencias_acionaveis": [
             {
                 "DIVIDA_ID": pendencia.DIVIDA_ID,

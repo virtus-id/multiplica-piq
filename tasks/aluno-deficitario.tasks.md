@@ -40,3 +40,12 @@
 - **Rastreia:** `RF-470`
 - [x] Quadro do deficitário = aulas 5, 14 e 24 (`textos-canonicos.yaml`), com título e motivo das aulas 14 e 24.
 - **Resultado (2026-10-29):** aulas 5, 14 e 24 no YAML. Os títulos oficiais das aulas 14 e 24 trazem "Sobra"; os testes que proíbem a palavra no modo estabilização passaram a ignorar só os títulos das aulas.
+
+### `T-450` — Aviso: a ordem provisória não é instrução de pagamento
+- **Rastreia:** `RF-471`
+- [x] Bloco `aviso_provisorio` em `estabilizacao` (YAML) e no `estabilizacao.html`; teste em `tests/app_aluno/test_pendencias_do_relatorio.py`.
+
+### `T-451` — Conferência de consistência do relatório
+- **Rastreia:** `RF-472`
+- [x] `report/consistencia.py::verificar_consistencia`, `aviso_de_conferencia` no contexto, PDF, serialização e tela; testes em `tests/app_aluno/test_consistencia_do_relatorio.py`.
+- **Divergência de negócio, não tratada:** `DEFICIT_MENSAL` (o "faltam cortar") usa as parcelas devidas (`PARCELA_CONTRATUAL`), e "Seu mês fecha em" usa as efetivamente pagas. Quando uma dívida paga menos que a parcela, os dois números diferem. Pendente de decisão do produto.

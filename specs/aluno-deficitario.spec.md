@@ -52,6 +52,12 @@ O relatório mostra os 5 maiores gastos que o próprio aluno informou, por item 
 ### RF-470. Aulas do deficitário
 O quadro de aulas do perfil deficitário é **5** (Mapeamento Parte 2), **14** (Voltando a Respirar: Conquistando Sua Primeira Sobra Financeira) e **24** (O Paradoxo "Ganho Bem, Mas Não Sobra Nada"), escolhidas das legendas em `docs/curso-ssd/legendas/`. A aula 19 (reserva) e a 6 (renda extra) saem do quadro do deficitário; a 6 e as 10 e 11 seguem em "Como melhorar o seu plano".
 
+### RF-471. A ordem provisória não é instrução de pagamento
+No relatório do deficitário, um aviso explícito e visível diz que a ordem de quitação é uma simulação provisória, não uma instrução para antecipar pagamentos; que as parcelas contratuais e as despesas essenciais continuam sendo pagas; e que o plano executável só é calculado e liberado quando o mês fechar com resultado igual ou maior que zero (ou quando o aluno atualizar as informações). O aviso aparece com ou sem ordem de quitação. Aprovação do texto: pendente do produto (sugestão, a validar).
+
+### RF-472. Conferência de consistência dos números
+Antes de apresentar o plano, o relatório confere identidades que o motor garante: renda − despesas − parcelas = resultado do mês; soma dos saldos das dívidas = saldo inicial do prognóstico; em cada mês, início + juros − pago = saldo, habitual + extra = total a pagar e soma por dívida = saldo do mês; ordem sem dívida repetida ou fora do inventário; aporte do cenário acelerado = valor informado pelo aluno. Se alguma falhar, o PDF e a tela mostram o aviso "números não conferidos" e não corrigem nada. Vale para todo plano, deficitário ou não.
+
 ### RF-454. Rastreabilidade
 O snapshot registra classificação, método, percentuais usados, resultados dos cenários, premissas e limitações, sem alterar versões anteriores. Alunos não deficitários não mudam.
 

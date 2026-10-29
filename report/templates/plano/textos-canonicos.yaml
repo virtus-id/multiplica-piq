@@ -693,6 +693,11 @@ estabilizacao:
     porque depende de quanto ficar livre para atacar as dívidas. A quitação
     só começa quando o mês fechar com saldo positivo.
   metodo_rotulo: "Método recomendado"
+  # RF-471. Sugestão, a validar pelo produto.
+  aviso_titulo: "Isto ainda não é uma instrução de pagamento"
+  aviso_1: "A ordem de quitação é uma simulação provisória. Não antecipe pagamentos com base nela."
+  aviso_2: "Continue pagando em dia as parcelas contratuais e as despesas essenciais, como moradia, alimentação e saúde."
+  aviso_3: "O plano para antecipar dívidas só é calculado e liberado quando o seu mês fechar com resultado igual ou maior que zero, ou quando você atualizar as suas informações."
 
 # ---------------------------------------------------------------------------
 # Curso de entrada (Servidor Sem Dívidas) — T-352 a T-354.
@@ -788,6 +793,8 @@ avisos:
   garantia: "Esta dívida está vinculada a um bem ou garantia. Confira com o credor as condições dessa garantia antes de decidir qualquer coisa sobre ela."
   fichas_faltando: "Você disse ter mais dívidas do que as que foram cadastradas. Este plano considera apenas as dívidas cadastradas."
   responsabilidade: "A responsabilidade pela informação é do aluno."
+  # RF-472. Sugestão, a validar pelo produto.
+  numeros_nao_conferidos: "Alguns números deste plano não passaram na nossa conferência automática. Não os trate como definitivos: aguarde a revisão da nossa equipe antes de agir com base neles."
 
 # Plano normal com capacidade de ataque zero no mês.
 sem_valor_extra: >-

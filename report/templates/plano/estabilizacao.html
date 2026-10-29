@@ -36,6 +36,12 @@
         <p style="margin: 8px 0 0 0;">{{ textos.estabilizacao.depois_de_zerar }}</p>
         {% endif %}
     </div>
+    {% if textos.estabilizacao.get("aviso_1") %}
+    <div class="aviso" style="margin-top: 4mm;">
+        <p style="margin: 0 0 1mm;"><strong>{{ textos.estabilizacao.get("aviso_titulo", "") }}</strong></p>
+        <ul style="margin: 0; padding-left: 5mm;">{% for chave in ("aviso_1", "aviso_2", "aviso_3") %}<li>{{ textos.estabilizacao.get(chave, "") }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
 </section>
 
 {% if maiores_gastos %}

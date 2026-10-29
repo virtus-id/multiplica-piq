@@ -163,6 +163,7 @@ def renderizar_html_do_plano(
         prognostico=contexto.prognostico,
         quando_termina=contexto.quando_termina,
         aviso_sem_valor_extra=contexto.aviso_sem_valor_extra,
+        aviso_de_conferencia=contexto.aviso_de_conferencia,
         avisos_gerais=contexto.avisos_gerais,
         duvidas=contexto.duvidas,
         maiores_gastos=contexto.maiores_gastos,

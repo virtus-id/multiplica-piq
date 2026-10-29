@@ -273,3 +273,19 @@ def test_rf470_quadro_de_aulas_do_deficitario() -> None:
 
     assert contexto.curso_ssd is not None
     assert [numero for numero, _titulo, _motivo in contexto.curso_ssd.aulas] == ["5", "14", "24"]
+
+
+def test_rf471_deficitario_ve_que_a_ordem_provisoria_nao_e_instrucao_de_pagamento() -> None:
+    """RF-471: aviso presente com ou sem ordem; o plano normal não o mostra."""
+    _contexto_, html = _contexto(_snapshot_base())
+
+    assert "Isto ainda não é uma instrução de pagamento" in html
+    assert "Não antecipe pagamentos" in html
+    assert "parcelas contratuais" in html
+
+    normal = replace(
+        _snapshot_base(),
+        diagnostico=replace(_snapshot_base().diagnostico, MODO_ESTABILIZACAO=False),
+    )
+    _c, html_normal = _contexto(normal)
+    assert "Isto ainda não é uma instrução de pagamento" not in html_normal

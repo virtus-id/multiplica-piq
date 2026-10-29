@@ -361,6 +361,7 @@ export interface Plano {
   curso_ssd?: CursoSsd | null
   /** `T-352`: plano normal sem valor extra no mês; vazio nos demais casos. */
   aviso_sem_valor_extra?: string
+  aviso_de_conferencia?: string
   /** `RF-412` — avisos do plano inteiro (faltam fichas de dívida declaradas). */
   avisos_gerais?: string[]
   /** Redação vigente de `textos-canonicos.yaml` — vem do servidor, nunca reescrita aqui. */

@@ -536,6 +536,9 @@
         {% if textos.explicacao_mes_1 %}
         <p class="nota-meses">{{ textos.explicacao_mes_1 }}</p>
         {% endif %}
+        {% if aviso_de_conferencia %}
+        <p class="aviso"><strong>{{ aviso_de_conferencia }}</strong></p>
+        {% endif %}
         {% if aviso_sem_valor_extra %}
         <p class="nota-meses">{{ aviso_sem_valor_extra }}</p>
         {% endif %}
