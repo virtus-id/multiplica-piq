@@ -492,6 +492,19 @@ ponto_de_partida:
     Estes são os números do seu mês, de acordo com as suas respostas. Eles
     são a base de tudo o que vem a seguir.
   renda: "Sua renda no mês"
+  # RF-477 (T-456): painel do deficitário. Sugestões, a validar.
+  painel_renda: "Renda total recorrente"
+  painel_saidas: "Saídas totais do mês"
+  painel_resultado: "Resultado do mês"
+  painel_dividas: "Total de dívidas"
+  painel_em_dividas: "Total em dívidas"
+  painel_em_dividas_parcial: "Soma só das dívidas com saldo informado."
+  painel_reserva: "Possui reserva?"
+  painel_antes_parcelas: "Antes das parcelas"
+  painel_fechamento: "Entram {renda} e saem {saidas}. O mês fecha em {resultado}."
+  reserva_sim: "Sim"
+  reserva_informal: "Sim, informal"
+  reserva_nao: "Não"
   # `RF-412` (`B3.04A`): redação proposta, a aprovar. A renda acima já a inclui.
   contribuicao_familiar: "Desta renda, o que outra pessoa da família coloca por mês (já somado, informado por você)"
   gastos: "Seus gastos do dia a dia"
@@ -704,6 +717,9 @@ estabilizacao:
     porque depende de quanto ficar livre para atacar as dívidas. A quitação
     só começa quando o mês fechar com saldo positivo.
   metodo_rotulo: "Método recomendado"
+  # RF-476 (T-455). Sugestão, a validar.
+  ranking_divida: "Dívida"
+  ranking_primeira: "Começa por esta"
   # RF-473 (T-452). Sugestão, a validar pelo produto.
   passos_titulo: "O que fazer agora"
   passo_1: "Veja, na próxima página, os seus maiores gastos e marque o que dá para reduzir, pausar ou eliminar."
