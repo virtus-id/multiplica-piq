@@ -70,6 +70,9 @@ O PDF (deficitário e não deficitário) usa a fonte Inter, embutida no reposit�
 ### RF-476. A ordem de quitação em destaque (ranking)
 No PDF do deficitário, a ordem de quitação é o bloco de maior peso visual: um ranking em tabela, uma linha por dívida, com a posição em destaque, o nome e os valores de apoio (os mesmos já mostrados) em colunas, e a primeira da fila marcada. Continua sem prazo, sem mês de quitação e sem cronograma, e continua provisória (RF-468, RF-471). Só apresentação. Etiqueta "Começa por esta" sugerida, a validar.
 
+### RF-477. "Seu ponto de partida" como painel, com fechamento
+No PDF do deficitário, o ponto de partida deixa de ser uma tabela de linhas e vira um painel de cartões: **renda total recorrente**, **saídas totais do mês** (com os três grupos e as despesas fixas e variáveis), **resultado do mês** (e o resultado antes das parcelas), **total de dívidas**, **total em dívidas** (soma dos saldos informados; marcada como parcial se faltar saldo) e **possui reserva**. Fecha com uma frase: "Entram X e saem Y. O mês fecha em Z." Os números são os mesmos de antes: nada novo é calculado além de somas do que já está no estado. O plano normal mantém a tabela. Rótulos sugeridos, a validar.
+
 ### RF-454. Rastreabilidade
 O snapshot registra classificação, método, percentuais usados, resultados dos cenários, premissas e limitações, sem alterar versões anteriores. Alunos não deficitários não mudam.
 

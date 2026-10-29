@@ -333,3 +333,29 @@ def test_rf476_ordem_de_quitacao_do_deficitario_e_um_ranking_em_tabela() -> None
     assert html.count('<span class="rk-n">') == 3
     assert html.count('class="primeira"') == 1 and "Começa por esta" in html
     assert "Quanto você deve hoje" in html and "Termina no" not in html
+
+
+def test_rf477_ponto_de_partida_do_deficitario_e_um_painel_com_fechamento() -> None:
+    """RF-477: renda, saídas, resultado, dívidas, total em dívidas e reserva em
+    cartões, e o fechamento em uma frase; o plano normal mantém a tabela."""
+    contexto, html = _contexto(_snapshot_base())
+    ponto = contexto.ponto_de_partida
+
+    assert ponto is not None and ponto.saidas_totais == "R$ 9.000,00"
+    for rotulo in (
+        "Renda total recorrente",
+        "Saídas totais do mês",
+        "Resultado do mês",
+        "Total de dívidas",
+        "Total em dívidas",
+        "Possui reserva?",
+    ):
+        assert rotulo in html
+    assert "Entram R$ 8.000,00 e saem R$ 9.000,00. O mês fecha em R$ -1.000,00." in html
+
+    normal = replace(
+        _snapshot_base(),
+        diagnostico=replace(_snapshot_base().diagnostico, MODO_ESTABILIZACAO=False),
+    )
+    _c, html_normal = _contexto(normal)
+    assert "Saídas totais do mês" not in html_normal and "Sua renda no mês" in html_normal

@@ -1952,13 +1952,19 @@ class ContextoPontoDePartida:
     despesas_tipo_variavel: str = ""
     despesas_nao_classificadas: str = ""
     despesas_mensais_totais: str = ""
+    #: `RF-477`: números do painel do deficitário (só lidos do estado).
+    saidas_totais: str = ""
+    total_em_dividas: str = ""
+    total_em_dividas_parcial: bool = False
+    reserva_existe: str = ""
+    reserva_total: str = ""
     #: `RF-412` (`B3.04A`) — vazio sem contribuição familiar informada.
     contribuicao_familiar: str = ""
 
 
 def _resumo_das_despesas(
     resumo: ResumoDasDespesas | None, textos: TextosCanonicosPlano
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """`RF-412` — o resumo já somado pela montagem/motor, só formatado.
     Sem resumo, nada aparece; total parcial leva a marca (`R9-2`)."""
     if resumo is None:
@@ -2028,12 +2034,41 @@ def _graficos_do_deficitario(
     }
 
 
+def _painel_do_mes(snapshot: SnapshotOrdem, textos: TextosCanonicosPlano) -> dict[str, Any]:
+    """`RF-477`: saídas totais, total em dívidas e reserva, para o painel do
+    deficitário. Soma o que o estado já tem (sem regra nova); saldo
+    desconhecido não entra e marca o total como parcial."""
+    estado, diagnostico = snapshot.estado_inputs, snapshot.diagnostico
+    parcelas = (
+        diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
+        if diagnostico.MODO_ESTABILIZACAO
+        else diagnostico.PAGAMENTOS_EFETIVOS_DIVIDAS
+    )
+    saidas = (
+        estado.DESPESAS_OPERACIONAIS_ATUAIS + estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS + parcelas
+    )
+    saldos = [d.SALDO_DEVEDOR_ATUAL for d in estado.dividas]
+    conhecidos = [v for v in saldos if isinstance(v, Decimal)]
+    reserva = estado.RESERVA_EXISTE.value if estado.RESERVA_EXISTE is not None else ""
+    return {
+        "saidas_totais": formatar_dinheiro_br(saidas),
+        "total_em_dividas": formatar_dinheiro_br(sum(conhecidos, Decimal(0))) if conhecidos else "",
+        "total_em_dividas_parcial": len(conhecidos) != len(saldos),
+        "reserva_existe": textos.ponto_de_partida.get(f"reserva_{reserva.lower()}", ""),
+        "reserva_total": (
+            formatar_dinheiro_br(estado.RESERVA_TOTAL)
+            if isinstance(estado.RESERVA_TOTAL, Decimal) and reserva in ("SIM", "INFORMAL")
+            else ""
+        ),
+    }
+
+
 def _ponto_de_partida(
     snapshot: SnapshotOrdem, resumo: ResumoDasDespesas | None, textos: TextosCanonicosPlano
 ) -> ContextoPontoDePartida:
     estado = snapshot.estado_inputs
     diagnostico = snapshot.diagnostico
-    return ContextoPontoDePartida(
+    base = ContextoPontoDePartida(
         **_resumo_das_despesas(resumo, textos),
         renda=formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE),
         gastos=formatar_dinheiro_br(estado.DESPESAS_OPERACIONAIS_ATUAIS),
@@ -2048,6 +2083,7 @@ def _ponto_de_partida(
         valor_extra=formatar_dinheiro_br(diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA),
         quantidade_de_dividas=len(estado.dividas),
     )
+    return replace(base, **_painel_do_mes(snapshot, textos))
 
 
 def primeiro_nome(nome_completo: str | None) -> str | None:

@@ -1,0 +1,51 @@
+{#
+    `RF-477` (T-456) — "Seu ponto de partida" do deficitário como painel: o que
+    entra, o que sai, o resultado, e o retrato das dívidas e da reserva. Mesmos
+    números da tabela do plano normal (nada novo é calculado: AC-42), com o
+    fechamento em uma frase. Incluído por `plano.html` em ESTABILIZACAO.
+#}
+{% set pd = ponto_de_partida %}
+{% set tp = textos.ponto_de_partida %}
+<div class="painel">
+    <div class="painel-linha">
+        <div class="kpi kpi-entrada">
+            <div class="kpi-topo"><span class="kpi-rotulo">{{ tp.get("painel_renda", "") }}</span><span class="kpi-icone">{{ visuais.icone("dinheiro") }}</span></div>
+            <div class="kpi-valor">{{ pd.renda }}</div>
+            {% if pd.contribuicao_familiar %}<div class="kpi-nota">{{ tp.get("contribuicao_familiar", "") }}: {{ pd.contribuicao_familiar }}</div>{% endif %}
+        </div>
+        <div class="kpi">
+            <div class="kpi-topo"><span class="kpi-rotulo">{{ tp.get("painel_saidas", "") }}</span><span class="kpi-icone">{{ visuais.icone("avancar") }}</span></div>
+            <div class="kpi-valor">{{ pd.saidas_totais }}</div>
+            <div class="kpi-nota">
+                <span class="ponto" style="background: #1F4E5F;"></span>{{ tp.get("gastos", "") }} <strong>{{ pd.gastos }}</strong><br>
+                <span class="ponto" style="background: #6FA3B5;"></span>{{ tp.get("gastos_ocasionais", "") }} <strong>{{ pd.gastos_ocasionais }}</strong><br>
+                <span class="ponto" style="background: #C98A00;"></span>{{ tp.get("parcelas", "") }} <strong>{{ pd.parcelas }}</strong>
+            </div>
+        </div>
+        <div class="kpi kpi-resultado">
+            <div class="kpi-topo"><span class="kpi-rotulo">{{ tp.get("painel_resultado", "") }}</span><span class="kpi-icone">{{ visuais.icone("conferencia") }}</span></div>
+            <div class="kpi-valor">{{ RESULTADO_CAIXA_OBSERVADO }}</div>
+            {% if pd.despesas_mensais_totais %}<div class="kpi-nota">{{ tp.get("despesas_mensais_totais", "") }}: <strong>{{ pd.despesas_mensais_totais }}</strong></div>{% endif %}
+        </div>
+    </div>
+    <div class="painel-linha">
+        <div class="kpi kpi-claro">
+            <div class="kpi-topo"><span class="kpi-rotulo">{{ tp.get("painel_dividas", "") }}</span></div>
+            <div class="kpi-valor kpi-menor">{{ pd.quantidade_de_dividas }}</div>
+        </div>
+        <div class="kpi kpi-claro">
+            <div class="kpi-topo"><span class="kpi-rotulo">{{ tp.get("painel_em_dividas", "") }}</span></div>
+            <div class="kpi-valor kpi-menor">{{ pd.total_em_dividas or "—" }}</div>
+            {% if pd.total_em_dividas_parcial %}<div class="kpi-nota">{{ tp.get("painel_em_dividas_parcial", "") }}</div>{% endif %}
+        </div>
+        <div class="kpi kpi-claro">
+            <div class="kpi-topo"><span class="kpi-rotulo">{{ tp.get("painel_reserva", "") }}</span><span class="kpi-icone">{{ visuais.icone("reserva") }}</span></div>
+            <div class="kpi-valor kpi-menor">{{ pd.reserva_existe or "—" }}</div>
+            {% if pd.reserva_total %}<div class="kpi-nota">{{ pd.reserva_total }}</div>{% endif %}
+        </div>
+    </div>
+    {% if pd.despesas_tipo_fixo %}
+    <p class="kpi-rodape">{{ tp.get("despesas_tipo_fixo", "") }} <strong>{{ pd.despesas_tipo_fixo }}</strong> · {{ tp.get("despesas_tipo_variavel", "") }} <strong>{{ pd.despesas_tipo_variavel }}</strong></p>
+    {% endif %}
+    <p class="fechamento">{{ tp.get("painel_fechamento", "").format(renda=pd.renda, saidas=pd.saidas_totais, resultado=RESULTADO_CAIXA_OBSERVADO) }}</p>
+</div>

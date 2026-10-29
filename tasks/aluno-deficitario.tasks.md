@@ -66,3 +66,7 @@
 ### `T-455` — Ranking da ordem de quitação no PDF do deficitário
 - **Rastreia:** `RF-476`
 - [x] Tabela de ranking em `estabilizacao.html`, CSS em `plano.html`, rótulos no YAML; teste em `test_pendencias_do_relatorio.py`.
+
+### `T-456` — Painel do ponto de partida do deficitário
+- **Rastreia:** `RF-477`
+- [x] `painel_do_mes.html`, `_painel_do_mes` em `report/plano.py`, rótulos no YAML, CSS em `plano.html`; teste em `test_pendencias_do_relatorio.py`.
