@@ -1,0 +1,66 @@
+# Deploy em produção: só depois que um Pull Request entra na main (a main é protegida:
+# não aceita push direto). Reproduz o procedimento do README ("Segredos e deploy"):
+# git pull no servidor + `sops exec-env segredos.enc.env 'docker compose up -d --build'`.
+# Os segredos da aplicação continuam criptografados no repositório; a chave age que os abre
+# fica só no servidor. Aqui entram apenas os secrets de acesso SSH (ver docs/ci-cd.md).
+# Sem migração: migração de banco segue manual (parar a API antes, ver README).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Um deploy por vez; um novo espera o anterior terminar em vez de cancelá-lo no meio.
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DIRETORIO: ~/workspace/multiplica-piq
+    steps:
+      - name: Preparar SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Atualizar o servidor e subir os containers
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          SHA: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+              bash -s -- "$SHA" "$DIRETORIO" <<'REMOTO'
+          set -euo pipefail
+          sha="$1"; dir="${2/#\~/$HOME}"
+          cd "$dir"
+          git fetch --quiet origin main
+          git merge --ff-only "$sha"          # falha se o servidor divergiu: nunca sobrescreve
+          test "$(git rev-parse HEAD)" = "$sha"
+          sops exec-env segredos.enc.env 'docker compose up -d --build'
+          for i in $(seq 1 30); do
+            estado="$(docker inspect --format '{{.State.Health.Status}}' piq-api)"
+            [ "$estado" = healthy ] && break
+            sleep 5
+          done
+          [ "$estado" = healthy ] || { echo "piq-api não ficou saudável: $estado"; docker logs --tail 40 piq-api; exit 1; }
+          docker compose ps --format '{{.Name}} {{.Status}}'
+          echo "Em produção: $(git log --oneline -1)"
+          REMOTO
+
+      - name: Limpar a chave
+        if: always()
+        run: rm -f ~/.ssh/id_deploy
