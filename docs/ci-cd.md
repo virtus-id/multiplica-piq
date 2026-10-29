@@ -18,6 +18,7 @@ branch feat/… ──PR──► check "validate" (Validate SDD) ──merge─
 | `DEPLOY_HOST` | endereço do servidor (o `HostName` do alias `multiplica` no `~/.ssh/config`) |
 | `DEPLOY_USER` | usuário SSH do servidor (o `User` do mesmo alias) |
 | `DEPLOY_SSH_KEY` | chave PRIVADA de uma chave SSH **só do deploy** (ed25519), nunca a pessoal |
+| `PIQ_SLACK_WEBHOOK_URL` | (opcional) Incoming Webhook do Slack que recebe o resultado de cada deploy; sem ele o aviso é pulado |
 | `DEPLOY_KNOWN_HOSTS` | saída de `ssh-keyscan -t ed25519 <host>`, conferida com o fingerprint do servidor |
 
 Gerar a chave e autorizá-la no servidor:

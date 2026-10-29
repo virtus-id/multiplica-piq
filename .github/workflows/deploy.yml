@@ -61,6 +61,19 @@ jobs:
           echo "Em produção: $(git log --oneline -1)"
           REMOTO
 
+      - name: Avisar no Slack o resultado do deploy
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.PIQ_SLACK_WEBHOOK_URL }}
+          RESULTADO: "${{ job.status == 'success' && ':large_green_circle: Deploy do PIQ concluído' || ':red_circle: Deploy do PIQ falhou' }}"
+          AUTOR: ${{ github.actor }}
+        run: |
+          [ -n "$SLACK_WEBHOOK_URL" ] || { echo "PIQ_SLACK_WEBHOOK_URL não cadastrado: sem aviso no Slack."; exit 0; }
+          texto="$RESULTADO, commit \`${GITHUB_SHA:0:7}\`, por $AUTOR. Log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          jq -n --arg text "$texto" '{text: $text}' |
+            curl -sf -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL" ||
+            echo "::warning::Não foi possível avisar o Slack."
+
       - name: Limpar a chave
         if: always()
         run: rm -f ~/.ssh/id_deploy
