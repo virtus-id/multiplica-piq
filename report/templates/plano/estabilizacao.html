@@ -15,23 +15,21 @@
 {% set t = textos.estabilizacao %}
 <section class="secao">
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("titulo", "Primeiro, estancar o problema"), "conferencia") }}
+    {% if grafico_renda %}
     <div class="duplo">
-        <div class="duplo-esq">
-            <div class="estatistica negativa">
-                <div class="estatistica-rotulo">{{ t.get("resultado_rotulo", "") }}</div>
-                <div class="estatistica-valor">{{ RESULTADO_CAIXA_OBSERVADO }}</div>
-            </div>
-            {% if grafico_renda %}
-            <div class="legenda">{% for rotulo, valor, cor in legenda_renda %}<span class="legenda-item"><i style="background: {{ cor }};"></i>{{ rotulo }} <strong>{{ valor }}</strong></span>{% endfor %}</div>
-            <div class="muted pequeno">{{ textos.graficos.get("renda_nota", "") }}</div>
-            {% endif %}
-        </div>
-        {% if grafico_renda %}
-        <div class="duplo-dir grafico">
+        <div class="duplo-esq grafico">
             <div class="grafico-titulo">{{ textos.graficos.get("renda_titulo", "") }}</div>
             {{ grafico_renda | safe }}
         </div>
-        {% endif %}
+        <div class="duplo-dir">
+            <div class="legenda">{% for rotulo, valor, cor in legenda_renda %}<span class="legenda-item"><i style="background: {{ cor }};"></i>{{ rotulo }} <strong>{{ valor }}</strong></span>{% endfor %}</div>
+            <div class="muted pequeno">{{ textos.graficos.get("renda_nota", "") }}</div>
+        </div>
+    </div>
+    {% endif %}
+    <div class="estatistica negativa">
+        <div class="estatistica-rotulo">{{ t.get("resultado_rotulo", "") }}</div>
+        <div class="estatistica-valor">{{ RESULTADO_CAIXA_OBSERVADO }}</div>
     </div>
     <p>{{ t.get("texto", "").format(valor=RESULTADO_CAIXA_OBSERVADO) }}</p>
     {% if t.get("passo_1") %}
