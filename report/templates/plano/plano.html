@@ -164,6 +164,22 @@
         .gasto-linha { display: flex; justify-content: space-between; margin-top: 2.5mm; }
         .gasto-trilha { height: 2.2mm; border-radius: 1.1mm; background: #E8EDEA; margin-top: 0.8mm; }
         .gasto-barra { height: 2.2mm; border-radius: 1.1mm; background: #1F4E5F; }
+        /* Ranking da ordem de quitação (RF-476): o cerne do plano, em destaque. */
+        .ranking-cartao { background: #F4F7F6; border-radius: 4mm; padding: 2mm 4mm 3mm; }
+        .ranking { width: 100%; border-collapse: collapse; }
+        .ranking th { font-size: 7.5pt; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.06em; text-align: left; padding: 3mm 2mm 2mm; vertical-align: bottom; }
+        .ranking td { padding: 2.6mm 2mm; border-top: 1px solid #E0E7E4; vertical-align: middle; }
+        .ranking tr { break-inside: avoid; }
+        .ranking th.num, .ranking td.num { text-align: right; padding-left: 1mm; padding-right: 1mm; font-variant-numeric: tabular-nums; }
+        .ranking td.num { font-weight: 600; white-space: nowrap; font-size: 9pt; }
+        .ranking .rk { width: 11mm; }
+        .ranking th.nome { width: 44%; }
+        .rk-n { display: inline-block; width: 7mm; height: 7mm; line-height: 7mm; border-radius: 50%; text-align: center; font-weight: 700; font-size: 10pt; background: #DCE5E1; color: #0B1F2A; }
+        .ranking tr.primeira td { background: #DDF3EA; border-top: 0; }
+        .ranking tr.primeira td:first-child { border-radius: 3mm 0 0 3mm; }
+        .ranking tr.primeira td:last-child { border-radius: 0 3mm 3mm 0; }
+        .ranking tr.primeira .rk-n { background: #0B6B54; color: #FFFFFF; }
+        .rk-etiqueta { font-size: 7.5pt; font-weight: 600; color: #0B6B54; text-transform: uppercase; letter-spacing: 0.06em; }
         .ordem-linha { padding: 2mm 0; border-bottom: 1px solid #E3E8E5; break-inside: avoid; }
         .ordem-linha:last-child { border-bottom: 0; }
         .pequeno { font-size: 9pt; }

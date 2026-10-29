@@ -67,6 +67,9 @@ O PDF do deficitário traz, em SVG: (a) "Para onde vai a sua renda", uma barra c
 ### RF-475. Identidade visual moderna do PDF
 O PDF (deficitário e não deficitário) usa a fonte Inter, embutida no repositório (`report/fontes/`, licença OFL), em vez das fontes do sistema do servidor (que só tem DejaVu e deixava o PDF com aspecto antigo). Capa em degradê, seções com número em chip e sem sublinhado pesado, cartões em superfície suave sem borda, número do resultado grande. Só apresentação: textos, ordem e números não mudam. O PDF não depende de recurso remoto.
 
+### RF-476. A ordem de quitação em destaque (ranking)
+No PDF do deficitário, a ordem de quitação é o bloco de maior peso visual: um ranking em tabela, uma linha por dívida, com a posição em destaque, o nome e os valores de apoio (os mesmos já mostrados) em colunas, e a primeira da fila marcada. Continua sem prazo, sem mês de quitação e sem cronograma, e continua provisória (RF-468, RF-471). Só apresentação. Etiqueta "Começa por esta" sugerida, a validar.
+
 ### RF-454. Rastreabilidade
 O snapshot registra classificação, método, percentuais usados, resultados dos cenários, premissas e limitações, sem alterar versões anteriores. Alunos não deficitários não mudam.
 

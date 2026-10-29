@@ -62,3 +62,7 @@
 ### `T-454` — Visual moderno do PDF
 - **Rastreia:** `RF-475`
 - [x] Fontes Inter em `report/fontes/` + `@font-face` em `plano.html`; `base_url` no weasyprint (`report/pdf.py`); capa, cabeçalhos, cartões e resultado restilizados.
+
+### `T-455` — Ranking da ordem de quitação no PDF do deficitário
+- **Rastreia:** `RF-476`
+- [x] Tabela de ranking em `estabilizacao.html`, CSS em `plano.html`, rótulos no YAML; teste em `test_pendencias_do_relatorio.py`.

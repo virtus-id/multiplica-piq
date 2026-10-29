@@ -704,6 +704,9 @@ estabilizacao:
     porque depende de quanto ficar livre para atacar as dívidas. A quitação
     só começa quando o mês fechar com saldo positivo.
   metodo_rotulo: "Método recomendado"
+  # RF-476 (T-455). Sugestão, a validar.
+  ranking_divida: "Dívida"
+  ranking_primeira: "Começa por esta"
   # RF-473 (T-452). Sugestão, a validar pelo produto.
   passos_titulo: "O que fazer agora"
   passo_1: "Veja, na próxima página, os seus maiores gastos e marque o que dá para reduzir, pausar ou eliminar."

@@ -68,13 +68,27 @@
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("ordem_titulo", ""), "dinheiro") }}
     <p class="intro">{{ t.get("ordem_intro", "") }}</p>
     {% if metodo %}<p class="muted pequeno">{{ t.get("metodo_rotulo", "") }}: {{ metodo }}</p>{% endif %}
-    {% for posicao in ordem %}
-    <div class="ordem-linha">
-        <strong>{{ posicao.indice }}. {{ posicao.nome }}</strong>
-        {% if posicao.fatos %}
-        <div class="muted pequeno">{% for rotulo, valor in posicao.fatos %}{{ rotulo }}: {{ valor }}{% if not loop.last %} · {% endif %}{% endfor %}</div>
-        {% endif %}
+    {% set colunas = ordem[0].fatos | map(attribute=0) | list %}
+    <div class="ranking-cartao">
+        <table class="ranking">
+            <thead>
+                <tr>
+                    <th class="rk"></th>
+                    <th class="nome">{{ t.get("ranking_divida", "Dívida") }}</th>
+                    {% for rotulo in colunas %}<th class="num">{{ rotulo }}</th>{% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for posicao in ordem %}
+                <tr{% if loop.first %} class="primeira"{% endif %}>
+                    <td class="rk"><span class="rk-n">{{ posicao.indice }}</span></td>
+                    <td class="nome"><strong>{{ posicao.nome }}</strong>{% if loop.first %}<div class="rk-etiqueta">{{ t.get("ranking_primeira", "") }}</div>{% endif %}</td>
+                    {% set valores = dict(posicao.fatos) %}
+                    {% for rotulo in colunas %}<td class="num">{{ valores.get(rotulo, "—") }}</td>{% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    {% endfor %}
 </section>
 {% endif %}
