@@ -37,7 +37,7 @@
 - [ ] Mensagem quando o resultado do mês é negativo, sem bloquear o envio.
 
 ### `T-440` — Aulas
-- **Rastreia:** `RF-470`
+- **Rastreia:** `RF-451`, `RF-470`
 - [x] Quadro do deficitário = aulas 5, 14 e 24 (`textos-canonicos.yaml`), com título e motivo das aulas 14 e 24.
 - **Resultado (2026-10-29):** aulas 5, 14 e 24 no YAML. Os títulos oficiais das aulas 14 e 24 trazem "Sobra"; os testes que proíbem a palavra no modo estabilização passaram a ignorar só os títulos das aulas.
 
