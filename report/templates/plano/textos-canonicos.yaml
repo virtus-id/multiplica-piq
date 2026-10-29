@@ -30,6 +30,14 @@ corpo: >-
   mostra, mês a mês, quanto pagar e em qual dívida, até a última ser
   quitada. Este plano é definitivo.
 
+# `RF-465` (T-447): plano PROVISÓRIO (ordem provisória ou modo estabilização)
+# não é chamado de "definitivo". Aprovado pelo produto em 2026-10-29.
+corpo_provisorio: >-
+  Montamos este plano a partir das informações que você nos passou. Ele
+  mostra a ordem em que as dívidas devem ser quitadas. Este plano é
+  provisório: ele será ajustado quando o seu mês deixar de fechar no
+  negativo.
+
 # ---------------------------------------------------------------------------
 # Rótulos dos valores de apoio — T-177.
 #
@@ -115,7 +123,6 @@ explicacao_da_posicao:
 # divida` audita como `DESCONHECIDO`.
 rotulos_de_pendencia:
   SALDO_DEVEDOR_ATUAL: "quanto você ainda deve"
-  VALOR_QUITACAO_HOJE: "quanto precisaria pagar para quitar hoje"
   TAXA_EFETIVA_MENSAL_NORMALIZADA: "o CET ou a taxa de juros"
   PARCELA_CONTRATUAL: "o valor da parcela do contrato"
   PAGAMENTO_MENSAL_EFETIVO: "quanto você paga por mês"
@@ -495,7 +502,8 @@ ponto_de_partida:
   despesas_tipo_fixo: "Despesas do tipo fixo"
   despesas_tipo_variavel: "Despesas do tipo variável"
   despesas_nao_classificadas: "Despesas sem classificação (fixo ou variável)"
-  despesas_mensais_totais: "Despesas mensais totais (receitas totais − despesas totais)"
+  # `RF-466` (T-448): a linha é o resultado ANTES das parcelas de dívida.
+  despesas_mensais_totais: "Resultado do mês antes das parcelas de dívida (renda − despesas)"
   parcial: "alguma informação ficou de fora"
   quantidade_dividas: "Dívidas incluídas neste plano"
   # Etiquetas curtas: a cor (verde entra, vermelho sai) não é o único sinal.
@@ -594,14 +602,12 @@ reserva_explicacao: >-
 # Bloco 5 que grava o campo (botão "Responder agora" na tela).
 onde_achar:
   SALDO_DEVEDOR_ATUAL: "No aplicativo ou no extrato do credor, procure por \"saldo devedor\" ou \"saldo a pagar\"."
-  VALOR_QUITACAO_HOJE: "No aplicativo do credor, procure a opção \"quitação antecipada\" ou \"liquidação\"."
   TAXA_EFETIVA_MENSAL_NORMALIZADA: "No contrato, extrato ou aplicativo do banco, procure por \"CET\" ou \"taxa de juros\"."
   PARCELA_CONTRATUAL: "No contrato ou no aplicativo do credor, procure o valor da parcela combinada."
   PAGAMENTO_MENSAL_EFETIVO: "No seu extrato bancário, veja quanto realmente saiu por mês para esta dívida."
 
 pergunta_do_campo:
   SALDO_DEVEDOR_ATUAL: "B5.B03"
-  VALOR_QUITACAO_HOJE: "B5.B05A"
   PARCELA_CONTRATUAL: "B5.C02"
   PAGAMENTO_MENSAL_EFETIVO: "B5.C06"
   TAXA_EFETIVA_MENSAL_NORMALIZADA: "B5.D06"
@@ -615,25 +621,41 @@ duvidas:
       Este plano é definitivo e a simples passagem dos meses não o muda.
       Siga as parcelas e o valor extra de cada mês até a última
       dívida ser quitada.
-  - pergunta: "O que acontece com as outras dívidas enquanto eu pago uma?"
+  - &duvida_outras_dividas
+    pergunta: "O que acontece com as outras dívidas enquanto eu pago uma?"
     resposta: >-
       Você continua pagando a parcela normal de todas elas, sem atraso. Só
       o valor extra do mês vai para a dívida da vez.
-  - pergunta: "E se eu não conseguir separar o valor extra em algum mês?"
+  - &duvida_valor_extra
+    pergunta: "E se eu não conseguir separar o valor extra em algum mês?"
     resposta: >-
       Pague as parcelas normais de todas as dívidas, em dia: elas nunca
       podem atrasar. No mês seguinte, volte a separar o valor extra. A dívida
       da vez termina mais tarde, mas a ordem do plano continua a mesma.
-  - pergunta: "E se eu tiver uma dívida nova?"
+  - &duvida_divida_nova
+    pergunta: "E se eu tiver uma dívida nova?"
     resposta: >-
       O plano parte da regra de não fazer dívida nova, a regra da aula 1 do
       curso. Uma dívida nova não faz parte deste plano, por isso o melhor é
       evitá-la enquanto você segue as etapas.
-  - pergunta: "Por que não começar pela maior dívida?"
+  - &duvida_maior_divida
+    pergunta: "Por que não começar pela maior dívida?"
     resposta: >-
       A ordem segue o método do seu plano, explicado em "Como o seu plano
       funciona". Cada método escolhe a dívida da vez por um critério, como
       os juros mais altos ou o menor saldo, e não pelo tamanho da dívida.
+
+# `RF-465` (T-447): as mesmas dúvidas, com a primeira trocada, para o plano
+# provisório. As demais valem para os dois e são reaproveitadas por âncora.
+duvidas_provisorio:
+  - pergunta: "Quando o meu plano muda?"
+    resposta: >-
+      Este plano é provisório. Ele muda quando o seu mês fechar com saldo
+      positivo ou quando você atualizar as suas informações.
+  - *duvida_outras_dividas
+  - *duvida_valor_extra
+  - *duvida_divida_nova
+  - *duvida_maior_divida
 
 sobre_este_plano: >-
   Este plano foi calculado com as informações que você nos passou. Quanto
@@ -642,16 +664,35 @@ sobre_este_plano: >-
 
 # Estabilização: explica RESULTADO_CAIXA_OBSERVADO em palavras, nunca com a
 # palavra "sobra" (GAB-04). Sugestão, a validar.
+#
+# `RF-468` a `RF-470` (T-437): o deficitário recebe um plano PROVISÓRIO que
+# manda estancar primeiro. Textos aprovados pelo produto em 2026-10-29; as
+# frases não usam a palavra "sobra" (GAB-04): o resultado nunca é chamado assim.
 estabilizacao:
-  titulo: "Primeiro, equilibrar o seu mês"
+  titulo: "Primeiro, estancar o problema"
+  resultado_rotulo: "Seu mês fecha em"
   texto: >-
-    Hoje, considerando o que entra e o que sai, o resultado do seu mês é de
-    {valor}. Esse valor ainda não pode ser usado para quitar dívidas. Nesta
-    fase, o objetivo é equilibrar as contas do mês. Quando isso acontecer,
-    começa a segunda fase do plano, em que as dívidas passam a ser quitadas
-    uma a uma.
+    Hoje, considerando o que entra e o que sai, o seu mês fecha em {valor}:
+    entra menos do que sai. Enquanto isso acontecer, não há dinheiro livre
+    para quitar dívida nenhuma, e por isso o plano abaixo é provisório. O
+    primeiro passo é parar de ficar no negativo.
   # T-405 (RF-418): o quanto falta cortar é `DEFICIT_MENSAL` do motor.
   falta_cortar: "Para chegar a zero, faltam cortar {valor} por mês."
+  depois_de_zerar: >-
+    A partir daí, cada real que ficar livre vira dinheiro para atacar as
+    dívidas, e o plano se ajusta aos seus novos números.
+  gastos_titulo: "Onde olhar nos seus gastos"
+  gastos_intro: >-
+    Estes são os seus maiores gastos do mês, de acordo com as suas respostas.
+    Marque o que dá para reduzir, pausar ou eliminar. A aula 5 do curso
+    mostra como.
+  ordem_titulo: "A ordem de quitação, por enquanto provisória"
+  ordem_intro: >-
+    Esta é a ordem em que recomendamos quitar as dívidas. É uma recomendação,
+    não um cronograma de pagamento. Ela pode mudar quando o seu mês fechar,
+    porque depende de quanto ficar livre para atacar as dívidas. A quitação
+    só começa quando o mês fechar com saldo positivo.
+  metodo_rotulo: "Método recomendado"
 
 # ---------------------------------------------------------------------------
 # Curso de entrada (Servidor Sem Dívidas) — T-352 a T-354.
@@ -702,15 +743,21 @@ curso_ssd:
     12:
       titulo: "Métodos de Quitação"
       motivo: "Explica como pagar o mínimo em todas as dívidas e concentrar o dinheiro extra em uma de cada vez."
+    14:
+      titulo: "Voltando a Respirar: Conquistando Sua Primeira Sobra Financeira"
+      motivo: "Ensina a descobrir para onde o dinheiro escorre e a fechar o mês com resultado positivo."
     19:
       titulo: "Blindagem Contra Imprevistos"
       motivo: "Ensina a montar uma reserva inicial para emergências sem recorrer a novas dívidas."
+    24:
+      titulo: "O Paradoxo \"Ganho Bem, Mas Não Sobra Nada\""
+      motivo: "Mostra por que parcelas fixas altas ocupam a renda e como reconfigurar a vida financeira."
     27:
       titulo: "Foco em Manutenção"
       motivo: "Mostra como manter o controle no longo prazo, com revisão mensal e check-in semanal."
   quadro_por_cenario:
     padrao: [12, 9, 10, 11, 19, 27]
-    estabilizacao: [5, 6, 19]
+    estabilizacao: [5, 14, 24]
   melhorar_titulo: "Como melhorar o seu plano"
   melhorar_intro: >-
     Não existe um percentual de economia que sirva para todo mundo, porque

@@ -131,6 +131,11 @@
         }
         .muted { color: #5E6E72; }
         .pequeno { font-size: 9pt; }
+        /* Resultado negativo do deficitário (RF-468): o vermelho é o mesmo
+           das saídas, e o valor vem com sinal e com texto, nunca só com cor. */
+        .resultado-negativo { border: 1px solid #A63A2C; border-left: 2mm solid #A63A2C; }
+        .resultado-rotulo { font-size: 9.5pt; color: #5E6E72; text-transform: uppercase; letter-spacing: 0.05em; }
+        .resultado-valor { font-family: "Source Serif 4", Georgia, serif; font-size: 22pt; font-weight: bold; color: #A63A2C; line-height: 1.2; }
 
         /* Números em destaque (resumo) ---------------------------------- */
         .numeros { display: flex; gap: 4mm; }
@@ -781,7 +786,7 @@
     </section>
     {% endif %}
 
-    {% if textos is defined and textos.duvidas %}
+    {% if (duvidas is defined and duvidas) or (textos is defined and textos.duvidas) %}
     {% set ns.n = ns.n + 1 %}
     {% include "duvidas.html" %}
     {% endif %}

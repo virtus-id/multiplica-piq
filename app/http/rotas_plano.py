@@ -57,13 +57,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 
 from app.http.isolamento import exigir_caso_da_sessao, obter_repositorio_casos
-from app.http.rotas_coleta import obter_colecao_de_registros, obter_repositorio_respostas
-from app.http.serializacao_plano import vocabulario_do_caso
+from app.http.rotas_coleta import (
+    obter_colecao_de_registros,
+    obter_repositorio_itens,
+    obter_repositorio_respostas,
+)
+from app.http.serializacao_plano import itens_do_caso, vocabulario_do_caso
 from collection.carga import ColecaoDeRegistros
 from collection.respostas import RespostasCaso
 from engine.portas import RepositorioSnapshots
 from persistencia.app_aluno.casos import RepositorioCasos
 from persistencia.app_aluno.contas import ContaDoCaso, RepositorioContasSupabase
+from persistencia.app_aluno.itens import RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
 from persistencia.supabase.conexao import ErroConexaoAusente
 from persistencia.supabase.repositorio_snapshots import (
@@ -139,6 +144,7 @@ def exportar_pdf_do_plano(
     colecao: Annotated[ColecaoDeRegistros, Depends(obter_colecao_de_registros)],
     repositorio_respostas: Annotated[RepositorioRespostas, Depends(obter_repositorio_respostas)],
     contas: Annotated[ContasDosCasos, Depends(obter_contas_dos_casos)],
+    repositorio_itens: Annotated[RepositorioItens, Depends(obter_repositorio_itens)],
 ) -> Response:
     """Serve o PDF do snapshot **liberado** do caso — nunca o último
     calculado (`AC-25`). Chama `report.pdf.gerar_pdf_do_plano`, que por sua
@@ -165,6 +171,7 @@ def exportar_pdf_do_plano(
         colecao.registros,
         RespostasCaso(respostas=repositorio_respostas.listar_do_caso(CASO_ID)),
         (divida.DIVIDA_ID for divida in snapshot.estado_inputs.dividas),
+        itens_do_caso(repositorio_itens, CASO_ID),
     )
 
     try:

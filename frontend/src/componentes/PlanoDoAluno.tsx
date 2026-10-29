@@ -20,6 +20,7 @@ import ComoFunciona from './ComoFunciona'
 import DuvidasDoPlano from './DuvidasDoPlano'
 import Icone from './Icone'
 import ListaDeDados from './ListaDeDados'
+import PlanoDoDeficitario from './PlanoDoDeficitario'
 import PontoDePartida from './PontoDePartida'
 import PrognosticoDoPlano, { QuandoCadaDividaTermina } from './PrognosticoDoPlano'
 import { MesesDetalhados, MuralDoPlano } from './MuralEMeses'
@@ -89,22 +90,14 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
         </p>
       ))}
 
-      {plano.MODO_ESTABILIZACAO && (
-        <div className="aviso-atencao" role="status">
-          <div>
-            <strong className="block">Primeiro, equilibrar o seu mês.</strong>
-            Hoje, considerando o que entra e o que sai, o resultado do seu mês é de{' '}
-            {plano.RESULTADO_CAIXA_OBSERVADO}. Esse valor ainda não pode ser usado para quitar
-            dívidas. Nesta fase, o objetivo é equilibrar as contas do mês. Para chegar a zero,
-            faltam cortar {plano.FALTA_CORTAR} por mês.
-          </div>
-        </div>
-      )}
+      {/* `RF-468` a `RF-470` (T-437): o deficitário recebe um plano provisório
+          que manda estancar primeiro; a ordem de quitação vem como recomendação. */}
+      {plano.MODO_ESTABILIZACAO && <PlanoDoDeficitario plano={plano} />}
 
       {/* Capítulo 1: as dívidas que o plano contém. A ordem dos blocos segue a do PDF:
           dívidas, ponto de partida, reserva, como funciona, números, mês a mês,
           Mês 1, primeira dívida quitada, linha do tempo, pendências, curso. */}
-      {plano.ordem.length > 0 ? (
+      {plano.MODO_ESTABILIZACAO && plano.ordem.length > 0 ? null : plano.ordem.length > 0 ? (
         <>
           <h2>{secoes.dividas ?? 'Suas dívidas, uma a uma'}</h2>
           {textosDasDividas.introducao && (

@@ -390,6 +390,10 @@ export interface Plano {
   RESULTADO_CAIXA_OBSERVADO: string
   /** `T-405`: quanto falta cortar por mês para chegar a zero (`DEFICIT_MENSAL`). */
   FALTA_CORTAR: string
+  /** `RF-465`: plano provisório (ordem provisória ou modo estabilização). */
+  provisorio?: boolean
+  /** `RF-469`: os maiores gastos que o aluno informou, do maior para o menor. */
+  maiores_gastos?: { nome: string; valor: string }[]
   reserva_mobilizavel: ReservaMobilizavel
   /**
    * `RF-98`, `AC-152` (`T-276`): a segunda projeção do motor, com os
@@ -439,6 +443,8 @@ export interface Plano {
   /** Textos do cartão de cada dívida ("Termina no", "Por que…"). */
   dividas_textos?: Record<string, string>
   reserva_explicacao?: string
+  /** `RF-468`: textos do plano do deficitário ("Primeiro, estancar o problema"…). */
+  estabilizacao_textos?: Record<string, string>
   duvidas?: { pergunta: string; resposta: string }[]
   sobre_este_plano?: string
 }

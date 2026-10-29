@@ -26,16 +26,20 @@ REGRAS: `RF-50`, `RF-51`, `RF-21`, `AC-14`, `AC-16`
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from decimal import Decimal
 from typing import Any, Final
 
 from app.casos.inventario import credor_da_ficha
+from app.casos.itens_despesa import rotulos_dos_itens
 from app.http.rotas_calculo import _respostas_do_calculo
-from app.montagem.entrada import resumo_das_despesas
+from app.montagem.entrada import fotografia_do_mes, resumo_das_despesas
 from app.revisao.comprovacao import NivelDaFicha
 from app.revisao.fila import ItemFila
 from app.revisao.lista_de_casos import LinhaDoCaso
 from collection.registro import RegistroPergunta
 from collection.respostas import RespostasCaso
+from persistencia.app_aluno.itens import ItemRepetido, RepositorioItens
+from persistencia.supabase.conexao import ErroConexaoAusente
 from report.plano import (
     ContextoCampo,
     ContextoEstadoInputs,
@@ -73,10 +77,49 @@ def fontes_por_divida(
     return fontes
 
 
+#: `RF-469`: quantos gastos o relatório do deficitário mostra.
+_QUANTIDADE_DE_MAIORES_GASTOS: Final[int] = 5
+
+
+def itens_do_caso(repositorio_itens: RepositorioItens, caso_id: str) -> tuple[ItemRepetido, ...]:
+    """Os itens ATIVOS do caso, para dar nome aos gastos do relatório. Como o
+    nome do aluno, é apresentação: sem banco (`ErroConexaoAusente`, testes e
+    ambiente local) o relatório sai sem a lista, nunca falha por ela."""
+    try:
+        return repositorio_itens.listar_do_caso(caso_id, incluir_removidos=False)
+    except ErroConexaoAusente:
+        return ()
+
+
+def maiores_gastos(
+    registros: tuple[RegistroPergunta, ...],
+    respostas: RespostasCaso,
+    itens: Iterable[ItemRepetido],
+) -> tuple[tuple[str, Decimal], ...]:
+    """`RF-469` (`T-437`) — os gastos do mês que o aluno informou, do maior
+    para o menor, no limite do bloco. São os MESMOS itens e valores da
+    fotografia do mês (`B3.C00`) e do motor; aqui só se escolhem e se ordenam
+    (comparação, nenhuma aritmética). Item sem nome para o aluno, sem valor
+    ("não sei") ou de valor zero fica de fora: nada é inventado."""
+    rotulos = rotulos_dos_itens(itens, registros)
+    informados = [
+        (rotulos[linha.item_id], linha.valor_mensal)
+        for linha in fotografia_do_mes(
+            _respostas_do_calculo(registros, respostas)
+        ).despesas_por_item
+        if linha.item_id in rotulos
+        and isinstance(linha.valor_mensal, Decimal)
+        and linha.valor_mensal > 0
+    ]
+    informados.sort(key=lambda gasto: gasto[1], reverse=True)
+    return tuple(informados[:_QUANTIDADE_DE_MAIORES_GASTOS])
+
+
 def vocabulario_do_caso(
     registros: tuple[RegistroPergunta, ...],
     respostas: RespostasCaso,
     dividas: Iterable[str],
+    itens: Iterable[ItemRepetido] = (),
 ) -> VocabularioDoCaso:
     """`RF-111` (`T-326`) — o que `report/` precisa para dar nome às coisas:
     o `rotulo` de cada opção do registro, por `VARIAVEL_GRAVADA` (a primeira
@@ -113,6 +156,12 @@ def vocabulario_do_caso(
         fichas_faltando=isinstance(declaradas, int) and declaradas > len(dividas),
         # as mesmas respostas que o motor leu (`B3.04A` só vale com `B3.04` = Sim)
         resumo_das_despesas=resumo_das_despesas(_respostas_do_calculo(registros, respostas)),
+        # `RF-462` (`B5.C01`): "não há parcela definida" — a parcela do contrato
+        # não é pergunta dessa ficha, então não pode constar como pendência.
+        dividas_sem_parcela_definida=frozenset(
+            d for d in dividas if respostas.valor_no_item(d, "POSSUI_PARCELA_DEFINIDA") == "NAO"
+        ),
+        maiores_gastos=maiores_gastos(registros, respostas, itens),
     )
 
 
@@ -237,6 +286,11 @@ def serializar_plano(
         "MODO_ESTABILIZACAO": contexto.MODO_ESTABILIZACAO,
         "RESULTADO_CAIXA_OBSERVADO": contexto.RESULTADO_CAIXA_OBSERVADO,
         "FALTA_CORTAR": contexto.FALTA_CORTAR,
+        # `RF-465`/`RF-469`: plano provisório e os maiores gastos do aluno.
+        "provisorio": contexto.provisorio,
+        "maiores_gastos": [
+            {"nome": nome, "valor": valor} for nome, valor in contexto.maiores_gastos
+        ],
         "reserva_mobilizavel": {
             # `AC-70`: reserva desconhecida é ESTADO explícito, nunca
             # `R$ 0,00` e nunca campo omitido.
@@ -450,10 +504,13 @@ def serializar_plano(
                 "como_funciona_rotulos": list(textos.como_funciona_rotulos),
                 "dividas_textos": dict(textos.textos_das_dividas),
                 "reserva_explicacao": textos.reserva_explicacao,
+                # `RF-465`: as dúvidas DESTE plano (provisório ou definitivo).
                 "duvidas": [
                     {"pergunta": pergunta, "resposta": resposta}
-                    for pergunta, resposta in textos.duvidas
+                    for pergunta, resposta in (contexto.duvidas or textos.duvidas)
                 ],
+                # `RF-468`: os textos do plano do deficitário, do servidor.
+                "estabilizacao_textos": dict(textos.estabilizacao),
                 "sobre_este_plano": textos.sobre_este_plano,
             }
             if textos is not None

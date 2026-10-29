@@ -2,6 +2,7 @@
 
 > Origem: reunião de 13 de outubro de 2026 (Rodrigo Chebli) e o pedido do produto de 2026-10-23.
 > Estado: **rascunho para aprovação**. Nenhuma regra financeira nova é ativada em produção sem a decisão marcada em `Open Questions`.
+> **Decisão do produto de 2026-10-29:** o que o aluno vê é um plano **provisório** que manda **estancar primeiro** (RF-468 a RF-470). Os cenários de 5% e 10% (RF-448/449) ficam só na conferência do revisor e **não vão ao aluno**; por isso as `OQ-1`, `OQ-2`, `OQ-3`, `OQ-5` e `OQ-6` deixam de bloquear a entrega ao aluno.
 
 ## 1. Overview
 
@@ -20,12 +21,12 @@ Hoje o aluno com resultado mensal negativo (`MODO_ESTABILIZACAO`, `RESULTADO_MEN
 O caso é **superavitário** (`RESULTADO_MENSAL_ATUAL > 0`), **equilibrado** (`= 0`) ou **deficitário** (`< 0`), pela definição oficial do motor (renda − despesas − não mensais − parcelas devidas). O snapshot guarda a classificação e o valor do déficit (`DEFICIT_MENSAL`).
 
 ### RF-447. Ordem recomendada no déficit
-Com a ordem do motor (`ORDEM_QUITACAO`, método recomendado, justificativa por posição), o plano do deficitário mostra a ordem recomendada, o método, o porquê e as premissas, rotulada como **recomendação**, e não como cronograma de pagamento.
+Com a ordem do motor (`ORDEM_QUITACAO`, método recomendado, justificativa por posição), o plano do deficitário mostra a ordem recomendada, o método, o porquê e as premissas, rotulada como **recomendação provisória**, e não como cronograma de pagamento. Sem prazo, sem mês de quitação e sem fichas mensais enquanto a capacidade de ataque for zero.
 
 ### RF-448. Três cenários do deficitário
 1. **Se nada mudar:** o prognóstico "sem ação" do motor (pagamentos efetivos, sem amortização extra), com suas limitações explícitas. Não presume financiamento do déficit (cheque especial, cartão, empréstimo).
 2. **Economia de 5% da renda** e 3. **de 10%:** hipótese de redução de despesas igual a `RENDA_TOTAL_RECORRENTE × percentual`. A economia compensa primeiro o déficit. O motor recalcula o caso com as despesas reduzidas; só havendo resultado positivo existe capacidade de aporte. Cada cenário informa: resultado ajustado, se continua deficitário / equilibrado / com sobra, e os indicadores que o motor conseguir calcular. Percentuais são parâmetros versionados (`P_*`), nunca literais.
-Os cenários são **simulação**, nunca plano homologado, e ficam identificados assim no snapshot e no PDF.
+Os cenários são **simulação**, nunca plano homologado, e ficam identificados assim no snapshot. **Só o revisor os vê** (RF-452); o aluno não recebe os cenários de 5% e 10%, porque são percentuais fixos que não batem com os números de cada pessoa.
 
 ### RF-449. Horizontes de 12, 24 e 60 meses
 Quando o motor tem dado e regra, cada cenário mostra, em 12, 24 e 60 meses: resultado do mês, capacidade de aporte, saldo restante, pagamentos e juros projetados e dívidas quitadas. Indicador que o motor não calcula não é exibido. Mês de quitação só com pagamentos viáveis; caso contrário, "não executável" ou "insuficientemente determinado", com o motivo.
@@ -40,17 +41,26 @@ Texto padrão **versionado**, de autoria do Rodrigo, com variáveis reais (défi
 A tela do revisor mostra, com dados reais: resultado negativo, déficit, método, ordem recomendada, premissas e resultado dos cenários de 5% e 10%, limitações e o que não está disponível. Déficit não vira pendência. Decisão, observação, mensagem ao aluno e histórico não mudam.
 
 ### RF-453. PDF e experiência do aluno
-O PDF do deficitário preserva identidade e estrutura: introdução, estratégia, três cenários (neutro/vermelho, azul 5%, verde 10%, mesma escala), orientações e, só havendo projeção executável, as fichas mensais. Não se geram fichas com valores que o aluno não tem como pagar. Ao enviar, o aluno é avisado de que o orçamento não fecha e de que o plano terá cenários condicionais.
+O PDF e a tela do deficitário preservam a identidade do plano e seguem a ordem de RF-468 a RF-470. Não se geram fichas, prazos nem mês de quitação com valores que o aluno não tem como pagar. Ao enviar, o aluno é avisado de que o orçamento não fecha e de que o plano será provisório; o aviso não bloqueia o envio.
+
+### RF-468. Resultado negativo em destaque e "estancar primeiro"
+O relatório do deficitário abre com o resultado do mês em destaque ("Seu mês fecha em -R$ X") e com o título **"Primeiro, estancar o problema"**, que diz quanto falta por mês para chegar a zero (`DEFICIT_MENSAL`, já calculado pelo motor) e que, a partir daí, tudo o que sobrar vira dinheiro de ataque e o plano se ajusta. O texto é canônico, versionado e foi aprovado pelo produto em 2026-10-29.
+
+### RF-469. Onde olhar nos seus gastos
+O relatório mostra os 5 maiores gastos que o próprio aluno informou, por item e em ordem de valor, com a orientação da aula 5 de marcar o que dá para reduzir, pausar ou eliminar. Sem percentual nem meta por item inventados; sem juízo sobre o gasto.
+
+### RF-470. Aulas do deficitário
+O quadro de aulas do perfil deficitário é **5** (Mapeamento Parte 2), **14** (Voltando a Respirar: Conquistando Sua Primeira Sobra Financeira) e **24** (O Paradoxo "Ganho Bem, Mas Não Sobra Nada"), escolhidas das legendas em `docs/curso-ssd/legendas/`. A aula 19 (reserva) e a 6 (renda extra) saem do quadro do deficitário; a 6 e as 10 e 11 seguem em "Como melhorar o seu plano".
 
 ### RF-454. Rastreabilidade
 O snapshot registra classificação, método, percentuais usados, resultados dos cenários, premissas e limitações, sem alterar versões anteriores. Alunos não deficitários não mudam.
 
 ## 4. Open Questions (decisões que bloqueiam a ativação)
 
-- **OQ-1.** Critério que distingue a Situação B da C (quando se deixa de projetar pagamentos).
+- **OQ-1.** Critério que distingue a Situação B da C (quando se deixa de projetar pagamentos). *Não bloqueia a entrega ao aluno (2026-10-29): o aluno não recebe projeção de pagamentos.*
 - **OQ-2.** Base da renda dos percentuais: `RENDA_TOTAL_RECORRENTE` (proposta) ou outra.
 - **OQ-3.** Como representar dívida inadimplente ou em atraso na trajetória "se nada mudar".
-- **OQ-4.** Mapeamento aula ↔ perfil deficitário, e aprovação do texto do Rodrigo.
+- **OQ-4.** Mapeamento aula ↔ perfil deficitário, e aprovação do texto do Rodrigo. *Aulas definidas em RF-470 e texto de RF-468 aprovado pelo produto em 2026-10-29; o Rodrigo ainda pode ajustar a redação.*
 - **OQ-5.** Quando um mês de quitação pode ser afirmado no deficitário.
 - **OQ-6.** Aplicar a economia por redução de `DESPESAS_OPERACIONAIS_ATUAIS` (proposta) ou outra rubrica.
 

@@ -195,6 +195,8 @@ def test_nenhuma_variavel_nova_de_rotulo_visual_para_a_ordem() -> None:
         "onde_achar",
         "pergunta_do_campo",
         "duvidas",
+        "corpo_provisorio",
+        "duvidas_provisorio",
         "sobre_este_plano",
         "estabilizacao",
         # `T-352` a `T-354`: curso de entrada, nota de incômodo e aviso de

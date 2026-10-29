@@ -50,6 +50,7 @@ from datetime import date
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import escape
 
 from app.montagem.estado import montar_divida, montar_estado_financeiro
 from engine.estado import (
@@ -428,6 +429,13 @@ def test_ec09_modo_estabilizacao_nunca_rotula_resultado_como_sobra() -> None:
 
     html = _renderizar_plano_html_com_contexto(contexto)
     html_minusculo = html.lower()
+    # Os títulos oficiais das aulas 14 e 24 trazem "Sobra" (`RF-470`): são nome
+    # de curso, não rótulo do resultado, então saem da conferência.
+    assert contexto.curso_ssd is not None
+    for _numero, titulo, _motivo in contexto.curso_ssd.aulas:
+        html_minusculo = html_minusculo.replace(str(escape(titulo)).lower(), "").replace(
+            titulo.lower(), ""
+        )
     for rotulo_proibido in _ROTULOS_PROIBIDOS:
         assert rotulo_proibido not in html_minusculo, (
             f"{rotulo_proibido!r} não pode qualificar RESULTADO_CAIXA_OBSERVADO "

@@ -7,10 +7,12 @@
     `textos-canonicos.yaml`), `ns` e `cabecalho_da_secao`.
 #}
 {% import "visuais.html" as visuais %}
-{% if textos is defined and textos.duvidas %}
+{# `RF-465`: as dúvidas do plano (as do provisório ou as de sempre) vêm do contexto; sem ele, as de `textos`. #}
+{% set lista_de_duvidas = duvidas if (duvidas is defined and duvidas) else (textos.duvidas if textos is defined else ()) %}
+{% if lista_de_duvidas %}
 <section class="secao">
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.secoes.get("duvidas", "Perguntas frequentes"), "duvida") }}
-    {% for pergunta, resposta in textos.duvidas %}
+    {% for pergunta, resposta in lista_de_duvidas %}
     <div class="pergunta">
         <h3>{{ pergunta }}</h3>
         <p class="muted" style="margin: 0;">{{ resposta }}</p>

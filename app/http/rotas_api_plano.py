@@ -76,6 +76,7 @@ from app.http.serializacao_plano import (
     serializar_linha_de_caso,
     serializar_opcoes_da_lista,
     serializar_plano,
+    itens_do_caso,
     vocabulario_do_caso,
 )
 from app.revisao.comprovacao import niveis_por_ficha
@@ -103,7 +104,7 @@ from persistencia.app_aluno.contas import (
     listar_revisores,
 )
 from persistencia.app_aluno.eventos import RepositorioEventosCasoSupabase
-from persistencia.app_aluno.itens import RepositorioItens
+from persistencia.app_aluno.itens import ItemRepetido, RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
 from persistencia.app_aluno.revisoes import RepositorioRevisoesSupabase
 from persistencia.supabase.repositorio_snapshots import ErroSnapshotNaoEncontrado
@@ -236,13 +237,18 @@ def obter_revisores() -> Callable[[], dict[str, str]]:
 
 
 def _vocabulario(
-    colecao: ColecaoDeRegistros, respostas: RespostasCaso, snapshot: SnapshotOrdem
+    colecao: ColecaoDeRegistros,
+    respostas: RespostasCaso,
+    snapshot: SnapshotOrdem,
+    itens: tuple[ItemRepetido, ...] = (),
 ) -> VocabularioDoCaso:
-    """`T-326` — o vocabulário do caso para as dívidas DESTE snapshot."""
+    """`T-326` — o vocabulário do caso para as dívidas DESTE snapshot. `itens`
+    dá nome aos maiores gastos do relatório do deficitário (`RF-469`)."""
     return vocabulario_do_caso(
         colecao.registros,
         respostas,
         (divida.DIVIDA_ID for divida in snapshot.estado_inputs.dividas),
+        itens,
     )
 
 
@@ -327,7 +333,9 @@ def plano_do_aluno(
     contexto = montar_contexto_plano(
         snapshot,
         textos,
-        _vocabulario(colecao, respostas_do_caso, snapshot),
+        _vocabulario(
+            colecao, respostas_do_caso, snapshot, itens_do_caso(repositorio_itens, CASO_ID)
+        ),
         # Revisão de design: o plano chama o aluno pelo nome.
         nome_do_dono_do_caso(contas, CASO_ID),
         data_da_liberacao(CASO_ID, snapshot.SNAPSHOT_ID),
@@ -517,6 +525,7 @@ def caso_para_revisao(
             if versao is not None
             for divida in versao.estado_inputs.dividas
         },
+        itens_do_caso(repositorio_itens, CASO_ID_REVISAO),
     )
 
     # `RF-121`: o plano chama o aluno pelo nome, como na tela dele.
@@ -579,6 +588,7 @@ def previa_do_pdf_do_plano(
         RepositorioRespostas, Depends(obter_repositorio_respostas_da_coleta)
     ],
     emails: Annotated[EmailsDosAlunos, Depends(obter_emails_dos_alunos)],
+    repositorio_itens: Annotated[RepositorioItens, Depends(obter_repositorio_itens_da_coleta)],
 ) -> Response:
     """`RF-124`, `AC-193` — a prévia do PDF que o aluno receberá, para o revisor
     abrir ANTES de liberar. Só quem tem papel de revisor (`401`/`403` pela mesma
@@ -598,6 +608,7 @@ def previa_do_pdf_do_plano(
         colecao,
         RespostasCaso(respostas=repositorio_respostas.listar_do_caso(CASO_ID_REVISAO)),
         snapshot,
+        itens_do_caso(repositorio_itens, CASO_ID_REVISAO),
     )
     pdf = gerar_pdf_de_previa(
         snapshot, textos, vocabulario, _nome_do_aluno(emails, CASO_ID_REVISAO)

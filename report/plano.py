@@ -247,6 +247,11 @@ class TextosCanonicosPlano:
     #: Plano amigável — lista fixa de (pergunta, resposta). Sugestão, a
     #: validar.
     duvidas: tuple[tuple[str, str], ...] = ()
+    #: `RF-465` (`T-447`): o banner e as dúvidas do plano PROVISÓRIO, que não
+    #: pode se chamar "definitivo". Vazios = o YAML não declara a variante e
+    #: vale a de sempre.
+    corpo_provisorio: str = ""
+    duvidas_provisorio: tuple[tuple[str, str], ...] = ()
     #: Plano amigável — nota de rodapé "Sobre este plano". Sugestão, a
     #: validar.
     sobre_este_plano: str = ""
@@ -301,6 +306,12 @@ class VocabularioDoCaso:
     dividas_com_garantia: frozenset[str] = frozenset()
     fichas_faltando: bool = False
     resumo_das_despesas: ResumoDasDespesas | None = None
+    #: `RF-462` (`B5.C01`): dívidas em que o aluno respondeu que não há parcela
+    #: definida — a parcela do contrato não é pergunta, então não é pendência.
+    dividas_sem_parcela_definida: frozenset[str] = frozenset()
+    #: `RF-469`: os maiores gastos que o aluno informou, (nome do item, valor),
+    #: do maior para o menor, já cortados no tamanho do bloco. Vazio sem itens.
+    maiores_gastos: tuple[tuple[str, Decimal], ...] = ()
 
 
 def rotulo_de_codigo(rotulos: Mapping[str, str], codigo: str) -> str:
@@ -345,6 +356,10 @@ def carregar_textos_canonicos(
 
     duvidas_bruto = bruto.get("duvidas") or []
     duvidas = tuple((str(item["pergunta"]), str(item["resposta"])) for item in duvidas_bruto)
+    duvidas_provisorio = tuple(
+        (str(item["pergunta"]), str(item["resposta"]))
+        for item in (bruto.get("duvidas_provisorio") or [])
+    )
 
     estabilizacao_bruto = bruto.get("estabilizacao") or {}
 
@@ -383,6 +398,8 @@ def carregar_textos_canonicos(
         onde_achar=_mapa("onde_achar"),
         pergunta_do_campo=_mapa("pergunta_do_campo"),
         duvidas=duvidas,
+        corpo_provisorio=str(bruto.get("corpo_provisorio") or ""),
+        duvidas_provisorio=duvidas_provisorio,
         sobre_este_plano=str(bruto.get("sobre_este_plano") or ""),
         estabilizacao={str(k): str(v) for k, v in estabilizacao_bruto.items()},
         curso_ssd=dict(bruto.get("curso_ssd") or {}),
@@ -918,9 +935,12 @@ def _contexto_acoes(
 # marcar `DESCONHECIDO` — mesmo conjunto citado em `engine/estado.py::Divida`.
 # Declarado aqui, não descoberto por introspecção: a tarefa pede leitura de
 # campo, não uma varredura genérica de dataclass que inventaria rótulo.
+#
+# `VALOR_QUITACAO_HOJE` ficou de fora (`RF-461`, `T-446`): desde a `T-408` o
+# questionário não o pergunta e o motor usa o saldo no lugar, então listá-lo
+# como "falta informar" pedia ao aluno um dado que ele não tem onde dar.
 _CAMPOS_MATERIAIS_DA_DIVIDA: Final[tuple[str, ...]] = (
     "SALDO_DEVEDOR_ATUAL",
-    "VALOR_QUITACAO_HOJE",
     "TAXA_EFETIVA_MENSAL_NORMALIZADA",
     "PARCELA_CONTRATUAL",
     "PAGAMENTO_MENSAL_EFETIVO",
@@ -938,13 +958,25 @@ class ContextoPendencias:
     campos_faltantes_por_divida: tuple[tuple[str, str, tuple[str, ...]], ...]
 
 
-def _campos_desconhecidos_da_divida(divida: Divida) -> tuple[str, ...]:
+def _campos_desconhecidos_da_divida(
+    divida: Divida, vocabulario: VocabularioDoCaso | None = None
+) -> tuple[str, ...]:
     """`EC-08` — os nomes dos campos materiais desta `Divida` cujo valor é
     `DESCONHECIDO`, na ordem declarada em `_CAMPOS_MATERIAIS_DA_DIVIDA`.
     Comparação `is DESCONHECIDO` pura — nenhuma aritmética, nenhuma
-    inferência sobre o valor (`RF-16`)."""
+    inferência sobre o valor (`RF-16`).
+
+    `RF-462` (`T-446`): `PARCELA_CONTRATUAL` desconhecida de uma dívida que o
+    aluno declarou sem parcela definida é ausência estrutural, não falta de
+    informação — a pergunta da parcela nem é exibida nesse caso."""
+    sem_parcela = (
+        vocabulario is not None and divida.DIVIDA_ID in vocabulario.dividas_sem_parcela_definida
+    )
     return tuple(
-        campo for campo in _CAMPOS_MATERIAIS_DA_DIVIDA if getattr(divida, campo) is DESCONHECIDO
+        campo
+        for campo in _CAMPOS_MATERIAIS_DA_DIVIDA
+        if getattr(divida, campo) is DESCONHECIDO
+        and not (campo == "PARCELA_CONTRATUAL" and sem_parcela)
     )
 
 
@@ -952,6 +984,7 @@ def _pendencias(
     snapshot: SnapshotOrdem,
     rotulos: Mapping[str, str] | None = None,
     nomes: Mapping[str, str] | None = None,
+    vocabulario: VocabularioDoCaso | None = None,
 ) -> ContextoPendencias | None:
     """`EC-08` — monta o relato de pendências quando `ORDEM_STATUS =
     PROVISORIA`, por LEITURA de `snapshot.estado_inputs` — nunca recomputando
@@ -976,12 +1009,19 @@ def _pendencias(
             tuple(traduzir.get(campo, campo) for campo in campos_da_divida),
         )
         for divida in snapshot.estado_inputs.dividas
-        for campos_da_divida in (_campos_desconhecidos_da_divida(divida),)
+        for campos_da_divida in (_campos_desconhecidos_da_divida(divida, vocabulario),)
         if campos_da_divida
     )
 
+    inventario_incompleto = snapshot.estado_inputs.INVENTARIO_COMPLETO is False
+    # `RF-463` (`T-446`): plano provisório por outro motivo (o motor não
+    # consegue simular uma dívida, por exemplo) não tem o que o aluno informar;
+    # sem pendência real, não há seção.
+    if not inventario_incompleto and not campos_faltantes_por_divida:
+        return None
+
     return ContextoPendencias(
-        inventario_incompleto=snapshot.estado_inputs.INVENTARIO_COMPLETO is False,
+        inventario_incompleto=inventario_incompleto,
         campos_faltantes_por_divida=campos_faltantes_por_divida,
     )
 
@@ -1173,6 +1213,14 @@ class ContextoPlano:
     aviso_sem_valor_extra: str = ""
     #: `RF-412` — avisos do plano inteiro (`B5.00`: faltam fichas declaradas).
     avisos_gerais: tuple[str, ...] = ()
+    #: `RF-465` (`T-447`): plano provisório (ordem `PROVISORIA` ou modo
+    #: estabilização). Decide o banner e as dúvidas, e é lido pela tela.
+    provisorio: bool = False
+    #: As dúvidas deste plano: as do provisório ou as de sempre.
+    duvidas: tuple[tuple[str, str], ...] = ()
+    #: `RF-469` (`T-437`): os maiores gastos do aluno, (nome, valor formatado),
+    #: do maior para o menor. Só o modo estabilização usa; vazio sem itens.
+    maiores_gastos: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1721,7 +1769,10 @@ class ContextoPendenciaAcionavel:
 
 
 def _pendencias_acionaveis(
-    snapshot: SnapshotOrdem, textos: TextosCanonicosPlano, nomes: Mapping[str, str]
+    snapshot: SnapshotOrdem,
+    textos: TextosCanonicosPlano,
+    nomes: Mapping[str, str],
+    vocabulario: VocabularioDoCaso | None = None,
 ) -> tuple[ContextoPendenciaAcionavel, ...]:
     """Mesma fonte de `_pendencias` (`_campos_desconhecidos_da_divida` sobre
     `snapshot.estado_inputs.dividas`), reformatada com "onde achar" e o ID
@@ -1737,7 +1788,7 @@ def _pendencias_acionaveis(
             id_pergunta=textos.pergunta_do_campo.get(campo),
         )
         for divida in snapshot.estado_inputs.dividas
-        for campo in _campos_desconhecidos_da_divida(divida)
+        for campo in _campos_desconhecidos_da_divida(divida, vocabulario)
     )
 
 
@@ -2072,9 +2123,26 @@ def _montar_contexto_plano(
     )
     prognostico = _prognostico(snapshot, cenario_recomendado, textos, nomes, nomes_curtos)
 
+    # `RF-465` (`T-447`): plano provisório não se diz "definitivo". O deficitário
+    # (modo estabilização) é provisório por definição: sem capacidade de ataque
+    # não há como saber em que ritmo as dívidas saem.
+    provisorio = (
+        snapshot.ORDEM_STATUS is ORDEM_STATUS.PROVISORIA or snapshot.diagnostico.MODO_ESTABILIZACAO
+    )
+    corpo = textos.corpo_provisorio if provisorio and textos.corpo_provisorio else textos.corpo
+    duvidas = (
+        textos.duvidas_provisorio if provisorio and textos.duvidas_provisorio else textos.duvidas
+    )
+
     return ContextoPlano(
         titulo=textos.titulo,
-        corpo=textos.corpo,
+        corpo=corpo,
+        provisorio=provisorio,
+        duvidas=duvidas,
+        maiores_gastos=tuple(
+            (nome, formatar_dinheiro_br(valor))
+            for nome, valor in (vocabulario.maiores_gastos if vocabulario else ())
+        ),
         ordem=ordem,
         # `T-177`: com unidade. `PRAZO_TOTAL` é contagem de meses (`int`),
         # não `Decimal` — não passa por formatação monetária.
@@ -2085,7 +2153,7 @@ def _montar_contexto_plano(
         PARAMETROS_VERSION=snapshot.PARAMETROS_VERSION,
         cenario=cenario,
         acoes=_contexto_acoes(snapshot, textos, nomes),
-        pendencias=_pendencias(snapshot, textos.rotulos_de_pendencia, nomes),
+        pendencias=_pendencias(snapshot, textos.rotulos_de_pendencia, nomes, vocabulario),
         MODO_ESTABILIZACAO=snapshot.diagnostico.MODO_ESTABILIZACAO,
         # `T-177`: com `R$`. O template de estabilização deixou de
         # prefixá-lo — o valor chega pronto.
@@ -2116,7 +2184,7 @@ def _montar_contexto_plano(
         ),
         avisos_gerais=_avisos_gerais(snapshot, vocabulario, textos, nomes),
         como_funciona=textos.como_funciona.get(snapshot.METODO_RECOMENDADO_PIQ.value, ()),
-        pendencias_acionaveis=_pendencias_acionaveis(snapshot, textos, nomes),
+        pendencias_acionaveis=_pendencias_acionaveis(snapshot, textos, nomes, vocabulario),
         prognostico=prognostico,
         quando_termina=_quando_cada_divida_termina(snapshot, prognostico, nomes, textos),
         curso_ssd=_contexto_do_curso(

@@ -15,6 +15,8 @@ import re
 from decimal import Decimal
 from pathlib import Path
 
+from markupsafe import escape
+
 from app.montagem.conversao import converter_para_dinheiro
 from app.montagem.estado import montar_divida, montar_estado_financeiro
 from collection.respostas import RespostasCaso
@@ -181,13 +183,20 @@ def test_plano_normal_traz_introducao_e_aulas_dos_metodos() -> None:
     assert "Aula 12" in html
 
 
-def test_plano_de_estabilizacao_indica_as_aulas_de_gastos_e_renda_sem_a_palavra_sobra() -> None:
+def test_estabilizacao_indica_as_aulas_do_deficitario_sem_chamar_o_resultado_de_sobra() -> None:
+    """`RF-470` (T-437): o deficitário vê as aulas 5, 14 e 24. A palavra "sobra"
+    segue proibida para qualificar o resultado do mês (GAB-04), mas os títulos
+    oficiais das aulas 14 e 24 a trazem; eles são nome do curso, não rótulo do
+    resultado, e por isso saem da conferência."""
     snapshot = _snapshot(renda=_renda_para_resultado(Decimal("-500")))
     contexto = _contexto(snapshot)
     assert contexto.MODO_ESTABILIZACAO is True
     assert contexto.curso_ssd is not None
-    assert {numero for numero, _, _ in contexto.curso_ssd.aulas} == {"5", "6", "19"}
-    assert "sobra" not in _html(snapshot).lower()
+    assert {numero for numero, _, _ in contexto.curso_ssd.aulas} == {"5", "14", "24"}
+    html = _html(snapshot).lower()
+    for _numero, titulo, _motivo in contexto.curso_ssd.aulas:
+        html = html.replace(str(escape(titulo)).lower(), "").replace(titulo.lower(), "")
+    assert "sobra" not in html
 
 
 # ------------------------------------------------------------------ incômodo

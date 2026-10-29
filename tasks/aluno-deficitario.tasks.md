@@ -24,8 +24,9 @@
 - [x] `engine/cenarios_economia.py::calcular_cenarios_economia` (o motor recalcula com `DESPESAS_OPERACIONAIS_ATUAIS` reduzida em renda × percentual; sem fórmula nova), chamado por `calcular_plano` só em `MODO_ESTABILIZACAO` e sem recursão; campo opcional `SnapshotOrdem.cenarios_economia`; persistência tolerante (Supabase `dados_completos` e leitura em arquivo). Versão de parâmetros sem os percentuais → `None` (nada muda hoje, com a 1.0.2 vigente). Não executável (sem capacidade de aporte) → sem prazo, custo nem saldos. Saldos em 12/24/60 meses só nos executáveis; o "se nada mudar" nos horizontes fica para a T-437.
 
 ### `T-437` — Apresentação do deficitário (relatório e PDF)
-- **Rastreia:** `RF-447`, `RF-450`, `RF-451`, `RF-453` · **Dependências:** `T-436`
-- [ ] Bloco do deficitário, texto versionado com aprovação, PDF condicional sem fichas inviáveis.
+- **Rastreia:** `RF-447`, `RF-450`, `RF-453`, `RF-468`, `RF-469` · **Dependências:** `T-436`
+- [x] Resultado negativo em destaque, "Primeiro, estancar o problema" com o valor para zerar, "Onde olhar nos seus gastos" (5 maiores) e ordem de quitação provisória sem prazo nem fichas, no PDF e na tela. Os cenários de 5% e 10% **não** vão ao aluno.
+- **Resultado (2026-10-29):** feito no PDF (`estabilizacao.html`) e na tela (`PlanoDoDeficitario.tsx`). Os maiores gastos vêm das respostas (`maiores_gastos` em `app/http/serializacao_plano.py`). Teste com o caso real do Guilherme: só depois que ele reenviar e o plano for recalculado.
 
 ### `T-438` — Conferência do revisor
 - **Rastreia:** `RF-452` · **Dependências:** `T-436`
@@ -36,5 +37,6 @@
 - [ ] Mensagem quando o resultado do mês é negativo, sem bloquear o envio.
 
 ### `T-440` — Aulas
-- **Rastreia:** `RF-451` · **Dependências:** `OQ-4`
-- [ ] Integrar o mapeamento aprovado ao catálogo real.
+- **Rastreia:** `RF-470`
+- [x] Quadro do deficitário = aulas 5, 14 e 24 (`textos-canonicos.yaml`), com título e motivo das aulas 14 e 24.
+- **Resultado (2026-10-29):** aulas 5, 14 e 24 no YAML. Os títulos oficiais das aulas 14 e 24 trazem "Sobra"; os testes que proíbem a palavra no modo estabilização passaram a ignorar só os títulos das aulas.

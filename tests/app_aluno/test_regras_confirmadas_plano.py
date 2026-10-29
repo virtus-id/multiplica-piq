@@ -131,7 +131,9 @@ def test_ac_fixo_variavel_e_despesas_mensais_totais() -> None:
     sobra = fotografia_do_mes(todas).SOBRA_ANTES_DAS_DIVIDAS
     assert isinstance(sobra, Decimal)
     assert ponto.despesas_mensais_totais == formatar_dinheiro_br(sobra)
-    assert "Despesas mensais totais (receitas totais − despesas totais)" in html
+    # `RF-466` (T-448): a linha é o resultado ANTES das parcelas de dívida.
+    assert "Resultado do mês antes das parcelas de dívida (renda − despesas)" in html
+    assert "Despesas mensais totais" not in html
     payload = serializar_plano(contexto, textos=carregar_textos_canonicos())
     assert payload["ponto_de_partida"]["despesas_tipo_fixo"] == ponto.despesas_tipo_fixo
 
