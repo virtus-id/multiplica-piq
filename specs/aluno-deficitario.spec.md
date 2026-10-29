@@ -64,6 +64,9 @@ A primeira página do PDF do deficitário traz o resultado do mês em destaque (
 ### RF-474. Gráficos do deficitário
 O PDF do deficitário traz, em SVG: (a) "Para onde vai a sua renda", uma barra com gastos do dia a dia, gastos não mensais e parcelas, a marca da renda e, em vermelho, o que passa dela; (b) barras proporcionais nos 5 maiores gastos. Só desenham números que o plano já tem (`RESULTADO`, `DEFICIT_MENSAL`, respostas do aluno): nenhuma conta nova, nenhum gráfico sem dado, e cada gráfico traz os valores por escrito. A nota do calendário ("os meses seguem o calendário") sai do deficitário, que não tem meses. Rótulos sugeridos, a validar.
 
+### RF-475. Identidade visual moderna do PDF
+O PDF (deficitário e não deficitário) usa a fonte Inter, embutida no repositório (`report/fontes/`, licença OFL), em vez das fontes do sistema do servidor (que só tem DejaVu e deixava o PDF com aspecto antigo). Capa em degradê, seções com número em chip e sem sublinhado pesado, cartões em superfície suave sem borda, número do resultado grande. Só apresentação: textos, ordem e números não mudam. O PDF não depende de recurso remoto.
+
 ### RF-454. Rastreabilidade
 O snapshot registra classificação, método, percentuais usados, resultados dos cenários, premissas e limitações, sem alterar versões anteriores. Alunos não deficitários não mudam.
 

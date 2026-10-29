@@ -87,6 +87,7 @@ from report.plano import (
 
 REGRAS: Final[tuple[str, ...]] = ("RF-20", "RF-21", "AC-14", "AC-16")
 
+_DIRETORIO_RAIZ_REPORT: Final[Path] = Path(__file__).resolve().parent
 _DIRETORIO_TEMPLATES_PLANO: Final[Path] = Path(__file__).resolve().parent / "templates" / "plano"
 
 
@@ -245,7 +246,7 @@ def gerar_pdf_de_previa(
 
     from weasyprint import HTML
 
-    return bytes(HTML(string=html).write_pdf())
+    return bytes(HTML(string=html, base_url=str(_DIRETORIO_RAIZ_REPORT) + "/").write_pdf())
 
 
 def gerar_pdf_do_plano(
@@ -276,4 +277,4 @@ def gerar_pdf_do_plano(
 
     from weasyprint import HTML
 
-    return bytes(HTML(string=html).write_pdf())
+    return bytes(HTML(string=html, base_url=str(_DIRETORIO_RAIZ_REPORT) + "/").write_pdf())

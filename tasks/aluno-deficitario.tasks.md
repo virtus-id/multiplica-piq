@@ -58,3 +58,7 @@
 - **Rastreia:** `RF-474`
 - [x] `report/graficos.py` (SVG), `grafico_renda`/`legenda_renda`/`larguras_dos_gastos` no contexto e no PDF, rótulos em `graficos` (YAML), testes em `test_pendencias_do_relatorio.py`.
 - **Fora do escopo (próxima rodada):** gráficos do não deficitário (curva do saldo nos 3 cenários e linha do tempo das quitações).
+
+### `T-454` — Visual moderno do PDF
+- **Rastreia:** `RF-475`
+- [x] Fontes Inter em `report/fontes/` + `@font-face` em `plano.html`; `base_url` no weasyprint (`report/pdf.py`); capa, cabeçalhos, cartões e resultado restilizados.
