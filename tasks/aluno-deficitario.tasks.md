@@ -71,3 +71,7 @@
 ### `T-456` — Painel do ponto de partida do deficitário
 - **Rastreia:** `RF-477`
 - [x] `painel_do_mes.html`, `_painel_do_mes` em `report/plano.py`, rótulos no YAML, CSS em `plano.html`; teste em `test_pendencias_do_relatorio.py`.
+
+### `T-458` — Ponto de partida do aluno no positivo
+- **Rastreia:** `RF-478`, `RF-474`, `RF-477`
+- [x] `_graficos_do_mes` (qualquer cenário), parcial `grafico_do_mes.html`, painel e cartão de valor extra em `plano.html`/`painel_do_mes.html`, nota neutra do gráfico no YAML; testes em `test_pendencias_do_relatorio.py` e `test_curso_e_incomodo.py`.

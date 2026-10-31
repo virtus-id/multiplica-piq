@@ -251,20 +251,17 @@ def test_primeira_pagina_apresenta_o_plano_antes_do_primeiro_capitulo() -> None:
     assert all(paragrafo in html for paragrafo in apresentacao.apresentacao)
 
 
-def test_ponto_de_partida_marca_entrada_e_saida_com_cor_e_sinal() -> None:
+def test_ponto_de_partida_e_um_painel_com_gráfico_e_sem_fala_de_problema() -> None:
+    """RF-478: no plano normal o ponto de partida ilustra o mês (gráfico, legenda
+    e cartões) e não menciona problema, falta nem estancar."""
     html = _html(_snapshot())
     textos = carregar_textos_canonicos().ponto_de_partida
-    marcadas = re.findall(
-        r'<div class="linha (entrada|saida)"><span class="linha-rotulo">([^<]*)</span>', html
-    )
-    assert marcadas == [
-        ("entrada", textos["renda"]),
-        ("saida", textos["gastos"]),
-        ("saida", textos["gastos_ocasionais"]),
-        ("saida", textos["parcelas"]),
-    ]
-    assert html.count('class="linha-sinal"') == 4
-    assert html.count(">+</span>") == 1 and html.count("&minus;</span>") == 3
+    for rotulo in (textos["painel_renda"], textos["painel_saidas"], textos["painel_resultado"]):
+        assert rotulo in html
+    assert "<svg" in html and 'class="legenda-item"' in html and "kpi-positivo" in html
+    assert 'class="kpi-extra"' in html  # há ataque às dívidas: o valor extra aparece
+    corpo = html[html.index("Seu ponto de partida") :]
+    assert not re.search(r"estancar|problema|é o que falta", corpo, re.IGNORECASE)
 
 
 def test_nenhum_texto_de_decisao_manda_o_aluno_acionar_a_equipe() -> None:

@@ -679,6 +679,7 @@ sobre_este_plano: >-
 graficos:
   renda_titulo: "Entrada e saída do seu mês"
   renda_nota: "A linha tracejada marca a sua renda. O quanto a saída passa dela é o que falta."
+  renda_nota_neutra: "A linha tracejada marca a sua renda."
   entrada: "Entrada"
   saida: "Saída"
   renda: "Sua renda"

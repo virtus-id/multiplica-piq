@@ -1992,14 +1992,18 @@ def _resumo_das_despesas(
     }
 
 
-def _graficos_do_deficitario(
+def _graficos_do_mes(
     snapshot: SnapshotOrdem, vocabulario: VocabularioDoCaso | None, textos: TextosCanonicosPlano
 ) -> dict[str, Any]:
-    """`RF-474`: só no modo estabilização. Lê os mesmos números do "ponto de
-    partida"; os rótulos vêm do YAML (`graficos`)."""
-    if not snapshot.diagnostico.MODO_ESTABILIZACAO:
-        return {}
+    """`RF-474`, `RF-478`: o gráfico do mês, em qualquer cenário. Lê os mesmos
+    números do "ponto de partida" (parcelas devidas em estabilização, efetivas
+    nos demais); os rótulos vêm do YAML (`graficos`)."""
     estado, diagnostico = snapshot.estado_inputs, snapshot.diagnostico
+    parcelas = (
+        diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
+        if diagnostico.MODO_ESTABILIZACAO
+        else diagnostico.PAGAMENTOS_EFETIVOS_DIVIDAS
+    )
     rotulos = textos.graficos
     partes = (
         Parte(rotulos.get("dia_a_dia", ""), estado.DESPESAS_OPERACIONAIS_ATUAIS, COR_DIA_A_DIA),
@@ -2008,11 +2012,7 @@ def _graficos_do_deficitario(
             estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS,
             COR_NAO_MENSAIS,
         ),
-        Parte(
-            rotulos.get("parcelas", ""),
-            diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES,
-            COR_PARCELAS,
-        ),
+        Parte(rotulos.get("parcelas", ""), parcelas, COR_PARCELAS),
     )
     legenda = (
         (rotulos.get("renda", ""), formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE), "#0F6B50"),
@@ -2239,7 +2239,7 @@ def _montar_contexto_plano(
             (nome, formatar_dinheiro_br(valor))
             for nome, valor in (vocabulario.maiores_gastos if vocabulario else ())
         ),
-        **_graficos_do_deficitario(snapshot, vocabulario, textos),
+        **_graficos_do_mes(snapshot, vocabulario, textos),
         ordem=ordem,
         # `T-177`: com unidade. `PRAZO_TOTAL` é contagem de meses (`int`),
         # não `Decimal` — não passa por formatação monetária.

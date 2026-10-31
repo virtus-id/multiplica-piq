@@ -297,8 +297,8 @@ def test_rf471_deficitario_ve_que_a_ordem_provisoria_nao_e_instrucao_de_pagament
 
 
 def test_rf474_deficitario_tem_graficos_com_os_numeros_do_plano() -> None:
-    """RF-474: barra da renda (SVG) com a marca da renda e o que passa dela em
-    vermelho; plano normal e sem dado não têm gráfico."""
+    """RF-474, RF-478: barras entrada × saída (SVG) com a marca da renda; sem
+    dado não há gráfico."""
     gastos = (("Aluguel", Decimal("2500")), ("Mercado", Decimal("1800")))
     contexto, html = _contexto(_snapshot_base(), VocabularioDoCaso(maiores_gastos=gastos))
 
@@ -312,8 +312,10 @@ def test_rf474_deficitario_tem_graficos_com_os_numeros_do_plano() -> None:
         _snapshot_base(),
         diagnostico=replace(_snapshot_base().diagnostico, MODO_ESTABILIZACAO=False),
     )
-    sem_grafico, html_normal = _contexto(normal)
-    assert sem_grafico.grafico_renda == "" and "Entrada e saída do seu mês" not in html_normal
+    # RF-478: o plano normal também ilustra o mês, sem a fala do que "falta".
+    com_grafico, html_normal = _contexto(normal)
+    assert "<svg" in com_grafico.grafico_renda and "Entrada e saída do seu mês" in html_normal
+    assert "é o que falta" not in html_normal and "estancar" not in html_normal.lower()
     assert (
         barras_entrada_e_saida(Decimal(0), (), "", "", "", "") == ""
         and larguras_dos_gastos(()) == ()
@@ -337,7 +339,7 @@ def test_rf476_ordem_de_quitacao_do_deficitario_e_um_ranking_em_tabela() -> None
 
 def test_rf477_ponto_de_partida_do_deficitario_e_um_painel_com_fechamento() -> None:
     """RF-477: renda, saídas, resultado, dívidas, total em dívidas e reserva em
-    cartões, e o fechamento em uma frase; o plano normal mantém a tabela."""
+    cartões, e o fechamento em uma frase; o plano normal usa o mesmo painel (RF-478)."""
     contexto, html = _contexto(_snapshot_base())
     ponto = contexto.ponto_de_partida
 
@@ -358,4 +360,6 @@ def test_rf477_ponto_de_partida_do_deficitario_e_um_painel_com_fechamento() -> N
         diagnostico=replace(_snapshot_base().diagnostico, MODO_ESTABILIZACAO=False),
     )
     _c, html_normal = _contexto(normal)
-    assert "Saídas totais do mês" not in html_normal and "Sua renda no mês" in html_normal
+    # RF-478: o plano normal usa o mesmo painel, em tom positivo.
+    assert "Saídas totais do mês" in html_normal and 'class="kpi kpi-positivo"' in html_normal
+    assert 'class="kpi-extra"' not in html and 'class="kpi kpi-positivo"' not in html
