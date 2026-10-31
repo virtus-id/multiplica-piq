@@ -26,6 +26,7 @@
  */
 import { useEffect, useState } from 'react'
 
+import Botao from '../componentes/Botao'
 import Tela from '../componentes/Tela'
 import {
   dispararCalculo,
@@ -62,6 +63,8 @@ export default function TelaCalculando({
 }: TelaCalculandoProps) {
   const [erro, setErro] = useState<string | null>(null)
   const [recusa, setRecusa] = useState<Recusa | null>(null)
+  /** `RF-453`: orçamento que não fecha — o aluno lê antes de sair desta tela. */
+  const [avisoDeDeficit, setAvisoDeDeficit] = useState<string | null>(null)
 
   useEffect(() => {
     let ativo = true
@@ -74,7 +77,11 @@ export default function TelaCalculando({
         // `calculando: false` cobre os dois desfechos — snapshot gravado ou
         // erro. A tela não os distingue de propósito (`EC-25`); quem decide
         // o que o aluno vê a seguir é `/inicio`.
-        if (!progresso.calculando) onTerminou()
+        if (progresso.calculando) return
+        clearInterval(timer)
+        // O aviso não bloqueia nem pede escolha: só segura a saída até o "Continuar".
+        if (progresso.aviso_de_deficit) setAvisoDeDeficit(progresso.aviso_de_deficit)
+        else onTerminou()
       } catch {
         if (ativo) setErro('Não foi possível acompanhar o cálculo agora.')
       }
@@ -132,6 +139,13 @@ export default function TelaCalculando({
               ))}
             </ul>
           )}
+        </div>
+      ) : avisoDeDeficit ? (
+        <div role="status" className="aviso-atencao flex-col">
+          <p>{avisoDeDeficit}</p>
+          <div>
+            <Botao onClick={onTerminou}>Continuar</Botao>
+          </div>
         </div>
       ) : (
         <>

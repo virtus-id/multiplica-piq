@@ -41,7 +41,7 @@ Texto padrão **versionado**, de autoria do Rodrigo, com variáveis reais (défi
 A tela do revisor mostra, com dados reais: resultado negativo, déficit, método, ordem recomendada, premissas e resultado dos cenários de 5% e 10%, limitações e o que não está disponível. Déficit não vira pendência. Decisão, observação, mensagem ao aluno e histórico não mudam.
 
 ### RF-453. PDF e experiência do aluno
-O PDF e a tela do deficitário preservam a identidade do plano e seguem a ordem de RF-468 a RF-470. Não se geram fichas, prazos nem mês de quitação com valores que o aluno não tem como pagar. Ao enviar, o aluno é avisado de que o orçamento não fecha e de que o plano será provisório; o aviso não bloqueia o envio.
+O PDF e a tela do deficitário preservam a identidade do plano e seguem a ordem de RF-468 a RF-470. Não se geram fichas, prazos nem mês de quitação com valores que o aluno não tem como pagar. Ao enviar, o aluno é avisado de que o orçamento não fecha e de que o plano será provisório; o aviso não bloqueia o envio. O aviso aparece ao terminar o cálculo (o servidor só lê o resultado do snapshot), com o mesmo valor do plano, e o aluno segue em "Continuar".
 
 ### RF-468. Resultado negativo em destaque e "estancar primeiro"
 O relatório do deficitário abre com o resultado do mês em destaque ("Seu mês fecha em -R$ X") e com o título **"Primeiro, estancar o problema"**, que diz quanto falta por mês para chegar a zero (`DEFICIT_MENSAL`, já calculado pelo motor) e que, a partir daí, tudo o que sobrar vira dinheiro de ataque e o plano se ajusta. O texto é canônico, versionado e foi aprovado pelo produto em 2026-10-29.

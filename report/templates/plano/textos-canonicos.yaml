@@ -729,7 +729,7 @@ estabilizacao:
   aviso_titulo: "Isto ainda não é uma instrução de pagamento"
   aviso_1: "A ordem de quitação é uma simulação provisória. Não antecipe pagamentos com base nela."
   aviso_2: "Continue pagando em dia as parcelas contratuais e as despesas essenciais, como moradia, alimentação e saúde."
-  aviso_3: "O plano para antecipar dívidas só é calculado e liberado quando o seu mês fechar com resultado igual ou maior que zero, ou quando você atualizar as suas informações."
+  aviso_3: "Este plano mostra só a ordem de quitação. O cronograma, com prazos, só aparece quando o seu mês fechar com resultado igual ou maior que zero."
 
 # ---------------------------------------------------------------------------
 # Curso de entrada (Servidor Sem Dívidas) — T-352 a T-354.

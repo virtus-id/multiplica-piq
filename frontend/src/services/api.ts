@@ -616,7 +616,14 @@ export function dispararCalculo(
 
 export function obterProgressoDoCalculo(
   casoId: string,
-): Promise<{ CASO_ID: string; estado: string; calculando: boolean; erro_de_calculo: boolean }> {
+): Promise<{
+  CASO_ID: string
+  estado: string
+  calculando: boolean
+  erro_de_calculo: boolean
+  /** `RF-453`: o orçamento não fecha; texto do servidor, `null` no mês positivo. */
+  aviso_de_deficit?: string | null
+}> {
   // Sem `/api`: esta é a URL canônica do progresso, documentada em
   // `app/http/aplicacao.py` e usada pelos testes de ponta a ponta. A rota
   // vive em `rotas_calculo.py` (prefixo `/caso`), junto do POST que dispara
