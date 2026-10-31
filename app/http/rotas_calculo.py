@@ -202,6 +202,7 @@ from persistencia.app_aluno.itens import RepositorioItens, RepositorioItensSupab
 from persistencia.app_aluno.respostas import RepositorioRespostas, RepositorioRespostasSupabase
 from persistencia.supabase.fonte_parametros import FonteParametrosSupabase
 from persistencia.supabase.repositorio_snapshots import RepositorioSnapshotsSupabase
+from report.plano import formatar_dinheiro_br
 
 REGRAS: Final[tuple[str, ...]] = ("RF-16", "AC-12")
 
@@ -856,6 +857,7 @@ class ErroParametrosVersaoAusente(RuntimeError):
 def progresso_do_calculo(
     CASO_ID: Annotated[str, Depends(exigir_caso_da_sessao("CASO_ID"))],
     repositorio_casos: Annotated[RepositorioCasos, Depends(obter_repositorio_casos)],
+    repositorio_snapshots: Annotated[RepositorioSnapshots, Depends(obter_repositorio_snapshots)],
 ) -> JSONResponse:
     """Leitura pura de `Caso.estado` (Lei nº 3 — esta rota não calcula).
 
@@ -872,5 +874,29 @@ def progresso_do_calculo(
             "estado": caso.estado.value,
             "calculando": caso.estado is ESTADO_CASO.CALCULANDO,
             "erro_de_calculo": caso.estado is ESTADO_CASO.ERRO_DE_CALCULO,
+            "aviso_de_deficit": _aviso_de_deficit(caso, repositorio_snapshots),
         }
+    )
+
+
+_MENSAGEM_DEFICIT: Final[str] = " ".join(
+    (
+        "Hoje, seus pagamentos superam sua renda em {valor} por mês.",
+        "Por isso o seu plano será provisório.",
+    )
+)
+
+
+def _aviso_de_deficit(caso: Caso, repositorio_snapshots: RepositorioSnapshots) -> str | None:
+    """`RF-453` (T-439) — o aviso de que o orçamento não fecha, SÓ leitura do
+    snapshot já calculado (Lei nº 3): o mesmo resultado do mês
+    (`RESULTADO_MENSAL_ATUAL`) que o plano mostra em "Seu mês fecha em".
+    `None` com o cálculo em curso, sem snapshot ou mês positivo."""
+    if caso.estado is ESTADO_CASO.CALCULANDO:
+        return None
+    snapshot = snapshot_corrente(caso, repositorio_snapshots)
+    if snapshot is None or snapshot.diagnostico.RESULTADO_MENSAL_ATUAL >= 0:
+        return None
+    return _MENSAGEM_DEFICIT.format(
+        valor=formatar_dinheiro_br(-snapshot.diagnostico.RESULTADO_MENSAL_ATUAL)
     )

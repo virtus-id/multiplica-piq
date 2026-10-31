@@ -34,7 +34,8 @@
 
 ### `T-439` — Aviso ao aluno antes do envio
 - **Rastreia:** `RF-453`
-- [ ] Mensagem quando o resultado do mês é negativo, sem bloquear o envio.
+- [x] Mensagem quando o resultado do mês é negativo, sem bloquear o envio: o progresso do cálculo (`aviso_de_deficit`, leitura do snapshot) e a `TelaCalculando` mostram "Hoje, seus pagamentos superam sua renda em R$ X por mês…" com um "Continuar"; `aviso_3` do plano deixa de dizer que o plano só é calculado depois.
+- Testes: `test_aviso_de_deficit.py`, `TelaCalculando.test.tsx`.
 
 ### `T-440` — Aulas
 - **Rastreia:** `RF-451`, `RF-470`

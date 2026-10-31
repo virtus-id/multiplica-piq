@@ -142,4 +142,58 @@ describe("TelaCalculando", () => {
     await usuario.click(botoes[0]);
     expect(onAbrirPergunta).toHaveBeenLastCalledWith("B1.01", null);
   });
+
+  it("RF-453: terminado o cálculo com orçamento negativo, mostra o aviso e só sai no Continuar", async () => {
+    const aviso =
+      "Hoje, seus pagamentos superam sua renda em R$ 1.000,00 por mês. Por isso o seu plano será provisório.";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) =>
+        init?.method === "POST"
+          ? resposta(200, { CASO_ID: CASO, calculando: true })
+          : resposta(200, {
+              CASO_ID: CASO,
+              estado: "AGUARDANDO_REVISAO",
+              calculando: false,
+              aviso_de_deficit: aviso,
+            }),
+      ),
+    );
+    const aoTerminar = vi.fn();
+    render(
+      <TelaCalculando
+        casoId={CASO}
+        voltar={() => undefined}
+        onTerminou={aoTerminar}
+        onAbrirPergunta={semNavegar}
+      />,
+    );
+
+    expect(await screen.findByText(aviso)).toBeTruthy();
+    expect(aoTerminar).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(aoTerminar).toHaveBeenCalledTimes(1);
+  });
+
+  it("sem aviso (mês positivo), termina direto", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) =>
+        init?.method === "POST"
+          ? resposta(200, { CASO_ID: CASO, calculando: true })
+          : resposta(200, { CASO_ID: CASO, estado: "AGUARDANDO_REVISAO", calculando: false }),
+      ),
+    );
+    const aoTerminar = vi.fn();
+    render(
+      <TelaCalculando
+        casoId={CASO}
+        voltar={() => undefined}
+        onTerminou={aoTerminar}
+        onAbrirPergunta={semNavegar}
+      />,
+    );
+
+    await waitFor(() => expect(aoTerminar).toHaveBeenCalledTimes(1));
+  });
 });
