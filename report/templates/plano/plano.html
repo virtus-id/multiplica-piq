@@ -178,6 +178,10 @@
         .kpi-menor { font-size: 15pt; }
         .kpi-entrada .kpi-valor { color: #0B6B54; }
         .kpi-resultado .kpi-valor { color: #C0392B; }
+        .kpi-positivo { background: #DDF3EA; }
+        .kpi-positivo .kpi-valor { color: #0B6B54; }
+        .kpi-extra { background: #F4F7F6; border-radius: 4mm; padding: 3mm 5mm; margin: 0 0 3mm; }
+        .kpi-extra-valor { float: right; font-size: 14pt; font-weight: 800; color: #0B6B54; }
         .kpi-nota { font-size: 8pt; color: #64748B; margin-top: 1.5mm; line-height: 1.45; }
         .kpi-nota strong { color: #0B1F2A; white-space: nowrap; }
         .ponto { display: inline-block; width: 2.2mm; height: 2.2mm; border-radius: 50%; margin-right: 1.5mm; }
@@ -645,31 +649,16 @@
        os números do mês dele, sem nenhuma palavra de juízo sobre eles. #}
     {% if ponto_de_partida %}
     {% set ns.n = ns.n + 1 %}
-    <section class="secao">
+    <section class="secao" style="break-inside: avoid;">
         {{ visuais.cabecalho_da_secao(ns.n, secoes.get("ponto_de_partida", "Seu ponto de partida"), "conferencia") }}
         <p class="intro">{{ textos.ponto_de_partida.get("introducao", "") }}</p>
         {% for aviso in avisos_gerais %}<p class="muted"><strong>{{ aviso }}</strong></p>{% endfor %}
-        {% if cenario is defined and cenario.value == "ESTABILIZACAO" %}
-        {% include "painel_do_mes.html" %}
-        {% else %}
-        <div class="linhas">
-            <div class="linha entrada"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("renda", "") }}</span><span class="linha-sinal" title="{{ textos.ponto_de_partida.get("entrada_rotulo", "") }}">+</span><span class="linha-valor">{{ ponto_de_partida.renda }}</span></div>
-            {% if ponto_de_partida.contribuicao_familiar %}<div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("contribuicao_familiar", "") }}</span><span class="linha-valor">{{ ponto_de_partida.contribuicao_familiar }}</span></div>{% endif %}
-            <div class="linha saida"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("gastos", "") }}</span><span class="linha-sinal" title="{{ textos.ponto_de_partida.get("saida_rotulo", "") }}">&minus;</span><span class="linha-valor">{{ ponto_de_partida.gastos }}</span></div>
-            <div class="linha saida"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("gastos_ocasionais", "") }}</span><span class="linha-sinal" title="{{ textos.ponto_de_partida.get("saida_rotulo", "") }}">&minus;</span><span class="linha-valor">{{ ponto_de_partida.gastos_ocasionais }}</span></div>
-            {% if ponto_de_partida.despesas_tipo_fixo %}
-            <div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("despesas_tipo_fixo", "") }}</span><span class="linha-valor">{{ ponto_de_partida.despesas_tipo_fixo }}</span></div>
-            <div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("despesas_tipo_variavel", "") }}</span><span class="linha-valor">{{ ponto_de_partida.despesas_tipo_variavel }}</span></div>
-            {% if ponto_de_partida.despesas_nao_classificadas %}<div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("despesas_nao_classificadas", "") }}</span><span class="linha-valor">{{ ponto_de_partida.despesas_nao_classificadas }}</span></div>{% endif %}
-            <div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("despesas_mensais_totais", "") }}</span><span class="linha-valor">{{ ponto_de_partida.despesas_mensais_totais }}</span></div>
-            {% endif %}
-            <div class="linha saida"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("parcelas", "") }}</span><span class="linha-sinal" title="{{ textos.ponto_de_partida.get("saida_rotulo", "") }}">&minus;</span><span class="linha-valor">{{ ponto_de_partida.parcelas }}</span></div>
-            <div class="linha"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("quantidade_dividas", "") }}</span><span class="linha-valor">{{ ponto_de_partida.quantidade_de_dividas }}</span></div>
-            {% if not (cenario is defined and cenario.value in ("ESTABILIZACAO", "ORDEM_VAZIA")) %}
-            <div class="linha linha-forte"><span class="linha-rotulo">{{ textos.ponto_de_partida.get("valor_extra", "") }}</span><span class="linha-valor">{{ ponto_de_partida.valor_extra }}</span></div>
-            {% endif %}
-        </div>
+        {# RF-477/RF-478: o mesmo painel em todo cenário; o gráfico entra aqui nos
+           que não são estabilização (nela ele abre a seção "estancar"). #}
+        {% if not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
+        {% include "grafico_do_mes.html" %}
         {% endif %}
+        {% include "painel_do_mes.html" %}
         {% if not (cenario is defined and cenario.value in ("ESTABILIZACAO", "ORDEM_VAZIA")) %}
         <p class="muted pequeno" style="margin-top: 2.5mm;">{{ textos.ponto_de_partida.get("nota_seguranca", "") }}</p>
         {% endif %}

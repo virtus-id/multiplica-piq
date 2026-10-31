@@ -2,7 +2,8 @@
     `RF-477` (T-456) — "Seu ponto de partida" do deficitário como painel: o que
     entra, o que sai, o resultado, e o retrato das dívidas e da reserva. Mesmos
     números da tabela do plano normal (nada novo é calculado: AC-42), com o
-    fechamento em uma frase. Incluído por `plano.html` em ESTABILIZACAO.
+    fechamento em uma frase. Incluído por `plano.html` em todo cenário (`RF-478`); o cartão de valor extra
+    só onde há ataque às dívidas.
 #}
 {% set pd = ponto_de_partida %}
 {% set tp = textos.ponto_de_partida %}
@@ -22,7 +23,7 @@
                 <span class="ponto" style="background: #C98A00;"></span>{{ tp.get("parcelas", "") }} <strong>{{ pd.parcelas }}</strong>
             </div>
         </div>
-        <div class="kpi kpi-resultado">
+        <div class="kpi {{ "kpi-resultado" if cenario is defined and cenario.value == "ESTABILIZACAO" else "kpi-positivo" }}">
             <div class="kpi-topo"><span class="kpi-rotulo">{{ tp.get("painel_resultado", "") }}</span><span class="kpi-icone">{{ visuais.icone("conferencia") }}</span></div>
             <div class="kpi-valor">{{ RESULTADO_CAIXA_OBSERVADO }}</div>
             {% if pd.despesas_mensais_totais %}<div class="kpi-nota">{{ tp.get("despesas_mensais_totais", "") }}: <strong>{{ pd.despesas_mensais_totais }}</strong></div>{% endif %}
@@ -44,6 +45,12 @@
             {% if pd.reserva_total %}<div class="kpi-nota">{{ pd.reserva_total }}</div>{% endif %}
         </div>
     </div>
+    {% if not (cenario is defined and cenario.value in ("ESTABILIZACAO", "ORDEM_VAZIA")) %}
+    <div class="kpi-extra">
+        <span class="kpi-rotulo">{{ tp.get("valor_extra", "") }}</span>
+        <span class="kpi-extra-valor">{{ pd.valor_extra }}</span>
+    </div>
+    {% endif %}
     {% if pd.despesas_tipo_fixo %}
     <p class="kpi-rodape">{{ tp.get("despesas_tipo_fixo", "") }} <strong>{{ pd.despesas_tipo_fixo }}</strong> · {{ tp.get("despesas_tipo_variavel", "") }} <strong>{{ pd.despesas_tipo_variavel }}</strong></p>
     {% endif %}

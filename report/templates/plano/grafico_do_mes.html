@@ -1,0 +1,17 @@
+{#
+    `RF-474`, `RF-478` — o gráfico entrada × saída com a legenda. Incluído pela
+    seção do deficitário e pelo "ponto de partida" dos demais. Só desenha números
+    do motor (AC-42).
+#}
+{% if grafico_renda %}
+    <div class="duplo">
+        <div class="duplo-esq grafico">
+            <div class="grafico-titulo">{{ textos.graficos.get("renda_titulo", "") }}</div>
+            {{ grafico_renda | safe }}
+        </div>
+        <div class="duplo-dir">
+            <div class="legenda">{% for rotulo, valor, cor in legenda_renda %}<span class="legenda-item"><i style="background: {{ cor }};"></i>{{ rotulo }} <strong>{{ valor }}</strong></span>{% endfor %}</div>
+            <div class="muted pequeno">{{ textos.graficos.get("renda_nota" if cenario is defined and cenario.value == "ESTABILIZACAO" else "renda_nota_neutra", "") }}</div>
+        </div>
+    </div>
+{% endif %}

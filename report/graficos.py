@@ -72,6 +72,10 @@ def barras_entrada_e_saida(
         )
     y_renda = chao - h(renda)
     topo_saida = chao - h(total)
+    # A linha da renda não pode riscar o valor da saída quando as barras são próximas.
+    y_texto_saida = topo_saida - 7
+    if y_texto_saida - 11 <= y_renda <= y_texto_saida + 3:
+        y_texto_saida = y_renda - 6
     return (
         '<svg viewBox="0 0 400 160" width="100%" role="img" aria-label="Entrada e saída do mês">'
         f"<g>{''.join(corpo)}</g>"
@@ -81,7 +85,7 @@ def barras_entrada_e_saida(
         f'stroke="{COR_RENDA}" stroke-width="1.5" stroke-dasharray="5 4"/>'
         f'<text x="{x_entrada + largura / 2}" y="{chao - h(renda) - 7:.1f}" text-anchor="middle" '
         f'{fonte} font-size="13" font-weight="700" fill="{COR_RENDA}">{texto_entrada}</text>'
-        f'<text x="{x_saida + largura / 2}" y="{topo_saida - 7:.1f}" text-anchor="middle" '
+        f'<text x="{x_saida + largura / 2}" y="{y_texto_saida:.1f}" text-anchor="middle" '
         f'{fonte} font-size="13" font-weight="700" fill="#0B1F2A">{texto_saida}</text>'
         f'<text x="{x_entrada + largura / 2}" y="154" text-anchor="middle" {fonte} '
         f'font-size="12" font-weight="600" fill="#64748B">{rotulo_entrada}</text>'
