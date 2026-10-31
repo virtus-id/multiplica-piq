@@ -7,10 +7,17 @@
  * em branco e gravar em sequência pela rota de `RF-69` (mãe antes das
  * filhas). Quais perguntas aparecem é sempre do servidor (`RF-45`).
  */
-import { formatarTaxaDoServidor } from '../mascaras'
-import { gravarResposta } from '../services/api'
+import { formatarDecimalDoServidor, formatarTaxaDoServidor } from '../mascaras'
+import { PREFIXO_TEXTO_DO_CAMPO, gravarResposta } from '../services/api'
 import type { Pergunta } from '../tipos'
 import CampoPergunta from './CampoPergunta'
+
+const DECIMAL = /^\d+(\.\d+)?$/
+
+/** O R$ de uma opção que abre campo (`T-294`), no padrão pt-BR. */
+function valorDoCampo(valor: string): string {
+  return DECIMAL.test(valor) ? formatarDecimalDoServidor(valor) : valor
+}
 
 /**
  * O valor com que a pergunta reabre (`AC-01`, `AC-102`).
@@ -20,12 +27,22 @@ import CampoPergunta from './CampoPergunta'
  * aparece marcada.
  */
 export function valorInicial(pergunta: Pergunta): string | string[] {
-  if (pergunta.valores_marcados.length > 0) return pergunta.valores_marcados
+  if (pergunta.valores_marcados.length > 0) {
+    // Seleção múltipla com texto numa opção: devolve-o junto dos códigos marcados.
+    return pergunta.valor_do_campo
+      ? [...pergunta.valores_marcados, PREFIXO_TEXTO_DO_CAMPO + pergunta.valor_do_campo]
+      : pergunta.valores_marcados
+  }
   const atual = pergunta.valor_atual
   if (atual === null) return ''
   // `T-335`: o servidor guarda a fração (`0.08`); o campo, que já tem o "%"
   // ao lado, reabre com o percentual (`8`).
   if (pergunta.tipo === 'TAXA' && !Array.isArray(atual)) return formatarTaxaDoServidor(String(atual))
+  // `RF-13`: o dinheiro reabre em pt-BR ("20.000,00"), não como o servidor o guarda
+  // ("20000.00"). Código de opção ("VARIA", "TOTAL") passa intacto.
+  if (pergunta.tipo === 'MOEDA' && !Array.isArray(atual) && DECIMAL.test(String(atual))) {
+    return formatarDecimalDoServidor(String(atual))
+  }
   // `T-294`: opção com campo R$ em outra variável reabre com os dois.
   if (pergunta.valor_do_campo != null && !Array.isArray(atual)) {
     // `T-393`: o campo `TAXA` guarda a fração; reabre como percentual.
@@ -34,7 +51,7 @@ export function valorInicial(pergunta: Pergunta): string | string[] {
     )
     return [
       String(atual),
-      taxa ? formatarTaxaDoServidor(pergunta.valor_do_campo) : pergunta.valor_do_campo,
+      taxa ? formatarTaxaDoServidor(pergunta.valor_do_campo) : valorDoCampo(pergunta.valor_do_campo),
     ]
   }
   return Array.isArray(atual) ? atual : String(atual)

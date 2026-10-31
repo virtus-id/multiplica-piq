@@ -408,20 +408,29 @@ def _codigos_alternativos(registro: RegistroPergunta) -> frozenset[str]:
 
 
 def _resolver_campo(
-    registro: RegistroPergunta, valor: ValorResposta, valores_brutos: tuple[str, ...]
+    registro: RegistroPergunta,
+    valor: ValorResposta,
+    valores_brutos: tuple[str, ...],
+    campo_digitado: str = "",
 ) -> tuple[str, ValorResposta] | None:
     """`T-294` — a opção escolhida declara `variavel_do_campo` (ex.: `B5.B01`
     "Sim." → `VALOR_ORIGINAL`): o segundo `valor` do corpo é o R$ digitado,
     convertido pela mesma fronteira de `MOEDA` — ou de `TAXA`, na opção com
     `abre_campo: TAXA` (`T-393`) (`RF-13`). Vazio ou inválido
     recusa a resposta inteira (`EC-01`) — nada é gravado."""
+    # `SELECAO_MULTIPLA`: a opção está entre as marcadas e o texto vem em
+    # `valor_campo` (os `valor` repetidos são só os códigos).
+    marcadas = valor if isinstance(valor, frozenset) else frozenset({valor})
     opcao = next(
-        (o for o in registro.opcoes if o.variavel_do_campo and o.valor_interno == valor),
+        (o for o in registro.opcoes if o.variavel_do_campo and o.valor_interno in marcadas),
         None,
     )
     if opcao is None or opcao.variavel_do_campo is None:
         return None
-    digitado = valores_brutos[1] if len(valores_brutos) > 1 else ""
+    if isinstance(valor, frozenset):
+        digitado = campo_digitado
+    else:
+        digitado = valores_brutos[1] if len(valores_brutos) > 1 else ""
     if opcao.abre_campo is TipoResposta.TEXTO_CURTO:
         # `T-415`: o nome da instituição ou pessoa de "Outra"; 1 a 60 letras.
         nome = " ".join(digitado.split())
@@ -620,7 +629,7 @@ def responder_pergunta(
     # recusa sem gravar, nunca trunca nem coage.
     try:
         valor = _resolver_valor(registro, dados, valores_brutos)
-        campo = _resolver_campo(registro, valor, valores_brutos)
+        campo = _resolver_campo(registro, valor, valores_brutos, dados.get("valor_campo", ""))
     except (ErroConversaoInvalida, ErroValorInvalido) as erro:
         # `T-205`: o aluno lê só o motivo; a variável vai para o log.
         _LOGGER.info(
@@ -1090,6 +1099,10 @@ def serializar_pergunta_do_caso(
         posicao=posicao.posicao if posicao is not None else None,
         total_na_ficha=posicao.total_na_ficha if posicao is not None else None,
     )
+    # Dívida N de M: a introdução de cada ficha de dívida (só o servidor conta).
+    irmaos = itens_por_escopo.get(registro.escopo_repeticao, ())
+    if registro.escopo_repeticao is EscopoRepeticao.DIVIDA_ID and item_id in irmaos:
+        pergunta["item_da_ficha"] = {"posicao": irmaos.index(item_id) + 1, "total": len(irmaos)}
     # `T-294`: a opção escolhida grava o campo em outra variável — reabrir
     # mostra o valor digitado (`AC-102`). Só registro com essa opção.
     if any(opcao.variavel_do_campo for opcao in registro.opcoes):
@@ -1097,7 +1110,11 @@ def serializar_pergunta_do_caso(
             (
                 o.variavel_do_campo
                 for o in registro.opcoes
-                if o.variavel_do_campo and o.valor_interno == contexto.valor_atual
+                if o.variavel_do_campo
+                and (
+                    o.valor_interno == contexto.valor_atual
+                    or o.valor_interno in contexto.valores_marcados
+                )
             ),
             None,
         )

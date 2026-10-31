@@ -32,7 +32,7 @@ perguntas:
   # Grupo A — Identificação (ficha REP por dívida)
   - ID: B5.A01
     bloco: 5
-    enunciado: Para quem você deve nessa operação?
+    enunciado: Para quem você deve nessa [ordinal] dívida?
     apresentacao: MENU
     tipo: SELECAO_UNICA
     obrigatoriedade: [REP]
@@ -54,7 +54,8 @@ perguntas:
         variavel_do_campo: CREDOR_OUTRO
     VARIAVEL_GRAVADA: CREDOR
     condicao_exibicao: null
-    interpolacoes: []
+    interpolacoes:
+      - {marcador: "[ordinal]", origem: ORDINAL_DO_ITEM, referencia: ""}
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false

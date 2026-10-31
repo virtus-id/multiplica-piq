@@ -16,10 +16,13 @@
 import { useState } from 'react'
 
 import { aplicarMascara, temMascara } from '../mascaras'
+import { PREFIXO_TEXTO_DO_CAMPO } from '../services/api'
 import type { Pergunta } from '../tipos'
 
 interface CampoPerguntaProps {
   pergunta: Pergunta
+  /** Campo destacado: a resposta é obrigatória e está em branco. */
+  invalido?: boolean
   valor: string | string[]
   naoSei: boolean
   onValor: (valor: string | string[]) => void
@@ -32,6 +35,7 @@ function idDoCampo(pergunta: Pergunta): string {
 
 export default function CampoPergunta({
   pergunta,
+  invalido = false,
   valor,
   naoSei,
   onValor,
@@ -51,7 +55,10 @@ export default function CampoPergunta({
   // campo de outra variável; o código vem primeiro, como o servidor lê.
   const texto = Array.isArray(valor) ? (grupo ? (valor[0] ?? '') : '') : valor
   const digitadoNoCampo = grupo && Array.isArray(valor) ? (valor[1] ?? '') : ''
-  const marcados = Array.isArray(valor) ? valor : []
+  const todos = Array.isArray(valor) ? valor : []
+  const marcados = todos.filter((v) => !v.startsWith(PREFIXO_TEXTO_DO_CAMPO))
+  const textoMarcado = todos.find((v) => v.startsWith(PREFIXO_TEXTO_DO_CAMPO))
+  const descricao = textoMarcado?.slice(PREFIXO_TEXTO_DO_CAMPO.length) ?? ''
 
   // `T-299`: nos tipos de valor as opções do registro não são desenhadas
   // como lista — o campo É a resposta. As alternativas ao campo (ex.: renda
@@ -100,9 +107,10 @@ export default function CampoPergunta({
 
   function alternarMarcado(valorInterno: string) {
     const jaTem = marcados.includes(valorInterno)
-    escolher(
-      jaTem ? marcados.filter((v) => v !== valorInterno) : [...marcados, valorInterno],
-    )
+    escolher([
+      ...(jaTem ? marcados.filter((v) => v !== valorInterno) : [...marcados, valorInterno]),
+      ...(textoMarcado ? [textoMarcado] : []),
+    ])
   }
 
   // `T-213`: a opção com `abre_campo: DATA` ("Data") grava o que o aluno digita,
@@ -155,9 +163,10 @@ export default function CampoPergunta({
           {apoio}
           <select
             id={id}
-            className="campo-texto"
+            className={`campo-texto ${invalido ? 'border-bad' : ''}`}
             value={texto}
             disabled={inerte}
+            aria-invalid={invalido || undefined}
             aria-describedby={descritoPor}
             onChange={(e) => {
               const escolhida = pergunta.opcoes.find((o) => o.valor_interno === e.target.value)
@@ -295,17 +304,30 @@ export default function CampoPergunta({
             const valorInterno = opcao.valor_interno
             const marcado = valorInterno !== null && marcados.includes(valorInterno)
             return (
-              <label key={indice} className="opt">
-                <input
-                  type="checkbox"
-                  className="h-[26px] w-[26px] accent-accent"
-                  checked={marcado}
-                  disabled={valorInterno === null}
-                  aria-describedby={idAviso}
-                  onChange={() => valorInterno !== null && alternarMarcado(valorInterno)}
-                />
-                <span>{opcao.rotulo}</span>
-              </label>
+              <div key={indice} className="flex flex-col gap-2">
+                <label className="opt">
+                  <input
+                    type="checkbox"
+                    className="h-[26px] w-[26px] accent-accent"
+                    checked={marcado}
+                    disabled={valorInterno === null}
+                    aria-describedby={idAviso}
+                    onChange={() => valorInterno !== null && alternarMarcado(valorInterno)}
+                  />
+                  <span>{opcao.rotulo}</span>
+                </label>
+                {marcado && opcao.abre_campo === 'TEXTO_CURTO' && (
+                  <input
+                    type="text"
+                    maxLength={60}
+                    className="campo-texto"
+                    aria-label={opcao.rotulo}
+                    aria-describedby={idAviso}
+                    value={descricao}
+                    onChange={(e) => onValor([...marcados, PREFIXO_TEXTO_DO_CAMPO + e.target.value])}
+                  />
+                )}
+              </div>
             )
           })}
         </fieldset>

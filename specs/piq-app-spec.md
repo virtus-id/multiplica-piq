@@ -571,7 +571,7 @@ Especificação de coleta. A interface deve ser **gerada a partir desta seção*
 
 **OBR** · *Seleção única*
 
-> Hoje, você já pretende ou considera provável contratar algum novo crédito nos próximos meses?
+> Hoje, você pretende ou considera provável contratar algum novo crédito nos próximos meses?
 
 *Considere empréstimo, financiamento, refinanciamento, uso de limite ou outra nova operação de crédito.*
 
@@ -705,7 +705,7 @@ Especificação de coleta. A interface deve ser **gerada a partir desta seção*
 
 **OBR** · *Seleção única*
 
-> Você já pretende fazer alguma nova compra parcelada nos próximos meses?
+> Você pretende fazer alguma nova compra parcelada nos próximos meses?
 
 *Considere cartão, crediário ou outro parcelamento de compra. Não inclua aqui parcelamentos que já existem.*
 
@@ -2655,7 +2655,7 @@ Especificação de coleta. A interface deve ser **gerada a partir desta seção*
 
 **REP** · *Busca/seleção + nome do credor*
 
-> Para quem você deve nessa operação?
+> Para quem você deve nessa primeira dívida? ("primeira" vira "segunda", "terceira"… conforme a dívida)
 
 | Campo | Valor |
 |---|---|

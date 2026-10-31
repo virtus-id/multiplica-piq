@@ -17,6 +17,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Botao from '../componentes/Botao'
 import Esqueleto from '../componentes/Esqueleto'
 import ResumoDaFicha from '../componentes/ResumoDaFicha'
+import { moeda } from '../moeda'
 import Tela from '../componentes/Tela'
 import LateralDaColeta from '../componentes/LateralDaColeta'
 import {
@@ -26,7 +27,7 @@ import {
   obterProximaPergunta,
   removerFicha,
 } from '../services/api'
-import type { Ficha, ParteDaTrilha } from '../tipos'
+import type { Ficha, ListaDeFichas, ParteDaTrilha } from '../tipos'
 
 /**
  * Os nomes de cada escopo que tem tela — `T-212`, títulos da §11. É o ÚNICO
@@ -135,6 +136,7 @@ export default function TelaFichas({
   onContinuar,
 }: TelaFichasProps) {
   const [fichas, setFichas] = useState<Ficha[]>([])
+  const [total, setTotal] = useState<Pick<ListaDeFichas, 'total' | 'total_parcial'>>({})
   const [escopoPai, setEscopoPai] = useState<string | null>(null)
   const [escoposFilhos, setEscoposFilhos] = useState<string[]>([])
   const [trilha, setTrilha] = useState<ParteDaTrilha[] | null>(null)
@@ -148,6 +150,7 @@ export default function TelaFichas({
     try {
       const dados = await listarFichas(casoId, escopo)
       setFichas(dados.fichas)
+      setTotal({ total: dados.total, total_parcial: dados.total_parcial })
       setEscopoPai(dados.escopo_pai ?? null)
       setEscoposFilhos(dados.escopos_filhos ?? [])
       setTrilha(dados.trilha ?? null)
@@ -365,6 +368,18 @@ export default function TelaFichas({
           </li>
         ))}
       </ul>
+
+      {/* `RF-128`: a soma vem do servidor; recarregada a cada mudança na lista. */}
+      {total.total !== undefined && fichas.length > 0 && (
+        <p data-testid="total-das-despesas" className="mt-3 text-right font-bold">
+          Total das despesas: <span className="tabular-nums">{moeda(total.total)}</span>
+          {total.total_parcial && (
+            <small className="block font-normal text-muted">
+              Soma só das despesas com valor informado.
+            </small>
+          )}
+        </p>
+      )}
     </Tela>
   )
 }

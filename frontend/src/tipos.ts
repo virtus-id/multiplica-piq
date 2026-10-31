@@ -61,6 +61,8 @@ export interface Pergunta {
    */
   posicao: number | null
   total_na_ficha: number | null
+  /** Dívida N de M — só nas perguntas da ficha de dívida. */
+  item_da_ficha?: { posicao: number; total: number }
   admite_nao_sei: boolean
   valor_atual: string | string[] | null
   respondida_como_nao_sei: boolean
@@ -173,6 +175,10 @@ export interface ListaDeFichas {
   /** Os escopos criados dentro de cada ficha deste (`T-254`). */
   escopos_filhos?: string[]
   fichas: Ficha[]
+  /** `RF-128`: a soma dos valores das despesas (só em "Suas despesas"). */
+  total?: string
+  /** `true` quando alguma despesa ainda não tem valor. */
+  total_parcial?: boolean
   /** `T-310`: a trilha da coleta, na parte desta ficha. */
   trilha?: ParteDaTrilha[] | null
 }

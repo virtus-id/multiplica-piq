@@ -243,6 +243,12 @@ export default function App() {
    */
   const blocoDaRevisao = useRef<number | undefined>(undefined)
 
+  /**
+   * A conferência (`B3.C00`) de onde o aluno saiu para corrigir uma linha da
+   * fotografia: salvar a correção devolve a ela, e não à lista de respostas.
+   */
+  const origemDaCorrecao = useRef<{ idPergunta: string; itemId?: string } | undefined>(undefined)
+
   useEffect(() => {
     if (!casoId) return
     let ativo = true
@@ -590,6 +596,12 @@ export default function App() {
     case 'respostas': {
       if (rota.idPergunta) {
         const voltarARevisao = () => {
+          const origem = origemDaCorrecao.current
+          origemDaCorrecao.current = undefined
+          if (origem) {
+            irPara({ tela: 'pergunta', idPergunta: origem.idPergunta, itemId: origem.itemId })
+            return
+          }
           const bloco = blocoDaRevisao.current
           blocoDaRevisao.current = undefined
           irPara({ tela: 'respostas', bloco })
@@ -604,12 +616,17 @@ export default function App() {
             // `AC-103`: gravada a correção, a revisão reabre — com o valor
             // novo, porque ela relê o servidor a cada visita.
             aoCorrigir={voltarARevisao}
+            abrirFichaNova={(id, item) => irPara({ tela: 'pergunta', idPergunta: id, itemId: item })}
+            onAbrirFichas={([escopo, ...seguintes]) =>
+              irPara({ tela: 'fichas', escopo, seguintes })
+            }
             abrirCorrecao={(id, item) =>
               irPara({ tela: 'respostas', idPergunta: id, itemId: item })
             }
           />
         )
       }
+      origemDaCorrecao.current = undefined // quem chega à lista não volta à conferência
       return (
         <TelaRespostas
           casoId={casoId}
@@ -647,7 +664,10 @@ export default function App() {
           }
           // `T-228` (RF-80): "corrigir" uma linha da fotografia do mês é a
           // correção de `RF-69` — a mesma rota da revisão.
-          abrirCorrecao={(id, item) => irPara({ tela: 'respostas', idPergunta: id, itemId: item })}
+          abrirCorrecao={(id, item, origem) => {
+            origemDaCorrecao.current = origem ? { idPergunta: origem, itemId: rota.itemId } : undefined
+            irPara({ tela: 'respostas', idPergunta: id, itemId: item })
+          }}
         />
       )
 
