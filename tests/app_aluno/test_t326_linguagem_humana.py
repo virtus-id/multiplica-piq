@@ -413,10 +413,9 @@ def test_ac174_pendencias_nomeiam_a_divida(monkeypatch: pytest.MonkeyPatch) -> N
         for p in corpo["plano"]["pendencias"]["campos_faltantes_por_divida"]
     }
 
-    assert nomes == {
-        "D011": f"Cheque especial ({_CAIXA})",
-        "D001": "Empréstimo consignado (BANCO DO BRASIL)",
-    }
+    # RF-479: o cheque especial já tem a parcela declarada; só o consignado, sem
+    # custo, segue com dado faltando.
+    assert nomes == {"D001": "Empréstimo consignado (BANCO DO BRASIL)"}
 
 
 # ---------------------------------------------------------------------------

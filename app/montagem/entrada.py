@@ -223,6 +223,12 @@ VARIAVEIS_DO_DESCONTO: Final[frozenset[str]] = frozenset(
 )
 
 
+_VARIAVEL_PARCELA: Final[str] = "PARCELA_CONTRATUAL" + " (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
+_VARIAVEIS_DA_PARCELA_E_DO_SALDO: Final[frozenset[str]] = frozenset(
+    {_VARIAVEL_PARCELA, "SALDO_DEVEDOR_ATUAL"}
+)
+
+
 @dataclass(frozen=True, slots=True)
 class Aviso:
     codigo: str
@@ -252,4 +258,11 @@ def avisos_da_gravacao(
         respostas.valor(VARIAVEL_GRAVADA) == 0
     ):
         codigos.append("SEM_DIVIDAS")
+    # Um valor mensal por dívida: parcela maior que o saldo quase sempre é erro
+    # de digitação. Só avisa (a resposta segue gravada).
+    if VARIAVEL_GRAVADA in _VARIAVEIS_DA_PARCELA_E_DO_SALDO and item_id:
+        parcela = respostas.valor_no_item(item_id, _VARIAVEL_PARCELA)
+        saldo = respostas.valor_no_item(item_id, "SALDO_DEVEDOR_ATUAL")
+        if isinstance(parcela, Decimal) and isinstance(saldo, Decimal) and parcela > saldo:
+            codigos.append("PARCELA_MAIOR_QUE_O_SALDO")
     return tuple(Aviso(codigo=c, mensagem=_textos_de_aviso()[c]) for c in codigos)

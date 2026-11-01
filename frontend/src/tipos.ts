@@ -458,6 +458,8 @@ export interface PontoDePartida {
   parcelas: string
   valor_extra: string
   quantidade_de_dividas: number
+  /** `RF-479`: a parcela de cada dívida; `valor` vazio = não informada. */
+  composicao_das_parcelas?: { nome: string; valor: string }[]
   /** `RF-412` (`B3.DF02`) — vazios quando o servidor não envia o resumo. */
   /** `RF-412` (`B3.04A`) — vazio sem contribuição familiar; a renda acima já a inclui. */
   contribuicao_familiar?: string

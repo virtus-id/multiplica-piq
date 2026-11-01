@@ -148,7 +148,8 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
     salto_consequencia: >-
-      Sim → B5.C02–C04 (Modelo 1). Não → sem parcela definida.
+      Sim → B5.C02 (a parcela é o único valor mensal da dívida: alimenta o
+      resultado do mês e a projeção). Não → sem parcela definida.
 
   - ID: B5.C02
     bloco: 5
@@ -161,44 +162,6 @@ perguntas:
     VARIAVEL_GRAVADA: "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
     indispensavel: true  # RF-93 (`T-261`, `R9-8`)
     condicao_exibicao: {tipo: IGUAL, variavel: POSSUI_PARCELA_DEFINIDA, valor: SIM}
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: null
-
-  - ID: B5.C06
-    bloco: 5
-    enunciado: Na prática, quanto você está pagando por mês nesta dívida atualmente?
-    tipo: MOEDA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-      - {rotulo: Não estou pagando nada atualmente., valor_interno: "0"}
-      - {rotulo: O valor varia muito., valor_interno: VARIA}
-      - {rotulo: Estou pagando o valor total da dívida., valor_interno: TOTAL}
-    VARIAVEL_GRAVADA: PAGAMENTO_MENSAL_EFETIVO
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      VARIA → B5.C06A. TOTAL → o pagamento é o saldo devedor informado em
-      B5.B03, sem digitar de novo.
-
-  - ID: B5.C06A
-    bloco: 5
-    enunciado: >-
-      Qual foi a média mensal paga nos últimos 3 meses, conforme o extrato?
-    tipo: MOEDA
-    obrigatoriedade: [COND, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-    VARIAVEL_GRAVADA: "PAGAMENTO_MENSAL_EFETIVO (média 3 meses)"
-    condicao_exibicao: {tipo: IGUAL, variavel: PAGAMENTO_MENSAL_EFETIVO, valor: VARIA}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
