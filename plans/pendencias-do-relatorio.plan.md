@@ -18,6 +18,8 @@ Sem tecnologia nova: Python (`report/`, `app/`), Jinja2, YAML canônico e React 
 5. **Rótulo da linha** (`RF-466`): só o YAML (`ponto_de_partida.despesas_mensais_totais`) e a spec `RF-412`.
 6. **Guarda de envio** (`RF-467`): sem código novo; teste de regressão sobre `pendencias_obrigatorias`.
 
+7. **Dívida que cresce** (`RF-480`): `report/plano.py` calcula, por leitura de `MESES_DO_PLANO[0].DIVIDAS` (juros e habitual), o conjunto de dívidas que crescem; o contexto ganha `dividas_que_crescem`, `meses_exibidos` (24 quando há) e o texto do último mês; `plano.html` e `PlanoDoAluno.tsx` fatiam o mural e as fichas mensais e mostram o aviso. A regra de prioridade do extra é do motor (slug `motor-calculo`, `RF-79`).
+
 ## Estratégia de teste
 
 Cada requisito tem ao menos um teste que cita o `RF`; os existentes que travam texto ou contagem de pendências são atualizados só quando o comportamento mudou de propósito.
