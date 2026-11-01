@@ -1998,14 +1998,10 @@ def _graficos_do_mes(
     snapshot: SnapshotOrdem, vocabulario: VocabularioDoCaso | None, textos: TextosCanonicosPlano
 ) -> dict[str, Any]:
     """`RF-474`, `RF-478`: o gráfico do mês, em qualquer cenário. Lê os mesmos
-    números do "ponto de partida" (parcelas devidas em estabilização, efetivas
-    nos demais); os rótulos vêm do YAML (`graficos`)."""
+    números do "ponto de partida" (sempre as parcelas declaradas); os rótulos
+    vêm do YAML (`graficos`)."""
     estado, diagnostico = snapshot.estado_inputs, snapshot.diagnostico
-    parcelas = (
-        diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
-        if diagnostico.MODO_ESTABILIZACAO
-        else diagnostico.PAGAMENTOS_EFETIVOS_DIVIDAS
-    )
+    parcelas = diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
     rotulos = textos.graficos
     partes = (
         Parte(rotulos.get("dia_a_dia", ""), estado.DESPESAS_OPERACIONAIS_ATUAIS, COR_DIA_A_DIA),
@@ -2041,11 +2037,7 @@ def _painel_do_mes(snapshot: SnapshotOrdem, textos: TextosCanonicosPlano) -> dic
     deficitário. Soma o que o estado já tem (sem regra nova); saldo
     desconhecido não entra e marca o total como parcial."""
     estado, diagnostico = snapshot.estado_inputs, snapshot.diagnostico
-    parcelas = (
-        diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
-        if diagnostico.MODO_ESTABILIZACAO
-        else diagnostico.PAGAMENTOS_EFETIVOS_DIVIDAS
-    )
+    parcelas = diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
     saidas = (
         estado.DESPESAS_OPERACIONAIS_ATUAIS + estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS + parcelas
     )
@@ -2078,13 +2070,9 @@ def _ponto_de_partida(
         renda=formatar_dinheiro_br(estado.RENDA_TOTAL_RECORRENTE),
         gastos=formatar_dinheiro_br(estado.DESPESAS_OPERACIONAIS_ATUAIS),
         gastos_ocasionais=formatar_dinheiro_br(estado.DESPESAS_NAO_MENSAIS_NORMALIZADAS),
-        # `T-407` (RF-419): em estabilização as parcelas são as devidas, para
-        # fechar com o resultado estrutural exibido; no modo normal, as efetivas.
-        parcelas=formatar_dinheiro_br(
-            diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES
-            if diagnostico.MODO_ESTABILIZACAO
-            else diagnostico.PAGAMENTOS_EFETIVOS_DIVIDAS
-        ),
+        # `T-407` (RF-419), `RF-479`: sempre as parcelas declaradas (devidas), as mesmas
+        # do resultado do mês exibido; o pagamento efetivo antigo não entra no retrato.
+        parcelas=formatar_dinheiro_br(diagnostico.PAGAMENTOS_MENSAIS_DEVIDOS_VIGENTES),
         valor_extra=formatar_dinheiro_br(diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA),
         quantidade_de_dividas=len(estado.dividas),
         composicao_das_parcelas=tuple(
