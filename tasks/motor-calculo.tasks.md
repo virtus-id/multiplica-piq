@@ -7579,3 +7579,26 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 - [x] Teste de conservação por mês e por dívida; persistência lê (anterior → vazio); rehash
 
 **Status:** `[x] concluída`
+
+### `T-460` — Dívida que cresce: detecção, prioridade do extra e ação de renegociação
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-384` · **Rastreia:** `RF-79`, `AC-142`, `AC-143`, `AC-144`, `EC-58`, `EC-59`
+- **Arquivos:** `engine/gates.py`, `engine/ciclo_mensal.py`, `engine/ordem.py`, `hashes_congelados.json` (rehash só dos alterados), testes
+- **Bloqueada por:** aprovação desta spec (`OQ-55`, `OQ-56`).
+
+- [ ] Teste do caso `aluno.teste3` (cheque especial 20.000 / 5% / 500 / extra 475 → ação de renegociação, fora da simulação)
+- [ ] Teste de que, com `pagamento + extra ≥ juros`, o extra vai primeiro à dívida e ela é quitada
+- [ ] Gabaritos `GAB-A/B/C` idênticos; rehash
+
+**Status:** `[ ] pendente — aguardando aprovação da spec`
+
+### `T-461` — Ação de renegociação por dívida que cresce no texto do plano
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-460` · **Rastreia:** `RF-79`
+- **Arquivos:** `app/` (texto do YAML), `report/` (cartão e lista de ações), testes
+
+- [ ] Texto da ação ("a parcela não cobre os juros: renegocie") no YAML
+- [ ] A ação aparece no relatório e na conferência do revisor
+
+**Status:** `[ ] pendente`
+

@@ -19,6 +19,9 @@ O relatório lista, em "O que falta informar", dados que o aluno não tem como i
 - **`RF-466`** — A linha que soma renda − despesas, antes das parcelas de dívida, tem o rótulo "Resultado do mês antes das parcelas de dívida (renda − despesas)". Substitui o texto da `RF-412` (`B3.DF02`).
 - **`RF-467`** — Nenhuma pergunta que o aluno responde deixa de ser exigida: a guarda de envio continua recusando toda pergunta `indispensavel` exigível sem resposta.
 
+### RF-480. Dívida que cresce: o relatório não esconde nem exagera
+Quando alguma dívida tem pagamento mensal menor que os juros do primeiro mês (os dois números já estão no snapshot), o relatório: (i) avisa no cartão da dívida e no mês a mês que "a parcela de R$ X não cobre os juros do mês (R$ Y): o saldo aumenta todo mês; renegocie"; (ii) limita o mural e o detalhe mês a mês a **24 meses**, com a nota "Projeção limitada a 24 meses: há dívida que cresce"; (iii) acompanha o mesmo limite nos totais do prognóstico ("você ainda deve…"); (iv) **nunca** escreve "todas quitadas" no último mês se restar saldo ("Fim da projeção em {mês}: ainda restam R$ Z"); (v) lista, na seção das dívidas, as que não entram na ordem de quitação, com o motivo. Só lê e formata números do motor (`AC-42`). Plano sem dívida que cresce: sem mudança.
+
 ## Fora do escopo
 
 Mudar o motor, o questionário ou a regra que rebaixa a ordem a `PROVISORIA` (`engine/ordem.py`). A apresentação do aluno deficitário está em [`specs/aluno-deficitario.spec.md`](aluno-deficitario.spec.md).
