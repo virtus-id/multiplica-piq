@@ -954,7 +954,6 @@ _CAMPOS_MATERIAIS_DA_DIVIDA: Final[tuple[str, ...]] = (
     "SALDO_DEVEDOR_ATUAL",
     "TAXA_EFETIVA_MENSAL_NORMALIZADA",
     "PARCELA_CONTRATUAL",
-    "PAGAMENTO_MENSAL_EFETIVO",
 )
 
 
@@ -1960,6 +1959,9 @@ class ContextoPontoDePartida:
     reserva_total: str = ""
     #: `RF-412` (`B3.04A`) — vazio sem contribuição familiar informada.
     contribuicao_familiar: str = ""
+    #: `RF-479`: a parcela de cada dívida (nome, valor) — a composição do total
+    #: de parcelas; valor vazio quando a parcela não foi informada.
+    composicao_das_parcelas: tuple[tuple[str, str], ...] = ()
 
 
 def _resumo_das_despesas(
@@ -2064,7 +2066,10 @@ def _painel_do_mes(snapshot: SnapshotOrdem, textos: TextosCanonicosPlano) -> dic
 
 
 def _ponto_de_partida(
-    snapshot: SnapshotOrdem, resumo: ResumoDasDespesas | None, textos: TextosCanonicosPlano
+    snapshot: SnapshotOrdem,
+    resumo: ResumoDasDespesas | None,
+    textos: TextosCanonicosPlano,
+    nomes: Mapping[str, str] | None = None,
 ) -> ContextoPontoDePartida:
     estado = snapshot.estado_inputs
     diagnostico = snapshot.diagnostico
@@ -2082,6 +2087,15 @@ def _ponto_de_partida(
         ),
         valor_extra=formatar_dinheiro_br(diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA),
         quantidade_de_dividas=len(estado.dividas),
+        composicao_das_parcelas=tuple(
+            (
+                (nomes or {}).get(d.DIVIDA_ID, d.DIVIDA_ID),
+                formatar_dinheiro_br(d.PARCELA_CONTRATUAL)
+                if isinstance(d.PARCELA_CONTRATUAL, Decimal)
+                else "",
+            )
+            for d in estado.dividas
+        ),
     )
     return replace(base, **_painel_do_mes(snapshot, textos))
 
@@ -2275,7 +2289,7 @@ def _montar_contexto_plano(
         # novo é lido do motor, só reorganizado para a "consultoria".
         nome_do_aluno=primeiro_nome(nome_do_aluno),
         ponto_de_partida=_ponto_de_partida(
-            snapshot, vocabulario.resumo_das_despesas if vocabulario else None, textos
+            snapshot, vocabulario.resumo_das_despesas if vocabulario else None, textos, nomes
         ),
         avisos_gerais=_avisos_gerais(snapshot, vocabulario, textos, nomes),
         como_funciona=textos.como_funciona.get(snapshot.METODO_RECOMENDADO_PIQ.value, ()),

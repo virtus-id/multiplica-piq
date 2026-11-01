@@ -52,7 +52,7 @@ def _snapshot(renda: Decimal | None = None, peso_b: int | None = None) -> Snapsh
     divida_b: dict[str, object] = {
         "TIPO_DIVIDA": "CONSIGNADO",
         "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("8.000,00"),
-        "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("400,00"),
+        "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)": converter_para_dinheiro("400,00"),
     }
     if peso_b is not None:
         divida_b["PESO_EMOCIONAL"] = peso_b

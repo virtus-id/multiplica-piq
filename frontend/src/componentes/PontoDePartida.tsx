@@ -87,6 +87,24 @@ export default function PontoDePartida({
           </div>
         )}
       </dl>
+      {ponto.composicao_das_parcelas && ponto.composicao_das_parcelas.length > 0 && (
+        <div className="mt-3">
+          <h3 className="m-0 text-base">{textos.painel_composicao || 'Parcelas por dívida'}</h3>
+          <dl className="m-0 flex flex-col">
+            {ponto.composicao_das_parcelas.map((linha, indice) => (
+              <div
+                key={`${linha.nome}-${indice}`}
+                className="flex items-baseline justify-between gap-4 border-b border-line py-1"
+              >
+                <dt>{linha.nome}</dt>
+                <dd className="m-0 whitespace-nowrap font-bold tabular-nums">
+                  {linha.valor || textos.painel_sem_parcela || 'não informada'}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
       {mostrarValorExtra && textos.nota_seguranca && (
         <p className="text-muted text-sm">{textos.nota_seguranca}</p>
       )}

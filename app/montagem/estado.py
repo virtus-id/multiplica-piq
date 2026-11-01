@@ -433,50 +433,6 @@ def _dinheiro_obrigatorio(
     return traduzido
 
 
-# `VARIAVEL_GRAVADA` de B5.C06A ("Qual foi a média mensal paga nos últimos
-# 3 meses, conforme o extrato?") — string composta, mesmo padrão de
-# `_VARIAVEL_PARCELA_CONTRATUAL`.
-_VARIAVEL_PAGAMENTO_MEDIA_TRES_MESES: Final[str] = (
-    "PAGAMENTO_MENSAL_EFETIVO" + " (média 3 meses)"
-)
-
-
-def _pagamento_mensal_efetivo(respostas: RespostasCaso, DIVIDA_ID: str) -> DinheiroTalvez:
-    """`B5.C06` tem QUATRO opções, não só valor/`NAO_SEI`: valor concreto
-    (inclusive `Decimal("0")`, "Não estou pagando nada" — preservado,
-    `AC-08`/terceiro critério de T-49), `NAO_SEI` (→ `DESCONHECIDO`,
-    `AC-08`), e `"O valor varia muito."` (`valor_interno: VARIA`) — que
-    redireciona a pergunta para `B5.C06A` (média dos últimos 3 meses,
-    `_VARIAVEL_PAGAMENTO_MEDIA_TRES_MESES`). Repassar essa média é ler uma
-    resposta que o PRÓPRIO usuário declarou como aproximação — diferente de
-    a aplicação calcular uma média sozinha (o que violaria a Lei nº 3). Se
-    `VARIA` foi respondido mas `B5.C06A` ainda não tem resposta (ou também é
-    `NAO_SEI`), o resultado é `DESCONHECIDO` — nunca `0`, nunca a pergunta
-    original ignorada silenciosamente."""
-    bruto = respostas.valor_no_item(DIVIDA_ID, "PAGAMENTO_MENSAL_EFETIVO")
-    if bruto is None:
-        raise ErroRespostaAusente(DIVIDA_ID, "B5.C06", "PAGAMENTO_MENSAL_EFETIVO")
-
-    if bruto == "TOTAL":
-        # `T-418`: "estou pagando o valor total" é o saldo que o próprio aluno
-        # já informou em B5.B03 — copiado, não calculado, para não digitar duas vezes.
-        return _dinheiro_obrigatorio(respostas, DIVIDA_ID, "B5.B03", "SALDO_DEVEDOR_ATUAL")
-
-    if bruto == "VARIA":
-        media = respostas.valor_no_item(DIVIDA_ID, _VARIAVEL_PAGAMENTO_MEDIA_TRES_MESES)
-        if media is None:
-            return DESCONHECIDO
-        traduzido_media = _ou_desconhecido(media)
-        if not isinstance(traduzido_media, Decimal):
-            return DESCONHECIDO
-        return traduzido_media
-
-    traduzido = _ou_desconhecido(bruto)
-    if not (isinstance(traduzido, Decimal) or traduzido is DESCONHECIDO):
-        raise ErroRespostaAusente(DIVIDA_ID, "B5.C06", "PAGAMENTO_MENSAL_EFETIVO")
-    return traduzido
-
-
 def _dinheiro_estrutural_ou_desconhecido(
     respostas: RespostasCaso, DIVIDA_ID: str, VARIAVEL_GRAVADA: str
 ) -> DinheiroTalvez:
@@ -540,6 +496,10 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         raise ErroRespostaAusente(DIVIDA_ID, "B5.H01", "PESO_EMOCIONAL")
     assert isinstance(peso_emocional_bruto, int) and not isinstance(peso_emocional_bruto, bool)
 
+    parcela_declarada = _dinheiro_estrutural_ou_desconhecido(
+        respostas, DIVIDA_ID, _VARIAVEL_PARCELA_CONTRATUAL
+    )
+
     return Divida(
         DIVIDA_ID=DIVIDA_ID,
         TIPO_DIVIDA=TIPO_DIVIDA(tipo_divida_bruto),
@@ -560,15 +520,11 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         CET=DESCONHECIDO,
         # B5.C02 — COND (só quando POSSUI_PARCELA_DEFINIDA = SIM): ausência
         # estrutural também admite DESCONHECIDO, mesma lógica de B5.B05A.
-        PARCELA_CONTRATUAL=_dinheiro_estrutural_ou_desconhecido(
-            respostas, DIVIDA_ID, _VARIAVEL_PARCELA_CONTRATUAL
-        ),
-        # B5.C06 — "não sei" em pagamento mensal produz DESCONHECIDO, nunca
-        # 0 (AC-08); "Não estou pagando nada atualmente" grava valor_interno
-        # "0" → Dinheiro(0) real, preservado e DISTINTO de DESCONHECIDO
-        # (terceiro critério de aceite de T-49); "O valor varia muito." lê
-        # B5.C06A (média de 3 meses) — ver `_pagamento_mensal_efetivo`.
-        PAGAMENTO_MENSAL_EFETIVO=_pagamento_mensal_efetivo(respostas, DIVIDA_ID),
+        PARCELA_CONTRATUAL=parcela_declarada,
+        PAGAMENTO_MENSAL_EFETIVO=parcela_declarada,
+        # Um valor mensal por dívida: a parcela declarada em B5.C02 é também o
+        # pagamento mensal. Nada é inferido (nem "valor total", nem média):
+        # sem o valor, os dois campos ficam DESCONHECIDO.
         # `T-391` (`RF-410`): o seguro saiu do questionário e do cálculo. Os
         # dois campos seguem declarados no motor (GAB-01: informativos), com
         # o valor neutro fixo.
@@ -1091,7 +1047,7 @@ def _capacidade_ataque_declarada(respostas: RespostasCaso) -> DinheiroTalvez:
     ("Ainda não consigo estimar.") e tem uma opção que grava `valor_interno:
     "0"` diretamente ("Hoje não consigo separar nenhum valor adicional.") —
     `Dinheiro(0)` real, preservado e distinto de `DESCONHECIDO`, mesmo padrão
-    de `PAGAMENTO_MENSAL_EFETIVO` (`_pagamento_mensal_efetivo`, acima).
+    de `PARCELA_CONTRATUAL`.
     Resposta ausente é erro explícito: é `OBR`, não `COND` — mesmo padrão de
     `_dinheiro_obrigatorio`, mas sem `DIVIDA_ID` (a pergunta não é `REP`)."""
     valor = respostas.valor("CAPACIDADE_ATAQUE_DECLARADA")

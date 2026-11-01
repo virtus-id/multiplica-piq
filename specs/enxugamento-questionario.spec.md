@@ -493,7 +493,7 @@ Na `B3.C00` as despesas por item e as não mensais aparecem sempre abertas, em t
 ### RF-428. Sem "Não sei", "Talvez" e "Não tenho certeza" nas perguntas de fato (2026-10-22)
 Decisão do produto: o cálculo precisa de exatidão, sem adivinhação. Perdem a opção de palpite `B5.C01`, `B5.E02`, `B5.E03`, `B5.F01`, `B5.F02`, `B5.F03`, `B5.H04`, `B5.I03` e `B5.FIM01` ("Não sei"/"Não tenho certeza"), `B4.02A` e `B4.03A` (valor), `B2.11` ("Não consigo avaliar") e `B3.05C` ("Ainda não sei"). `B1.07` e `B3.05` passam a Sim ou Não, sem "Talvez"; as fichas do valor extraordinário abrem só com "Sim". Ficam, por serem escalas de comportamento e não sim/não, `B2.06`, `B4.03` e a opção de pular de `B3.C01A` (opcional); estão no relatório de subjetividade. O motor segue lendo respostas antigas.
 
-### RF-429. Pagamento mensal "valor total da dívida" (2026-10-22)
+### RF-429. Pagamento mensal "valor total da dívida" (2026-10-22) — REVOGADO por RF-479 (2026-10-31)
 Em `B5.C06` ("Na prática, quanto você está pagando por mês nesta dívida atualmente?") há a opção "Estou pagando o valor total da dívida." O pagamento passa a ser o saldo devedor que a pessoa já informou em `B5.B03`: copiado, não calculado, para ela não digitar o mesmo valor duas vezes. Se o saldo for corrigido depois, o pagamento acompanha.
 
 ### RF-430. Sem botão nem tela de "Aguardar a conferência" (2026-10-22)
@@ -633,3 +633,8 @@ O responsável do produto aprovou, sem ajustes, as redações propostas na tabel
 - No plano de estabilização, "o resultado do seu mês é de" usa o resultado estrutural do motor (`RESULTADO_MENSAL_ATUAL`, o mesmo que ativa o modo e que gera "quanto falta cortar"), e os números da tela fecham entre si.
 - Limpeza: código e testes sem origem depois da saída de `B3.S01` e `B5.A02V` (pendências de vínculo no inventário, exibição do vínculo no plano, escopo `VINCULO_ID` se não houver outro uso) e testes de banco desatualizados (`test_retomada.py`, `test_rota_resposta.py`) que citam perguntas removidas.
 - Casos de teste que aguardam revisão no banco ficam como estão (decisão do produto).
+
+### RF-479. Um valor mensal por dívida: a parcela declarada (2026-10-31)
+Decisão do produto: uma entrada gera uma saída, sem adivinhar. O único valor mensal de cada dívida é a **parcela** de `B5.C02`. `B5.C06` ("quanto você paga por mês", com "não estou pagando nada", "o valor varia muito" e "valor total da dívida") e `B5.C06A` (média dos 3 meses) saem do questionário; `RF-429` e a regra de copiar o saldo (`T-418`) ficam revogados. A montagem entrega ao motor o mesmo número como parcela e como pagamento mensal (o motor não muda); respostas antigas de `B5.C06`/`B5.C06A` não são lidas. Dívida sem parcela informada fica com valor desconhecido (pendência), nunca com palpite. Se a parcela for maior que o saldo, a tela avisa "confira o valor" sem bloquear. O "Seu ponto de partida" lista a parcela de cada dívida, e a soma dos itens é o total de parcelas. Motivo: um caso de teste com "valor total" em duas dívidas somou R$ 221.500 de parcelas e R$ 228.500 de saídas, e o motor quitou essas dívidas no primeiro mês.
+| AC-427 | RF-479 | Dada uma dívida com saldo de R$ 200.000 e parcela de R$ 1.500, então o pagamento mensal que o motor recebe é R$ 1.500, e o total de parcelas da ficha é a soma das parcelas informadas | a verificar (T-459) |
+| AC-428 | RF-479 | Dada uma parcela maior que o saldo, então a resposta é gravada e a tela avisa para conferir o valor | a verificar (T-459) |

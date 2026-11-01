@@ -522,7 +522,7 @@ def test_rf62_contagem_e_retomada_nunca_divergem_sobre_os_registros_reais() -> N
     assert proxima_pergunta_nao_respondida((registro_respondido,), respostas) is None
 
 
-def test_a_colecao_real_tem_63_registros() -> None:
+def test_a_colecao_real_tem_61_registros() -> None:
     """Âncora explícita contra a contagem envelhecida: a coleção de COLETA
     tem **81** registros.
 
@@ -556,8 +556,9 @@ def test_a_colecao_real_tem_63_registros() -> None:
     `T-404` (RF-418): `-19`, as perguntas que saem do questionário e do
     cálculo (100 → 81). `T-408` (RF-420): `-17`, as perguntas sem uso no motor
     (81 → 64). `T-427`: `-2`, `B5.CHECK` e `B5.FIM01` (64 → 62).
-    `T-428`: `-1`, `B3.C01A` (62 → 61). `T-431`: `+2`, `B3.C02` e `B3.C02A` (61 → 63)."""
-    assert len(_registros_reais()) == 63
+    `T-428`: `-1`, `B3.C01A` (62 → 61). `T-431`: `+2`, `B3.C02` e `B3.C02A` (61 → 63).
+    `T-459` (RF-479): `-2`, `B5.C06` e `B5.C06A` (63 → 61)."""
+    assert len(_registros_reais()) == 61
 
 
 def test_os_casos_de_prova_do_gerador_ficam_fora_da_coleta() -> None:

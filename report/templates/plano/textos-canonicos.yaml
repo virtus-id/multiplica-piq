@@ -501,6 +501,8 @@ ponto_de_partida:
   painel_em_dividas_parcial: "Soma só das dívidas com saldo informado."
   painel_reserva: "Possui reserva?"
   painel_antes_parcelas: "Antes das parcelas"
+  painel_composicao: "Parcelas por dívida"
+  painel_sem_parcela: "não informada"
   painel_fechamento: "Entram {renda} e saem {saidas}. O mês fecha em {resultado}."
   reserva_sim: "Sim"
   reserva_informal: "Sim, informal"
@@ -622,7 +624,6 @@ onde_achar:
 pergunta_do_campo:
   SALDO_DEVEDOR_ATUAL: "B5.B03"
   PARCELA_CONTRATUAL: "B5.C02"
-  PAGAMENTO_MENSAL_EFETIVO: "B5.C06"
   TAXA_EFETIVA_MENSAL_NORMALIZADA: "B5.D06"
 
 # Perguntas frequentes, sempre abertas no documento impresso. Só perguntas com

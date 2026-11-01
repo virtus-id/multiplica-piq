@@ -247,7 +247,9 @@ def _snapshot_real_com_duas_dividas() -> SnapshotOrdem:
         valores_divida={
             "TIPO_DIVIDA": "CONSIGNADO",
             "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("8.000,00"),
-            "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("400,00"),
+            "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)": converter_para_dinheiro(
+                "400,00"
+            ),
         },
         DIVIDA_ID=_DIVIDA_ID_B,
     )

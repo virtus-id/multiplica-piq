@@ -51,6 +51,14 @@
         <span class="kpi-extra-valor">{{ pd.valor_extra }}</span>
     </div>
     {% endif %}
+    {% if pd.composicao_das_parcelas %}
+    <div class="composicao">
+        <div class="kpi-rotulo">{{ tp.get("painel_composicao", "") }}</div>
+        {% for nome, valor in pd.composicao_das_parcelas %}
+        <div class="composicao-linha"><span>{{ nome }}</span><strong>{{ valor or tp.get("painel_sem_parcela", "") }}</strong></div>
+        {% endfor %}
+    </div>
+    {% endif %}
     {% if pd.despesas_tipo_fixo %}
     <p class="kpi-rodape">{{ tp.get("despesas_tipo_fixo", "") }} <strong>{{ pd.despesas_tipo_fixo }}</strong> · {{ tp.get("despesas_tipo_variavel", "") }} <strong>{{ pd.despesas_tipo_variavel }}</strong></p>
     {% endif %}

@@ -345,6 +345,11 @@ def serializar_plano(
             "despesas_tipo_variavel": contexto.ponto_de_partida.despesas_tipo_variavel,
             "despesas_nao_classificadas": contexto.ponto_de_partida.despesas_nao_classificadas,
             "despesas_mensais_totais": contexto.ponto_de_partida.despesas_mensais_totais,
+            # `RF-479`: a parcela de cada dívida, a composição do total de parcelas.
+            "composicao_das_parcelas": [
+                {"nome": nome, "valor": valor}
+                for nome, valor in contexto.ponto_de_partida.composicao_das_parcelas
+            ],
         },
         "avisos_gerais": list(contexto.avisos_gerais),
         "como_funciona": list(contexto.como_funciona),

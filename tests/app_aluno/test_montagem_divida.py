@@ -60,7 +60,7 @@ def _ficha_minima_completa(DIVIDA_ID: str, **sobrescritas: object) -> RespostasC
         "TIPO_DIVIDA": "CARTAO_ROTATIVO",
         "STATUS_DIVIDA": "ATIVA",
         "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("5.000,00"),
-        "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("300,00"),
+        _VARIAVEL_PARCELA_CONTRATUAL: converter_para_dinheiro("300,00"),
         "PESO_EMOCIONAL": 5,
     }
     valores.update(sobrescritas)
@@ -90,12 +90,13 @@ class TestCriterio1NenhumDefaultSilencioso:
         assert divida.TIPO_DIVIDA is TIPO_DIVIDA.CARTAO_ROTATIVO
         assert divida.STATUS_DIVIDA is STATUS_DIVIDA.ATIVA
         assert divida.SALDO_DEVEDOR_ATUAL == Decimal("5000.00")
+        # Um valor mensal por dívida: a parcela declarada é também o pagamento.
+        assert divida.PARCELA_CONTRATUAL == Decimal("300.00")
         assert divida.PAGAMENTO_MENSAL_EFETIVO == Decimal("300.00")
         assert divida.PESO_EMOCIONAL == 5
         # Campos COND sem resposta (estrutural, ficha não tinha esses ramos
         # abertos) são DESCONHECIDO — nunca None nem um valor inventado.
         assert divida.VALOR_QUITACAO_HOJE is DESCONHECIDO
-        assert divida.PARCELA_CONTRATUAL is DESCONHECIDO
         assert divida.CUSTO_SEGURO is DESCONHECIDO
         assert divida.SEGURO_INCLUIDO_PARCELA is False
         assert divida.TAXA_EFETIVA_MENSAL_NORMALIZADA is DESCONHECIDO
@@ -106,7 +107,6 @@ class TestCriterio1NenhumDefaultSilencioso:
         [
             ("TIPO_DIVIDA", "B5.A02"),
             ("STATUS_DIVIDA", "B5.A04"),
-            ("PAGAMENTO_MENSAL_EFETIVO", "B5.C06"),
             ("PESO_EMOCIONAL", "B5.H01"),
             ("SALDO_DEVEDOR_ATUAL", "B5.B03"),
         ],
@@ -134,12 +134,13 @@ class TestCriterio2AC08NaoSeiProduzDesconhecido:
         respostas = _ficha_minima_completa(
             "D002",
             SALDO_DEVEDOR_ATUAL=NAO_SEI,
-            PAGAMENTO_MENSAL_EFETIVO=NAO_SEI,
+            **{_VARIAVEL_PARCELA_CONTRATUAL: NAO_SEI},
         )
 
         divida = montar_divida(respostas, "D002")
 
         assert divida.SALDO_DEVEDOR_ATUAL is DESCONHECIDO
+        assert divida.PARCELA_CONTRATUAL is DESCONHECIDO
         assert divida.PAGAMENTO_MENSAL_EFETIVO is DESCONHECIDO
         # Nunca 0 — a igualdade com Decimal("0") seria um bug de conversão
         # clássico (NAO_SEI e 0 são semanticamente opostos).
@@ -164,7 +165,7 @@ class TestCriterio3ZeroDistintoDeDesconhecido:
         """B5.C06: 'Não estou pagando nada atualmente' grava valor_interno
         "0" — a conversão para Dinheiro(0) real, nunca DESCONHECIDO."""
         respostas = _ficha_minima_completa(
-            "D004", PAGAMENTO_MENSAL_EFETIVO=converter_para_dinheiro("0")
+            "D004", **{_VARIAVEL_PARCELA_CONTRATUAL: converter_para_dinheiro("0")}
         )
 
         divida = montar_divida(respostas, "D004")
@@ -188,40 +189,41 @@ class TestCriterio3ZeroDistintoDeDesconhecido:
 
 
 # ---------------------------------------------------------------------------
-# B5.C06 = "VARIA" (o valor pago varia muito) — quarta opção do domínio real,
-# além de valor concreto/"0"/NAO_SEI. Não é um dos quatro critérios formais
-# de T-49, mas é o mesmo campo (PAGAMENTO_MENSAL_EFETIVO) do AC-08/critério 3
-# e um caso de borda descoberto ao ler o domínio completo do registro real.
+# Um valor mensal por dívida: B5.C06/C06A saíram; o pagamento é a parcela
+# declarada em B5.C02, e respostas antigas ("TOTAL", "VARIA", valores) não são
+# lidas — o sistema não adivinha nada.
 # ---------------------------------------------------------------------------
-class TestPagamentoMensalEfetivoVaria:
-    def test_varia_sem_media_de_tres_meses_produz_desconhecido(self) -> None:
-        respostas = _ficha_minima_completa("D011", PAGAMENTO_MENSAL_EFETIVO="VARIA")
+class TestUmValorMensalPorDivida:
+    def test_pagamento_e_a_parcela_declarada(self) -> None:
+        respostas = _ficha_minima_completa(
+            "D011", **{_VARIAVEL_PARCELA_CONTRATUAL: converter_para_dinheiro("1.500,00")}
+        )
 
         divida = montar_divida(respostas, "D011")
 
-        assert divida.PAGAMENTO_MENSAL_EFETIVO is DESCONHECIDO
+        assert divida.PARCELA_CONTRATUAL == divida.PAGAMENTO_MENSAL_EFETIVO == Decimal("1500.00")
 
-    def test_varia_com_media_de_tres_meses_respondida_repassa_a_media(self) -> None:
-        respostas = _ficha_minima_completa(
-            "D012",
-            PAGAMENTO_MENSAL_EFETIVO="VARIA",
-            **{"PAGAMENTO_MENSAL_EFETIVO (média 3 meses)": converter_para_dinheiro("250,50")},
-        )
+    def test_sem_parcela_os_dois_ficam_desconhecidos(self) -> None:
+        respostas = _ficha_minima_completa("D012", **{_VARIAVEL_PARCELA_CONTRATUAL: _OMITIR})
 
         divida = montar_divida(respostas, "D012")
 
-        assert divida.PAGAMENTO_MENSAL_EFETIVO == Decimal("250.50")
+        assert divida.PARCELA_CONTRATUAL is DESCONHECIDO
+        assert divida.PAGAMENTO_MENSAL_EFETIVO is DESCONHECIDO
 
-    def test_varia_com_media_nao_sei_produz_desconhecido(self) -> None:
+    def test_resposta_antiga_de_pagamento_nao_e_lida(self) -> None:
+        """O caso `aluno.teste3`: "valor total" no pagamento copiava o saldo
+        (R$ 200 mil por mês). Agora a resposta antiga é ignorada."""
         respostas = _ficha_minima_completa(
             "D013",
-            PAGAMENTO_MENSAL_EFETIVO="VARIA",
-            **{"PAGAMENTO_MENSAL_EFETIVO (média 3 meses)": NAO_SEI},
+            SALDO_DEVEDOR_ATUAL=converter_para_dinheiro("200.000,00"),
+            PAGAMENTO_MENSAL_EFETIVO="TOTAL",
+            **{_VARIAVEL_PARCELA_CONTRATUAL: converter_para_dinheiro("1.500,00")},
         )
 
         divida = montar_divida(respostas, "D013")
 
-        assert divida.PAGAMENTO_MENSAL_EFETIVO is DESCONHECIDO
+        assert divida.PAGAMENTO_MENSAL_EFETIVO == Decimal("1500.00")
 
 
 # ---------------------------------------------------------------------------
@@ -274,8 +276,6 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_5() -> None:
         "STATUS_DIVIDA",
         "SALDO_DEVEDOR_ATUAL",
         _VARIAVEL_PARCELA_CONTRATUAL,
-        "PAGAMENTO_MENSAL_EFETIVO",
-        "PAGAMENTO_MENSAL_EFETIVO (média 3 meses)",
         "PESO_EMOCIONAL",
         "TAXA_DIVIDA",
         "PERIODICIDADE_TAXA_DIVIDA",
@@ -374,11 +374,7 @@ def test_cet_e_sempre_desconhecido_nesta_tarefa() -> None:
     assert divida.CET is DESCONHECIDO
 
 
-def test_pagamento_total_copia_o_saldo_devedor_sem_digitar_de_novo() -> None:
-    """`T-418`: "Estou pagando o valor total da dívida" (`TOTAL`) usa o saldo de `B5.B03`."""
-    respostas = _ficha_minima_completa("D009", PAGAMENTO_MENSAL_EFETIVO="TOTAL")
-
-    divida = montar_divida(respostas, "D009")
-
-    assert divida.PAGAMENTO_MENSAL_EFETIVO == Decimal("5000.00")
-    assert divida.PAGAMENTO_MENSAL_EFETIVO == divida.SALDO_DEVEDOR_ATUAL
+def test_perguntas_de_pagamento_efetivo_nao_existem_mais() -> None:
+    """Um valor mensal por dívida: `B5.C06`/`B5.C06A` saíram do questionário."""
+    ids = {registro.ID for registro in carregar_registros().registros}
+    assert "B5.C06" not in ids and "B5.C06A" not in ids

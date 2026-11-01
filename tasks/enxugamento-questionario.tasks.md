@@ -304,7 +304,7 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 
 **Status:** `[x] concluída (2026-10-22)`
 
-### `T-418` — Pagamento "valor total da dívida" sem digitar duas vezes
+### `T-418` — Pagamento "valor total da dívida" sem digitar duas vezes (REVOGADA por `T-459`)
 
 - **Tipo:** `CHANGE` · **Dependências:** `T-417` · **Rastreia:** `RF-429`, `AC-425`
 - [x] Opção `TOTAL` em `B5.C06`; a montagem copia o saldo devedor de `B5.B03`
@@ -428,3 +428,13 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Frontend lê os rótulos do servidor (`mes_de_quitacao_rotulo`, `marcos[].rotulo`, `eixo_*`, `mes_rotulo`)
 
 **Status:** `[x] concluída (2026-10-23)`
+
+### `T-459` — Um valor mensal por dívida: a parcela declarada
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-418` · **Rastreia:** `RF-479`, `AC-427`, `AC-428`
+- [x] `B5.C06` e `B5.C06A` removidas do Bloco 5; a montagem usa a parcela de `B5.C02` como parcela e como pagamento mensal; respostas antigas não são lidas
+- [x] Aviso `PARCELA_MAIOR_QUE_O_SALDO` na gravação (não bloqueia)
+- [x] "Parcelas por dívida" no ponto de partida (PDF, tela e serialização)
+- [x] Testes: `test_montagem_divida.py`, avisos e relatório; fixtures do app sem `B5.C06`
+
+**Status:** `[x] implementada (2026-10-31); suíte do app em verificação`

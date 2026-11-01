@@ -226,7 +226,9 @@ _VALORES_DIVIDA_PADRAO: Final[dict[str, object]] = {
     "TIPO_DIVIDA": "CARTAO_ROTATIVO",
     "STATUS_DIVIDA": "ATIVA",
     "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("5.000,00"),
-    "PAGAMENTO_MENSAL_EFETIVO": converter_para_dinheiro("300,00"),
+    # Um valor mensal por dívida (RF-479): B5.C02 só abre com B5.C01 = Sim.
+    "POSSUI_PARCELA_DEFINIDA": "SIM",
+    "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)": converter_para_dinheiro("300,00"),
     # `T-393`: B5.D06 é obrigatória (bloqueia o cálculo); 2% ao mês.
     "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
     "TAXA_DIVIDA": converter_para_taxa("2"),
@@ -337,7 +339,7 @@ def caso_completo_com_divida_gab03() -> CasoCompleto:
     return caso_completo(
         valores_divida={
             "SALDO_DEVEDOR_ATUAL": NaoSei.NAO_SEI,
-            "PAGAMENTO_MENSAL_EFETIVO": NaoSei.NAO_SEI,
+            "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)": NaoSei.NAO_SEI,
         }
     )
 

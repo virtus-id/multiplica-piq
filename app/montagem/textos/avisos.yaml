@@ -7,3 +7,4 @@
 
 DIVERGENCIA_DESCONTO: "O desconto em reais não bate com o percentual informado. Os dois valores foram guardados; confira com o credor qual está certo."
 SEM_DIVIDAS: "Você informou que não tem dívidas. Sem dívidas, não há plano de quitação para montar. Se tiver alguma dívida, corrija a quantidade."
+PARCELA_MAIOR_QUE_O_SALDO: "A parcela que você informou é maior do que o saldo da dívida. Confira se é o valor que você paga por mês."
