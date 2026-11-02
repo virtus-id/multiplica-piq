@@ -47,7 +47,7 @@ from engine.ciclo_mensal import (
     ResultadoMes,
 )
 from engine.comparacao import ComparacaoCenarios
-from engine.diagnostico import Diagnostico
+from engine.diagnostico import Diagnostico, DividaQueCresce
 from engine.estado import (
     CERTEZA_RECURSO_EXTRAORDINARIO,
     COBERTURA_MEIOS_PAGAMENTO,
@@ -105,6 +105,7 @@ from engine.tipos import (
     DESCONHECIDO,
     EVENTO_RECALCULO,
     METODO,
+    MOTIVO_ESTABILIZACAO,
     NIVEL_CONTROLE,
     NIVEL_RISCO,
     ORDEM_STATUS,
@@ -550,6 +551,18 @@ def _diagnostico(bruto: dict[str, Any]) -> Diagnostico:
         # (plano R3.4.6) e segue em `_decimal`.
         RESERVA_MOBILIZAVEL=_dinheiro_talvez(bruto["RESERVA_MOBILIZAVEL"]),
         ATAQUE_IMEDIATO_RECOMENDADO=_decimal(bruto["ATAQUE_IMEDIATO_RECOMENDADO"]),
+        # RF-79 (T-460): ausentes em snapshot gravado antes desta mudança.
+        FALTA_TOTAL_DE_JUROS=_decimal(bruto.get("FALTA_TOTAL_DE_JUROS", "0")),
+        DIVIDAS_QUE_CRESCEM=tuple(
+            DividaQueCresce(
+                DIVIDA_ID=item["DIVIDA_ID"],
+                JUROS_DO_MES=_decimal(item["JUROS_DO_MES"]),
+                PARCELA_CONTRATUAL=_decimal(item["PARCELA_CONTRATUAL"]),
+                FALTA_DE_JUROS=_decimal(item["FALTA_DE_JUROS"]),
+            )
+            for item in bruto.get("DIVIDAS_QUE_CRESCEM", ())
+        ),
+        MOTIVO_ESTABILIZACAO=MOTIVO_ESTABILIZACAO(bruto.get("MOTIVO_ESTABILIZACAO", "NENHUM")),
     )
 
 

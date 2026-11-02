@@ -276,6 +276,13 @@ def serializar_plano(
         "MODO_ESTABILIZACAO": contexto.MODO_ESTABILIZACAO,
         "RESULTADO_CAIXA_OBSERVADO": contexto.RESULTADO_CAIXA_OBSERVADO,
         "FALTA_CORTAR": contexto.FALTA_CORTAR,
+        # `RF-480`: mês positivo, mas a parcela de alguma dívida não cobre os juros.
+        "ESTABILIZACAO_POR_DIVIDA": contexto.ESTABILIZACAO_POR_DIVIDA,
+        "FALTA_TOTAL_DE_JUROS": contexto.FALTA_TOTAL_DE_JUROS,
+        "dividas_que_crescem": [
+            {"nome": nome, "parcela": parcela, "juros": juros, "falta": falta}
+            for nome, parcela, juros, falta in contexto.dividas_que_crescem
+        ],
         # `RF-465`/`RF-469`: plano provisório e os maiores gastos do aluno.
         "provisorio": contexto.provisorio,
         "maiores_gastos": [
@@ -507,6 +514,7 @@ def serializar_plano(
                 ],
                 # `RF-468`: os textos do plano do deficitário, do servidor.
                 "estabilizacao_textos": dict(textos.estabilizacao),
+                "estabilizacao_por_divida_textos": dict(textos.estabilizacao_por_divida),
                 "sobre_este_plano": textos.sobre_este_plano,
             }
             if textos is not None

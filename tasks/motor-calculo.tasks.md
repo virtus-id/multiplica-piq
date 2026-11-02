@@ -7586,22 +7586,22 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 - **Arquivos:** `engine/diagnostico.py`, `engine/ciclo_mensal.py`, `engine/ordem.py`, `hashes_congelados.json` (rehash só dos alterados), testes
 - **Bloqueada por:** aprovação desta spec.
 
-- [ ] `FALTA_DE_JUROS`, `FALTA_TOTAL_DE_JUROS`, `DIVIDAS_QUE_CRESCEM` e `MOTIVO_ESTABILIZACAO` no diagnóstico; `MODO_ESTABILIZACAO` também quando a sobra não cobre a soma das faltas
-- [ ] Teste do caso `aluno.teste3` (sobra 475 contra faltas 500 + 398 → estabilização por `DIVIDA_QUE_CRESCE`)
-- [ ] Teste de que, com a sobra cobrindo as faltas, o extra vai primeiro à dívida que cresce de maior taxa
-- [ ] Gabaritos `GAB-A/B/C` idênticos nos campos antigos; rehash
+- [x] `FALTA_DE_JUROS`, `FALTA_TOTAL_DE_JUROS`, `DIVIDAS_QUE_CRESCEM` e `MOTIVO_ESTABILIZACAO` no diagnóstico; `MODO_ESTABILIZACAO` também quando a sobra não cobre a soma das faltas
+- [x] Teste do caso `aluno.teste3` (sobra 475 contra faltas 500 + 398 → estabilização por `DIVIDA_QUE_CRESCE`)
+- [ ] (movido para a `T-466`) Teste de que, com a sobra cobrindo as faltas, o extra vai primeiro à dívida que cresce de maior taxa
+- [x] Gabaritos `GAB-A/B/C` idênticos nos campos antigos; rehash dos 3 arquivos alterados (`diagnostico`, `tipos`, `repositorio_snapshots` do arquivo)
 
-**Status:** `[ ] pendente — aguardando aprovação da spec`
+**Status:** `[x] implementada (2026-11-02)` — o item do extra primeiro nas dívidas que crescem ficou na `T-466`
 
 ### `T-461` — Mensagem e dados da estabilização por dívida que cresce (app)
 
 - **Tipo:** `FEATURE` · **Dependências:** `T-460` · **Rastreia:** `RF-79`, `RF-480`
 - **Arquivos:** `app/` (serialização do plano, conferência do revisor), testes
 
-- [ ] A serialização leva `MOTIVO_ESTABILIZACAO`, `DIVIDAS_QUE_CRESCEM` e `FALTA_TOTAL_DE_JUROS` ao relatório e à conferência (só lê, `AC-42`)
-- [ ] O aviso de déficit do cálculo (`T-439`) continua só para resultado negativo
+- [x] A serialização leva `MOTIVO_ESTABILIZACAO`, `DIVIDAS_QUE_CRESCEM` e `FALTA_TOTAL_DE_JUROS` ao relatório e à conferência (só lê, `AC-42`)
+- [x] O aviso de déficit do cálculo (`T-439`) continua só para resultado negativo
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-02); a fila do revisor não chama mais de "mês negativo" o mês positivo`
 
 ### `T-463` — Sistema de amortização (Price e SAC) no ciclo mensal
 

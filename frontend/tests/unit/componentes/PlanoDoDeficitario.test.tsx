@@ -136,6 +136,57 @@ describe("PlanoDoAluno — aluno deficitário", () => {
     ).toBeNull();
   });
 
+  it("mês positivo com dívida que cresce tem mensagem própria, sem o texto do deficitário (RF-480)", () => {
+    render(
+      <PlanoDoAluno
+        plano={plano({
+          RESULTADO_CAIXA_OBSERVADO: "R$ 475,00",
+          FALTA_CORTAR: "R$ 0,00",
+          ESTABILIZACAO_POR_DIVIDA: true,
+          FALTA_TOTAL_DE_JUROS: "R$ 898,00",
+          dividas_que_crescem: [
+            {
+              nome: "Cheque especial",
+              parcela: "R$ 500,00",
+              juros: "R$ 1.000,00",
+              falta: "R$ 500,00",
+            },
+          ],
+          estabilizacao_por_divida_textos: {
+            titulo: "Seu mês fecha positivo, mas suas dívidas estão crescendo",
+            resultado_rotulo: "Valor livre no mês",
+            texto:
+              "Depois de pagar tudo, ficam {valor} livres por mês. As dívidas crescem {falta_total} por mês.",
+            dividas_titulo: "Dívidas que crescem",
+            divida_linha:
+              "{nome}: parcela de {parcela}, juros de {juros} por mês. O saldo aumenta {falta} por mês.",
+          },
+        })}
+      />,
+    );
+
+    const secao = screen.getByRole("region", {
+      name: "Seu mês fecha positivo, mas suas dívidas estão crescendo",
+    });
+    expect(
+      within(secao).getByText(
+        "Depois de pagar tudo, ficam R$ 475,00 livres por mês. As dívidas crescem R$ 898,00 por mês.",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(secao).getByText(
+        "Cheque especial: parcela de R$ 500,00, juros de R$ 1.000,00 por mês. O saldo aumenta R$ 500,00 por mês.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/faltam cortar/)).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Primeiro, estancar o problema" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Onde olhar nos seus gastos" }),
+    ).toBeNull();
+  });
+
   it("plano normal não mostra nada do deficitário", () => {
     render(
       <PlanoDoAluno
