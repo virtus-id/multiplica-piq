@@ -109,6 +109,7 @@ from engine.tipos import (
     NIVEL_CONTROLE,
     NIVEL_RISCO,
     ORDEM_STATUS,
+    SISTEMA_AMORTIZACAO,
     STATUS_DIVIDA,
     STATUS_FINANCEIRO,
     STATUS_METODO,
@@ -344,6 +345,8 @@ def _divida(bruto: dict[str, Any]) -> Divida:
         TIPO_GARANTIA=bruto.get("TIPO_GARANTIA"),
         URGENCIA_PERCEBIDA=bruto.get("URGENCIA_PERCEBIDA"),
         PREFERENCIA_QUITACAO=bruto.get("PREFERENCIA_QUITACAO", False),
+        # RF-509: ausente em snapshot gravado antes desta mudança.
+        SISTEMA_AMORTIZACAO=SISTEMA_AMORTIZACAO(bruto.get("SISTEMA_AMORTIZACAO", "PRICE")),
     )
 
 

@@ -154,11 +154,19 @@ from decimal import localcontext
 from types import MappingProxyType
 from typing import Final
 
+from engine.amortizacao import amortizacao_sac, pagamento_nominal_do_mes
 from engine.diagnostico import Diagnostico
 from engine.estado import Divida, EstadoFinanceiro
 from engine.parametros import Parametros
 from engine.precisao import CONTEXTO_MOTOR, dinheiro
-from engine.tipos import CLASSIFICACAO_CENARIO, DESCONHECIDO, METODO, Dinheiro, Meses
+from engine.tipos import (
+    CLASSIFICACAO_CENARIO,
+    DESCONHECIDO,
+    METODO,
+    Dinheiro,
+    DinheiroTalvez,
+    Meses,
+)
 
 REGRAS: Final[tuple[str, ...]] = (
     "RF-01",
@@ -292,7 +300,9 @@ def _saldo_apos_juros(saldo: Dinheiro, divida: Divida) -> Dinheiro:
         return saldo * (dinheiro(1) + taxa)
 
 
-def _pagamento_normal_efetivo(saldo_apos_juros: Dinheiro, divida: Divida) -> Dinheiro:
+def _pagamento_normal_efetivo(
+    saldo_apos_juros: Dinheiro, divida: Divida, saldo_antes: Dinheiro | None = None
+) -> Dinheiro:
     """M-03: pagamento mensal normal de UMA dívida, limitado ao saldo (§9 da
     canônica — "limitados ao saldo"). `PAGAMENTO_MENSAL_EFETIVO`
     `DESCONHECIDO` não paga nada (RF-16); dívida nesse estado é bloqueada
@@ -301,11 +311,24 @@ def _pagamento_normal_efetivo(saldo_apos_juros: Dinheiro, divida: Divida) -> Din
     pagamento = divida.PAGAMENTO_MENSAL_EFETIVO
     if pagamento is DESCONHECIDO:
         return dinheiro(0)
+    if saldo_antes is not None:
+        # RF-509: na SAC o pagamento do mês é a amortização mais os juros do mês.
+        com_juros = pagamento_nominal_do_mes(divida, saldo_apos_juros - saldo_antes)
+        pagamento = pagamento if com_juros is None else com_juros
     with localcontext(CONTEXTO_MOTOR):
         pagamento_efetivo = min(pagamento, saldo_apos_juros)
         if pagamento_efetivo < dinheiro(0):
             return dinheiro(0)
         return pagamento_efetivo
+
+
+def _fluxo_liberado_da_divida(divida: Divida, juros_do_mes: Dinheiro) -> DinheiroTalvez:
+    """M-10: o que a dívida quitada libera. Na `PRICE`, a parcela declarada; na
+    `SAC` (`RF-509`), o pagamento daquele mês (amortização mais juros)."""
+    if amortizacao_sac(divida) is None:
+        return divida.PAGAMENTO_MENSAL_EFETIVO
+    pagamento = pagamento_nominal_do_mes(divida, juros_do_mes)
+    return DESCONHECIDO if pagamento is None else pagamento
 
 
 def executar_mes(
@@ -355,7 +378,7 @@ def executar_mes(
         if divida_id in e.quitadas or divida_id == alvo_id:
             continue
         divida = dividas[divida_id]
-        pagamento = _pagamento_normal_efetivo(saldo, divida)
+        pagamento = _pagamento_normal_efetivo(saldo, divida, saldos_abertura[divida_id])
         with localcontext(CONTEXTO_MOTOR):
             saldos_pos_normais[divida_id] = saldo - pagamento
 
@@ -383,7 +406,9 @@ def executar_mes(
     if alvo_id is not None and alvo_id not in quitadas_acumuladas:
         saldo_alvo_pos_juros = saldos_pos_juros[alvo_id]
         divida_alvo = dividas[alvo_id]
-        pagamento_normal_alvo = _pagamento_normal_efetivo(saldo_alvo_pos_juros, divida_alvo)
+        pagamento_normal_alvo = _pagamento_normal_efetivo(
+            saldo_alvo_pos_juros, divida_alvo, saldos_abertura[alvo_id]
+        )
         with localcontext(CONTEXTO_MOTOR):
             ataque_total = pagamento_normal_alvo + e.CAPACIDADE_ATAQUE_M
             aplicado = min(ataque_total, saldo_alvo_pos_juros)
@@ -428,7 +453,9 @@ def executar_mes(
             quitacoes_do_mes.append(divida_id)
             quitadas_acumuladas.add(divida_id)
             divida = dividas[divida_id]
-            pagamento_efetivo_divida = divida.PAGAMENTO_MENSAL_EFETIVO
+            pagamento_efetivo_divida = _fluxo_liberado_da_divida(
+                divida, saldos_pos_juros[divida_id] - saldos_abertura[divida_id]
+            )
             # F-01/AC-32/EC-18: dívida que não estava sendo paga de fato
             # libera zero, nunca a parcela contratual fictícia — consolidado
             # aqui (M-10); incorporação em m+1 (M-11) é responsabilidade de
@@ -547,7 +574,10 @@ def executar_mes(
                 quitacoes_do_mes.append(novo_alvo_id)
                 quitadas_acumuladas.add(novo_alvo_id)
                 divida_quitada = dividas[novo_alvo_id]
-                pagamento_efetivo_divida = divida_quitada.PAGAMENTO_MENSAL_EFETIVO
+                pagamento_efetivo_divida = _fluxo_liberado_da_divida(
+                    divida_quitada,
+                    saldos_pos_juros[novo_alvo_id] - saldos_abertura[novo_alvo_id],
+                )
                 if pagamento_efetivo_divida is not DESCONHECIDO:
                     with localcontext(CONTEXTO_MOTOR):
                         valor_fluxo_liberado = valor_fluxo_liberado + pagamento_efetivo_divida

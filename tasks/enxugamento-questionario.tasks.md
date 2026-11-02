@@ -450,8 +450,8 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 ### `T-465` — Pergunta do sistema de amortização no imobiliário (`B5.C02A`)
 
 - **Tipo:** `FEATURE` · **Dependências:** `T-463` (motor) · **Rastreia:** `RF-510`, `AC-510`
-- [ ] Registro `B5.C02A` com a condição do imobiliário; texto de ajuda da parcela de hoje em `B5.C02`
-- [ ] A montagem entrega `SISTEMA_AMORTIZACAO` ao motor; sem resposta, `PRICE`
-- [ ] Conferir a conversão de taxa ao ano para mensal (composta)
+- [x] Registro `B5.C02A` com a condição do imobiliário; texto de ajuda da parcela de hoje em `B5.C02`
+- [x] A montagem entrega `SISTEMA_AMORTIZACAO` ao motor; sem resposta, `PRICE`
+- [x] Conferir a conversão de taxa ao ano para mensal (composta)
 
-**Status:** `[ ] pendente — aguardando aprovação da spec`
+**Status:** `[x] implementada (2026-11-02)` — a conversão de taxa ao ano para mês já é composta (`§16.1`, `engine/taxa.py`); `B5.C02A` é indispensável para não adivinhar o sistema

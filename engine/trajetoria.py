@@ -88,6 +88,8 @@ class ChaveTrajetoria:
     PAGAMENTO_MENSAL_EFETIVO: Dinheiro
     DELTA: Dinheiro
     HORIZONTE: Meses
+    # `RF-509`: amortização constante da `SAC`; `None` = pagamento fixo (`PRICE`).
+    AMORTIZACAO_SAC: Dinheiro | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,12 +133,15 @@ def _simular_trajetoria_isolada_sem_cache(chave: ChaveTrajetoria) -> Trajetoria:
             )
 
         desembolso_futuro = dinheiro(0)
-        um = dinheiro(1)
 
         for mes in range(1, chave.HORIZONTE + 1):
-            saldo = saldo * (um + chave.TAXA_EFETIVA_MENSAL_NORMALIZADA)
+            juros_do_mes = saldo * chave.TAXA_EFETIVA_MENSAL_NORMALIZADA
+            saldo = saldo + juros_do_mes
 
             pagamento_nominal = chave.PAGAMENTO_MENSAL_EFETIVO
+            if chave.AMORTIZACAO_SAC is not None:
+                # RF-509: na SAC o pagamento é a amortização mais os juros do mês.
+                pagamento_nominal = chave.AMORTIZACAO_SAC + juros_do_mes
             if mes == 1:
                 # §11.1: o DELTA é o ataque extraordinário aplicado "agora"
                 # — evento único do primeiro mês, não recorrente (ver

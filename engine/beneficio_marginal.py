@@ -152,6 +152,7 @@ from dataclasses import dataclass
 from decimal import Decimal, localcontext
 from typing import Final, Literal
 
+from engine.amortizacao import amortizacao_sac
 from engine.estado import Divida
 from engine.parametros import Parametros
 from engine.precisao import CONTEXTO_MOTOR, dinheiro
@@ -312,6 +313,7 @@ def calcular_beneficio_marginal(
         PAGAMENTO_MENSAL_EFETIVO=pagamento,
         DELTA=dinheiro(0),
         HORIZONTE=horizonte,
+        AMORTIZACAO_SAC=amortizacao_sac(d),
     )
     chave_b = ChaveTrajetoria(
         DIVIDA_ID=d.DIVIDA_ID,
@@ -320,6 +322,7 @@ def calcular_beneficio_marginal(
         PAGAMENTO_MENSAL_EFETIVO=pagamento,
         DELTA=delta_disponivel,
         HORIZONTE=horizonte,
+        AMORTIZACAO_SAC=amortizacao_sac(d),
     )
 
     trajetoria_a = simular_trajetoria_isolada(chave_a)

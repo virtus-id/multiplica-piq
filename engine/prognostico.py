@@ -291,7 +291,7 @@ def _detalhe_do_mes(
         depois = fechamento[divida_id]
         with localcontext(CONTEXTO_MOTOR):
             total = pos_juros - depois
-            habitual = min(_pagamento_normal_efetivo(pos_juros, divida), total)
+            habitual = min(_pagamento_normal_efetivo(pos_juros, divida, antes), total)
             linhas.append(
                 DividaNoMes(
                     DIVIDA_ID=divida_id,

@@ -24,6 +24,7 @@ from typing import Final
 
 from engine.tipos import (
     CONFIABILIDADE_DADOS,
+    SISTEMA_AMORTIZACAO,
     STATUS_DIVIDA,
     STATUS_VALIDADE_PROPOSTA,
     Desconhecido,
@@ -562,6 +563,8 @@ class Divida:
     TIPO_GARANTIA: str | None = None  # B5.F02 (IMOVEL, VEICULO, ...)
     URGENCIA_PERCEBIDA: int | None = None  # B5.H03 · 0–10
     PREFERENCIA_QUITACAO: bool = False  # B5.H04 = SIM
+    # `RF-509` (`T-463`): `SAC` só no financiamento imobiliário que o aluno disse ser SAC.
+    SISTEMA_AMORTIZACAO: SISTEMA_AMORTIZACAO = SISTEMA_AMORTIZACAO.PRICE
 
     def __post_init__(self) -> None:
         _recusar_float(self)

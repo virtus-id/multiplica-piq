@@ -125,6 +125,14 @@ class STATUS_FINANCEIRO(Enum):
     CAPACIDADE_POSITIVA = "CAPACIDADE_POSITIVA"  # RMA >= PISO · verde
 
 
+class SISTEMA_AMORTIZACAO(Enum):
+    """`RF-509` — como o financiamento amortiza. `PRICE`: parcela fixa. `SAC`:
+    amortização constante, parcela que cai a cada mês."""
+
+    PRICE = "PRICE"
+    SAC = "SAC"
+
+
 class MOTIVO_ESTABILIZACAO(Enum):
     """`RF-79` · por que o motor entrou (ou não) em `MODO_ESTABILIZACAO`."""
 
