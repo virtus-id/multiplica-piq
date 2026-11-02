@@ -49,6 +49,7 @@ from app.revisao.fila import (
 )
 from engine.portas import RepositorioSnapshots
 from engine.snapshot import SnapshotOrdem
+from engine.tipos import MOTIVO_ESTABILIZACAO
 from persistencia.app_aluno.contas import ContaDoCaso
 from persistencia.app_aluno.eventos import EventoCaso
 
@@ -148,6 +149,15 @@ class ResultadoDaLista:
     linhas: tuple[LinhaDoCaso, ...]
     total: int
     contagens: dict[str, int]
+
+
+def _mes_negativo(snapshot: SnapshotOrdem) -> bool:
+    """`RF-79`: a estabilização por dívida que cresce tem o mês positivo."""
+    diagnostico = snapshot.diagnostico
+    return (
+        diagnostico.MODO_ESTABILIZACAO
+        and diagnostico.MOTIVO_ESTABILIZACAO is not MOTIVO_ESTABILIZACAO.DIVIDA_QUE_CRESCE
+    )
 
 
 def codigo_do_motivo(snapshot: SnapshotOrdem) -> str:
@@ -258,7 +268,7 @@ def montar_linhas(
                 item=montar_item_da_fila(caso.CASO_ID, snapshot),
                 e_recalculo=snapshot.versao > 1,
                 motivo=codigo_do_motivo(snapshot),
-                mes_negativo=snapshot.diagnostico.MODO_ESTABILIZACAO,
+                mes_negativo=_mes_negativo(snapshot),
                 dividas=len(snapshot.estado_inputs.dividas),
                 metodo=snapshot.METODO_RECOMENDADO_PIQ.value,
                 revisor=decisao_da_linha.autor if decisao_da_linha else None,

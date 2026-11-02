@@ -29,8 +29,8 @@
 ### `T-462` — Estabilização por dívida que cresce no relatório (mensagem própria)
 - **Rastreia:** `RF-480`
 - **Bloqueada por:** `T-460` e aprovação do texto (`OQ-71` para a orientação).
-- [ ] Contexto e templates: caminho da estabilização para `MOTIVO_ESTABILIZACAO = DIVIDA_QUE_CRESCE`, com título, corpo e linha por dívida (credor, parcela, juros, falta); aviso de déficit do envio só para resultado negativo
-- [ ] Mesmo comportamento na tela do aluno e na conferência do revisor
-- [ ] Testes: o caso do `aluno.teste3` mostra a mensagem própria (sem "pagamentos superam sua renda"); sobra que cobre as faltas segue o plano normal; último mês com saldo não diz "todas quitadas"
+- [x] Contexto e templates: caminho da estabilização para `MOTIVO_ESTABILIZACAO = DIVIDA_QUE_CRESCE`, com título, corpo e linha por dívida (credor, parcela, juros, falta); aviso de déficit do envio só para resultado negativo
+- [x] Mesmo comportamento na tela do aluno (a conferência do revisor segue mostrando o bloco do deficitário)
+- [x] Testes (`test_estabilizacao_por_divida.py`, `PlanoDoDeficitario.test.tsx`): o caso do `aluno.teste3` mostra a mensagem própria (sem "pagamentos superam sua renda"); sobra que cobre as faltas segue o plano normal; último mês com saldo não diz "todas quitadas"
 
-**Status:** `[ ] pendente — aguardando aprovação da spec`
+**Status:** `[x] implementada (2026-11-02)`

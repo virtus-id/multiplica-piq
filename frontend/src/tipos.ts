@@ -391,6 +391,10 @@ export interface Plano {
   RESULTADO_CAIXA_OBSERVADO: string
   /** `T-405`: quanto falta cortar por mês para chegar a zero (`DEFICIT_MENSAL`). */
   FALTA_CORTAR: string
+  /** `RF-480`: mês positivo, mas a parcela de alguma dívida não cobre os juros. */
+  ESTABILIZACAO_POR_DIVIDA?: boolean
+  FALTA_TOTAL_DE_JUROS?: string
+  dividas_que_crescem?: { nome: string; parcela: string; juros: string; falta: string }[]
   /** `RF-465`: plano provisório (ordem provisória ou modo estabilização). */
   provisorio?: boolean
   /** `RF-469`: os maiores gastos que o aluno informou, do maior para o menor. */
@@ -446,6 +450,8 @@ export interface Plano {
   reserva_explicacao?: string
   /** `RF-468`: textos do plano do deficitário ("Primeiro, estancar o problema"…). */
   estabilizacao_textos?: Record<string, string>
+  /** `RF-480`: textos do mês positivo com dívida que cresce. */
+  estabilizacao_por_divida_textos?: Record<string, string>
   duvidas?: { pergunta: string; resposta: string }[]
   sobre_este_plano?: string
 }
