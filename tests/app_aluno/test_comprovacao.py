@@ -88,10 +88,11 @@ def test_t261_classificacao_de_t218_segue_igual_nas_seis_opcoes() -> None:
 
 def test_t261_indispensaveis_sao_os_que_o_motor_le() -> None:
     """`R9-8`: saldo, parcela, taxa (valor e periodicidade na mesma pergunta,
-    `B5.D06`, `T-393`) e renda — o motor não lê prazo."""
+    `B5.D06`, `T-393`) e renda — o motor não lê prazo. `B5.C02A` (`RF-510`): o
+    sistema do financiamento imobiliário, para o motor não adivinhar."""
     indispensaveis = {r.ID for r in _registros() if r.indispensavel}
 
-    assert indispensaveis == {"B3.01", "B5.B03", "B5.C02", "B5.D06"}
+    assert indispensaveis == {"B3.01", "B5.B03", "B5.C02", "B5.C02A", "B5.D06"}
 
 
 # ---------------------------------------------------------------------------

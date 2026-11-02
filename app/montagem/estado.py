@@ -228,6 +228,7 @@ from engine.taxa import derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA
 from engine.tipos import (
     CONFIABILIDADE_DADOS,
     DESCONHECIDO,
+    SISTEMA_AMORTIZACAO,
     STATUS_DIVIDA,
     STATUS_VALIDADE_PROPOSTA,
     Desconhecido,
@@ -538,7 +539,21 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         RISCO_MATERIAL_IMINENTE=False,
         OPORTUNIDADE_VIGENTE=None,
         **_campos_prioridade_ordem(respostas, DIVIDA_ID),
+        # `RF-510`: só o financiamento imobiliário pergunta; nas demais, `PRICE`.
+        SISTEMA_AMORTIZACAO=_sistema_de_amortizacao(respostas, DIVIDA_ID, tipo_divida_bruto),
     )
+
+
+def _sistema_de_amortizacao(
+    respostas: RespostasCaso, DIVIDA_ID: str, tipo_divida: object
+) -> SISTEMA_AMORTIZACAO:
+    """`RF-510` (`B5.C02A`): `SAC` só quando o financiamento imobiliário foi
+    declarado SAC. Sem resposta, `PRICE` (parcela fixa, o comportamento de
+    sempre): a pergunta é indispensável, então a falta vira pendência."""
+    resposta = respostas.valor_no_item(DIVIDA_ID, "SISTEMA_AMORTIZACAO")
+    if tipo_divida == TIPO_DIVIDA.FIN_IMOBILIARIO.value and resposta == "SAC":
+        return SISTEMA_AMORTIZACAO.SAC
+    return SISTEMA_AMORTIZACAO.PRICE
 
 
 def _campos_prioridade_ordem(respostas: RespostasCaso, DIVIDA_ID: str) -> dict[str, Any]:

@@ -558,8 +558,9 @@ def test_a_colecao_real_tem_61_registros() -> None:
     (81 → 64). `T-427`: `-2`, `B5.CHECK` e `B5.FIM01` (64 → 62).
     `T-428`: `-1`, `B3.C01A` (62 → 61). `T-431`: `+2`, `B3.C02` e `B3.C02A` (61 → 63).
     `T-459` (RF-479): `-2`, `B5.C06` e `B5.C06A` (63 → 61).
-    `T-464` (RF-511): `-2`, `B5.E01` e `B5.E02` (61 → 59)."""
-    assert len(_registros_reais()) == 59
+    `T-464` (RF-511): `-2`, `B5.E01` e `B5.E02` (61 → 59).
+    `T-465` (RF-510): `+1`, `B5.C02A` (59 → 60)."""
+    assert len(_registros_reais()) == 60
 
 
 def test_os_casos_de_prova_do_gerador_ficam_fora_da_coleta() -> None:

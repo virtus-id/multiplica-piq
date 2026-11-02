@@ -168,6 +168,33 @@ perguntas:
     admite_nao_sei: false
     salto_consequencia: null
 
+  # `T-465` (RF-510): só o financiamento imobiliário pergunta o sistema. O prazo
+  # não é perguntado: o motor o deriva de saldo, taxa e parcela (RF-509).
+  - ID: B5.C02A
+    bloco: 5
+    enunciado: >-
+      Esse financiamento é pela tabela Price (parcelas fixas) ou pelo SAC
+      (parcelas que diminuem a cada mês)? No SAC, a parcela informada acima
+      deve ser a de hoje, que é a maior.
+    tipo: SELECAO_UNICA
+    obrigatoriedade: [COND, REP]
+    escopo_repeticao: DIVIDA_ID
+    opcoes:
+      - {rotulo: "Price (parcelas fixas).", valor_interno: PRICE}
+      - {rotulo: "SAC (parcelas que diminuem a cada mês).", valor_interno: SAC}
+    VARIAVEL_GRAVADA: SISTEMA_AMORTIZACAO
+    indispensavel: true  # sem a resposta o motor teria de adivinhar o sistema
+    condicao_exibicao:
+      tipo: E
+      termos:
+        - {tipo: IGUAL, variavel: TIPO_DIVIDA, valor: FIN_IMOBILIARIO}
+        - {tipo: IGUAL, variavel: POSSUI_PARCELA_DEFINIDA, valor: SIM}
+    interpolacoes: []
+    validacoes_cruzadas: []
+    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
+    admite_nao_sei: false
+    salto_consequencia: null
+
   # Grupo D — Custo
   # `T-393` (RF-407): um só valor de custo da dívida, CET ou taxa de juros,
   # sem marca de qual foi informado. Substitui `B5.D01`, `B5.D01A`, `B5.D01B`,

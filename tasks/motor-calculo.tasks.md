@@ -7647,3 +7647,5 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 - [x] Teste do `aluno.teste3`: imobiliário, cheque especial, depois o resto; a primeira é o alvo do mês 1
 
 **Status:** `[x] implementada (2026-11-02)`
+
+> `T-463` (SAC no ciclo mensal) implementada em 2026-11-02: `engine/amortizacao.py` (novo), `Divida.SISTEMA_AMORTIZACAO`, `ChaveTrajetoria.AMORTIZACAO_SAC`, pagamento do mês e fluxo liberado no `ciclo_mensal`, `prognostico` e leitura tolerante na persistência. Testes em `tests/regras/test_sac.py`. Respostas do produto: `OQ-69` (o extra reduz o prazo) e `OQ-70` (parcela como informada).
