@@ -2266,6 +2266,13 @@ def _montar_contexto_plano(
     duvidas = (
         textos.duvidas_provisorio if provisorio and textos.duvidas_provisorio else textos.duvidas
     )
+    por_divida = _dividas_que_crescem(snapshot, nomes)
+    if por_divida:
+        # `RF-480`: o mês já é positivo; "negativo" e "saldo positivo" não valem.
+        t = textos.estabilizacao_por_divida
+        corpo = t.get("corpo") or corpo
+        if t.get("duvida_quando_muda") and duvidas:
+            duvidas = ((duvidas[0][0], t["duvida_quando_muda"]), *duvidas[1:])
 
     return ContextoPlano(
         titulo=textos.titulo,
@@ -2329,7 +2336,7 @@ def _montar_contexto_plano(
             if verificar_consistencia(snapshot)
             else ""
         ),
-        **_dividas_que_crescem(snapshot, nomes),
+        **por_divida,
         aviso_sem_valor_extra=(
             textos.sem_valor_extra
             if not snapshot.diagnostico.MODO_ESTABILIZACAO

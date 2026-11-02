@@ -83,3 +83,13 @@ def test_rf_79_fila_do_revisor_nao_chama_de_mes_negativo_o_mes_positivo() -> Non
     assert _mes_negativo(_com_divida_que_cresce(_snapshot())) is False
     assert _mes_negativo(_snapshot(renda=Decimal("1000.00"))) is True
     assert _mes_negativo(_snapshot()) is False
+
+
+def test_rf_480_corpo_e_duvida_nao_falam_em_mes_negativo() -> None:
+    textos = carregar_textos_canonicos()
+    contexto = montar_contexto_plano(_com_divida_que_cresce(_snapshot()), textos)
+    html = renderizar_html_do_plano(contexto, textos)
+    assert "deixar de fechar no negativo" not in html
+    assert "fechar com saldo positivo" not in html
+    assert "cobrir o crescimento das dívidas" in contexto.corpo
+    assert "cobrir o crescimento das dívidas" in contexto.duvidas[0][1]
