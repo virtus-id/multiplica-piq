@@ -732,6 +732,22 @@ estabilizacao:
   aviso_2: "Continue pagando em dia as parcelas contratuais e as despesas essenciais, como moradia, alimentação e saúde."
   aviso_3: "Este plano mostra só a ordem de quitação. O cronograma, com prazos, só aparece quando o seu mês fechar com resultado igual ou maior que zero."
 
+# `RF-480` (T-462) — o mês fecha em zero ou mais, mas a parcela de alguma dívida
+# não cobre os juros e o valor livre não estanca o crescimento. Mesmo caminho do
+# deficitário, mensagem própria. Só fatos: a orientação ao aluno aguarda o
+# especialista (`OQ-71`). Sugestão, a validar pelo produto. Sem a palavra "sobra".
+estabilizacao_por_divida:
+  titulo: "Seu mês fecha positivo, mas suas dívidas estão crescendo"
+  resultado_rotulo: "Valor livre no mês"
+  texto: >-
+    Depois de pagar tudo, ficam {valor} livres por mês. Só que as dívidas
+    listadas abaixo crescem {falta_total} por mês, juntas, porque a parcela
+    de cada uma não cobre os juros. O valor livre não é suficiente para
+    estancar esse crescimento, e por isso o plano abaixo é provisório.
+  dividas_titulo: "Dívidas que crescem"
+  divida_linha: "{nome}: parcela de {parcela}, juros de {juros} por mês. O saldo aumenta {falta} por mês."
+  aviso_3: "Este plano mostra só a ordem de quitação. O cronograma, com prazos, só aparece quando o valor livre do mês cobrir o crescimento das dívidas."
+
 # ---------------------------------------------------------------------------
 # Curso de entrada (Servidor Sem Dívidas) — T-352 a T-354.
 #
@@ -818,11 +834,10 @@ incomodo:
     plano funciona". Esta dívida está no plano e termina no mês indicado em
     "Termina no".
 
-# `RF-412` — avisos do que o aluno declarou. `atrasada` é a redação do
-# especialista; `garantia` e `fichas_faltando` são redação proposta, a
-# aprovar. Todo aviso termina com `responsabilidade`. Não mudam a ordem.
+# `RF-412` — avisos do que o aluno declarou. `garantia` e `fichas_faltando`
+# são redação proposta, a aprovar (o aviso de atraso saiu em `RF-511`). Todo
+# aviso termina com `responsabilidade`. Não mudam a ordem.
 avisos:
-  atrasada: "Esta dívida está atrasada. Procure o credor para negociar antes de qualquer outra coisa."
   garantia: "Esta dívida está vinculada a um bem ou garantia. Confira com o credor as condições dessa garantia antes de decidir qualquer coisa sobre ela."
   fichas_faltando: "Você disse ter mais dívidas do que as que foram cadastradas. Este plano considera apenas as dívidas cadastradas."
   responsabilidade: "A responsabilidade pela informação é do aluno."

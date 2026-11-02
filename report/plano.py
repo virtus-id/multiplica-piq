@@ -131,7 +131,13 @@ import yaml
 from engine.estado import Divida, EstadoFinanceiro
 from engine.precisao import quantizar_exibicao
 from engine.snapshot import SnapshotOrdem
-from engine.tipos import DESCONHECIDO, ORDEM_STATUS, Desconhecido, DinheiroTalvez
+from engine.tipos import (
+    DESCONHECIDO,
+    MOTIVO_ESTABILIZACAO,
+    ORDEM_STATUS,
+    Desconhecido,
+    DinheiroTalvez,
+)
 from report.consistencia import verificar_consistencia
 from report.graficos import (
     COR_DIA_A_DIA,
@@ -268,6 +274,8 @@ class TextosCanonicosPlano:
     #: (`{valor}` é `RESULTADO_CAIXA_OBSERVADO` já formatado). Sugestão, a
     #: validar; nunca usa a palavra "sobra" (GAB-04).
     estabilizacao: Mapping[str, str] = field(default_factory=dict)
+    #: `RF-480` — textos do mês positivo com dívida que cresce.
+    estabilizacao_por_divida: Mapping[str, str] = field(default_factory=dict)
     #: T-352 a T-354 — introdução e quadro de aulas do curso de entrada
     #: (Servidor Sem Dívidas), a nota de incômodo e o aviso de "sem valor
     #: extra". Aninhado como vem do YAML; lido por `_contexto_do_curso`.
@@ -275,9 +283,8 @@ class TextosCanonicosPlano:
     prognostico: Mapping[str, str] = field(default_factory=dict)
     incomodo: Mapping[str, str] = field(default_factory=dict)
     sem_valor_extra: str = ""
-    #: `RF-412` — avisos de `B5.E01` (`atrasada`), `B5.F01` (`garantia`) e
-    #: `B5.00` (`fichas_faltando`) e a frase `responsabilidade`, que fecha
-    #: todos eles.
+    #: `RF-412` — avisos de `B5.F01` (`garantia`) e `B5.00`
+    #: (`fichas_faltando`) e a frase `responsabilidade`, que fecha todos eles.
     avisos: Mapping[str, str] = field(default_factory=dict)
     graficos: Mapping[str, str] = field(default_factory=dict)
 
@@ -310,9 +317,8 @@ class VocabularioDoCaso:
     rotulos_de_opcao: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
     credores: Mapping[str, str] = field(default_factory=dict)
     #: `RF-412` — respostas lidas pela aplicação, só transportadas: dívidas
-    #: atrasadas (`B5.E01`) e com garantia (`B5.F01`), se há ficha declarada
-    #: em `B5.00` sem cadastro e o resumo das despesas. Nenhuma regra de ordem.
-    dividas_atrasadas: frozenset[str] = frozenset()
+    #: com garantia (`B5.F01`), se há ficha declarada em `B5.00` sem
+    #: cadastro e o resumo das despesas. Nenhuma regra de ordem.
     dividas_com_garantia: frozenset[str] = frozenset()
     fichas_faltando: bool = False
     resumo_das_despesas: ResumoDasDespesas | None = None
@@ -372,6 +378,7 @@ def carregar_textos_canonicos(
     )
 
     estabilizacao_bruto = bruto.get("estabilizacao") or {}
+    por_divida_bruto = bruto.get("estabilizacao_por_divida") or {}
 
     return TextosCanonicosPlano(
         titulo=str(bruto["titulo"]),
@@ -412,6 +419,7 @@ def carregar_textos_canonicos(
         duvidas_provisorio=duvidas_provisorio,
         sobre_este_plano=str(bruto.get("sobre_este_plano") or ""),
         estabilizacao={str(k): str(v) for k, v in estabilizacao_bruto.items()},
+        estabilizacao_por_divida={str(k): str(v) for k, v in por_divida_bruto.items()},
         curso_ssd=dict(bruto.get("curso_ssd") or {}),
         prognostico=_mapa("prognostico"),
         incomodo=_mapa("incomodo"),
@@ -1131,7 +1139,7 @@ class ContextoPosicao:
     #: critério do método. Texto, nunca regra de ordem.
     incomodo: str = ""
     aviso_incomodo: str = ""
-    #: `RF-412` — avisos do que o aluno declarou (dívida atrasada, com
+    #: `RF-412` — avisos do que o aluno declarou (dívida com
     #: garantia), cada um terminando na frase de responsabilidade. Texto,
     #: nunca regra de ordem.
     avisos: tuple[str, ...] = ()
@@ -1223,6 +1231,13 @@ class ContextoPlano:
     aviso_sem_valor_extra: str = ""
     #: `RF-472`: preenchido quando `verificar_consistencia` acha identidade que não fecha.
     aviso_de_conferencia: str = ""
+    #: `RF-480` (`T-462`): a estabilização veio de dívida que cresce, não do
+    #: resultado negativo. Só lido do diagnóstico.
+    ESTABILIZACAO_POR_DIVIDA: bool = False
+    #: `FALTA_TOTAL_DE_JUROS`, já formatada.
+    FALTA_TOTAL_DE_JUROS: str = ""
+    #: (nome, parcela, juros do mês, falta), um por dívida que cresce.
+    dividas_que_crescem: tuple[tuple[str, str, str, str], ...] = ()
     #: `RF-412` — avisos do plano inteiro (`B5.00`: faltam fichas declaradas).
     avisos_gerais: tuple[str, ...] = ()
     #: `RF-465` (`T-447`): plano provisório (ordem `PROVISORIA` ou modo
@@ -1900,7 +1915,7 @@ def _avisos_gerais(
 ) -> tuple[str, ...]:
     """`RF-412` (`B5.00`) — faltam fichas de dívida declaradas; não bloqueia.
     Em estabilização não há cartão por dívida (sem ordem), então os avisos de
-    atraso e garantia (`B5.E01`, `B5.F01`) sobem para cá, um por dívida, com o
+    garantia (`B5.F01`) sobe para cá, um por dívida, com o
     nome dela; sem cronograma e sem tocar o motor (`RF-416`)."""
     avisos: list[str] = []
     aviso = textos.avisos.get("fichas_faltando")
@@ -1915,14 +1930,34 @@ def _avisos_gerais(
     return tuple(avisos)
 
 
+def _dividas_que_crescem(snapshot: SnapshotOrdem, nomes: Mapping[str, str]) -> dict[str, Any]:
+    """`RF-480` — só formata o que o motor publicou (`AC-42`): o motivo da
+    estabilização, a falta total e, por dívida, parcela, juros e falta."""
+    diagnostico = snapshot.diagnostico
+    if diagnostico.MOTIVO_ESTABILIZACAO is not MOTIVO_ESTABILIZACAO.DIVIDA_QUE_CRESCE:
+        return {}
+    return {
+        "ESTABILIZACAO_POR_DIVIDA": True,
+        "FALTA_TOTAL_DE_JUROS": formatar_dinheiro_br(diagnostico.FALTA_TOTAL_DE_JUROS),
+        "dividas_que_crescem": tuple(
+            (
+                nomes.get(d.DIVIDA_ID, d.DIVIDA_ID),
+                formatar_dinheiro_br(d.PARCELA_CONTRATUAL),
+                formatar_dinheiro_br(d.JUROS_DO_MES),
+                formatar_dinheiro_br(d.FALTA_DE_JUROS),
+            )
+            for d in diagnostico.DIVIDAS_QUE_CRESCEM
+        ),
+    }
+
+
 def _avisos_da_divida(
     divida_id: str, vocabulario: VocabularioDoCaso, textos: TextosCanonicosPlano
 ) -> tuple[str, ...]:
-    """`RF-412` (`B5.E01`, `B5.F01`) — o aviso de cada coisa que o aluno
+    """`RF-412` (`B5.F01`) — o aviso de cada coisa que o aluno
     declarou sobre a dívida, com a frase de responsabilidade. Só texto: a
     ordem do plano e o motor não leem isto."""
     chaves = (
-        ("atrasada", divida_id in vocabulario.dividas_atrasadas),
         ("garantia", divida_id in vocabulario.dividas_com_garantia),
     )
     return tuple(
@@ -2294,6 +2329,7 @@ def _montar_contexto_plano(
             if verificar_consistencia(snapshot)
             else ""
         ),
+        **_dividas_que_crescem(snapshot, nomes),
         aviso_sem_valor_extra=(
             textos.sem_valor_extra
             if not snapshot.diagnostico.MODO_ESTABILIZACAO

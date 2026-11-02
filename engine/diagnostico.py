@@ -107,6 +107,7 @@ from engine.tipos import (
     DESCONHECIDO,
     NIVEL_CONTROLE,
     NIVEL_RISCO,
+    MOTIVO_ESTABILIZACAO,
     STATUS_FINANCEIRO,
     Dinheiro,
     DinheiroTalvez,
@@ -120,6 +121,7 @@ REGRAS: Final[tuple[str, ...]] = (
     "RF-26",
     "RF-27",
     "RF-35",
+    "RF-79",
     "§11.8",
     "§11.10",
 )
@@ -540,6 +542,75 @@ def calcular_capacidades(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class DividaQueCresce:
+    """`RF-79` — uma dívida cuja parcela declarada não cobre os juros do mês."""
+
+    DIVIDA_ID: str
+    JUROS_DO_MES: Dinheiro
+    PARCELA_CONTRATUAL: Dinheiro
+    FALTA_DE_JUROS: Dinheiro
+
+
+@dataclass(frozen=True, slots=True)
+class FaltasDeJuros:
+    """`RF-79` — quanto a parcela declarada deixa de cobrir dos juros do mês."""
+
+    FALTA_TOTAL_DE_JUROS: Dinheiro
+    DIVIDAS_QUE_CRESCEM: tuple[DividaQueCresce, ...]
+
+
+def calcular_faltas_de_juros(estado: EstadoFinanceiro) -> FaltasDeJuros:
+    """`RF-79` · `AC-142`, `EC-59` — por dívida,
+
+    ```
+    FALTA_DE_JUROS = MAX(0, SALDO_DEVEDOR_ATUAL × TAXA_EFETIVA_MENSAL_NORMALIZADA
+                            − PARCELA_CONTRATUAL)
+    ```
+
+    A dívida cresce quando a falta é maior que zero. Saldo, taxa ou parcela
+    `DESCONHECIDO` deixam a dívida de fora (`RF-16`: nada é estimado; o
+    Gate 1 já a desvia por informação).
+    """
+    total = dinheiro(0)
+    crescem: list[DividaQueCresce] = []
+    for divida in estado.dividas:
+        saldo = divida.SALDO_DEVEDOR_ATUAL
+        taxa = divida.TAXA_EFETIVA_MENSAL_NORMALIZADA
+        parcela = divida.PARCELA_CONTRATUAL
+        if saldo is DESCONHECIDO or taxa is DESCONHECIDO or parcela is DESCONHECIDO:
+            continue
+        juros = dinheiro(saldo * taxa)
+        falta = juros - parcela
+        if falta > dinheiro(0):
+            total += falta
+            crescem.append(
+                DividaQueCresce(
+                    DIVIDA_ID=divida.DIVIDA_ID,
+                    JUROS_DO_MES=juros,
+                    PARCELA_CONTRATUAL=parcela,
+                    FALTA_DE_JUROS=falta,
+                )
+            )
+    return FaltasDeJuros(FALTA_TOTAL_DE_JUROS=total, DIVIDAS_QUE_CRESCEM=tuple(crescem))
+
+
+def classificar_estabilizacao(
+    resultado_mensal_atual: Dinheiro, faltas: FaltasDeJuros
+) -> tuple[bool, MOTIVO_ESTABILIZACAO]:
+    """`RF-79` · `RF-15` — `MODO_ESTABILIZACAO` e o seu motivo.
+
+    Resultado negativo: `DEFICIT`. Resultado maior ou igual a zero, mas menor
+    que a soma das faltas de juros: `DIVIDA_QUE_CRESCE` (a sobra não estanca o
+    crescimento das dívidas). Caso contrário, `NENHUM`.
+    """
+    if resultado_mensal_atual < dinheiro(0):
+        return True, MOTIVO_ESTABILIZACAO.DEFICIT
+    if resultado_mensal_atual < faltas.FALTA_TOTAL_DE_JUROS:
+        return True, MOTIVO_ESTABILIZACAO.DIVIDA_QUE_CRESCE
+    return False, MOTIVO_ESTABILIZACAO.NENHUM
+
+
 def calcular_gap_autopercepcao(
     estado: EstadoFinanceiro,
     nivel_controle: NIVEL_CONTROLE,
@@ -656,6 +727,12 @@ class Diagnostico:
     # valor certo. Não retipar "por simetria".
     RESERVA_MOBILIZAVEL: DinheiroTalvez
     ATAQUE_IMEDIATO_RECOMENDADO: Dinheiro
+
+    # --- RF-79 (T-460) — dívida que cresce. Com valor padrão: snapshot
+    # gravado antes desta mudança volta com "nenhuma dívida cresce".
+    FALTA_TOTAL_DE_JUROS: Dinheiro = Decimal(0)
+    DIVIDAS_QUE_CRESCEM: tuple[DividaQueCresce, ...] = ()
+    MOTIVO_ESTABILIZACAO: MOTIVO_ESTABILIZACAO = MOTIVO_ESTABILIZACAO.NENHUM
 
 
 def calcular_diagnostico(estado: EstadoFinanceiro, parametros: Parametros) -> Diagnostico:
@@ -790,6 +867,14 @@ def calcular_diagnostico(estado: EstadoFinanceiro, parametros: Parametros) -> Di
     # + estado + fator de segurança já calculado (T-23).
     capacidades = calcular_capacidades(pagamentos, estado, fator_seguranca)
 
+    # 8b) RF-79 — dívidas cuja parcela não cobre os juros e o motivo da
+    # estabilização. `MODO_ESTABILIZACAO` também vale quando a sobra do mês
+    # não cobre a soma das faltas.
+    faltas_de_juros = calcular_faltas_de_juros(estado)
+    modo_estabilizacao, motivo_estabilizacao = classificar_estabilizacao(
+        pagamentos.RESULTADO_MENSAL_ATUAL, faltas_de_juros
+    )
+
     # 9) GAP_AUTOPERCEPCAO — depende de NIVEL_CONTROLE já derivado (T-23).
     gap_autopercepcao = calcular_gap_autopercepcao(estado, nivel_controle, parametros)
 
@@ -832,7 +917,7 @@ def calcular_diagnostico(estado: EstadoFinanceiro, parametros: Parametros) -> Di
         DEFICIT_MENSAL=pagamentos.DEFICIT_MENSAL,
         PISO_CAPACIDADE=status_financeiro.PISO_CAPACIDADE,
         STATUS_FINANCEIRO=status_financeiro.STATUS_FINANCEIRO,
-        MODO_ESTABILIZACAO=capacidades.MODO_ESTABILIZACAO,
+        MODO_ESTABILIZACAO=modo_estabilizacao,
         GAP_AUTOPERCEPCAO=gap_autopercepcao,
         BASE_CONSERVADORA=capacidades.BASE_CONSERVADORA,
         FATOR_SEGURANCA=fator_seguranca.FATOR_SEGURANCA,
@@ -859,4 +944,7 @@ def calcular_diagnostico(estado: EstadoFinanceiro, parametros: Parametros) -> Di
         # (T-141/T-142), que substitui este placeholder no `Diagnostico`
         # publicado no `SnapshotOrdem`.
         ATAQUE_IMEDIATO_RECOMENDADO=dinheiro(0),
+        FALTA_TOTAL_DE_JUROS=faltas_de_juros.FALTA_TOTAL_DE_JUROS,
+        DIVIDAS_QUE_CRESCEM=faltas_de_juros.DIVIDAS_QUE_CRESCEM,
+        MOTIVO_ESTABILIZACAO=motivo_estabilizacao,
     )

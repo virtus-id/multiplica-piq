@@ -13,6 +13,32 @@
 #}
 {% import "visuais.html" as visuais %}
 {% set t = textos.estabilizacao %}
+{% if ESTABILIZACAO_POR_DIVIDA %}
+{# `RF-480` (T-462): mês positivo, mas a parcela de alguma dívida não cobre os juros.
+   Mesmo caminho do deficitário, mensagem própria; só fatos (a orientação aguarda `OQ-71`). #}
+{% set p = textos.estabilizacao_por_divida %}
+<section class="secao">
+    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", p.get("titulo", ""), "conferencia") }}
+    {% include "grafico_do_mes.html" %}
+    <div class="estatistica">
+        <div class="estatistica-rotulo">{{ p.get("resultado_rotulo", "") }}</div>
+        <div class="estatistica-valor">{{ RESULTADO_CAIXA_OBSERVADO }}</div>
+    </div>
+    <p>{{ p.get("texto", "").format(valor=RESULTADO_CAIXA_OBSERVADO, falta_total=FALTA_TOTAL_DE_JUROS) }}</p>
+    <h3 class="subtitulo" style="margin: 2mm 0 1.5mm;">{{ p.get("dividas_titulo", "") }}</h3>
+    <ul>
+        {% for nome, parcela, juros, falta in dividas_que_crescem %}
+        <li>{{ p.get("divida_linha", "").format(nome=nome, parcela=parcela, juros=juros, falta=falta) }}</li>
+        {% endfor %}
+    </ul>
+    {% if t.get("aviso_1") %}
+    <div class="nota-lateral">
+        <strong>{{ t.get("aviso_titulo", "") }}</strong>
+        <ul><li>{{ t.get("aviso_1", "") }}</li><li>{{ t.get("aviso_2", "") }}</li><li>{{ p.get("aviso_3", "") }}</li></ul>
+    </div>
+    {% endif %}
+</section>
+{% else %}
 <section class="secao">
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("titulo", "Primeiro, estancar o problema"), "conferencia") }}
     {% include "grafico_do_mes.html" %}
@@ -36,8 +62,9 @@
     {% endif %}
     {% if t.get("depois_de_zerar") %}<p class="muted">{{ t.depois_de_zerar }}</p>{% endif %}
 </section>
+{% endif %}
 
-{% if maiores_gastos %}
+{% if maiores_gastos and not ESTABILIZACAO_POR_DIVIDA %}
 {% if ns is defined %}{% set ns.n = ns.n + 1 %}{% endif %}
 <section class="secao">
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("gastos_titulo", ""), "dinheiro") }}

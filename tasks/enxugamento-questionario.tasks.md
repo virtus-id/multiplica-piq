@@ -442,10 +442,10 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 ### `T-464` — Sai a situação do pagamento da dívida (`B5.E01`, `B5.E02`)
 
 - **Tipo:** `CHANGE` · **Dependências:** nenhuma · **Rastreia:** `RF-511`, `AC-511`
-- [ ] Remover `B5.E01`/`B5.E02` e o aviso de atraso do `RF-412`; remover `TEMPO_ATRASO` dos fatos de risco; subir `QUESTIONARIO_VERSION`
-- [ ] Atualizar `test_contagem_de_coleta.py`, `test_regras_confirmadas_plano.py`, `test_curso_e_incomodo.py` e os demais testes que citam as perguntas
+- [x] Remover `B5.E01`/`B5.E02` e o aviso de atraso do `RF-412`; remover `TEMPO_ATRASO` dos fatos de risco (`QUESTIONARIO_VERSION` é a versão do texto de consentimento e não muda)
+- [x] Atualizar `test_contagem_de_coleta.py` (61 → 59), `test_regras_confirmadas_plano.py`, `test_curso_e_incomodo.py`
 
-**Status:** `[ ] pendente — aguardando aprovação da spec`
+**Status:** `[x] implementada (2026-11-02); suíte completa com 29 falhas, as mesmas já conhecidas da main (nenhuma nova), mypy limpo`
 
 ### `T-465` — Pergunta do sistema de amortização no imobiliário (`B5.C02A`)
 

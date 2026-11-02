@@ -53,11 +53,6 @@ from report.plano import (
 REGRAS: Final[tuple[str, ...]] = ("RF-50", "RF-51", "RF-21", "AC-14", "AC-16")
 
 
-#: `B5.E01` (`RF-412`): a variável do registro e as respostas que dizem "atrasada".
-_SITUACAO_DO_PAGAMENTO: Final[str] = "DIVIDA_EM_DIA / DIVIDA_ATRASADA"
-_SITUACOES_ATRASADAS: Final[frozenset[str]] = frozenset({"VENCIDO", "PARCIAL"})
-
-
 def rotulo_do_nivel(nivel: NivelDaFicha, textos: TextosCanonicosPlano) -> str:
     """`RF-91` — o rótulo do nível, de `textos-canonicos.yaml`; fonte sem
     resposta é "não informado", nunca um nível presumido."""
@@ -145,11 +140,6 @@ def vocabulario_do_caso(
     return VocabularioDoCaso(
         rotulos_de_opcao=rotulos,
         credores=credores,
-        dividas_atrasadas=frozenset(
-            d
-            for d in dividas
-            if respostas.valor_no_item(d, _SITUACAO_DO_PAGAMENTO) in _SITUACOES_ATRASADAS
-        ),
         dividas_com_garantia=frozenset(
             d for d in dividas if respostas.valor_no_item(d, "POSSUI_GARANTIA") == "SIM"
         ),
@@ -286,6 +276,13 @@ def serializar_plano(
         "MODO_ESTABILIZACAO": contexto.MODO_ESTABILIZACAO,
         "RESULTADO_CAIXA_OBSERVADO": contexto.RESULTADO_CAIXA_OBSERVADO,
         "FALTA_CORTAR": contexto.FALTA_CORTAR,
+        # `RF-480`: mês positivo, mas a parcela de alguma dívida não cobre os juros.
+        "ESTABILIZACAO_POR_DIVIDA": contexto.ESTABILIZACAO_POR_DIVIDA,
+        "FALTA_TOTAL_DE_JUROS": contexto.FALTA_TOTAL_DE_JUROS,
+        "dividas_que_crescem": [
+            {"nome": nome, "parcela": parcela, "juros": juros, "falta": falta}
+            for nome, parcela, juros, falta in contexto.dividas_que_crescem
+        ],
         # `RF-465`/`RF-469`: plano provisório e os maiores gastos do aluno.
         "provisorio": contexto.provisorio,
         "maiores_gastos": [
@@ -517,6 +514,7 @@ def serializar_plano(
                 ],
                 # `RF-468`: os textos do plano do deficitário, do servidor.
                 "estabilizacao_textos": dict(textos.estabilizacao),
+                "estabilizacao_por_divida_textos": dict(textos.estabilizacao_por_divida),
                 "sobre_este_plano": textos.sobre_este_plano,
             }
             if textos is not None
