@@ -7614,3 +7614,15 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 - [ ] A montagem entrega o sistema respondido; sem resposta, `PRICE`
 
 **Status:** `[ ] pendente — aguardando aprovação da spec`
+
+### `T-466` — Extra do mês cobre primeiro a falta das dívidas que crescem
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-460` · **Rastreia:** `RF-79`, `AC-143`, `EC-58`
+- **Arquivos:** `engine/ciclo_mensal.py` (passo `M-04`), `engine/prognostico.py`, `hashes_congelados.json`, testes
+- **Por que separada:** mexe na aplicação do extra do ciclo mensal (alvo, resíduo, `DividaNoMes`, conservação por mês), a parte mais sensível do motor congelado. A classificação (`T-460`) já resolve o caso em que a sobra não cobre as faltas.
+
+- [ ] No `M-04`, antes do alvo, o extra cobre a falta de cada dívida que cresce (maior taxa primeiro); o resto segue para o alvo e a cascata
+- [ ] `prognostico` e `DividaNoMes` refletem o extra por dívida; teste de conservação por mês e por dívida
+- [ ] Gabaritos `GAB-A/B/C` idênticos; rehash
+
+**Status:** `[ ] pendente`
