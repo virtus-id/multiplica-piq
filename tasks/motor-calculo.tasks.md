@@ -7579,3 +7579,50 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 - [x] Teste de conservação por mês e por dívida; persistência lê (anterior → vazio); rehash
 
 **Status:** `[x] concluída`
+
+### `T-460` — Dívida que cresce: faltas de juros, estabilização e prioridade do extra
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-384` · **Rastreia:** `RF-79`, `AC-142`, `AC-143`, `AC-144`, `EC-58`, `EC-59`
+- **Arquivos:** `engine/diagnostico.py`, `engine/ciclo_mensal.py`, `engine/ordem.py`, `hashes_congelados.json` (rehash só dos alterados), testes
+- **Bloqueada por:** aprovação desta spec.
+
+- [ ] `FALTA_DE_JUROS`, `FALTA_TOTAL_DE_JUROS`, `DIVIDAS_QUE_CRESCEM` e `MOTIVO_ESTABILIZACAO` no diagnóstico; `MODO_ESTABILIZACAO` também quando a sobra não cobre a soma das faltas
+- [ ] Teste do caso `aluno.teste3` (sobra 475 contra faltas 500 + 398 → estabilização por `DIVIDA_QUE_CRESCE`)
+- [ ] Teste de que, com a sobra cobrindo as faltas, o extra vai primeiro à dívida que cresce de maior taxa
+- [ ] Gabaritos `GAB-A/B/C` idênticos nos campos antigos; rehash
+
+**Status:** `[ ] pendente — aguardando aprovação da spec`
+
+### `T-461` — Mensagem e dados da estabilização por dívida que cresce (app)
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-460` · **Rastreia:** `RF-79`, `RF-480`
+- **Arquivos:** `app/` (serialização do plano, conferência do revisor), testes
+
+- [ ] A serialização leva `MOTIVO_ESTABILIZACAO`, `DIVIDAS_QUE_CRESCEM` e `FALTA_TOTAL_DE_JUROS` ao relatório e à conferência (só lê, `AC-42`)
+- [ ] O aviso de déficit do cálculo (`T-439`) continua só para resultado negativo
+
+**Status:** `[ ] pendente`
+
+### `T-463` — Sistema de amortização (Price e SAC) no ciclo mensal
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-460` · **Rastreia:** `RF-509`, `AC-509`, `EC-60`
+- **Arquivos:** `engine/ciclo_mensal.py`, `engine/` (`Divida.SISTEMA_AMORTIZACAO`), `app/montagem/estado.py`, `hashes_congelados.json`, testes
+- **Bloqueada por:** aprovação da spec e `OQ-69`/`OQ-70`.
+
+- [ ] `Divida.SISTEMA_AMORTIZACAO` (`PRICE` por omissão) e a trajetória `SAC` (amortização constante, pagamento decrescente, prazo derivado)
+- [ ] Teste do `AC-509` (120.000 / 1% / 2.200) e de `PRICE` com a mesma parcela
+- [ ] A montagem entrega o sistema respondido; sem resposta, `PRICE`
+
+**Status:** `[ ] pendente — aguardando aprovação da spec`
+
+### `T-466` — Extra do mês cobre primeiro a falta das dívidas que crescem
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-460` · **Rastreia:** `RF-79`, `AC-143`, `EC-58`
+- **Arquivos:** `engine/ciclo_mensal.py` (passo `M-04`), `engine/prognostico.py`, `hashes_congelados.json`, testes
+- **Por que separada:** mexe na aplicação do extra do ciclo mensal (alvo, resíduo, `DividaNoMes`, conservação por mês), a parte mais sensível do motor congelado. A classificação (`T-460`) já resolve o caso em que a sobra não cobre as faltas.
+
+- [ ] No `M-04`, antes do alvo, o extra cobre a falta de cada dívida que cresce (maior taxa primeiro); o resto segue para o alvo e a cascata
+- [ ] `prognostico` e `DividaNoMes` refletem o extra por dívida; teste de conservação por mês e por dívida
+- [ ] Gabaritos `GAB-A/B/C` idênticos; rehash
+
+**Status:** `[ ] pendente`

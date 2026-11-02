@@ -438,3 +438,20 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Testes: `test_montagem_divida.py`, avisos e relatório; fixtures do app sem `B5.C06`
 
 **Status:** `[x] implementada (2026-10-31); suíte do app em verificação`
+
+### `T-464` — Sai a situação do pagamento da dívida (`B5.E01`, `B5.E02`)
+
+- **Tipo:** `CHANGE` · **Dependências:** nenhuma · **Rastreia:** `RF-511`, `AC-511`
+- [ ] Remover `B5.E01`/`B5.E02` e o aviso de atraso do `RF-412`; remover `TEMPO_ATRASO` dos fatos de risco; subir `QUESTIONARIO_VERSION`
+- [ ] Atualizar `test_contagem_de_coleta.py`, `test_regras_confirmadas_plano.py`, `test_curso_e_incomodo.py` e os demais testes que citam as perguntas
+
+**Status:** `[ ] pendente — aguardando aprovação da spec`
+
+### `T-465` — Pergunta do sistema de amortização no imobiliário (`B5.C02A`)
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-463` (motor) · **Rastreia:** `RF-510`, `AC-510`
+- [ ] Registro `B5.C02A` com a condição do imobiliário; texto de ajuda da parcela de hoje em `B5.C02`
+- [ ] A montagem entrega `SISTEMA_AMORTIZACAO` ao motor; sem resposta, `PRICE`
+- [ ] Conferir a conversão de taxa ao ano para mensal (composta)
+
+**Status:** `[ ] pendente — aguardando aprovação da spec`

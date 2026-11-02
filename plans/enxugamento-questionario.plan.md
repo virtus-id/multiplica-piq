@@ -197,3 +197,5 @@ Teste de sensibilidade (estado e snapshot idênticos com e sem as respostas remo
 | RF-416 | Fechamento | T-403 |
 
 Tarefas T-396 a T-403: T-396 (RF-402), T-397 (RF-411), T-398 (RF-402), T-399 (RF-412, RF-404), T-400 (RF-413, RF-409), T-401 (RF-414, RF-411), T-402 (RF-415, RF-408), T-403 (RF-416, RF-409). Regras do motor: spec do motor §16.1 (RF-407, T-393), §16.2 e §16.3 (RF-412, T-399).
+
+**RF-510 e RF-511 (2026-11-02).** `RF-510`: registro `B5.C02A` em `collection/registros/bloco-05.yaml` (condição `E` de `TIPO_DIVIDA` e `POSSUI_PARCELA_DEFINIDA`), `app/montagem/estado.py` leva `SISTEMA_AMORTIZACAO` à dívida (o cálculo é do motor, `T-463`), conferência da conversão de taxa ao ano. `RF-511`: remover `B5.E01` e `B5.E02` do YAML e do esquema, `app/http/serializacao_plano.py` (`_SITUACAO_DO_PAGAMENTO`), `report/plano.py` (avisos de atraso), `app/http/fatos_de_risco.py` (`TEMPO_ATRASO`); contagem de registros e testes que citam as duas perguntas. Rastreia: RF-510 → `T-465`; RF-511 → `T-464`.

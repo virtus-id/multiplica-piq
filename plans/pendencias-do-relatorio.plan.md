@@ -18,6 +18,8 @@ Sem tecnologia nova: Python (`report/`, `app/`), Jinja2, YAML canônico e React 
 5. **Rótulo da linha** (`RF-466`): só o YAML (`ponto_de_partida.despesas_mensais_totais`) e a spec `RF-412`.
 6. **Guarda de envio** (`RF-467`): sem código novo; teste de regressão sobre `pendencias_obrigatorias`.
 
+7. **Dívida que cresce** (`RF-480`): `report/plano.py` e `app/http/serializacao_plano.py` leem `MOTIVO_ESTABILIZACAO`, `DIVIDAS_QUE_CRESCEM` e `FALTA_TOTAL_DE_JUROS` do snapshot (nada é calculado no relatório, `AC-42`). Com `DIVIDA_QUE_CRESCE` o plano usa o caminho da estabilização (`estabilizacao.html`, `PlanoDoDeficitario.tsx`) com bloco de mensagem próprio e chaves novas em `textos-canonicos.yaml`. A classificação é do motor (slug `motor-calculo`, `RF-79`).
+
 ## Estratégia de teste
 
 Cada requisito tem ao menos um teste que cita o `RF`; os existentes que travam texto ou contagem de pendências são atualizados só quando o comportamento mudou de propósito.
