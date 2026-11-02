@@ -53,11 +53,6 @@ from report.plano import (
 REGRAS: Final[tuple[str, ...]] = ("RF-50", "RF-51", "RF-21", "AC-14", "AC-16")
 
 
-#: `B5.E01` (`RF-412`): a variável do registro e as respostas que dizem "atrasada".
-_SITUACAO_DO_PAGAMENTO: Final[str] = "DIVIDA_EM_DIA / DIVIDA_ATRASADA"
-_SITUACOES_ATRASADAS: Final[frozenset[str]] = frozenset({"VENCIDO", "PARCIAL"})
-
-
 def rotulo_do_nivel(nivel: NivelDaFicha, textos: TextosCanonicosPlano) -> str:
     """`RF-91` — o rótulo do nível, de `textos-canonicos.yaml`; fonte sem
     resposta é "não informado", nunca um nível presumido."""
@@ -145,11 +140,6 @@ def vocabulario_do_caso(
     return VocabularioDoCaso(
         rotulos_de_opcao=rotulos,
         credores=credores,
-        dividas_atrasadas=frozenset(
-            d
-            for d in dividas
-            if respostas.valor_no_item(d, _SITUACAO_DO_PAGAMENTO) in _SITUACOES_ATRASADAS
-        ),
         dividas_com_garantia=frozenset(
             d for d in dividas if respostas.valor_no_item(d, "POSSUI_GARANTIA") == "SIM"
         ),

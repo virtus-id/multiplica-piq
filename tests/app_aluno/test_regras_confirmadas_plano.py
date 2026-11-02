@@ -35,9 +35,6 @@ from tests.app_aluno.fixtures.caso_completo import (
 )
 
 _RESPONSABILIDADE = "A responsabilidade pela informação é do aluno."
-_ATRASADA = (
-    "Esta dívida está atrasada. Procure o credor para negociar antes de qualquer outra coisa."
-)
 
 
 def _plano(
@@ -62,31 +59,11 @@ def _item(variavel: str, valor: object, item: str = DIVIDA_ID_UNICA) -> object:
     return _resposta_item(variavel, item, valor)
 
 
-def test_ac_divida_atrasada_avisa_com_a_responsabilidade_e_nao_muda_a_ordem() -> None:
-    base, _ = _plano()
-    contexto, html = _plano((_item("DIVIDA_EM_DIA / DIVIDA_ATRASADA", "VENCIDO"),))
-    assert contexto.ordem[0].avisos == (f"{_ATRASADA} {_RESPONSABILIDADE}",)
-    assert _ATRASADA in html and _RESPONSABILIDADE in html
-    assert [p.DIVIDA_ID for p in contexto.ordem] == [p.DIVIDA_ID for p in base.ordem]
-    assert base.ordem[0].avisos == ()
-
-
-def test_ac_em_dia_nao_avisa() -> None:
-    contexto, _ = _plano((_item("DIVIDA_EM_DIA / DIVIDA_ATRASADA", "EM_DIA"),))
-    assert contexto.ordem[0].avisos == ()
-
-
-def test_rf_414_situacao_do_pagamento_nao_aceita_nao_sei() -> None:
+def test_rf_511_situacao_do_pagamento_e_tempo_de_atraso_nao_sao_perguntados() -> None:
     from collection.carga import carregar_registros
 
-    (b5e01,) = [r for r in carregar_registros().registros if r.ID == "B5.E01"]
-    assert [o.valor_interno for o in b5e01.opcoes] == [
-        "EM_DIA",
-        "VENCIDO",
-        "PARCIAL",
-        "SEM_PAGAMENTO_REGULAR",
-    ]
-    assert b5e01.admite_nao_sei is False
+    ids = {r.ID for r in carregar_registros().registros}
+    assert not {"B5.E01", "B5.E02"} & ids
 
 
 def test_ac_divida_com_garantia_avisa_com_a_responsabilidade() -> None:

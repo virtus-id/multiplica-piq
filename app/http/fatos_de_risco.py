@@ -15,7 +15,6 @@ from report.plano import VocabularioDoCaso
 
 #: (variável gravada, rótulo curto na tela do revisor)
 _VARIAVEIS: Final[tuple[tuple[str, str], ...]] = (
-    ("TEMPO_ATRASO", "Tempo de atraso"),
     ("COBRANCA_JUDICIAL_INFORMADA", "Cobrança judicial"),
     ("POSSUI_GARANTIA", "Possui garantia"),
     ("TIPO_GARANTIA", "Tipo de garantia"),
