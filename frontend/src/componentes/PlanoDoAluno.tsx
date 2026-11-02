@@ -175,7 +175,7 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
                       <dd className="m-0 font-bold">
                         {posicao.mes_de_quitacao
                           ? (posicao.mes_de_quitacao_rotulo ?? `Mês ${posicao.mes_de_quitacao}`)
-                          : NAO_DISPONIVEL}
+                          : (posicao.fora_do_horizonte || NAO_DISPONIVEL)}
                       </dd>
                     </div>
                   </dl>
