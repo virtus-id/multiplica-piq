@@ -187,6 +187,23 @@ describe("PlanoDoAluno — aluno deficitário", () => {
     ).toBeNull();
   });
 
+  it("marca na ordem a dívida que não quita no horizonte (RF-481)", () => {
+    const quitavel = posicao(1, "Consignado");
+    const semQuitacao = {
+      ...posicao(2, "Cheque especial"),
+      fora_do_horizonte: "Não quita em 10 anos nas condições atuais",
+    };
+    render(<PlanoDoAluno plano={plano({ ordem: [quitavel, semQuitacao] })} />);
+
+    const secao = screen.getByRole("region", {
+      name: "A ordem de quitação, por enquanto provisória",
+    });
+    expect(within(secao).getByText("2. Cheque especial")).toBeTruthy();
+    expect(
+      within(secao).getAllByText("Não quita em 10 anos nas condições atuais"),
+    ).toHaveLength(1);
+  });
+
   it("plano normal não mostra nada do deficitário", () => {
     render(
       <PlanoDoAluno

@@ -607,6 +607,8 @@ dividas:
   termina_no: "Termina no"
   termina_no_valor: "Mês {mes}"
   nao_disponivel: "não disponível"
+  # `RF-481` (T-468): a dívida que a simulação não quita em 10 anos. Sugestão, a validar.
+  fora_do_horizonte: "Não quita em 10 anos nas condições atuais"
 
 reserva_explicacao: >-
   É a parte da sua reserva que você decidiu usar neste plano. Esse dinheiro

@@ -28,6 +28,13 @@ Quando o motor devolve `MODO_ESTABILIZACAO` com `MOTIVO_ESTABILIZACAO = DIVIDA_Q
 
 A orientação ao aluno (o que fazer) **não é definida aqui**: aguarda o especialista (`OQ-71`). Só lê e formata números do motor (`AC-42`). O aviso antes do envio (`RF-453`) segue só para resultado negativo. Plano sem dívida que cresce, ou em que a sobra cobre as faltas: sem mudança, e o último mês nunca escreve "todas quitadas" se restar saldo ("Fim da projeção em {mês}: ainda restam R$ Z").
 
+### RF-481. Dívida que não quita no horizonte aparece na ordem, com o fato
+A tabela da ordem de quitação (PDF e tela) e o cartão da dívida mostram **todas** as dívidas de `ORDEM_QUITACAO` (`RF-512`). Para a que não tem mês de quitação no cronograma, no lugar do mês aparece o texto "Não quita em 10 anos nas condições atuais" (chave nova em `textos-canonicos.yaml`, **a aprovar pelo produto**), sem prazo, sem custo e sem inventar mês. O plano continua provisório quando o motor está em estabilização (`RF-465`). Só lê e formata números do motor (`AC-42`). Plano em que todas as dívidas têm mês de quitação: sem mudança.
+
+| ID | Critério |
+| -- | -------- |
+| `AC-514` | Dado o `aluno.teste3` (4 dívidas, 2 delas sem quitação no horizonte), então a tabela da ordem do PDF e da tela tem 4 linhas, e as duas últimas trazem "Não quita em 10 anos nas condições atuais" e nenhum mês (`RF-481`) |
+
 ## Fora do escopo
 
 Mudar o motor, o questionário ou a regra que rebaixa a ordem a `PROVISORIA` (`engine/ordem.py`). A apresentação do aluno deficitário está em [`specs/aluno-deficitario.spec.md`](aluno-deficitario.spec.md).

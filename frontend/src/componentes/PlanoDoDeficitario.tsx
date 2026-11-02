@@ -149,6 +149,11 @@ export default function PlanoDoDeficitario({ plano }: PlanoDoDeficitarioProps) {
                 <p className="m-0 font-bold">
                   {posicao.indice}. {posicao.nome}
                 </p>
+                {posicao.fora_do_horizonte && (
+                  <p className="text-muted m-0 text-sm">
+                    {posicao.fora_do_horizonte}
+                  </p>
+                )}
                 {(posicao.fatos ?? []).length > 0 && (
                   <p className="text-muted m-0 text-sm">
                     {(posicao.fatos ?? [])

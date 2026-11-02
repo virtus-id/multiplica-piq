@@ -269,7 +269,9 @@ def publicar_ORDEM_QUITACAO(
     ids_bloqueados = {resultado.DIVIDA_ID for resultado in particao.bloqueadas}
 
     posicoes: list[PosicaoOrdem] = []
-    for indice, divida_id in enumerate(cenario_recomendado.ORDEM_QUITACAO, start=1):
+    # RF-512: as quitadas na simulação primeiro, depois as que não quitam no horizonte.
+    sequencia = (*cenario_recomendado.ORDEM_QUITACAO, *cenario_recomendado.ORDEM_FORA_DO_HORIZONTE)
+    for indice, divida_id in enumerate(sequencia, start=1):
         if divida_id in ids_bloqueados:
             # Critério de aceite 4: nunca publicar uma dívida bloqueada por
             # gate dentro de ORDEM_QUITACAO — falha ruidosa, não silenciosa

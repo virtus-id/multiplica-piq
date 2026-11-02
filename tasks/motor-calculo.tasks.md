@@ -7626,3 +7626,15 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 - [ ] Gabaritos `GAB-A/B/C` idênticos; rehash
 
 **Status:** `[ ] pendente`
+
+### `T-467` — A ordem publicada traz todas as dívidas
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-460` · **Rastreia:** `RF-512`, `AC-512`, `AC-513`, `EC-61`
+- **Arquivos:** `engine/ciclo_mensal.py`, `engine/ordem.py`, `persistencia/arquivo/repositorio_snapshots.py`, `hashes_congelados.json` (rehash só dos alterados), testes
+- **Bloqueada por:** aprovação desta spec.
+
+- [x] `Cenario.ORDEM_FORA_DO_HORIZONTE` montada com o `sel` do método; `publicar_ORDEM_QUITACAO` acrescenta as posições
+- [x] Teste do `aluno.teste3` (4 dívidas publicadas; as duas quitadas na frente, como antes)
+- [x] Gabaritos `GAB-A/B/C` idênticos; propriedade: carteira que quita tudo não muda; rehash
+
+**Status:** `[x] implementada (2026-11-02)` — hashes regravados de `ciclo_mensal`, `ordem`, `repositorio_snapshots` e também de `diagnostico`, que ficou defasado no PR da `T-460`

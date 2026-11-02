@@ -98,7 +98,7 @@
                 {% for posicao in ordem %}
                 <tr{% if loop.first %} class="primeira"{% endif %}>
                     <td class="rk"><span class="rk-n">{{ posicao.indice }}</span></td>
-                    <td class="nome"><strong>{{ posicao.nome }}</strong>{% if loop.first %}<div class="rk-etiqueta">{{ t.get("ranking_primeira", "") }}</div>{% endif %}</td>
+                    <td class="nome"><strong>{{ posicao.nome }}</strong>{% if loop.first %}<div class="rk-etiqueta">{{ t.get("ranking_primeira", "") }}</div>{% endif %}{% if posicao.fora_do_horizonte %}<div class="rk-etiqueta">{{ posicao.fora_do_horizonte }}</div>{% endif %}</td>
                     {% set valores = dict(posicao.fatos) %}
                     {% for rotulo in colunas %}<td class="num">{{ valores.get(rotulo, "—") }}</td>{% endfor %}
                 </tr>

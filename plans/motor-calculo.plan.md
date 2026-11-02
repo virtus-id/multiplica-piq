@@ -4725,3 +4725,13 @@ quantificação de `RF-74`), com proposta mínima e reversível.
 **Testes.** Os três gabaritos; um caso por `AC-142`, `AC-143` e `AC-509`; propriedade: com toda parcela cobrindo os juros, a saída é a de antes.
 
 **Rastreabilidade.** `RF-79` → `AC-142`, `AC-143`, `AC-144` · `EC-58`, `EC-59` · `RF-509` → `AC-509` · `EC-60` · `OQ-69`, `OQ-70` · tarefas `T-460`, `T-461`, `T-463`.
+
+## R12. A ordem publicada traz todas as dívidas (`RF-512`)
+
+**Pontos de mudança (só depois da aprovação da spec).** `engine/ciclo_mensal.py::simular_cenario`: ao sair por `ESTOUROU_HORIZONTE`, monta `ORDEM_FORA_DO_HORIZONTE` chamando `sel` repetidamente sobre o estado final (marcando cada escolhida como quitada numa cópia do estado) até esgotar as dívidas restantes. `Cenario` ganha o campo com valor padrão `()`. `engine/ordem.py::publicar_ORDEM_QUITACAO` acrescenta essas posições depois das quitadas. `persistencia/arquivo/repositorio_snapshots.py` lê o campo com padrão `()`.
+
+**Congelamento (`AC-44`).** A mudança é deste slug. Regravar `tests/app_aluno/estatica/hashes_congelados.json` só dos arquivos alterados, nomeando-os.
+
+**Invariantes.** `GAB-A/B/C` idênticos (`AC-513`); `ORDEM_QUITACAO` do `Cenario` com o mesmo significado (prognóstico e comparação não mudam); a soma `início + juros − pagos = fim` (`T-384`) não é tocada.
+
+**Rastreabilidade.** `RF-512` → `AC-512`, `AC-513` · `EC-61` · tarefas `T-467`, `T-468` (`RF-481`, `AC-514`).

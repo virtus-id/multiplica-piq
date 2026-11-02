@@ -232,6 +232,8 @@ def serializar_plano(
                 # `T-304` (`DE-08`): lido do cronograma; `None` = não disponível.
                 "mes_de_quitacao": posicao.mes_de_quitacao,
                 "mes_de_quitacao_rotulo": posicao.mes_de_quitacao_rotulo,
+                # `RF-481`: quem não quita no horizonte; vazio nas demais.
+                "fora_do_horizonte": posicao.fora_do_horizonte,
                 # Revisão de design: os números fixos de toda dívida
                 # (deve hoje, parcela, juros), lidos e formatados.
                 "fatos": [{"rotulo": rotulo, "valor": valor} for rotulo, valor in posicao.fatos],
