@@ -177,14 +177,15 @@ class TestAC13ContratoDoMotorPorIntrospeccao:
         }
         assert campos_da_instancia == campos_do_contrato
 
-    def test_contrato_de_divida_tem_exatamente_vinte_e_tres_campos(self) -> None:
+    def test_contrato_de_divida_tem_exatamente_vinte_e_quatro_campos(self) -> None:
         """Trava de regressão explícita citada no plano/docstrings de
         `app/montagem/estado.py` ("18 campos EXATOS do contrato real") — se
         um campo for adicionado ou removido de `Divida` sem que a contagem
         aqui seja revisada, este teste falha primeiro, antes mesmo da
         comparação de conjuntos acima."""
-        # 18 originais + 5 de `§16.4` (`T-406`), estes com valor neutro padrão.
-        assert len(dataclasses.fields(Divida)) == 23
+        # 18 originais + 5 de `§16.4` (`T-406`) + `SISTEMA_AMORTIZACAO` (`RF-509`),
+        # estes com valor neutro padrão.
+        assert len(dataclasses.fields(Divida)) == 24
 
     def test_contrato_de_sinais_comportamentais_tem_exatamente_dez_campos(self) -> None:
         assert len(dataclasses.fields(SinaisComportamentais)) == 10

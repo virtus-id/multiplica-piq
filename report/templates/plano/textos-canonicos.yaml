@@ -266,6 +266,7 @@ rotulos_de_dados:
   TIPO_GARANTIA: "Tipo de garantia"
   URGENCIA_PERCEBIDA: "Urgência para resolver"
   PREFERENCIA_QUITACAO: "Seria uma das primeiras a quitar"
+  SISTEMA_AMORTIZACAO: "Sistema do financiamento (Price ou SAC)"
   beneficio: "Benefício"
   recurso_disponivel: "Recurso disponível"
   prazo: "Prazo"
