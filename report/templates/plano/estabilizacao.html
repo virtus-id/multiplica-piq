@@ -82,7 +82,7 @@
 {% if ns is defined %}{% set ns.n = ns.n + 1 %}{% endif %}
 <section class="secao">
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("ordem_titulo", ""), "dinheiro") }}
-    <p class="intro">{{ t.get("ordem_intro", "") }}</p>
+    <p class="intro">{{ textos.estabilizacao_por_divida.get("ordem_intro", "") if ESTABILIZACAO_POR_DIVIDA else t.get("ordem_intro", "") }}</p>
     {% if metodo %}<p class="muted pequeno">{{ t.get("metodo_rotulo", "") }}: {{ metodo }}</p>{% endif %}
     {% set colunas = ordem[0].fatos | map(attribute=0) | list %}
     <div class="ranking-cartao">

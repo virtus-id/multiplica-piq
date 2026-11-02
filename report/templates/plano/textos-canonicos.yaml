@@ -745,6 +745,21 @@ estabilizacao_por_divida:
     de cada uma não cobre os juros. O valor livre não é suficiente para
     estancar esse crescimento, e por isso o plano abaixo é provisório.
   dividas_titulo: "Dívidas que crescem"
+  # Substituem o corpo e a primeira dúvida do plano provisório, que falam em
+  # "mês no negativo" e "saldo positivo": aqui o mês já é positivo.
+  corpo: >-
+    Montamos este plano a partir das informações que você nos passou. Ele
+    mostra a ordem em que as dívidas devem ser quitadas. Este plano é
+    provisório: ele será ajustado quando o valor livre do seu mês cobrir o
+    crescimento das dívidas.
+  ordem_intro: >-
+    Esta é a ordem em que recomendamos quitar as dívidas. É uma recomendação,
+    não um cronograma de pagamento. Ela pode mudar quando o valor livre do seu
+    mês cobrir o crescimento das dívidas, porque depende de quanto ficar livre
+    para atacar as dívidas. A quitação só começa nesse momento.
+  duvida_quando_muda: >-
+    Este plano é provisório. Ele muda quando o valor livre do seu mês cobrir
+    o crescimento das dívidas ou quando você atualizar as suas informações.
   divida_linha: "{nome}: parcela de {parcela}, juros de {juros} por mês. O saldo aumenta {falta} por mês."
   aviso_3: "Este plano mostra só a ordem de quitação. O cronograma, com prazos, só aparece quando o valor livre do mês cobrir o crescimento das dívidas."
 
