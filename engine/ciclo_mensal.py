@@ -711,10 +711,12 @@ class Cenario:
     meses: tuple[ResultadoMes, ...]  # rastro completo para auditoria (NFR)
     ESTOUROU_HORIZONTE: bool  # EC-13: True ⇒ cenário condicional, sem abortar
     MESES_ATE_ALERTA_HORIZONTE: Meses | None  # P_HORIZONTE_ALERTA — None se nunca alcançado
-    # `RF-512` (`T-467`): dívidas que a simulação NÃO quitou antes do horizonte,
-    # na ordem em que o método as escolheria sobre o estado final. Só preenchido
-    # quando `ESTOUROU_HORIZONTE`; snapshot anterior volta com `()`.
+    # `RF-512` (`T-467`): só preenchidos quando `ESTOUROU_HORIZONTE`; snapshot
+    # anterior volta com `()`. `ORDEM_DE_ATAQUE`: a sequência em que o método
+    # escolheria o alvo a partir do estado inicial, todas as dívidas.
+    # `ORDEM_FORA_DO_HORIZONTE`: dessa sequência, as que a simulação não quitou.
     ORDEM_FORA_DO_HORIZONTE: tuple[str, ...] = ()
+    ORDEM_DE_ATAQUE: tuple[str, ...] = ()
 
 
 _SEM_APORTES: Final[Mapping[Meses, Dinheiro]] = MappingProxyType({})  # EC-55
@@ -796,7 +798,7 @@ def simular_cenario(
             )
         saldos_iniciais[divida_id] = divida.SALDO_DEVEDOR_ATUAL
 
-    estado = EstadoSimulacao(
+    estado = estado_inicial = EstadoSimulacao(
         mes=0,
         saldos=saldos_iniciais,
         quitadas=frozenset(),
@@ -890,17 +892,20 @@ def simular_cenario(
     # escolha deve ser revisitada (§6 do sdd.config.md).
     custo_futuro_total = estado.DESEMBOLSO_ACUMULADO
 
-    # RF-512: o que a simulação não quitou entra depois, pelo critério do
-    # próprio método (`sel`) sobre o estado final, uma escolha por vez.
-    ordem_fora_do_horizonte: list[str] = []
+    # RF-512: com o horizonte estourado, a ordem é a de ATAQUE: o método (com as
+    # prioridades da §16.4) escolhendo o alvo a partir do estado inicial, uma
+    # dívida por vez. A ordem de término da simulação não serve: uma dívida
+    # pequena pode terminar antes só com as próprias parcelas.
+    ordem_de_ataque: list[str] = []
     if estourou_horizonte:
-        restante = replace(estado, DIVIDA_ALVO_ATUAL=None)
+        restante = estado_inicial
         while restante.quitadas != todas_dividas:
             escolhida = sel(restante, restante.CAPACIDADE_ATAQUE_M)
             if escolhida is None:
                 break  # RF-16: sem como comparar, a dívida fica de fora
-            ordem_fora_do_horizonte.append(escolhida.DIVIDA_ID)
+            ordem_de_ataque.append(escolhida.DIVIDA_ID)
             restante = replace(restante, quitadas=restante.quitadas | {escolhida.DIVIDA_ID})
+    ordem_fora_do_horizonte = [i for i in ordem_de_ataque if i not in set(ordem_quitacao)]
 
     return Cenario(
         metodo=None,  # T-49+: nenhum método real ainda implementado nesta tarefa
@@ -913,4 +918,5 @@ def simular_cenario(
         ESTOUROU_HORIZONTE=estourou_horizonte,
         MESES_ATE_ALERTA_HORIZONTE=mes_alerta_horizonte,
         ORDEM_FORA_DO_HORIZONTE=tuple(ordem_fora_do_horizonte),
+        ORDEM_DE_ATAQUE=tuple(ordem_de_ataque),
     )

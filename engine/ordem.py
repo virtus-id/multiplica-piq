@@ -269,8 +269,9 @@ def publicar_ORDEM_QUITACAO(
     ids_bloqueados = {resultado.DIVIDA_ID for resultado in particao.bloqueadas}
 
     posicoes: list[PosicaoOrdem] = []
-    # RF-512: as quitadas na simulação primeiro, depois as que não quitam no horizonte.
-    sequencia = (*cenario_recomendado.ORDEM_QUITACAO, *cenario_recomendado.ORDEM_FORA_DO_HORIZONTE)
+    # RF-512: com o horizonte estourado vale a ordem de ataque do método; sem
+    # estouro, a ordem em que a simulação quitou as dívidas.
+    sequencia = cenario_recomendado.ORDEM_DE_ATAQUE or cenario_recomendado.ORDEM_QUITACAO
     for indice, divida_id in enumerate(sequencia, start=1):
         if divida_id in ids_bloqueados:
             # Critério de aceite 4: nunca publicar uma dívida bloqueada por
