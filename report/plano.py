@@ -1126,6 +1126,9 @@ class ContextoPosicao:
     mes_de_quitacao: int | None = None
     #: `RF-445` — o mesmo mês em calendário ("Agosto/2026"); vazio sem quitação prevista.
     mes_de_quitacao_rotulo: str = ""
+    #: `RF-481` — texto de quem não quita no horizonte (`ORDEM_FORA_DO_HORIZONTE`);
+    #: vazio para as demais.
+    fora_do_horizonte: str = ""
     #: Revisão de design (2026-10-03) — os números que o aluno quer ver em
     #: TODA dívida, qualquer que seja o método: quanto deve hoje, a parcela
     #: que paga hoje e a taxa de juros. `valores_de_apoio` varia por método
@@ -2236,6 +2239,11 @@ def _montar_contexto_plano(
             mes_de_quitacao_rotulo=(
                 rotulo_do_mes(quitacoes[posicao_do_snapshot.DIVIDA_ID])
                 if posicao_do_snapshot.DIVIDA_ID in quitacoes
+                else ""
+            ),
+            fora_do_horizonte=(
+                textos.textos_das_dividas.get("fora_do_horizonte", "")
+                if posicao_do_snapshot.DIVIDA_ID in cenario_recomendado.ORDEM_FORA_DO_HORIZONTE
                 else ""
             ),
             fatos=_fatos_da_divida(dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID), textos),

@@ -711,6 +711,10 @@ class Cenario:
     meses: tuple[ResultadoMes, ...]  # rastro completo para auditoria (NFR)
     ESTOUROU_HORIZONTE: bool  # EC-13: True ⇒ cenário condicional, sem abortar
     MESES_ATE_ALERTA_HORIZONTE: Meses | None  # P_HORIZONTE_ALERTA — None se nunca alcançado
+    # `RF-512` (`T-467`): dívidas que a simulação NÃO quitou antes do horizonte,
+    # na ordem em que o método as escolheria sobre o estado final. Só preenchido
+    # quando `ESTOUROU_HORIZONTE`; snapshot anterior volta com `()`.
+    ORDEM_FORA_DO_HORIZONTE: tuple[str, ...] = ()
 
 
 _SEM_APORTES: Final[Mapping[Meses, Dinheiro]] = MappingProxyType({})  # EC-55
@@ -886,6 +890,18 @@ def simular_cenario(
     # escolha deve ser revisitada (§6 do sdd.config.md).
     custo_futuro_total = estado.DESEMBOLSO_ACUMULADO
 
+    # RF-512: o que a simulação não quitou entra depois, pelo critério do
+    # próprio método (`sel`) sobre o estado final, uma escolha por vez.
+    ordem_fora_do_horizonte: list[str] = []
+    if estourou_horizonte:
+        restante = replace(estado, DIVIDA_ALVO_ATUAL=None)
+        while restante.quitadas != todas_dividas:
+            escolhida = sel(restante, restante.CAPACIDADE_ATAQUE_M)
+            if escolhida is None:
+                break  # RF-16: sem como comparar, a dívida fica de fora
+            ordem_fora_do_horizonte.append(escolhida.DIVIDA_ID)
+            restante = replace(restante, quitadas=restante.quitadas | {escolhida.DIVIDA_ID})
+
     return Cenario(
         metodo=None,  # T-49+: nenhum método real ainda implementado nesta tarefa
         classificacao=None,  # T-56+: classificação do Híbrido, fora do escopo
@@ -896,4 +912,5 @@ def simular_cenario(
         meses=tuple(meses),  # rastro completo mês a mês, para auditoria
         ESTOUROU_HORIZONTE=estourou_horizonte,
         MESES_ATE_ALERTA_HORIZONTE=mes_alerta_horizonte,
+        ORDEM_FORA_DO_HORIZONTE=tuple(ordem_fora_do_horizonte),
     )

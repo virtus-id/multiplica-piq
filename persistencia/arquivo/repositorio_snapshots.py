@@ -615,6 +615,8 @@ def _cenario(bruto: dict[str, Any]) -> Cenario:
         meses=tuple(_resultado_mes(item) for item in bruto["meses"]),
         ESTOUROU_HORIZONTE=bruto["ESTOUROU_HORIZONTE"],
         MESES_ATE_ALERTA_HORIZONTE=bruto["MESES_ATE_ALERTA_HORIZONTE"],
+        # RF-512: ausente em snapshot gravado antes desta mudança.
+        ORDEM_FORA_DO_HORIZONTE=tuple(bruto.get("ORDEM_FORA_DO_HORIZONTE", ())),
     )
 
 

@@ -287,6 +287,8 @@ export interface PosicaoDaOrdem {
   mes_de_quitacao?: number | null
   /** O mesmo mês em calendário ("Agosto/2026"), vindo do servidor; vazio sem quitação prevista. */
   mes_de_quitacao_rotulo?: string
+  /** `RF-481`: texto de quem não quita no horizonte; vazio nas demais. */
+  fora_do_horizonte?: string
   /**
    * Fonte de comprovação dos dados desta dívida — `RF-92`, `T-267`. O
    * rótulo do nível vem pronto do servidor (`textos-canonicos.yaml`);
