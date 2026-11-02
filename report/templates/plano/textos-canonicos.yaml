@@ -818,11 +818,10 @@ incomodo:
     plano funciona". Esta dívida está no plano e termina no mês indicado em
     "Termina no".
 
-# `RF-412` — avisos do que o aluno declarou. `atrasada` é a redação do
-# especialista; `garantia` e `fichas_faltando` são redação proposta, a
-# aprovar. Todo aviso termina com `responsabilidade`. Não mudam a ordem.
+# `RF-412` — avisos do que o aluno declarou. `garantia` e `fichas_faltando`
+# são redação proposta, a aprovar (o aviso de atraso saiu em `RF-511`). Todo
+# aviso termina com `responsabilidade`. Não mudam a ordem.
 avisos:
-  atrasada: "Esta dívida está atrasada. Procure o credor para negociar antes de qualquer outra coisa."
   garantia: "Esta dívida está vinculada a um bem ou garantia. Confira com o credor as condições dessa garantia antes de decidir qualquer coisa sobre ela."
   fichas_faltando: "Você disse ter mais dívidas do que as que foram cadastradas. Este plano considera apenas as dívidas cadastradas."
   responsabilidade: "A responsabilidade pela informação é do aluno."

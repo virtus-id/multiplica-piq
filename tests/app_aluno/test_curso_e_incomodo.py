@@ -137,23 +137,20 @@ def test_numeros_do_mes_no_negativo_fecham_entre_si() -> None:
     # `RF-473`: o PDF mostra só o resultado negativo; o déficit segue no contexto (tela).
 
 
-def test_estabilizacao_mostra_avisos_de_atraso_e_garantia_com_responsabilidade() -> None:
+def test_estabilizacao_mostra_aviso_de_garantia_com_responsabilidade() -> None:
     """RF-416 — mês no negativo não tem cartão por dívida, mas o aluno ainda
-    vê o que declarou em `B5.E01` e `B5.F01`, sem cronograma."""
+    vê o que declarou em `B5.F01`, sem cronograma."""
     snapshot = _snapshot(renda=Decimal("1000.00"))
     assert snapshot.diagnostico.MODO_ESTABILIZACAO
-    vocabulario = VocabularioDoCaso(
-        dividas_atrasadas=frozenset({"D-A"}), dividas_com_garantia=frozenset({"D-B"})
-    )
+    vocabulario = VocabularioDoCaso(dividas_com_garantia=frozenset({"D-B"}))
     textos = carregar_textos_canonicos()
     contexto = montar_contexto_plano(snapshot, textos, vocabulario)
     responsabilidade = textos.avisos["responsabilidade"]
-    atrasada = [a for a in contexto.avisos_gerais if textos.avisos["atrasada"] in a]
     garantia = [a for a in contexto.avisos_gerais if textos.avisos["garantia"] in a]
-    assert len(atrasada) == 1 and len(garantia) == 1
-    assert all(a.endswith(responsabilidade) for a in atrasada + garantia)
+    assert len(garantia) == 1
+    assert all(a.endswith(responsabilidade) for a in garantia)
     html = renderizar_html_do_plano(contexto, textos)
-    assert textos.avisos["atrasada"] in html and textos.avisos["garantia"] in html
+    assert textos.avisos["garantia"] in html
     # fora da estabilização os avisos seguem no cartão da dívida, não aqui
     normal = montar_contexto_plano(_snapshot(), textos, vocabulario)
     assert normal.avisos_gerais == ()
