@@ -43,6 +43,6 @@ Mudar o motor, o questionário ou a regra que rebaixa a ordem a `PROVISORIA` (`e
 
 | ID | Pergunta | Status |
 | -- | -------- | ------ |
-| `OQ-71` | Qual orientação o aluno recebe quando a sobra não cobre o crescimento das dívidas (renegociar, cortar gasto, outra)? | `aberta` — aguarda o especialista; a mensagem do `RF-480` só informa os fatos |
+| `OQ-71` | Qual orientação o aluno recebe quando a sobra não cobre o crescimento das dívidas (renegociar, cortar gasto, outra)? | `aberta (pendente por decisão do responsável do produto, 2026-11-02)` — nada de orientação por enquanto; a mensagem do `RF-480` só informa os fatos |
 
 As demais redações foram aprovadas pelo produto em 2026-10-29; o texto do `RF-480` aguarda aprovação.
