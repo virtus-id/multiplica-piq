@@ -106,7 +106,7 @@ def test_rf_481_ordem_do_relatorio_traz_as_quatro_dividas_e_marca_as_que_nao_qui
     assert contexto.ESTABILIZACAO_POR_DIVIDA
     rotulo = textos.textos_das_dividas["fora_do_horizonte"]
     assert len(contexto.ordem) == 4
-    assert [bool(p.fora_do_horizonte) for p in contexto.ordem] == [False, False, True, True]
-    assert all(p.mes_de_quitacao is None for p in contexto.ordem[2:])
+    assert [bool(p.fora_do_horizonte) for p in contexto.ordem] == [True, True, False, False]
+    assert all(p.mes_de_quitacao is None for p in contexto.ordem[:2])
     html = renderizar_html_do_plano(contexto, textos)
     assert html.count(rotulo) == 2

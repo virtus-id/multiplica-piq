@@ -7638,3 +7638,12 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 - [x] Gabaritos `GAB-A/B/C` idênticos; propriedade: carteira que quita tudo não muda; rehash
 
 **Status:** `[x] implementada (2026-11-02)` — hashes regravados de `ciclo_mensal`, `ordem`, `repositorio_snapshots` e também de `diagnostico`, que ficou defasado no PR da `T-460`
+
+### `T-469` — A ordem publicada é a ordem de ataque (correção da `T-467`)
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-467` · **Rastreia:** `RF-512`, `AC-512`, `AC-513`
+- **Motivo:** no `aluno.teste3` o valor extra ia para o imobiliário (garantia essencial, `§16.4`) enquanto a ordem publicada dizia consignado primeiro, porque listava a ordem em que a simulação TERMINA as dívidas.
+- [x] `Cenario.ORDEM_DE_ATAQUE` (com horizonte estourado) e `ORDEM_FORA_DO_HORIZONTE` derivada dela; `publicar_ORDEM_QUITACAO` publica a de ataque; leitura tolerante na persistência; rehash
+- [x] Teste do `aluno.teste3`: imobiliário, cheque especial, depois o resto; a primeira é o alvo do mês 1
+
+**Status:** `[x] implementada (2026-11-02)`
