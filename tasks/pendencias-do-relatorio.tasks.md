@@ -26,12 +26,11 @@
 
 > Verificado em 2026-10-29: `pytest` completo com as mesmas 28 falhas do `HEAD` (nenhuma nova), `mypy` limpo, `ruff` sem erro novo, `vitest` com as mesmas 8 falhas do `HEAD`. Testes novos em `tests/app_aluno/test_pendencias_do_relatorio.py` e `frontend/tests/unit/componentes/PlanoDoDeficitario.test.tsx`.
 
-### `T-462` — Dívida que cresce no relatório (limite de 24 meses, aviso e último mês)
+### `T-462` — Estabilização por dívida que cresce no relatório (mensagem própria)
 - **Rastreia:** `RF-480`
-- **Bloqueada por:** aprovação da spec (`OQ-55` do `motor-calculo`).
-- [ ] Contexto e templates: aviso por dívida, mural e fichas mensais limitados, nota de limite, "Fim da projeção" no último mês, totais do prognóstico, dívidas fora da ordem
-- [ ] Mesmo comportamento na tela do aluno (`PlanoDoAluno.tsx`)
-- [ ] Testes: último mês com saldo não diz "todas quitadas"; parcela < juros gera o aviso e o limite; plano sem dívida que cresce inalterado
+- **Bloqueada por:** `T-460` e aprovação do texto (`OQ-71` para a orientação).
+- [ ] Contexto e templates: caminho da estabilização para `MOTIVO_ESTABILIZACAO = DIVIDA_QUE_CRESCE`, com título, corpo e linha por dívida (credor, parcela, juros, falta); aviso de déficit do envio só para resultado negativo
+- [ ] Mesmo comportamento na tela do aluno e na conferência do revisor
+- [ ] Testes: o caso do `aluno.teste3` mostra a mensagem própria (sem "pagamentos superam sua renda"); sobra que cobre as faltas segue o plano normal; último mês com saldo não diz "todas quitadas"
 
 **Status:** `[ ] pendente — aguardando aprovação da spec`
-

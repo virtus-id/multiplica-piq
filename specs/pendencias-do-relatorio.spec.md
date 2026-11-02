@@ -19,8 +19,14 @@ O relatório lista, em "O que falta informar", dados que o aluno não tem como i
 - **`RF-466`** — A linha que soma renda − despesas, antes das parcelas de dívida, tem o rótulo "Resultado do mês antes das parcelas de dívida (renda − despesas)". Substitui o texto da `RF-412` (`B3.DF02`).
 - **`RF-467`** — Nenhuma pergunta que o aluno responde deixa de ser exigida: a guarda de envio continua recusando toda pergunta `indispensavel` exigível sem resposta.
 
-### RF-480. Dívida que cresce: o relatório não esconde nem exagera
-Quando alguma dívida tem pagamento mensal menor que os juros do primeiro mês (os dois números já estão no snapshot), o relatório: (i) avisa no cartão da dívida e no mês a mês que "a parcela de R$ X não cobre os juros do mês (R$ Y): o saldo aumenta todo mês; renegocie"; (ii) limita o mural e o detalhe mês a mês a **24 meses**, com a nota "Projeção limitada a 24 meses: há dívida que cresce"; (iii) acompanha o mesmo limite nos totais do prognóstico ("você ainda deve…"); (iv) **nunca** escreve "todas quitadas" no último mês se restar saldo ("Fim da projeção em {mês}: ainda restam R$ Z"); (v) lista, na seção das dívidas, as que não entram na ordem de quitação, com o motivo. Só lê e formata números do motor (`AC-42`). Plano sem dívida que cresce: sem mudança.
+### RF-480. Dívida que cresce: a estabilização com mensagem própria
+Quando o motor devolve `MODO_ESTABILIZACAO` com `MOTIVO_ESTABILIZACAO = DIVIDA_QUE_CRESCE` (a sobra do mês é maior ou igual a zero, mas menor que a soma das faltas de juros; `RF-79`), o aluno **não é deficitário** e segue o **mesmo caminho do deficitário**: sem prazo, custo nem fichas mensais, com a ordem provisória (`RF-447`, `RF-450`, `RF-473`). A mensagem é **própria** e não reaproveita "seus pagamentos superam sua renda". Ela traz só fatos já no snapshot: a sobra do mês, cada dívida que cresce com a parcela, os juros do mês e a falta, e a soma das faltas contra a sobra. **Texto proposto, a aprovar pelo produto** (chaves novas em `textos-canonicos.yaml`):
+
+- Título: "Seu mês fecha positivo, mas suas dívidas estão crescendo".
+- Corpo: "Depois de pagar tudo, sobram R$ {sobra} por mês. Só que {n} dívida(s) crescem R$ {falta_total} por mês, porque a parcela não cobre os juros. A sobra não é suficiente para estancar esse crescimento."
+- Por dívida: "{credor}: parcela de R$ {parcela}, juros de R$ {juros} por mês, o saldo aumenta R$ {falta} por mês."
+
+A orientação ao aluno (o que fazer) **não é definida aqui**: aguarda o especialista (`OQ-71`). Só lê e formata números do motor (`AC-42`). O aviso antes do envio (`RF-453`) segue só para resultado negativo. Plano sem dívida que cresce, ou em que a sobra cobre as faltas: sem mudança, e o último mês nunca escreve "todas quitadas" se restar saldo ("Fim da projeção em {mês}: ainda restam R$ Z").
 
 ## Fora do escopo
 
@@ -28,4 +34,8 @@ Mudar o motor, o questionário ou a regra que rebaixa a ordem a `PROVISORIA` (`e
 
 ## Open Questions
 
-Nenhuma. As redações novas foram aprovadas pelo produto em 2026-10-29.
+| ID | Pergunta | Status |
+| -- | -------- | ------ |
+| `OQ-71` | Qual orientação o aluno recebe quando a sobra não cobre o crescimento das dívidas (renegociar, cortar gasto, outra)? | `aberta` — aguarda o especialista; a mensagem do `RF-480` só informa os fatos |
+
+As demais redações foram aprovadas pelo produto em 2026-10-29; o texto do `RF-480` aguarda aprovação.

@@ -4714,15 +4714,14 @@ quantificação de `RF-74`), com proposta mínima e reversível.
 - `T-384`: `DividaNoMes` e os totais do mês em `MesDoPlano`, reconstruídos das regras do ciclo (`M-02` juros, `M-03` habitual; o extra é o resto do que foi pago), com teste de conservação mês a mês. Persistência lê com `.get` (anterior → vazio).
 - **Fora de escopo:** juros sobre o déficit.
 
-## R11. Dívida que cresce (`RF-79`)
+## R11. Dívida que cresce e sistema de amortização (`RF-79`, `RF-509`)
 
-**Pontos de mudança (só depois da aprovação da spec).** `engine/gates.py`: novo teste de "cresce" por dívida (pagamento `<` saldo × taxa mensal, ambos de `Divida`), antes do Gate 3, sem estimar taxa ausente (`RF-16`); `engine/ciclo_mensal.py`/`engine/ordem.py`: o alvo do mês é a dívida que cresce de maior taxa enquanto `pagamento + extra < juros` é falso; a que continua inviável sai da simulação e vira `AcaoRequerida` (`RENEGOCIACAO`, texto do YAML do app). Nenhum `P_*` novo (`OQ-55`).
+**Pontos de mudança (só depois da aprovação da spec).** `engine/diagnostico.py`: `FALTA_DE_JUROS` por dívida (saldo × taxa mensal − pagamento declarado, `MAX(0, ...)`), `FALTA_TOTAL_DE_JUROS`, `DIVIDAS_QUE_CRESCEM` e `MOTIVO_ESTABILIZACAO` (`DEFICIT`, `DIVIDA_QUE_CRESCE`, `NENHUM`); `MODO_ESTABILIZACAO` passa a valer também quando `0 ≤ RESULTADO_MENSAL_ATUAL < FALTA_TOTAL_DE_JUROS`. `engine/ciclo_mensal.py`/`engine/ordem.py`: com a sobra cobrindo as faltas, o alvo do extra é a dívida que cresce de maior taxa até cobrir a falta. Nada sai da projeção, sem `AcaoRequerida` nova e sem `P_*` novo. Taxa ausente não entra (`RF-16`). `Divida.SISTEMA_AMORTIZACAO` (`PRICE` por omissão) e a trajetória `SAC` no ciclo mensal (`AMORTIZACAO_SAC = parcela − saldo × taxa`; prazo derivado; pagamento do mês = amortização + juros do saldo).
 
-**Congelamento (`AC-44`).** A mudança é deste slug. Depois dela, regravar `tests/app_aluno/estatica/hashes_congelados.json` pelo procedimento de `RF-41` do `app-aluno`, nomeando os arquivos alterados.
+**Congelamento (`AC-44`).** A mudança é deste slug. Depois dela, regravar `tests/app_aluno/estatica/hashes_congelados.json` pelo procedimento de `RF-41` do `app-aluno`, nomeando os arquivos alterados. A montagem do `app-aluno` só entrega o sistema e os números declarados; quem classifica é o motor (Lei nº 3).
 
-**Invariantes.** `GAB-A/B/C` idênticos (`AC-144`); `ORDEM_QUITACAO` determinística; a soma `início + juros − pagos = fim` (`T-384`) segue valendo para as dívidas que ficam na projeção.
+**Invariantes.** `GAB-A/B/C` idênticos nos campos antigos (`AC-144`); `ORDEM_QUITACAO` determinística; a soma `início + juros − pagos = fim` (`T-384`) vale também na `SAC`.
 
-**Testes.** Os três gabaritos; um caso por `AC-142`/`AC-143`; propriedade: com qualquer carteira em que toda parcela cobre os juros, a saída é a de antes.
+**Testes.** Os três gabaritos; um caso por `AC-142`, `AC-143` e `AC-509`; propriedade: com toda parcela cobrindo os juros, a saída é a de antes.
 
-**Rastreabilidade.** `RF-79` → `AC-142`, `AC-143`, `AC-144` · `EC-58`, `EC-59` · `OQ-55`, `OQ-56` · tarefas `T-460`, `T-461`.
-
+**Rastreabilidade.** `RF-79` → `AC-142`, `AC-143`, `AC-144` · `EC-58`, `EC-59` · `RF-509` → `AC-509` · `EC-60` · `OQ-69`, `OQ-70` · tarefas `T-460`, `T-461`, `T-463`.
