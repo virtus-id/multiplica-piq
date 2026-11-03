@@ -52,13 +52,11 @@ def _ficha_minima_completa(DIVIDA_ID: str, **sobrescritas: object) -> RespostasC
     """Uma ficha de dívida com todos os campos `REP` obrigatórios de
     `montar_divida` preenchidos com valores concretos (nenhum `NAO_SEI`) —
     base para os testes sobrescreverem só o campo sob teste. Os nomes de
-    variável usados aqui (`TIPO_DIVIDA`, `STATUS_DIVIDA`, `SALDO_DEVEDOR_
-    ATUAL`, ...) são exatamente os `VARIAVEL_GRAVADA` do registro real do
+    variável usados aqui (`TIPO_DIVIDA`, `SALDO_DEVEDOR_ATUAL`, ...) são exatamente os `VARIAVEL_GRAVADA` do registro real do
     Bloco 5 (ver `test_mapeamento_usa_variaveis_do_registro_real_do_bloco_5`,
     que prova isso por introspecção do YAML carregado)."""
     valores: dict[str, object] = {
         "TIPO_DIVIDA": "CARTAO_ROTATIVO",
-        "STATUS_DIVIDA": "ATIVA",
         "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("5.000,00"),
         _VARIAVEL_PARCELA_CONTRATUAL: converter_para_dinheiro("300,00"),
         "PESO_EMOCIONAL": 5,
@@ -106,7 +104,6 @@ class TestCriterio1NenhumDefaultSilencioso:
         "campo_obrigatorio,id_pergunta",
         [
             ("TIPO_DIVIDA", "B5.A02"),
-            ("STATUS_DIVIDA", "B5.A04"),
             ("PESO_EMOCIONAL", "B5.H01"),
             ("SALDO_DEVEDOR_ATUAL", "B5.B03"),
         ],
@@ -273,7 +270,6 @@ def test_mapeamento_usa_variaveis_do_registro_real_do_bloco_5() -> None:
 
     variaveis_usadas_por_montar_divida = {
         "TIPO_DIVIDA",
-        "STATUS_DIVIDA",
         "SALDO_DEVEDOR_ATUAL",
         _VARIAVEL_PARCELA_CONTRATUAL,
         "PESO_EMOCIONAL",

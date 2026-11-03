@@ -793,13 +793,13 @@ def test_t217_pergunta_aberta_continua_no_calculo(monkeypatch: pytest.MonkeyPatc
     assert vistas == respostas
 
 
-_PARCELA = "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
+_GARANTIA = "TIPO_GARANTIA"
 
 
 def test_t217_ficha_de_divida_filtra_por_item(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`D001` não tem parcela definida: `B5.C02` fecha naquele item e a
+    """`D001` não tem garantia: `B5.F02` fecha naquele item e a
     resposta dela cai. `D002` tem, intacta. (`T-389`: era `B5.C07`/`B5.C07A`;
     `T-391`: era `B5.D05`/`B5.D05A`/`B5.D05V`; `T-398`: era a cadeia
     `B5.C05`/`B5.C05A`, que saiu do questionário.)"""
@@ -814,13 +814,13 @@ def test_t217_ficha_de_divida_filtra_por_item(
         for item_id in ("D001", "D002")
     )
     respostas = (
-        _resposta_t217("POSSUI_PARCELA_DEFINIDA", "NAO", "D001"),
-        _resposta_t217(_PARCELA, Decimal("100"), "D001"),
-        _resposta_t217("POSSUI_PARCELA_DEFINIDA", "SIM", "D002"),
-        _resposta_t217(_PARCELA, Decimal("100"), "D002"),
+        _resposta_t217("POSSUI_GARANTIA", "NAO", "D001"),
+        _resposta_t217(_GARANTIA, "IMOVEL", "D001"),
+        _resposta_t217("POSSUI_GARANTIA", "SIM", "D002"),
+        _resposta_t217(_GARANTIA, "IMOVEL", "D002"),
     )
 
-    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B5.C01", "B5.C02"), respostas, itens)
+    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B5.F01", "B5.F02"), respostas, itens)
 
     assert vistas == (respostas[0], *respostas[2:])
 

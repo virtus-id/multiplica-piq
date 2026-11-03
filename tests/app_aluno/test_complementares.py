@@ -117,7 +117,6 @@ def _ids(complementares: dict[str, list[dict[str, object]]]) -> dict[str, list[o
     ("mae", "item_id", "esperado"),
     [
         ("B3.04", None, {"SIM": ["B3.04A"]}),
-        ("B5.C01", "D001", {"SIM": ["B5.C02"]}),
     ],
 )
 def test_ac157_mae_traz_as_filhas_de_cada_opcao(

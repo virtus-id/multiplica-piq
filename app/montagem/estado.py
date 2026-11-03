@@ -487,11 +487,6 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         raise ErroRespostaAusente(DIVIDA_ID, "B5.A02", "TIPO_DIVIDA")
     assert isinstance(tipo_divida_bruto, str)
 
-    status_divida_bruto = respostas.valor_no_item(DIVIDA_ID, "STATUS_DIVIDA")
-    if status_divida_bruto is None:
-        raise ErroRespostaAusente(DIVIDA_ID, "B5.A04", "STATUS_DIVIDA")
-    assert isinstance(status_divida_bruto, str)
-
     peso_emocional_bruto = respostas.valor_no_item(DIVIDA_ID, "PESO_EMOCIONAL")
     if peso_emocional_bruto is None:
         raise ErroRespostaAusente(DIVIDA_ID, "B5.H01", "PESO_EMOCIONAL")
@@ -504,7 +499,8 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
     return Divida(
         DIVIDA_ID=DIVIDA_ID,
         TIPO_DIVIDA=TIPO_DIVIDA(tipo_divida_bruto),
-        STATUS_DIVIDA=STATUS_DIVIDA(status_divida_bruto),
+        # `RF-513`: o status saiu do questionário; toda dívida cadastrada vale ativa.
+        STATUS_DIVIDA=STATUS_DIVIDA.ATIVA,
         # B5.B03 — "não sei" em saldo produz DESCONHECIDO, nunca 0 (AC-08).
         SALDO_DEVEDOR_ATUAL=_dinheiro_obrigatorio(
             respostas, DIVIDA_ID, "B5.B03", "SALDO_DEVEDOR_ATUAL"
@@ -519,8 +515,7 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         # dois o aluno informou (`T-393`).
         TAXA_EFETIVA_MENSAL_NORMALIZADA=_taxa_mensal_normalizada(respostas, DIVIDA_ID),
         CET=DESCONHECIDO,
-        # B5.C02 — COND (só quando POSSUI_PARCELA_DEFINIDA = SIM): ausência
-        # estrutural também admite DESCONHECIDO, mesma lógica de B5.B05A.
+        # B5.C02 — sempre perguntada (`RF-513`); sem resposta, DESCONHECIDO.
         PARCELA_CONTRATUAL=parcela_declarada,
         PAGAMENTO_MENSAL_EFETIVO=parcela_declarada,
         # Um valor mensal por dívida: a parcela declarada em B5.C02 é também o

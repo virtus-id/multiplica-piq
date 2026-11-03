@@ -455,3 +455,13 @@ Perguntas (IDs): B7.04 B7.04A B7.05 B7.06 B7.07V B7.07 B7.08 B7.09 B7.10 B7.11 B
 - [x] Conferir a conversão de taxa ao ano para mensal (composta)
 
 **Status:** `[x] implementada (2026-11-02)` — a conversão de taxa ao ano para mês já é composta (`§16.1`, `engine/taxa.py`); `B5.C02A` é indispensável para não adivinhar o sistema
+
+### `T-470` — Saem cinco perguntas da ficha da dívida (`B5.A04`, `B5.C01`, `B5.I01`, `B5.I02`, `B5.I03`)
+
+- **Tipo:** `CHANGE` · **Dependências:** `T-465` · **Rastreia:** `RF-513`, `AC-515`, `AC-516`
+- [x] Remover os cinco registros; `B5.C02` sempre perguntada (`OBR`); `B5.C02A` só pelo tipo imobiliário
+- [x] Montagem: `STATUS_DIVIDA = ATIVA` fixo; `SISTEMA_AMORTIZACAO` sem depender de `B5.C01`
+- [x] Conferência do revisor sem painel de datas; sem `dividas_sem_parcela_definida` (`RF-462`)
+- [x] Ajustar os testes que citam as perguntas removidas (contagem 60 → 55)
+
+**Status:** `[x] implementada (2026-11-02)`; testes ajustados por leitura, **suíte não rodada** a pedido

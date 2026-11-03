@@ -146,11 +146,6 @@ def vocabulario_do_caso(
         fichas_faltando=isinstance(declaradas, int) and declaradas > len(dividas),
         # as mesmas respostas que o motor leu (`B3.04A` só vale com `B3.04` = Sim)
         resumo_das_despesas=resumo_das_despesas(_respostas_do_calculo(registros, respostas)),
-        # `RF-462` (`B5.C01`): "não há parcela definida" — a parcela do contrato
-        # não é pergunta dessa ficha, então não pode constar como pendência.
-        dividas_sem_parcela_definida=frozenset(
-            d for d in dividas if respostas.valor_no_item(d, "POSSUI_PARCELA_DEFINIDA") == "NAO"
-        ),
         maiores_gastos=maiores_gastos(registros, respostas, itens),
     )
 

@@ -224,10 +224,8 @@ _VALORES_DESPESA_NAO_MENSAL_PADRAO: Final[dict[str, object]] = {
 # ---------------------------------------------------------------------------
 _VALORES_DIVIDA_PADRAO: Final[dict[str, object]] = {
     "TIPO_DIVIDA": "CARTAO_ROTATIVO",
-    "STATUS_DIVIDA": "ATIVA",
     "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("5.000,00"),
-    # Um valor mensal por dívida (RF-479): B5.C02 só abre com B5.C01 = Sim.
-    "POSSUI_PARCELA_DEFINIDA": "SIM",
+    # Um valor mensal por dívida (RF-479); B5.C02 é sempre perguntada (RF-513).
     "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)": converter_para_dinheiro("300,00"),
     # `T-393`: B5.D06 é obrigatória (bloqueia o cálculo); 2% ao mês.
     "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",

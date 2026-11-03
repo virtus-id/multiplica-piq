@@ -81,23 +81,15 @@ def test_rf461_quitacao_hoje_desconhecida_nao_e_pendencia() -> None:
 # ---------------------------------------------------------------- RF-462
 
 
-def test_rf462_parcela_ausente_de_divida_sem_parcela_definida_nao_e_pendencia() -> None:
-    snapshot = _snapshot_provisorio(PARCELA_CONTRATUAL=DESCONHECIDO)
-    id_da_divida = snapshot.estado_inputs.dividas[0].DIVIDA_ID
+def test_rf513_parcela_desconhecida_e_sempre_pendencia() -> None:
+    """`RF-513`: `B5.C01` saiu; a parcela é perguntada em toda dívida, então a
+    falta dela é falta de informação (`RF-462` revogado)."""
+    contexto, _ = _contexto(_snapshot_provisorio(PARCELA_CONTRATUAL=DESCONHECIDO))
 
-    # Controle: sem a resposta "não há parcela definida", a falta continua sendo falta.
-    com_pendencia, _ = _contexto(snapshot)
-    assert com_pendencia.pendencias is not None
-    assert [campos for _i, _n, campos in com_pendencia.pendencias.campos_faltantes_por_divida] == [
+    assert contexto.pendencias is not None
+    assert [campos for _i, _n, campos in contexto.pendencias.campos_faltantes_por_divida] == [
         ("o valor da parcela do contrato",)
     ]
-
-    vocabulario = VocabularioDoCaso(dividas_sem_parcela_definida=frozenset({id_da_divida}))
-    contexto, html = _contexto(snapshot, vocabulario)
-
-    assert contexto.pendencias is None
-    assert contexto.pendencias_acionaveis == ()
-    assert _SECAO_DE_PENDENCIAS not in html
 
 
 # ---------------------------------------------------------------- RF-463

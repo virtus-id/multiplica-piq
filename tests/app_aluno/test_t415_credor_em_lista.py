@@ -83,10 +83,3 @@ def test_servidor_grava_banco_ou_outra_com_nome_valido(
 
     assert resposta.status_code == esperado, resposta.text
 
-
-def test_status_da_operacao_e_direto_e_sem_palpite_de_quitacao() -> None:
-    registro = _registro("B5.A04")
-
-    assert registro.enunciado == "Qual é o status desta operação hoje?"
-    assert "QUITADA_A_CONFIRMAR" not in [o.valor_interno for o in registro.opcoes]
-    assert not any("Acredito" in o.rotulo for o in registro.opcoes)

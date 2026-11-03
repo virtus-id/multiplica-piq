@@ -366,22 +366,22 @@ def _percurso(
 
 
 def test_t199_condicao_de_ficha_abre_so_no_item_que_a_satisfaz() -> None:
-    """Reproduz C4: `POSSUI_PARCELA_DEFINIDA=SIM` em `D001` abre `B5.C02` para
+    """Reproduz C4: `POSSUI_GARANTIA=SIM` em `D001` abre `B5.F02` para
     `D001` — e só para ele. Antes, a condição lia a chave do caso e a pergunta
     nunca abria em item nenhum."""
     from app.http.renderizacao import ErroPerguntaNaoExibivel, montar_contexto_pergunta
 
-    registros = _reais_por_id("B5.C01", "B5.C02")
+    registros = _reais_por_id("B5.F01", "B5.F02")
     itens = {EscopoRepeticao.DIVIDA_ID: ("D001", "D002")}
     respostas = RespostasCaso(
         respostas=(
-            _resposta("POSSUI_PARCELA_DEFINIDA", "SIM", "D001"),
-            _resposta("POSSUI_PARCELA_DEFINIDA", "NAO", "D002"),
+            _resposta("POSSUI_GARANTIA", "SIM", "D001"),
+            _resposta("POSSUI_GARANTIA", "NAO", "D002"),
         )
     )
 
     assert proxima_pergunta_nao_respondida(registros, respostas, itens) == PendenciaObrigatoria(
-        ID="B5.C02", item_id="D001"
+        ID="B5.F02", item_id="D001"
     )
     # Exibição e retomada usam a mesma avaliação por item.
     montar_contexto_pergunta(registros[1], respostas, item_id="D001")

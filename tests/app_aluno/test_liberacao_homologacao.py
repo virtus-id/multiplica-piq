@@ -36,7 +36,7 @@ from app.http.rotas_revisao import (
     obter_repositorio_snapshots_da_fila,
 )
 from app.revisao.comprovacao import PendenciaHomologacao
-from app.revisao.fila import ErroHomologacaoBloqueada, liberar, listar_fila_de_revisao
+from app.revisao.fila import ErroHomologacaoBloqueada, liberar
 from collection.carga import carregar_registros
 from collection.registro import EscopoRepeticao
 from collection.respostas import NAO_SEI, Resposta, RespostasCaso
@@ -47,7 +47,6 @@ from persistencia.app_aluno.arquivo import (
     RepositorioRespostasArquivo,
 )
 from persistencia.arquivo.repositorio_snapshots import RepositorioSnapshotsArquivo
-from report.plano import carregar_textos_canonicos
 from tests.app_aluno.test_rotas_revisao_decisao import (
     _calcular_snapshot,
     _criar_caso,
@@ -57,14 +56,12 @@ from tests.app_aluno.test_rotas_revisao_decisao import (
 _CASO = "CASO-HOMOLOGACAO"
 _AGORA = datetime(2026, 9, 30, tzinfo=UTC)
 
-# Os quatro dados que o motor lê, respondidos, com fonte comprovada.
+# Os quatro dados que o motor lê, respondidos.
 _DIVIDA_COMPLETA: dict[str, object] = {
     "SALDO_DEVEDOR_ATUAL": "5000",
-    "POSSUI_PARCELA_DEFINIDA": "SIM",
     "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)": "300",
     "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
     "TAXA_DIVIDA": "0.02",
-    "FONTE_DADO": "DOCUMENTO_CONTRATO",
 }
 
 
@@ -145,24 +142,6 @@ def _assert_nada_gravado(ambiente: _Ambiente, eventos_antes: int) -> None:
     assert [s.SNAPSHOT_ID for s in historico] == [ambiente.snapshot.SNAPSHOT_ID]
 
 
-def test_ac142_ec40_indispensavel_em_nivel_3_recusa_pela_rota_e_nada_grava(
-    ambiente: _Ambiente, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    ambiente.responder_divida(FONTE_DADO="ATENDIMENTO_CREDOR")
-    eventos_antes = len(ambiente.eventos.listar_do_caso(_CASO))
-
-    status, corpo = ambiente.liberar_pela_rota(monkeypatch)
-
-    assert status == 409
-    pendencias = corpo["pendencias_homologacao"]
-    assert isinstance(pendencias, list)
-    assert {(p["item_id"], p["ID_PERGUNTA"], p["motivo"]) for p in pendencias} == {
-        (ambiente.divida, "B5.B03", "PENDENTE_DE_CONFIRMACAO"),
-        (ambiente.divida, "B5.C02", "PENDENTE_DE_CONFIRMACAO"),
-    }
-    _assert_nada_gravado(ambiente, eventos_antes)
-
-
 def test_ac142_ec40_funcao_de_dominio_recusa_antes_de_gravar(ambiente: _Ambiente) -> None:
     eventos_antes = len(ambiente.eventos.listar_do_caso(_CASO))
     pendencia = PendenciaHomologacao(ambiente.divida, "B5.B03", "PENDENTE_DE_CONFIRMACAO")
@@ -182,19 +161,6 @@ def test_ac142_ec40_funcao_de_dominio_recusa_antes_de_gravar(ambiente: _Ambiente
 
     assert erro.value.pendencias == (pendencia,)
     _assert_nada_gravado(ambiente, eventos_antes)
-
-
-def test_ac142_corrigido_o_dado_a_liberacao_e_aceita(
-    ambiente: _Ambiente, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    ambiente.responder_divida(FONTE_DADO="ATENDIMENTO_CREDOR")
-    assert ambiente.liberar_pela_rota(monkeypatch)[0] == 409
-
-    ambiente.responder("FONTE_DADO", "CONTRACHEQUE", ambiente.divida)
-
-    assert ambiente.liberar_pela_rota(monkeypatch)[0] == 200
-    caso = ambiente.casos.buscar(_CASO)
-    assert caso is not None and caso.estado is ESTADO_CASO.PLANO_LIBERADO
 
 
 def test_reprovar_continua_possivel_com_pendencia(
@@ -237,54 +203,6 @@ def test_ac149_indispensavel_ausente_calculo_roda_e_liberacao_nomeia_o_dado(
         "ID_PERGUNTA": "B5.B03",
         "enunciado": saldo.enunciado,
         "motivo": "AUSENTE",
-    }
-
-
-def test_ac141_fontes_nivel_2_e_3_sem_indispensavel_pendente_liberam(
-    ambiente: _Ambiente, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    ambiente.responder_divida(
-        FONTE_DADO="MEMORIA",
-        EXISTE_PROPOSTA_RENEGOCIACAO="VIGENTE",
-        **{"FONTE_DADO (proposta)": "ATENDIMENTO"},
-    )
-
-    fila = listar_fila_de_revisao([_CASO], ambiente.casos, ambiente.snapshots)
-    assert [item.CASO_ID for item in fila] == [_CASO]
-
-    assert ambiente.liberar_pela_rota(monkeypatch)[0] == 200
-
-
-def test_t266_contexto_do_revisor_fontes_avisos_e_pendencias(
-    ambiente: _Ambiente, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    ambiente.responder_divida(
-        FONTE_DADO="ATENDIMENTO_CREDOR",
-    )
-    textos = carregar_textos_canonicos().rotulos_de_comprovacao
-
-    corpo = ambiente.cliente(monkeypatch).get(f"/revisao/caso/{_CASO}/decisao").json()
-
-    assert corpo["fontes"] == [
-        {
-            "item_id": ambiente.divida,
-            # `T-328`: a ficha fora do snapshot cai no `item_id`.
-            "nome": ambiente.divida,
-            "origem": "B5.I02",
-            "dado": "Fonte das informações",
-            "nivel": "PENDENTE_DE_CONFIRMACAO",
-            "rotulo": textos["PENDENTE_DE_CONFIRMACAO"],
-        }
-    ]
-    # `T-391` (RF-410): o seguro saiu da conferência do revisor.
-    assert "seguros_nao_informados" not in corpo
-    assert "rotulo_nao_informado" not in corpo
-    # `T-389`: a divergência da renda dos vínculos saiu com `B3.S04L`.
-    assert corpo["divergencias"] == []
-    assert "rateios" not in corpo
-    assert {p["ID_PERGUNTA"] for p in corpo["pendencias_homologacao"]} == {
-        "B5.B03",
-        "B5.C02",
     }
 
 

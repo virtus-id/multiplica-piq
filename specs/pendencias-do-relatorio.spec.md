@@ -12,7 +12,7 @@ O relatório lista, em "O que falta informar", dados que o aluno não tem como i
 ## Requisitos
 
 - **`RF-461`** — "O que falta informar" só lista dado que o aluno pode informar. `VALOR_QUITACAO_HOJE` não é auditado como pendência.
-- **`RF-462`** — `PARCELA_CONTRATUAL` desconhecida não é pendência quando o aluno respondeu que a dívida não tem parcela definida (`POSSUI_PARCELA_DEFINIDA = NAO`): a ausência é estrutural.
+- **`RF-462`** — *(revogado por `RF-513`: `B5.C01` saiu e a parcela é sempre perguntada)* `PARCELA_CONTRATUAL` desconhecida não é pendência quando o aluno respondeu que a dívida não tem parcela definida (`POSSUI_PARCELA_DEFINIDA = NAO`): a ausência é estrutural.
 - **`RF-463`** — Sem pendência real, o relatório (PDF e tela) não traz a seção "O que falta informar" nem o aviso "ainda é provisório porque faltam informações". Inventário incompleto continua sendo pendência real.
 - **`RF-464`** — O botão "Responder agora" de uma pendência sempre aponta para uma pergunta que existe no questionário.
 - **`RF-465`** — Plano provisório (`ORDEM_STATUS = PROVISORIA` ou modo estabilização) não é chamado de "definitivo" no banner nem na pergunta "Quando o meu plano muda?". Plano definitivo mantém o texto atual.

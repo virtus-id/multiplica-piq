@@ -463,59 +463,6 @@ def test_isolamento_por_caso_e_respeitado_na_rota_de_tela(
     assert resposta.status_code == 404
 
 
-def test_t267_ac141_fonte_de_comprovacao_por_divida_no_plano(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """`RF-92` (`T-267`): cada dívida da ordem traz o rótulo do nível da sua
-    fonte, de `textos-canonicos.yaml`, lido das respostas — sem conta sobre
-    o snapshot."""
-    snapshot = _snapshot_real()
-    caso = _caso_fabricado(snapshot_liberado_id=snapshot.SNAPSHOT_ID)
-    divida_id = caso_completo().DIVIDA_ID
-    fonte = Resposta(
-        CASO_ID=caso.CASO_ID,
-        ID_PERGUNTA="FONTE_DADO",
-        item_id=divida_id,
-        valor="ATENDIMENTO_CREDOR",
-        QUESTIONARIO_VERSION="1.0.3",
-        respondida_em=datetime(2026, 9, 30, tzinfo=UTC),
-    )
-
-    class _Respostas:
-        def listar_do_caso(self, _caso_id: str) -> tuple[Resposta, ...]:
-            return (fonte,)
-
-    class _Itens:
-        def listar_do_caso(
-            self, _caso_id: str, incluir_removidos: bool = False
-        ) -> tuple[ItemRepetido, ...]:
-            return (
-                ItemRepetido(
-                    item_id=divida_id,
-                    CASO_ID=caso.CASO_ID,
-                    escopo=EscopoRepeticao.DIVIDA_ID,
-                    removido_em=None,
-                    criado_em=datetime(2026, 9, 30, tzinfo=UTC),
-                ),
-            )
-
-    cliente = _montar_cliente(
-        monkeypatch,
-        repositorio_casos=_RepositorioCasosDublê(caso, "CONTA-PDF-ROTA-1"),
-        repositorio_snapshots=_RepositorioSnapshotsDublê(snapshot),
-    )
-    aplicacao = cliente.app
-    assert isinstance(aplicacao, FastAPI)
-    aplicacao.dependency_overrides[obter_repositorio_respostas] = _Respostas
-    aplicacao.dependency_overrides[obter_repositorio_itens] = _Itens
-
-    ordem = cliente.get(f"/caso/{caso.CASO_ID}/api/plano").json()["plano"]["ordem"]
-
-    assert [p["fonte"] for p in ordem if p["DIVIDA_ID"] == divida_id] == [
-        carregar_textos_canonicos().rotulos_de_comprovacao["PENDENTE_DE_CONFIRMACAO"]
-    ]
-
-
 def _plano_do_aluno(monkeypatch: pytest.MonkeyPatch, snapshot: SnapshotOrdem) -> dict[str, Any]:
     caso = _caso_fabricado(snapshot_liberado_id=snapshot.SNAPSHOT_ID)
     cliente = _montar_cliente(
