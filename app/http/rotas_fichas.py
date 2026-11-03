@@ -26,6 +26,7 @@ REGRAS: `RF-04`, `RF-51`, `RF-53`, `AC-04`
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from decimal import Decimal
 from typing import Annotated, Any, Final
 
@@ -91,7 +92,7 @@ def _escopo_valido(escopo: str) -> EscopoRepeticao | None:
 
 
 def _rotulos_das_fichas(
-    itens: list[ItemRepetido], colecao: ColecaoDeRegistros, respostas: RespostasCaso
+    itens: Sequence[ItemRepetido], colecao: ColecaoDeRegistros, respostas: RespostasCaso
 ) -> dict[str, str]:
     """O nome de cada ficha para o aluno e o revisor: o credor da dívida
     (`B5.A01`) e o rótulo das despesas."""

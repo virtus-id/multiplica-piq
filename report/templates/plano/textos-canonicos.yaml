@@ -322,8 +322,12 @@ rotulos_de_codigos:
   RESERVA_RECOMENDADA_NAO_GRAVADA: "a reserva recomendada ainda não é registrada pelo cálculo"
   HORIZONTE_ESTOURADO: "a projeção passou do prazo máximo de cálculo"
   SALDO_DEVEDOR_DESCONHECIDO: "falta o saldo devedor de alguma dívida"
-  # Situação antiga, que a pergunta de status já não oferece (T-416): o motor ainda a lê.
+  # Situações da dívida: a pergunta saiu (RF-513) e o motor ainda lê o domínio.
   QUITADA_A_CONFIRMAR: "Quitada, a confirmar"
+  ATIVA: "Está ativa."
+  EM_ACORDO: "Está em acordo ou renegociação."
+  COBRANCA_SEM_PAGAMENTO: "Está sendo cobrada, mas não possui pagamento regular definido."
+  OUTRA: "Outra situação."
   # Janela do valor extraordinário "ainda não sei", que a pergunta já não oferece (T-417).
   NAO_SEI: "Ainda não sei"
   # Método e status (engine/tipos.py::METODO, STATUS_METODO)
