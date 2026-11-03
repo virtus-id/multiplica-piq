@@ -160,6 +160,9 @@ describe("PlanoDoAluno — aluno deficitário", () => {
             dividas_titulo: "Dívidas que crescem",
             divida_linha:
               "{nome}: parcela de {parcela}, juros de {juros} por mês. O saldo aumenta {falta} por mês.",
+            passos_titulo: "O que fazer agora",
+            passo_1: "Reduza os gastos: veja o que dá para reduzir.",
+            passo_2: "Renegocie a dívida que mais cresce.",
           },
         })}
       />,
@@ -182,9 +185,18 @@ describe("PlanoDoAluno — aluno deficitário", () => {
     expect(
       screen.queryByRole("region", { name: "Primeiro, estancar o problema" }),
     ).toBeNull();
+    // OQ-71 (T-472): dois passos, nesta ordem, e a lista dos maiores gastos
+    const passos = within(secao)
+      .getAllByRole("listitem")
+      .map((no) => no.textContent)
+      .filter((texto) => texto?.startsWith("Reduza") || texto?.startsWith("Renegocie"));
+    expect(passos).toEqual([
+      "Reduza os gastos: veja o que dá para reduzir.",
+      "Renegocie a dívida que mais cresce.",
+    ]);
     expect(
-      screen.queryByRole("region", { name: "Onde olhar nos seus gastos" }),
-    ).toBeNull();
+      screen.getByRole("region", { name: "Onde olhar nos seus gastos" }),
+    ).toBeTruthy();
   });
 
   it("marca na ordem a dívida que não quita no horizonte (RF-481)", () => {

@@ -38,7 +38,7 @@ export default function PlanoDoDeficitario({ plano }: PlanoDoDeficitarioProps) {
   const textos = plano.estabilizacao_textos ?? {};
   const porDivida = plano.ESTABILIZACAO_POR_DIVIDA === true;
   const textosPorDivida = plano.estabilizacao_por_divida_textos ?? {};
-  const gastos = porDivida ? [] : (plano.maiores_gastos ?? []);
+  const gastos = plano.maiores_gastos ?? [];
   const mostrarOrdem = plano.ordem.length > 0;
 
   return (
@@ -78,6 +78,15 @@ export default function PlanoDoDeficitario({ plano }: PlanoDoDeficitarioProps) {
               </li>
             ))}
           </ul>
+          {textosPorDivida.passo_1 && (
+            <>
+              <h3 className="m-0">{textosPorDivida.passos_titulo}</h3>
+              <ol className="m-0 list-decimal pl-5">
+                <li>{textosPorDivida.passo_1}</li>
+                <li>{textosPorDivida.passo_2}</li>
+              </ol>
+            </>
+          )}
         </section>
       )}
       {!porDivida && (

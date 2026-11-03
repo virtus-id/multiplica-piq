@@ -26,7 +26,7 @@ Quando o motor devolve `MODO_ESTABILIZACAO` com `MOTIVO_ESTABILIZACAO = DIVIDA_Q
 - Corpo: "Depois de pagar tudo, ficam {valor} livres por mês. Só que as dívidas listadas abaixo crescem {falta_total} por mês, juntas, porque a parcela de cada uma não cobre os juros. O valor livre não é suficiente para estancar esse crescimento, e por isso o plano abaixo é provisório." (a palavra "sobra" não é usada em estabilização, `GAB-04`)
 - Por dívida: "{credor}: parcela de R$ {parcela}, juros de R$ {juros} por mês, o saldo aumenta R$ {falta} por mês."
 
-A orientação ao aluno (o que fazer) **não é definida aqui**: aguarda o especialista (`OQ-71`). Só lê e formata números do motor (`AC-42`). O aviso antes do envio (`RF-453`) segue só para resultado negativo. Plano sem dívida que cresce, ou em que a sobra cobre as faltas: sem mudança, e o último mês nunca escreve "todas quitadas" se restar saldo ("Fim da projeção em {mês}: ainda restam R$ Z").
+**Orientação ao aluno (`OQ-71`, respondida em 2026-11-03):** o caso é parecido com pagar só o mínimo do cartão ou do cheque especial. O aluno recebe a **mesma** orientação em todos os casos, **nesta ordem**: (1) reduzir gastos, e a lista dos maiores gastos aparece junto; (2) renegociar a dívida que mais cresce. Os textos e as aulas vêm só do curso (aulas 5, 10, 11 e 14; `docs/curso-ssd/`) e não o contradizem: a aula 10.1 usa o corte como caixa para negociar e alerta para acordos que só alongam o prazo. Só lê e formata números do motor (`AC-42`). O aviso antes do envio (`RF-453`) segue só para resultado negativo. Plano sem dívida que cresce, ou em que a sobra cobre as faltas: sem mudança, e o último mês nunca escreve "todas quitadas" se restar saldo ("Fim da projeção em {mês}: ainda restam R$ Z").
 
 ### RF-481. Dívida que não quita no horizonte aparece na ordem, com o fato
 A tabela da ordem de quitação (PDF e tela) e o cartão da dívida mostram **todas** as dívidas de `ORDEM_QUITACAO` (`RF-512`). Para a que não tem mês de quitação no cronograma, no lugar do mês aparece o texto "Não será quitada com os valores de hoje" (chave nova em `textos-canonicos.yaml`, **a aprovar pelo produto**), sem prazo, sem custo e sem inventar mês. O plano continua provisório quando o motor está em estabilização (`RF-465`). Só lê e formata números do motor (`AC-42`). Plano em que todas as dívidas têm mês de quitação: sem mudança.
@@ -43,6 +43,6 @@ Mudar o motor, o questionário ou a regra que rebaixa a ordem a `PROVISORIA` (`e
 
 | ID | Pergunta | Status |
 | -- | -------- | ------ |
-| `OQ-71` | Qual orientação o aluno recebe quando a sobra não cobre o crescimento das dívidas (renegociar, cortar gasto, outra)? | `aberta (pendente por decisão do responsável do produto, 2026-11-02)` — nada de orientação por enquanto; a mensagem do `RF-480` só informa os fatos |
+| `OQ-71` | Qual orientação o aluno recebe quando a sobra não cobre o crescimento das dívidas (renegociar, cortar gasto, outra)? | `respondida (2026-11-03, especialista)` — os dois, nesta ordem: reduzir gastos e depois renegociar; a mesma orientação em todos os casos (`T-472`) |
 
-As demais redações foram aprovadas pelo produto em 2026-10-29; o texto do `RF-480` aguarda aprovação.
+As demais redações foram aprovadas pelo produto em 2026-10-29; o texto do `RF-480` e os dois passos da `OQ-71` (`T-472`) foram aprovados pelo produto em 2026-11-03.
