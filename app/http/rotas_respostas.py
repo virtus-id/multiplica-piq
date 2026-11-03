@@ -124,6 +124,17 @@ def _serializar_resposta_dada(
         if opcao.valor_interno is not None
         and opcao.valor_interno in contexto.valores_marcados
     ]
+    # `SELECAO_MULTIPLA` com opção que abre texto: a revisão mostra o que foi descrito.
+    for opcao in contexto.opcoes:
+        if opcao.variavel_do_campo and opcao.valor_interno in contexto.valores_marcados:
+            digitado = (
+                respostas.valor_no_item(item_id, opcao.variavel_do_campo)
+                if item_id
+                else respostas.valor(opcao.variavel_do_campo)
+            )
+            if isinstance(digitado, str) and digitado:
+                completo = f"{opcao.rotulo} — {digitado}"
+                rotulos = [completo if r == opcao.rotulo else r for r in rotulos]
     if contexto.valor_atual == frozenset():
         rotulos = [_NENHUM_ITEM_MARCADO]
     elif not rotulos and contexto.valor_atual not in (None, ""):

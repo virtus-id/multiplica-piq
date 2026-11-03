@@ -120,6 +120,9 @@ export function obterPergunta(
   })
 }
 
+/** Marca, no array de uma seleção múltipla, o texto digitado na opção que abre campo. */
+export const PREFIXO_TEXTO_DO_CAMPO = '#texto:'
+
 /**
  * Grava uma resposta.
  *
@@ -143,7 +146,12 @@ export function gravarResposta(
   if (entrada.naoSei) {
     corpo.append('nao_sei', 'on')
   } else if (Array.isArray(entrada.valor)) {
-    for (const um of entrada.valor) corpo.append('valor', um)
+    // Texto de opção que abre campo numa seleção múltipla: vai em `valor_campo`.
+    for (const um of entrada.valor) {
+      if (um.startsWith(PREFIXO_TEXTO_DO_CAMPO)) {
+        corpo.append('valor_campo', um.slice(PREFIXO_TEXTO_DO_CAMPO.length))
+      } else corpo.append('valor', um)
+    }
   } else if (entrada.valor !== undefined) {
     corpo.append('valor', entrada.valor)
   }

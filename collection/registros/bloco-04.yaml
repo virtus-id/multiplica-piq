@@ -83,9 +83,14 @@ perguntas:
       # DESCONHECIDO; distingui-los é OQ-22(a), decisão do especialista.
       - {rotulo: Prefiro decidir somente depois de ver a análise., valor_interno: DECIDIR_DEPOIS}
     VARIAVEL_GRAVADA: VALOR_MAXIMO_RESERVA_INFORMADO_USUARIO
+    # Sem reserva (B4.02 = NAO) não há o que usar: não pergunta o valor.
     condicao_exibicao:
-      tipo: NAO
-      termo: {tipo: IGUAL, variavel: DISPOSICAO_USO_RESERVA, valor: NAO}
+      tipo: E
+      termos:
+        - tipo: NAO
+          termo: {tipo: IGUAL, variavel: RESERVA_EXISTE, valor: NAO}
+        - tipo: NAO
+          termo: {tipo: IGUAL, variavel: DISPOSICAO_USO_RESERVA, valor: NAO}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}

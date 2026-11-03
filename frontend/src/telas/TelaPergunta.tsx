@@ -92,7 +92,12 @@ interface TelaPerguntaProps {
    * A correção de uma linha da fotografia do mês (`RF-80`, T-228) — pela rota
    * de correção de `RF-69`, nunca uma segunda via de gravação.
    */
-  abrirCorrecao?: (idPergunta: string, itemId: string) => void
+  abrirCorrecao?: (idPergunta: string, itemId: string, origem?: string) => void
+  /**
+   * Corrigir uma declaração ("Sim" em renda adicional) cria ficha: leva à
+   * primeira pergunta dela, na coleta, em vez de voltar à lista de respostas.
+   */
+  abrirFichaNova?: (idPergunta: string, itemId: string) => void
   /**
    * `T-314`: a pergunta de ficha curta abre o formulário do item. Devolve
    * se abriu — quem sabe quais fichas são curtas é `App.tsx`.
@@ -156,7 +161,12 @@ function rotuloDoItem(itemId: string): string {
  */
 function localizador(pergunta: Pergunta, pendencias: number): string {
   if (pergunta.posicao !== null && pergunta.total_na_ficha !== null) {
-    const item = pergunta.item_id ? `${rotuloDoItem(pergunta.item_id)} · ` : ''
+    const { item_da_ficha: divida } = pergunta
+    const item = divida
+      ? `Dívida ${divida.posicao} de ${divida.total} — `
+      : pergunta.item_id
+        ? `${rotuloDoItem(pergunta.item_id)} · `
+        : ''
     return `${item}pergunta ${pergunta.posicao} de ${pergunta.total_na_ficha}`
   }
   // `T-206`: o total é GLOBAL (todas as obrigatórias em branco), não do
@@ -186,6 +196,7 @@ export default function TelaPergunta({
   abrirPergunta,
   onAbrirFichas,
   abrirCorrecao,
+  abrirFichaNova,
   abrirFormulario,
 }: TelaPerguntaProps) {
   const [pergunta, setPergunta] = useState<Pergunta | null>(null)
@@ -193,6 +204,8 @@ export default function TelaPergunta({
   const [valor, setValor] = useState<string | string[]>('')
   const [naoSei, setNaoSei] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  /** Menu (banco ou credor) sem seleção: destaca o campo e segura o aluno aqui. */
+  const [semSelecao, setSemSelecao] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [gravando, setGravando] = useState(false)
   /**
@@ -324,6 +337,15 @@ export default function TelaPergunta({
       return
     }
     setErro(null)
+    if (
+      pergunta.apresentacao === 'MENU' &&
+      !naoSei &&
+      (Array.isArray(valor) ? (valor[0] ?? '') : valor) === ''
+    ) {
+      setSemSelecao(true)
+      setErro('Selecione o banco ou credor para continuar.')
+      return
+    }
     // `T-320`: na ficha nova, nada em branco — destaca e não grava nada.
     if (fichaNova) {
       const faltam = emBranco(fichaNova.perguntas, estadoDa)
@@ -481,6 +503,18 @@ export default function TelaPergunta({
     // `AC-103`: depois de corrigir, o aluno volta de onde veio — a revisão.
     // Emendar na próxima pergunta pendente o mandaria para o meio da coleta
     // sem ter pedido isso.
+    // Exceção: corrigir uma declaração (sem item) que abre ficha — a ficha tem de
+    // ser preenchida, senão o "Sim" fica sem valor e o plano não muda.
+    const primeira = confirmacao.proxima.pergunta
+    const abreFicha = pergunta?.item_id == null && (primeira?.item_id ?? null) !== null
+    if (corrigindo && abreFicha && primeira?.item_id && abrirFichaNova) {
+      abrirFichaNova(primeira.ID, primeira.item_id)
+      return
+    }
+    if (corrigindo && pergunta?.item_id == null && confirmacao.abrir_fichas.length && onAbrirFichas) {
+      onAbrirFichas(confirmacao.abrir_fichas)
+      return
+    }
     if (corrigindo && aoCorrigir) {
       aoCorrigir()
       return
@@ -623,16 +657,38 @@ export default function TelaPergunta({
       {/* `T-228` (RF-79): o servidor anexa o painel só à pergunta que o
           declara no registro — nenhuma decisão por `ID` aqui. */}
       {pergunta.painel && (
-        <PainelFotografia painel={pergunta.painel} aoCorrigir={abrirCorrecao} />
+        <PainelFotografia
+          painel={pergunta.painel}
+          // `origem`: a pergunta do painel (B3.C00) — salvar a correção volta a ela.
+          aoCorrigir={abrirCorrecao && ((id, item) => abrirCorrecao(id, item, pergunta.ID))}
+        />
+      )}
+
+      {pergunta.item_da_ficha && (
+        <div className="mb-2">
+          <p className="m-0 text-sm font-bold uppercase tracking-wide text-accent">
+            Dívida {pergunta.item_da_ficha.posicao} de {pergunta.item_da_ficha.total}
+          </p>
+          {pergunta.posicao === 1 && pergunta.item_da_ficha.total > 1 && (
+            <p className="lead">
+              {pergunta.item_da_ficha.posicao === 1
+                ? 'Vamos avaliar suas dívidas, uma por uma. Comece pela primeira dívida.'
+                : 'Vamos para a próxima dívida.'}
+            </p>
+          )}
+        </div>
       )}
 
       <CampoPergunta
         pergunta={pergunta}
+        invalido={semSelecao}
         valor={valor}
         naoSei={naoSei}
         onValor={(novo) => {
           // Mudou a resposta: o aviso anterior não vale mais — grava de novo.
           setConfirmacaoComAviso(null)
+          setSemSelecao(false)
+          setErro(null)
           setValor(novo)
         }}
         onNaoSei={(marcado) => {

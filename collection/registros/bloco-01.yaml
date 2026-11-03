@@ -34,7 +34,7 @@ perguntas:
   - ID: B1.07
     bloco: 1
     enunciado: >-
-      Você já pretende fazer alguma nova compra parcelada nos próximos
+      Você pretende fazer alguma nova compra parcelada nos próximos
       meses?
     tipo: SELECAO_UNICA
     obrigatoriedade: [OBR]
@@ -68,7 +68,10 @@ perguntas:
       - {rotulo: Peço ajuda financeira a familiar ou outra pessoa., valor_interno: TERCEIRO}
       - {rotulo: Busco renda extra ou vendo alguma coisa., valor_interno: RENDA_EXTRA}
       - {rotulo: Isso normalmente não acontece comigo., valor_interno: NAO_OCORRE}
-      - {rotulo: Outra situação., valor_interno: OUTRA}
+      - rotulo: Outra situação.
+        valor_interno: OUTRA
+        abre_campo: TEXTO_CURTO
+        variavel_do_campo: MECANISMO_DEFICIT_OUTRO
     VARIAVEL_GRAVADA: MECANISMO_DEFICIT
     condicao_exibicao: null
     interpolacoes: []

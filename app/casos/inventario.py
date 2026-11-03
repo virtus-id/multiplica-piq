@@ -29,7 +29,8 @@ REGRAS: `RF-86`, `RF-87`, `RF-88`, `AC-37`
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
+from collections import Counter
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
@@ -42,6 +43,7 @@ import yaml
 from collection.registro import EscopoRepeticao, RegistroPergunta
 from collection.respostas import RespostasCaso
 from persistencia.app_aluno.eventos import EventoCaso, RepositorioEventosCaso
+from persistencia.app_aluno.itens import ItemRepetido
 
 REGRAS: Final[tuple[str, ...]] = ("RF-86", "RF-87", "RF-88", "AC-37")
 
@@ -241,6 +243,25 @@ def credor_da_ficha(respostas: RespostasCaso, item_id: str) -> str | None:
         # `T-415`: "Outra instituição ou pessoa" — o nome digitado no campo da opção.
         credor = respostas.valor_no_item(item_id, _CREDOR_OUTRO)
     return credor if isinstance(credor, str) and credor.strip() else None
+
+
+def rotulos_das_dividas(itens: Iterable[ItemRepetido], respostas: RespostasCaso) -> dict[str, str]:
+    """`DIVIDA_ID` → o credor já informado em `B5.A01` ("Itaú"), para a lista e
+    o formulário não mostrarem "Dívida D001". Credor repetido ganha o ordinal
+    na ordem das fichas ("Itaú · 2"); ficha sem credor fica sem rótulo."""
+    credores = {
+        item.item_id: credor
+        for item in itens
+        if item.escopo is EscopoRepeticao.DIVIDA_ID
+        and (credor := credor_da_ficha(respostas, item.item_id)) is not None
+    }
+    total = Counter(credores.values())
+    vistos: Counter[str] = Counter()
+    rotulos: dict[str, str] = {}
+    for item_id, credor in credores.items():
+        vistos[credor] += 1
+        rotulos[item_id] = credor if total[credor] == 1 else f"{credor} · {vistos[credor]}"
+    return rotulos
 
 
 def _rotulos(registros: tuple[RegistroPergunta, ...], variavel: str) -> dict[str, str]:

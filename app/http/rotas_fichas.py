@@ -26,11 +26,14 @@ REGRAS: `RF-04`, `RF-51`, `RF-53`, `AC-04`
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from decimal import Decimal
 from typing import Annotated, Any, Final
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
+from app.casos.inventario import rotulos_das_dividas
 from app.casos.itens_despesa import DESPESA_NAO_LISTADA, pede_nome, rotulos_dos_itens
 from app.casos.progresso import (
     cabecas_das_fichas,
@@ -88,6 +91,17 @@ def _escopo_valido(escopo: str) -> EscopoRepeticao | None:
     return None if membro is EscopoRepeticao.NENHUM else membro
 
 
+def _rotulos_das_fichas(
+    itens: Sequence[ItemRepetido], colecao: ColecaoDeRegistros, respostas: RespostasCaso
+) -> dict[str, str]:
+    """O nome de cada ficha para o aluno e o revisor: o credor da dívida
+    (`B5.A01`) e o rótulo das despesas."""
+    return {
+        **rotulos_das_dividas(itens, respostas),
+        **rotulos_dos_itens(itens, colecao.registros),
+    }
+
+
 def _perguntas_da_ficha(
     colecao: ColecaoDeRegistros, escopo: EscopoRepeticao
 ) -> tuple[RegistroPergunta, ...]:
@@ -133,6 +147,17 @@ def _campos_da_ficha(
     return campos
 
 
+def _total_das_despesas(respostas: RespostasCaso, fichas: list[dict[str, Any]]) -> dict[str, Any]:
+    """`RF-128` — a soma de `VALOR_DESPESA` das despesas ativas, em `Decimal`
+    (centavos exatos); `total_parcial` quando alguma ainda não tem valor."""
+    valores = [respostas.valor_no_item(f["item_id"], "VALOR_DESPESA") for f in fichas]
+    informados = [v for v in valores if isinstance(v, Decimal)]
+    return {
+        "total": str(sum(informados, Decimal(0))),
+        "total_parcial": len(informados) < len(valores),
+    }
+
+
 @roteador.get("/{CASO_ID}/fichas/{escopo}")
 def listar_fichas(
     CASO_ID: Annotated[str, Depends(exigir_caso_da_sessao("CASO_ID"))],
@@ -168,7 +193,7 @@ def listar_fichas(
     )
     respostas = RespostasCaso(respostas=respostas_brutas)
     agrupado = _agrupar(itens)
-    rotulos = rotulos_dos_itens(itens, colecao.registros)
+    rotulos = _rotulos_das_fichas(itens, colecao, respostas)
     pais = {item.item_id: item.item_pai_id for item in itens if item.item_pai_id}
     # `T-254`: os escopos cujas fichas nascem DENTRO de uma deste (a margem
     # no vínculo) e as perguntas que apontam um item deste (`T-256`) —
@@ -226,6 +251,12 @@ def listar_fichas(
             "escopo_pai": pai.value if pai else None,
             "escopos_filhos": sorted(filho.value for filho in filhos),
             "fichas": fichas,
+            # `RF-128`: só "Suas despesas" soma valores.
+            **(
+                _total_das_despesas(respostas, fichas)
+                if membro is EscopoRepeticao.ITEM_DESPESA
+                else {}
+            ),
             # `T-310` (RF-100): a trilha por partes, na parte da ficha.
             "trilha": trilha_da_coleta(
                 colecao.registros,
@@ -269,7 +300,7 @@ def formulario_do_item(
 
     respostas = RespostasCaso(respostas=respostas_brutas)
     agrupado = _agrupar(itens)
-    rotulos = rotulos_dos_itens(itens, colecao.registros)
+    rotulos = _rotulos_das_fichas(itens, colecao, respostas)
     perguntas = perguntas_do_formulario(
         CASO_ID, colecao, membro, respostas, agrupado, item_id, rotulos
     )
@@ -342,7 +373,7 @@ def concluir_item(
 
     respostas = RespostasCaso(respostas=respostas_brutas)
     agrupado = _agrupar(itens)
-    rotulos = rotulos_dos_itens(itens, colecao.registros)
+    rotulos = _rotulos_das_fichas(itens, colecao, respostas)
     da_ficha = _perguntas_da_ficha(colecao, membro)
     por_id = {registro.ID: registro for registro in da_ficha}
     pendencias = [

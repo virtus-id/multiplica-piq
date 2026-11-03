@@ -123,8 +123,13 @@ def montar_contexto_pergunta(
     if itens_por_escopo is not None and sem_itens_para_escolher(registro, itens_por_escopo):
         raise ErroPerguntaNaoExibivel(registro.ID)
 
+    irmaos = (itens_por_escopo or {}).get(registro.escopo_repeticao, ())
     contexto_interpolacao = ContextoItem(
-        item_id=item_id, respostas=respostas, snapshot=snapshot, rotulo_do_item=rotulo_do_item
+        item_id=item_id,
+        respostas=respostas,
+        snapshot=snapshot,
+        rotulo_do_item=rotulo_do_item,
+        posicao_do_item=irmaos.index(item_id) + 1 if item_id in irmaos else None,
     )
     enunciado = interpolar(registro.enunciado, registro.interpolacoes, contexto_interpolacao)
     opcoes = opcoes_efetivas(

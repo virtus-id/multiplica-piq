@@ -14014,3 +14014,12 @@ Relato de uso (2026-10-05): as colunas pequenas lado a lado do painel (T-349) de
 - [x] Teste e2e: o termo está no Início e o aceite leva à etapa seguinte
 
 **Status:** `[x] concluída (2026-10-22)`
+
+### `T-457` — Total na lista "Suas despesas"
+
+- **Tipo:** `FEATURE` · **Dependências:** `T-217` · **Rastreia:** `RF-128`, `RF-53`
+- [x] `listar_fichas` devolve `total` e `total_parcial` para `ITEM_DESPESA` (soma em `Decimal` de `VALOR_DESPESA`)
+- [x] `TelaFichas` mostra "Total das despesas: R$ X" e a nota de soma parcial
+- [ ] Testes (servidor e tela) — pendentes: o pedido foi não rodar testes nesta etapa
+
+**Status:** `[ ] implementada, testes pendentes (2026-10-31)`

@@ -212,7 +212,7 @@
         "marcador": { "type": "string", "minLength": 1 },
         "origem": {
           "type": "string",
-          "enum": ["ID_DO_ITEM", "VARIAVEL_COLETADA", "CAMPO_DO_SNAPSHOT"]
+          "enum": ["ID_DO_ITEM", "VARIAVEL_COLETADA", "CAMPO_DO_SNAPSHOT", "ORDINAL_DO_ITEM"]
         },
         "referencia": { "type": "string" }
       }

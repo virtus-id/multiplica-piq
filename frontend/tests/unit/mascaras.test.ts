@@ -192,3 +192,18 @@ describe('valorInicial de uma TAXA (T-335)', () => {
     expect(valorInicial(taxa(null))).toBe('')
   })
 })
+
+describe('valorInicial de uma MOEDA (RF-13)', () => {
+  const moeda = (valor_atual: string | null) =>
+    ({ tipo: 'MOEDA', valor_atual, valores_marcados: [] }) as unknown as Pergunta
+
+  it('reabre em pt-BR, não como o servidor guarda', () => {
+    expect(valorInicial(moeda('20000.00'))).toBe('20.000,00')
+    expect(valorInicial(moeda('500.00'))).toBe('500,00')
+    expect(valorInicial(moeda('1234567.8'))).toBe('1.234.567,80')
+  })
+
+  it('código de opção passa intacto', () => {
+    expect(valorInicial(moeda('VARIA'))).toBe('VARIA')
+  })
+})

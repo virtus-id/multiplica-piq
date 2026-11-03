@@ -70,6 +70,8 @@ class ContextoItem:
     # origem `ID_DO_ITEM` o prefere ao identificador — `[despesa]` em
     # `B3.DF01` é o item, não `DESP001`. Item sem rótulo segue no `item_id`.
     rotulo_do_item: str | None = None
+    # Posição (1, 2, …) do item corrente entre os da sua ficha; origem `ORDINAL_DO_ITEM`.
+    posicao_do_item: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,7 +80,7 @@ class Marcador:
     calculado pelo motor → `CAMPO_DO_SNAPSHOT`."""
 
     marcador: str  # texto literal do enunciado a substituir
-    origem: Literal["ID_DO_ITEM", "VARIAVEL_COLETADA", "CAMPO_DO_SNAPSHOT"]
+    origem: Literal["ID_DO_ITEM", "VARIAVEL_COLETADA", "CAMPO_DO_SNAPSHOT", "ORDINAL_DO_ITEM"]
     referencia: str
     # ID_DO_ITEM: `referencia` não é lida (o valor é sempre `ctx.item_id`) —
     #   mantida como string vazia por convenção do YAML de origem.
@@ -110,6 +112,20 @@ def _resolver_id_do_item(marcador: Marcador, ctx: ContextoItem) -> str:
             "nenhum item corrente no contexto.",
         )
     return ctx.rotulo_do_item or ctx.item_id
+
+
+#: Feminino, porque o uso é "nessa primeira dívida"; depois da décima, "11ª".
+_ORDINAIS: Final[tuple[str, ...]] = (
+    "primeira", "segunda", "terceira", "quarta", "quinta",
+    "sexta", "sétima", "oitava", "nona", "décima",
+)  # fmt: skip
+
+
+def _resolver_ordinal_do_item(ctx: ContextoItem) -> str:
+    n = ctx.posicao_do_item
+    if n is None:
+        return ""  # sem posição conhecida: "nessa dívida" (espaço duplo é colapsado)
+    return _ORDINAIS[n - 1] if 1 <= n <= len(_ORDINAIS) else f"{n}ª"
 
 
 def _resolver_variavel_coletada(marcador: Marcador, ctx: ContextoItem) -> str:
@@ -208,7 +224,9 @@ def interpolar(enunciado: str, marcadores: tuple[Marcador, ...], ctx: ContextoIt
                 valor_textual = _resolver_variavel_coletada(marcador, ctx)
             case "CAMPO_DO_SNAPSHOT":
                 valor_textual = _resolver_campo_do_snapshot(marcador, ctx)
+            case "ORDINAL_DO_ITEM":
+                valor_textual = _resolver_ordinal_do_item(ctx)
             case _:
                 assert_never(marcador.origem)
-        texto = texto.replace(marcador.marcador, valor_textual)
+        texto = texto.replace(marcador.marcador, valor_textual).replace("  ", " ")
     return texto

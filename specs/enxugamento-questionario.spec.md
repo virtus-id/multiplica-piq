@@ -171,7 +171,7 @@ Cada uma exige alterar o motor, a montagem e os gabaritos. O especialista não r
 
 | Pergunta | ID | Efeito no motor |
 |---|---|---|
-| Hoje, você já pretende ou considera provável contratar algum novo crédito nos… | B1.02 | Sinal de nova dívida prevista, usado no risco de recaída. |
+| Hoje, você pretende ou considera provável contratar algum novo crédito nos… | B1.02 | Sinal de nova dívida prevista, usado no risco de recaída. |
 | Quando você imagina que essa contratação pode acontecer? | B1.05 | Janela da nova dívida, usada no sinal de nova dívida. |
 | Nos últimos 12 meses, você assumiu alguma nova dívida ou parcelamento mesmo… | B1.10 | Histórico de recaída, usado no risco de recaída. |
 | Hoje, quanto dos seus gastos você costuma registrar ou acompanhar de alguma… | B2.01 | Uma das 8 variáveis do perfil de controle: alimenta o nível de controle e a confiabilidade dos dados do plano. Sem ela a derivação precisa ser redefinida. |

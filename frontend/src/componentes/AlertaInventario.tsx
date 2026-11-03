@@ -63,6 +63,9 @@ export default function AlertaInventario() {
   }, [casoId, navegacao])
 
   if (!contexto || pendencias.length === 0) return null
+  // Preenchendo uma ficha, a pendência é esperada: o alerta fica para as outras
+  // telas e para a tentativa de concluir (cálculo) com fichas faltando.
+  if (contexto.navegacao.tela === 'pergunta' && contexto.navegacao.itemId) return null
   const { irPara } = contexto
 
   async function cadastrarProxima(fichaVazia: string | null) {
