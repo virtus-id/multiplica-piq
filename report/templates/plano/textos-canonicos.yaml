@@ -742,7 +742,7 @@ estabilizacao:
 # `RF-480` (T-462) — o mês fecha em zero ou mais, mas a parcela de alguma dívida
 # não cobre os juros e o valor livre não estanca o crescimento. Mesmo caminho do
 # deficitário, mensagem própria. Só fatos: a orientação ao aluno aguarda o
-# especialista (`OQ-71`). Sugestão, a validar pelo produto. Sem a palavra "sobra".
+# especialista (`OQ-71`). Aprovado pelo produto em 2026-11-03. Sem a palavra "sobra".
 estabilizacao_por_divida:
   titulo: "Seu mês fecha positivo, mas suas dívidas estão crescendo"
   resultado_rotulo: "Valor livre no mês"
@@ -770,7 +770,7 @@ estabilizacao_por_divida:
   divida_linha: "{nome}: parcela de {parcela}, juros de {juros} por mês. O saldo aumenta {falta} por mês."
   aviso_3: "Este plano mostra só a ordem de quitação. O cronograma, com prazos, só aparece quando o valor livre do mês cobrir o crescimento das dívidas."
   # `OQ-71` (T-472): a orientação é a mesma para todos, nesta ordem, só com o que o curso ensina
-  # (aulas 5, 10 e 11). Sugestão, a validar pelo produto.
+  # (aulas 5, 10 e 11). Aprovado pelo produto em 2026-11-03.
   passos_titulo: "O que fazer agora"
   passo_1: "Reduza os gastos: veja o que dá para reduzir, pausar ou eliminar no seu mês. Esse dinheiro ajuda a parar o crescimento das dívidas e ainda serve de apoio para negociar. A aula 5 do curso mostra como."
   passo_2: "Renegocie a dívida que mais cresce: junte os documentos da dívida, procure o credor e faça a proposta por escrito. Confira se o acordo reduz o custo e não apenas aumenta o prazo. As aulas 10 e 11 do curso mostram como."

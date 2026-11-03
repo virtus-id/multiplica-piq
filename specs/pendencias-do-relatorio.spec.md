@@ -45,4 +45,4 @@ Mudar o motor, o questionário ou a regra que rebaixa a ordem a `PROVISORIA` (`e
 | -- | -------- | ------ |
 | `OQ-71` | Qual orientação o aluno recebe quando a sobra não cobre o crescimento das dívidas (renegociar, cortar gasto, outra)? | `respondida (2026-11-03, especialista)` — os dois, nesta ordem: reduzir gastos e depois renegociar; a mesma orientação em todos os casos (`T-472`) |
 
-As demais redações foram aprovadas pelo produto em 2026-10-29; o texto do `RF-480` aguarda aprovação.
+As demais redações foram aprovadas pelo produto em 2026-10-29; o texto do `RF-480` e os dois passos da `OQ-71` (`T-472`) foram aprovados pelo produto em 2026-11-03.

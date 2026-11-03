@@ -52,7 +52,7 @@
 - [x] Quadro de aulas próprio: 5, 10, 14 e 11 (hoje usa o do deficitário)
 - [x] Testes: passos na ordem, aulas 5 e 10 no quadro, nenhum valor com "sobra", lista de gastos presente
 
-**Resultado (2026-11-03):** o texto vai a aprovação do produto junto com o PR. Na `main`, o PR #30 tinha tirado `STATUS_DIVIDA` de `rotulos_de_dados` e quebrado `test_t326_todo_dado_de_entrada_tem_rotulo`; a chave voltou aqui.
+**Resultado (2026-11-03):** texto aprovado pelo produto no mesmo dia. Na `main`, o PR #30 tinha tirado `STATUS_DIVIDA` de `rotulos_de_dados` e quebrado `test_t326_todo_dado_de_entrada_tem_rotulo`; a chave voltou aqui.
 
 **Status:** `[x] implementada (2026-11-03)`
 
