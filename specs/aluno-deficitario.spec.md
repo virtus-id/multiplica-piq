@@ -24,11 +24,15 @@ O caso é **superavitário** (`RESULTADO_MENSAL_ATUAL > 0`), **equilibrado** (`=
 Com a ordem do motor (`ORDEM_QUITACAO`, método recomendado, justificativa por posição), o plano do deficitário mostra a ordem recomendada, o método, o porquê e as premissas, rotulada como **recomendação provisória**, e não como cronograma de pagamento. Sem prazo, sem mês de quitação e sem fichas mensais enquanto a capacidade de ataque for zero.
 
 ### RF-448. Três cenários do deficitário
+
+> **Revogado em 2026-11-03 (T-471):** os cenários de economia de 5% e 10% saíram do produto, junto com os parâmetros `P_ECONOMIA_RENDA_CENARIO_1/2` e a versão 1.0.3. Fica só o item 1, "se nada mudar" (o prognóstico sem ação). O texto abaixo é histórico.
 1. **Se nada mudar:** o prognóstico "sem ação" do motor (pagamentos efetivos, sem amortização extra), com suas limitações explícitas. Não presume financiamento do déficit (cheque especial, cartão, empréstimo).
 2. **Economia de 5% da renda** e 3. **de 10%:** hipótese de redução de despesas igual a `RENDA_TOTAL_RECORRENTE × percentual`. A economia compensa primeiro o déficit. O motor recalcula o caso com as despesas reduzidas; só havendo resultado positivo existe capacidade de aporte. Cada cenário informa: resultado ajustado, se continua deficitário / equilibrado / com sobra, e os indicadores que o motor conseguir calcular. Percentuais são parâmetros versionados (`P_*`), nunca literais.
 Os cenários são **simulação**, nunca plano homologado, e ficam identificados assim no snapshot. **Só o revisor os vê** (RF-452); o aluno não recebe os cenários de 5% e 10%, porque são percentuais fixos que não batem com os números de cada pessoa.
 
 ### RF-449. Horizontes de 12, 24 e 60 meses
+
+> **Revogado em 2026-11-03 (T-471):** valia só para os cenários de economia. O texto abaixo é histórico.
 Quando o motor tem dado e regra, cada cenário mostra, em 12, 24 e 60 meses: resultado do mês, capacidade de aporte, saldo restante, pagamentos e juros projetados e dívidas quitadas. Indicador que o motor não calcula não é exibido. Mês de quitação só com pagamentos viáveis; caso contrário, "não executável" ou "insuficientemente determinado", com o motivo.
 
 ### RF-450. Situações A, B e C
