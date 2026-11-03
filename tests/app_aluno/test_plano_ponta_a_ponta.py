@@ -64,9 +64,7 @@ _T02_CASO: dict[str, object] = {
 }
 _T02_D001: dict[str, object] = {
     "TIPO_DIVIDA": "CARTAO_ROTATIVO",
-    "STATUS_DIVIDA": "ATIVA",
     "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("1.800,00"),
-    "POSSUI_PARCELA_DEFINIDA": "NAO",
     _PARCELA_CONTRATUAL: converter_para_dinheiro("200,00"),
     "TAXA_DIVIDA": converter_para_taxa("10"),
     "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
@@ -74,9 +72,7 @@ _T02_D001: dict[str, object] = {
 }
 _T02_D002: dict[str, object] = {
     "TIPO_DIVIDA": "PESSOAL",
-    "STATUS_DIVIDA": "ATIVA",
     "SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("6.000,00"),
-    "POSSUI_PARCELA_DEFINIDA": "SIM",
     _PARCELA_CONTRATUAL: converter_para_dinheiro("400,21"),
     "TAXA_DIVIDA": converter_para_taxa("2"),
     "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",

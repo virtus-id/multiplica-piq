@@ -298,14 +298,6 @@ class TestFuncaoPuraMesmaEntradaMesmaSaida:
                 ),
                 Resposta(
                     CASO_ID=_CASO_ID,
-                    ID_PERGUNTA="STATUS_DIVIDA",
-                    item_id="D001",
-                    valor="ATIVA",
-                    QUESTIONARIO_VERSION=_QUESTIONARIO_VERSION,
-                    respondida_em=_AGORA,
-                ),
-                Resposta(
-                    CASO_ID=_CASO_ID,
                     ID_PERGUNTA="SALDO_DEVEDOR_ATUAL",
                     item_id="D001",
                     valor=converter_para_dinheiro("5.000,00"),

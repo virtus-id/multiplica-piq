@@ -56,7 +56,7 @@ from app.http.sessao import iniciar_sessao_conta
 from app.montagem.conversao import converter_para_dinheiro
 from app.revisao.fila import DECISAO_REVISAO, RegistroRevisao
 from collection.carga import carregar_registros
-from collection.respostas import Resposta, ValorResposta
+from collection.respostas import NAO_SEI, Resposta, ValorResposta
 from persistencia.app_aluno.arquivo import RepositorioCasosArquivo, RepositorioEventosCasoArquivo
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from persistencia.arquivo.repositorio_snapshots import RepositorioSnapshotsArquivo
@@ -82,13 +82,13 @@ _ENUNCIADO_B5_B03 = next(
     r.enunciado for r in carregar_registros().registros if r.ID == "B5.B03"
 )
 # `T-393`: sem o custo (`B5.D06`, obrigatória) o cálculo nem roda; o dado a
-# conferir passa a ser o saldo, com a fonte em nível 3 (`PENDENTE_DE_CONFIRMACAO`).
+# conferir é o saldo em branco (`AUSENTE`; a fonte saiu em `RF-513`).
 _D001_CHEQUE_SEM_TAXA: dict[str, object] = {
     **_T02_D001,
     "TIPO_DIVIDA": "CHEQUE_ESPECIAL",
     "CREDOR": "CAIXA ECONOMICA FEDERAL",
     "LINHA_CONTINUA_SENDO_UTILIZADA": "NAO",
-    "FONTE_DADO": "ATENDIMENTO_CREDOR",
+    "SALDO_DEVEDOR_ATUAL": NAO_SEI,
 }
 
 
@@ -310,8 +310,10 @@ def test_ac175_pedir_correcao_devolve_ao_aluno_e_reenvio_volta_a_fila_como_v2(
         for rota in ("inicio", "calculo/progresso", "api/plano"):
             assert _OBSERVACAO not in cliente.get(f"/caso/{CASO_ID}/{rota}").text
 
-        # 4. O aluno corrige a fonte (RF-69): a lista esvazia, o aviso fica.
-        respostas.corrigir_no_item("D001", {"FONTE_DADO": "DOCUMENTO_CONTRATO"})
+        # 4. O aluno corrige o saldo (RF-69): a lista esvazia, o aviso fica.
+        respostas.corrigir_no_item(
+            "D001", {"SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("1.800,00")}
+        )
         corpo = cliente.get(f"/caso/{CASO_ID}/inicio").json()
         assert corpo["correcao_pedida"]["dados_a_conferir"] == []
         assert corpo["correcao_pedida"]["mensagem"] == _MENSAGEM

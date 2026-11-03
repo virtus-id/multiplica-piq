@@ -322,9 +322,6 @@ class VocabularioDoCaso:
     dividas_com_garantia: frozenset[str] = frozenset()
     fichas_faltando: bool = False
     resumo_das_despesas: ResumoDasDespesas | None = None
-    #: `RF-462` (`B5.C01`): dívidas em que o aluno respondeu que não há parcela
-    #: definida — a parcela do contrato não é pergunta, então não é pendência.
-    dividas_sem_parcela_definida: frozenset[str] = frozenset()
     #: `RF-469`: os maiores gastos que o aluno informou, (nome do item, valor),
     #: do maior para o menor, já cortados no tamanho do bloco. Vazio sem itens.
     maiores_gastos: tuple[tuple[str, Decimal], ...] = ()
@@ -984,17 +981,10 @@ def _campos_desconhecidos_da_divida(
     Comparação `is DESCONHECIDO` pura — nenhuma aritmética, nenhuma
     inferência sobre o valor (`RF-16`).
 
-    `RF-462` (`T-446`): `PARCELA_CONTRATUAL` desconhecida de uma dívida que o
-    aluno declarou sem parcela definida é ausência estrutural, não falta de
-    informação — a pergunta da parcela nem é exibida nesse caso."""
-    sem_parcela = (
-        vocabulario is not None and divida.DIVIDA_ID in vocabulario.dividas_sem_parcela_definida
-    )
+    `RF-513`: a parcela é sempre perguntada, então `DESCONHECIDO` nela é falta
+    de informação como qualquer outra."""
     return tuple(
-        campo
-        for campo in _CAMPOS_MATERIAIS_DA_DIVIDA
-        if getattr(divida, campo) is DESCONHECIDO
-        and not (campo == "PARCELA_CONTRATUAL" and sem_parcela)
+        campo for campo in _CAMPOS_MATERIAIS_DA_DIVIDA if getattr(divida, campo) is DESCONHECIDO
     )
 
 

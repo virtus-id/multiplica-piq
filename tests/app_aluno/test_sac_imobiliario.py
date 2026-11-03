@@ -36,6 +36,6 @@ def test_pergunta_so_aparece_no_imobiliario_com_parcela_e_e_indispensavel() -> N
     (registro,) = [r for r in carregar_registros().registros if r.ID == "B5.C02A"]
     assert registro.indispensavel is True
     assert [o.valor_interno for o in registro.opcoes] == ["PRICE", "SAC"]
+    # `RF-513`: só o tipo decide; `B5.C01` saiu.
     condicao = registro.condicao_exibicao
-    variaveis = {(t.variavel, t.valor) for t in condicao.termos}  # type: ignore[union-attr]
-    assert variaveis == {("TIPO_DIVIDA", "FIN_IMOBILIARIO"), ("POSSUI_PARCELA_DEFINIDA", "SIM")}
+    assert (condicao.variavel, condicao.valor) == ("TIPO_DIVIDA", "FIN_IMOBILIARIO")  # type: ignore[union-attr]

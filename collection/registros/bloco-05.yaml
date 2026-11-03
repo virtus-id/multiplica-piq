@@ -89,27 +89,6 @@ perguntas:
       Define modelo da engine, exibição de B5.C07 (linhas reutilizáveis) e
       de B5.G03 (modalidades portáveis).
 
-  - ID: B5.A04
-    bloco: 5
-    enunciado: Qual é o status desta operação hoje?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: Está ativa., valor_interno: ATIVA}
-      - {rotulo: Está em acordo ou renegociação., valor_interno: EM_ACORDO}
-      - {rotulo: "Está sendo cobrada, mas não possui pagamento regular definido.", valor_interno: COBRANCA_SEM_PAGAMENTO}
-      - {rotulo: Outra situação., valor_interno: OUTRA}
-    VARIAVEL_GRAVADA: STATUS_DIVIDA
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      OUTRA → em análise, sem ataque. (A opção "quitada, a confirmar" saiu em
-      T-416; respostas antigas dela seguem lidas pelo motor.)
-
   # Grupo B — Valores e saldo
   - ID: B5.B03
     bloco: 5
@@ -130,38 +109,17 @@ perguntas:
       O saldo é obrigatório e exato: sem "não sei" (T-411).
 
   # Grupo C — Fluxo
-  - ID: B5.C01
-    bloco: 5
-    enunciado: >-
-      Esta dívida possui uma parcela ou prestação mensal definida
-      atualmente?
-    tipo: SIM_NAO_TALVEZ
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: Sim, valor_interno: SIM}
-      - {rotulo: Não, valor_interno: NAO}
-    VARIAVEL_GRAVADA: POSSUI_PARCELA_DEFINIDA
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      Sim → B5.C02 (a parcela é o único valor mensal da dívida: alimenta o
-      resultado do mês e a projeção). Não → sem parcela definida.
-
   - ID: B5.C02
     bloco: 5
     enunciado: Qual é o valor da parcela ou prestação que deveria ser paga atualmente?
     tipo: MOEDA
-    obrigatoriedade: [COND, REP]
+    obrigatoriedade: [OBR, REP]
     escopo_repeticao: DIVIDA_ID
     opcoes:
       - {rotulo: "R$ ______", valor_interno: null}
     VARIAVEL_GRAVADA: "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
     indispensavel: true  # RF-93 (`T-261`, `R9-8`)
-    condicao_exibicao: {tipo: IGUAL, variavel: POSSUI_PARCELA_DEFINIDA, valor: SIM}
+    condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
@@ -184,11 +142,7 @@ perguntas:
       - {rotulo: "SAC (parcelas que diminuem a cada mês).", valor_interno: SAC}
     VARIAVEL_GRAVADA: SISTEMA_AMORTIZACAO
     indispensavel: true  # sem a resposta o motor teria de adivinhar o sistema
-    condicao_exibicao:
-      tipo: E
-      termos:
-        - {tipo: IGUAL, variavel: TIPO_DIVIDA, valor: FIN_IMOBILIARIO}
-        - {tipo: IGUAL, variavel: POSSUI_PARCELA_DEFINIDA, valor: SIM}
+    condicao_exibicao: {tipo: IGUAL, variavel: TIPO_DIVIDA, valor: FIN_IMOBILIARIO}
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
@@ -377,96 +331,6 @@ perguntas:
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: false
     salto_consequencia: "Bloco 9/10 (não decide sozinha)."
-
-  # Grupo I — Documentação
-  - ID: B5.I01
-    bloco: 5
-    enunciado: Que documentos ou informações você possui hoje sobre esta dívida?
-    tipo: SELECAO_MULTIPLA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: Contrato, valor_interno: CONTRATO}
-      - {rotulo: Extrato/demonstrativo atualizado, valor_interno: EXTRATO_DEMONSTRATIVO_ATUALIZADO}
-      - {rotulo: "Documento Descritivo de Crédito — DDC ou equivalente", valor_interno: DOCUMENTO_DESCRITIVO_DE_CREDITO_DDC_OU_EQUIVALENTE}
-      - {rotulo: Fatura, valor_interno: FATURA}
-      - {rotulo: Proposta de negociação, valor_interno: PROPOSTA_DE_NEGOCIACAO}
-      - {rotulo: Comprovante/print de aplicativo ou internet banking, valor_interno: COMPROVANTE_PRINT_DE_APLICATIVO_OU_INTERNET_BANKING}
-      - {rotulo: Outro documento, valor_interno: OUTRO_DOCUMENTO}
-      - {rotulo: Não tenho nenhum documento agora, valor_interno: NAO_TENHO_NENHUM_DOCUMENTO_AGORA}
-    VARIAVEL_GRAVADA: DOCUMENTACAO_DISPONIVEL
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: "\"Não tenho nenhum documento agora\" é exclusiva."
-
-  - ID: B5.I02
-    bloco: 5
-    enunciado: >-
-      De onde vieram principalmente as informações que você acabou de
-      preencher?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    # RF-91 (`T-261`, `AC-140`, `DE-06`, `OQ-61`): nível de comprovação por
-    # opção. "Outra" é INFORMADO, salvo documento associado em `B5.I01` (do
-    # mesmo item: qualquer documento, nunca "Não tenho nenhum documento").
-    opcoes:
-      - {rotulo: Documento/contrato, valor_interno: DOCUMENTO_CONTRATO, nivel_comprovacao: COMPROVADO}
-      - {rotulo: Aplicativo ou internet banking, valor_interno: APLICATIVO, nivel_comprovacao: COMPROVADO}
-      - {rotulo: Atendimento do credor, valor_interno: ATENDIMENTO_CREDOR, nivel_comprovacao: PENDENTE_DE_CONFIRMACAO}
-      - {rotulo: Contracheque, valor_interno: CONTRACHEQUE, nivel_comprovacao: COMPROVADO}
-      - {rotulo: Minha memória, valor_interno: MEMORIA, nivel_comprovacao: INFORMADO}
-      - {rotulo: Uma combinação dessas fontes, valor_interno: COMBINACAO, nivel_comprovacao: INFORMADO}
-      - rotulo: Outra
-        valor_interno: OUTRA
-        nivel_comprovacao: INFORMADO
-        nivel_comprovacao_se:
-          nivel: COMPROVADO
-          condicao:
-            tipo: OU
-            termos:
-              - {tipo: CONTEM, variavel: DOCUMENTACAO_DISPONIVEL, valor: CONTRATO}
-              - {tipo: CONTEM, variavel: DOCUMENTACAO_DISPONIVEL, valor: EXTRATO_DEMONSTRATIVO_ATUALIZADO}
-              - {tipo: CONTEM, variavel: DOCUMENTACAO_DISPONIVEL, valor: DOCUMENTO_DESCRITIVO_DE_CREDITO_DDC_OU_EQUIVALENTE}
-              - {tipo: CONTEM, variavel: DOCUMENTACAO_DISPONIVEL, valor: FATURA}
-              - {tipo: CONTEM, variavel: DOCUMENTACAO_DISPONIVEL, valor: PROPOSTA_DE_NEGOCIACAO}
-              - {tipo: CONTEM, variavel: DOCUMENTACAO_DISPONIVEL, valor: COMPROVANTE_PRINT_DE_APLICATIVO_OU_INTERNET_BANKING}
-              - {tipo: CONTEM, variavel: DOCUMENTACAO_DISPONIVEL, valor: OUTRO_DOCUMENTO}
-    VARIAVEL_GRAVADA: FONTE_DADO
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      ORIGEM_DADO = DOCUMENTO (documento/app/contracheque) ou USUARIO
-      (memória/atendimento/combinação).
-
-  - ID: B5.I03
-    bloco: 5
-    enunciado: >-
-      As informações desta dívida foram consultadas ou atualizadas quando?
-    tipo: SELECAO_UNICA
-    obrigatoriedade: [REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: Hoje, valor_interno: HOJE}
-      - {rotulo: Nos últimos 7 dias, valor_interno: NOS_ULTIMOS_7_DIAS}
-      - {rotulo: Neste mês, valor_interno: NESTE_MES}
-      - {rotulo: Há 1–3 meses, valor_interno: HA_13_MESES}
-      - {rotulo: Há mais de 3 meses, valor_interno: HA_MAIS_DE_3_MESES}
-    VARIAVEL_GRAVADA: DATA_REFERENCIA_DADO
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      SYS: DOCUMENTO_REFERENCIA é vinculado pelo sistema quando disponível.
-      Não exigir upload universal.
 
   # Fechamento da ficha e do inventário
   - ID: B5.FIM02

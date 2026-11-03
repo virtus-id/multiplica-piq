@@ -73,16 +73,7 @@ def _decisao(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
 def test_ac174_decisao_sem_codigo_no_texto_principal(monkeypatch: pytest.MonkeyPatch) -> None:
     corpo = _decisao(monkeypatch)
 
-    assert corpo["fontes"], "premissa: o caso tem fontes de comprovação"
     assert _codigos_no_texto_principal(corpo) == []
-
-
-def test_t328_fontes_pela_divida_e_pelo_dado(monkeypatch: pytest.MonkeyPatch) -> None:
-    fontes = _decisao(monkeypatch)["fontes"]
-
-    fonte = next(f for f in fontes if f["item_id"] == "D011" and f["origem"] == "B5.I02")
-    assert fonte["nome"] == _CHEQUE
-    assert fonte["dado"] == "Fonte das informações"
 
 
 def test_t328_ordem_e_meses_de_quitacao_por_nome(monkeypatch: pytest.MonkeyPatch) -> None:
