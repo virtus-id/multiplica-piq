@@ -246,6 +246,7 @@ rotulos_de_dados:
   FONTE_DADO: "Fonte das informações"
   "FONTE_DADO (proposta)": "Fonte da proposta de quitação"
   "FONTE_DADO (troca)": "Fonte da proposta de troca"
+  STATUS_DIVIDA: "Situação da dívida"
   SALDO_DEVEDOR_ATUAL: "Saldo devedor atual"
   VALOR_QUITACAO_HOJE: "Valor para quitar hoje"
   QUITACAO_CONSULTADA: "Consultou o valor de quitação"
@@ -768,6 +769,11 @@ estabilizacao_por_divida:
     o crescimento das dívidas ou quando você atualizar as suas informações.
   divida_linha: "{nome}: parcela de {parcela}, juros de {juros} por mês. O saldo aumenta {falta} por mês."
   aviso_3: "Este plano mostra só a ordem de quitação. O cronograma, com prazos, só aparece quando o valor livre do mês cobrir o crescimento das dívidas."
+  # `OQ-71` (T-472): a orientação é a mesma para todos, nesta ordem, só com o que o curso ensina
+  # (aulas 5, 10 e 11). Sugestão, a validar pelo produto.
+  passos_titulo: "O que fazer agora"
+  passo_1: "Reduza os gastos: veja o que dá para reduzir, pausar ou eliminar no seu mês. Esse dinheiro ajuda a parar o crescimento das dívidas e ainda serve de apoio para negociar. A aula 5 do curso mostra como."
+  passo_2: "Renegocie a dívida que mais cresce: junte os documentos da dívida, procure o credor e faça a proposta por escrito. Confira se o acordo reduz o custo e não apenas aumenta o prazo. As aulas 10 e 11 do curso mostram como."
 
 # ---------------------------------------------------------------------------
 # Curso de entrada (Servidor Sem Dívidas) — T-352 a T-354.
@@ -833,6 +839,7 @@ curso_ssd:
   quadro_por_cenario:
     padrao: [12, 9, 10, 11, 19, 27]
     estabilizacao: [5, 14, 24]
+    estabilizacao_por_divida: [5, 10, 14, 11]
   melhorar_titulo: "Como melhorar o seu plano"
   melhorar_intro: >-
     Não existe um percentual de economia que sirva para todo mundo, porque

@@ -1845,7 +1845,7 @@ def _incomodo_da_divida(
 
 
 def _contexto_do_curso(
-    textos: TextosCanonicosPlano, metodo: str, estabilizacao: bool
+    textos: TextosCanonicosPlano, metodo: str, estabilizacao: bool, por_divida: bool = False
 ) -> ContextoCursoSSD | None:
     """T-352/T-353 — o quadro de aulas do plano. A escolha das aulas é um
     lookup no YAML por método (ou "estabilizacao"); o título e o motivo de
@@ -1855,7 +1855,7 @@ def _contexto_do_curso(
         return None
     aulas = bruto.get("aulas") or {}
     quadros = bruto.get("quadro_por_cenario") or {}
-    chave = "estabilizacao" if estabilizacao else metodo
+    chave = ("estabilizacao_por_divida" if por_divida else "estabilizacao") if estabilizacao else metodo
     numeros = quadros.get(chave) or quadros.get("padrao") or []
     escolhidas = tuple(
         (str(n), str(aulas[n]["titulo"]), str(aulas[n]["motivo"])) for n in numeros if n in aulas
@@ -2328,6 +2328,7 @@ def _montar_contexto_plano(
             textos,
             snapshot.METODO_RECOMENDADO_PIQ.value,
             snapshot.diagnostico.MODO_ESTABILIZACAO,
+            snapshot.diagnostico.MOTIVO_ESTABILIZACAO is MOTIVO_ESTABILIZACAO.DIVIDA_QUE_CRESCE,
         ),
         aviso_de_conferencia=(
             textos.avisos.get("numeros_nao_conferidos", "")

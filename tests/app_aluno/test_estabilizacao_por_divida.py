@@ -56,8 +56,33 @@ def test_rf_480_mensagem_propria_sem_dizer_que_o_aluno_esta_no_deficit() -> None
     # nenhuma frase do deficitário
     assert "entra menos do que sai" not in html
     assert "faltam cortar" not in html
-    assert "Onde olhar nos seus gastos" not in html
     assert not any("sobra" in v.lower() for v in textos.estabilizacao_por_divida.values())
+
+
+def test_oq71_orientacao_em_dois_passos_na_ordem_e_aulas_do_curso() -> None:
+    """`OQ-71` (`T-472`): reduzir gastos e depois renegociar, a mesma orientação
+    em todos os casos; o quadro de aulas é o da dívida que cresce, só do curso."""
+    textos = carregar_textos_canonicos()
+    contexto = montar_contexto_plano(_com_divida_que_cresce(_snapshot()), textos)
+    contexto = replace(contexto, maiores_gastos=(("Aluguel", "R$ 2.500,00"),))
+    html = renderizar_html_do_plano(contexto, textos).replace("&#39;", "'")
+
+    passo_1 = textos.estabilizacao_por_divida["passo_1"]
+    passo_2 = textos.estabilizacao_por_divida["passo_2"]
+    assert "O que fazer agora" in html
+    assert 0 < html.index(passo_1) < html.index(passo_2)
+    assert "aula 5" in passo_1 and "aulas 10 e 11" in passo_2
+    assert "Onde olhar nos seus gastos" in html
+    assert contexto.curso_ssd is not None
+    assert [n for n, _, _ in contexto.curso_ssd.aulas] == ["5", "10", "14", "11"]
+
+
+def test_oq71_deficit_continua_com_o_quadro_e_os_passos_do_deficitario() -> None:
+    textos = carregar_textos_canonicos()
+    contexto = montar_contexto_plano(_snapshot(renda=Decimal("1000.00")), textos)
+    assert contexto.curso_ssd is not None
+    assert [n for n, _, _ in contexto.curso_ssd.aulas] == ["5", "14", "24"]
+    assert "Renegocie a dívida que mais cresce" not in renderizar_html_do_plano(contexto, textos)
 
 
 def test_rf_480_resultado_negativo_continua_com_a_mensagem_do_deficitario() -> None:

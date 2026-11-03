@@ -15,7 +15,7 @@
 {% set t = textos.estabilizacao %}
 {% if ESTABILIZACAO_POR_DIVIDA %}
 {# `RF-480` (T-462): mês positivo, mas a parcela de alguma dívida não cobre os juros.
-   Mesmo caminho do deficitário, mensagem própria; só fatos (a orientação aguarda `OQ-71`). #}
+   Mesmo caminho do deficitário, mensagem própria; orientação em dois passos (`OQ-71`, `T-472`). #}
 {% set p = textos.estabilizacao_por_divida %}
 <section class="secao">
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", p.get("titulo", ""), "conferencia") }}
@@ -31,6 +31,13 @@
         <li>{{ p.get("divida_linha", "").format(nome=nome, parcela=parcela, juros=juros, falta=falta) }}</li>
         {% endfor %}
     </ul>
+    {% if p.get("passo_1") %}
+    <h3 class="subtitulo" style="margin: 2mm 0 1.5mm;">{{ p.get("passos_titulo", "") }}</h3>
+    <ol class="passos">
+        <li>{{ p.get("passo_1", "") }}</li>
+        <li>{{ p.get("passo_2", "") }}</li>
+    </ol>
+    {% endif %}
     {% if t.get("aviso_1") %}
     <div class="nota-lateral">
         <strong>{{ t.get("aviso_titulo", "") }}</strong>
@@ -64,7 +71,7 @@
 </section>
 {% endif %}
 
-{% if maiores_gastos and not ESTABILIZACAO_POR_DIVIDA %}
+{% if maiores_gastos %}
 {% if ns is defined %}{% set ns.n = ns.n + 1 %}{% endif %}
 <section class="secao">
     {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", t.get("gastos_titulo", ""), "dinheiro") }}

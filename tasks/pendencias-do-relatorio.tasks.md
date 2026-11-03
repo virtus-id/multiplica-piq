@@ -43,3 +43,16 @@
 - [x] Testes: 4 linhas no aluno3, rótulo nas duas sem quitação; plano em que tudo quita inalterado
 
 **Status:** `[x] implementada (2026-11-02)`
+
+### `T-472` — Orientação ao aluno na dívida que cresce (`OQ-71`)
+- **Rastreia:** `RF-480`, `OQ-71`
+- **Dependências:** `T-462`
+- [x] Texto: `passos_titulo`, `passo_1` (reduzir gastos, aula 5) e `passo_2` (renegociar a dívida que mais cresce, aulas 10 e 11) em `estabilizacao_por_divida`, sem siglas e sem "sobra"
+- [x] PDF e tela: lista numerada de passos e a lista "Onde olhar nos seus gastos" também no caso de dívida que cresce
+- [x] Quadro de aulas próprio: 5, 10, 14 e 11 (hoje usa o do deficitário)
+- [x] Testes: passos na ordem, aulas 5 e 10 no quadro, nenhum valor com "sobra", lista de gastos presente
+
+**Resultado (2026-11-03):** o texto vai a aprovação do produto junto com o PR. Na `main`, o PR #30 tinha tirado `STATUS_DIVIDA` de `rotulos_de_dados` e quebrado `test_t326_todo_dado_de_entrada_tem_rotulo`; a chave voltou aqui.
+
+**Status:** `[x] implementada (2026-11-03)`
+
