@@ -362,20 +362,13 @@ export function DadosQueProduziramOPlano({ entradas }: { entradas: EstadoInputs 
   )
 }
 
-const SITUACAO_DO_CENARIO: Readonly<Record<string, string>> = {
-  DEFICITARIO: 'Continua deficitário',
-  EQUILIBRADO: 'Orçamento equilibrado',
-  COM_SOBRA: 'Com sobra potencial',
-}
-
 /**
  * `RF-452` (`T-438`): o aluno deficitário para o revisor. Tudo vem do snapshot
- * já formatado; a tela não calcula. Cenários de economia são SIMULAÇÃO (hipótese
- * de gasto menor), nunca plano homologado; sem capacidade de aporte não há prazo
- * nem custo, e o que o motor não calcula aparece como "não disponível".
+ * já formatado; a tela não calcula. O que o motor não calcula aparece como
+ * "não disponível". Os cenários de economia de 5% e 10% saíram (`T-471`).
  */
 export function CenariosDoDeficitario({ bloco }: { bloco: BlocoDoDeficitario }) {
-  const { se_nada_mudar: semAcao, cenarios } = bloco
+  const { se_nada_mudar: semAcao } = bloco
   return (
     <section className="cartao" aria-labelledby="titulo-deficitario">
       <h2 id="titulo-deficitario" className="m-0">
@@ -387,67 +380,34 @@ export function CenariosDoDeficitario({ bloco }: { bloco: BlocoDoDeficitario }) 
         pagamento: pagar além das parcelas depende de haver sobra.
       </p>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[480px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b-2 border-line">
-              {['Cenário', 'Economia por mês', 'Resultado do mês', 'Situação', 'Aporte possível', 'Prazo', 'Saldo em 12 / 24 / 60 meses'].map(
-                (titulo) => (
-                  <th key={titulo} scope="col" className="px-2 py-2 font-bold">
-                    {titulo}
-                  </th>
-                ),
-              )}
+              {['Cenário', 'Resultado do mês', 'Saldo no horizonte'].map((titulo) => (
+                <th key={titulo} scope="col" className="px-2 py-2 font-bold">
+                  {titulo}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             <tr className="border-b border-line align-top">
               <td className="px-2 py-2 font-bold">Se nada mudar</td>
-              <td className="px-2 py-2 text-muted">—</td>
               <td className="px-2 py-2 tabular-nums">{bloco.resultado_mensal}</td>
-              <td className="px-2 py-2">Deficitário</td>
-              <td className="px-2 py-2 text-muted">{NAO_DISPONIVEL}</td>
-              <td className="px-2 py-2 text-muted">{NAO_DISPONIVEL}</td>
               <td className="px-2 py-2 tabular-nums">
                 {semAcao
                   ? `Em ${semAcao.horizonte_meses} meses: ${semAcao.saldo_no_horizonte} (hoje ${semAcao.saldo_inicial})`
                   : NAO_DISPONIVEL}
               </td>
             </tr>
-            {(cenarios ?? []).map((c) => (
-              <tr key={c.percentual} className="border-b border-line align-top">
-                <td className="px-2 py-2 font-bold">Economizando {c.percentual} da renda</td>
-                <td className="px-2 py-2 tabular-nums">{c.economia_mensal}</td>
-                <td className="px-2 py-2 tabular-nums">{c.resultado_ajustado}</td>
-                <td className="px-2 py-2">{SITUACAO_DO_CENARIO[c.situacao] ?? c.situacao}</td>
-                <td className="px-2 py-2 tabular-nums">{c.executavel ? c.capacidade_de_aporte : 'sem aporte'}</td>
-                <td className="px-2 py-2">
-                  {c.executavel && c.prazo_meses != null
-                    ? c.estourou_horizonte
-                      ? 'não quita em 10 anos'
-                      : `${c.prazo_meses} meses`
-                    : NAO_DISPONIVEL}
-                </td>
-                <td className="px-2 py-2 tabular-nums">
-                  {c.saldos.length > 0 ? c.saldos.map((s) => s.saldo).join(' / ') : NAO_DISPONIVEL}
-                </td>
-              </tr>
-            ))}
           </tbody>
         </table>
       </div>
-      {cenarios === null && (
-        <p className="nota m-0">Os cenários de economia não estão disponíveis nesta versão de parâmetros.</p>
-      )}
       <ul className="nota m-0 list-disc pl-5">
-        <li>
-          Economia é hipótese de gasto menor (renda × percentual, abatida das despesas), não renegociação nem
-          dinheiro novo. O motor recalcula o plano com o resultado ajustado.
-        </li>
         <li>
           "Se nada mudar" não presume que o déficit seja coberto por cheque especial, cartão ou novo empréstimo; o
           saldo reflete juros sobre parcelas que podem não cobri-los.
         </li>
-        <li>Cenário sem aporte possível não tem prazo, custo nem fichas de pagamento: seria prometer o que o orçamento não sustenta.</li>
       </ul>
     </section>
   )

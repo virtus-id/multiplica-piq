@@ -15,11 +15,15 @@
 - **Consequência:** os cenários de 5% e 10% devem ler o resultado ajustado e a capacidade de aporte; enquanto a capacidade for ≤ 0, o cenário não pode exibir prazo, custo nem fichas mensais (RF-450). O saldo de milhões do "se nada mudar" precisa de nota de limitação (juros compostos sobre parcela insuficiente) antes de ir ao aluno.
 
 ### `T-435` — Parâmetros 1.0.3 (5% e 10%)
+
+> **Revogada em 2026-11-03 (T-471):** a versão 1.0.3 foi removida.
 - **Rastreia:** `RF-448`
 - [x] `parameters/parametros-1.0.3.json` (`P_ECONOMIA_RENDA_CENARIO_1 = 0.05`, `_2 = 0.10`; `ENGINE_VERSION` segue `1.0.2`), esquema com as duas chaves **opcionais** (1.0.1 e 1.0.2 continuam válidas), migração `011_parametros_economia.sql` (colunas `NULL`) e `fonte_parametros` do Supabase ignorando coluna nula.
 - [x] **Ativação cancelada (2026-11-03):** os cenários de 5% e 10% foram removidos do produto pelo responsável; nada a ativar em produção. O código será retirado em tarefa própria.
 
 ### `T-436` — Classificação e cenários de economia no motor
+
+> **Revogada em 2026-11-03 (T-471):** os cenários de economia foram removidos.
 - **Rastreia:** `RF-446`, `RF-448`, `RF-449`, `RF-454` · **Dependências:** `T-434`, `T-435`
 - [x] `engine/cenarios_economia.py::calcular_cenarios_economia` (o motor recalcula com `DESPESAS_OPERACIONAIS_ATUAIS` reduzida em renda × percentual; sem fórmula nova), chamado por `calcular_plano` só em `MODO_ESTABILIZACAO` e sem recursão; campo opcional `SnapshotOrdem.cenarios_economia`; persistência tolerante (Supabase `dados_completos` e leitura em arquivo). Versão de parâmetros sem os percentuais → `None` (nada muda hoje, com a 1.0.2 vigente). Não executável (sem capacidade de aporte) → sem prazo, custo nem saldos. Saldos em 12/24/60 meses só nos executáveis; o "se nada mudar" nos horizontes fica para a T-437.
 
@@ -75,3 +79,16 @@
 ### `T-458` — Ponto de partida do aluno no positivo
 - **Rastreia:** `RF-478`, `RF-474`, `RF-477`
 - [x] `_graficos_do_mes` (qualquer cenário), parcial `grafico_do_mes.html`, painel e cartão de valor extra em `plano.html`/`painel_do_mes.html`, nota neutra do gráfico no YAML; testes em `test_pendencias_do_relatorio.py` e `test_curso_e_incomodo.py`.
+
+### `T-471` — Remover os cenários de economia de 5% e 10% (revoga RF-448 itens 2 e 3, RF-449, T-435, T-436)
+- **Tipo:** `CHANGE` · **Dependências:** nenhuma · **Rastreia:** decisão do responsável do produto de 2026-11-03
+- **Por quê:** os cenários só apareciam ao revisor com os parâmetros 1.0.3, que nunca foram ativados em produção; o produto os retirou.
+- **Escopo:** `engine/cenarios_economia.py` (apaga); `engine/motor.py` e `engine/snapshot.py` (sem o campo `cenarios_economia`); `persistencia/*/repositorio_snapshots.py` (**a leitura ignora** a chave em snapshots já gravados: snapshots são imutáveis, V-01); `parameters/parametros-1.0.3.json` e as chaves `P_ECONOMIA_*` do esquema (apagados; a migração `011` já aplicada fica); `app/http/rotas_api_plano.py` (sem `cenarios`); tela do revisor (`PartesDaConferencia`, `api.ts`); `hashes_congelados.json` (rehash).
+- [x] Spec: RF-448 itens 2 e 3 e RF-449 revogados
+- [x] Código removido; leitura de snapshot antigo com a chave continua funcionando (teste)
+- [x] Hashes refeitos; `GAB-A/B/C` idênticos
+- [x] Testes dos arquivos tocados verdes; falhas só as conhecidas
+
+**Resultado (2026-11-03):** snapshots em produção: 44, todos `1.0.1`, nenhum com `cenarios_economia`; a tabela de parâmetros só tem a `1.0.1`. A migração `011` já estava aplicada (colunas `NULL`): **fica**, é histórico aplicado; as colunas ficam sem uso. Os hashes de `motor.py` e `snapshot.py` voltaram a bater (a T-436 os alterou sem rehash). Falhas restantes nos testes tocados: só as conhecidas da `main`.
+
+**Status:** `[x] implementada (2026-11-03)`

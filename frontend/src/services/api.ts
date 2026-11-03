@@ -458,20 +458,6 @@ export interface CasoParaRevisao {
   fila: ItemDaFila
 }
 
-export interface CenarioDeEconomiaDoRevisor {
-  percentual: string
-  economia_mensal: string
-  resultado_ajustado: string
-  situacao: 'DEFICITARIO' | 'EQUILIBRADO' | 'COM_SOBRA'
-  executavel: boolean
-  capacidade_de_aporte: string
-  metodo: string | null
-  prazo_meses: number | null
-  custo_futuro_total: string | null
-  estourou_horizonte: boolean | null
-  saldos: { mes: number; saldo: string }[]
-}
-
 export interface BlocoDoDeficitario {
   resultado_mensal: string
   deficit: string
@@ -481,8 +467,6 @@ export interface BlocoDoDeficitario {
     saldo_no_horizonte: string
     dividas_que_crescem: number
   } | null
-  /** `null` quando a versão de parâmetros vigente não define os percentuais. */
-  cenarios: CenarioDeEconomiaDoRevisor[] | null
 }
 
 export function obterCasoParaRevisao(casoId: string): Promise<CasoParaRevisao> {

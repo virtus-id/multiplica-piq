@@ -144,29 +144,6 @@ def _bloco_deficitario(snapshot: Any) -> dict[str, object] | None:
             "saldo_no_horizonte": formatar_dinheiro_br(sem.SALDO_NO_HORIZONTE),
             "dividas_que_crescem": sem.DIVIDAS_QUE_CRESCEM,
         },
-        "cenarios": None
-        if snapshot.cenarios_economia is None
-        else [
-            {
-                "percentual": f"{int(c.PERCENTUAL * 100)}%",
-                "economia_mensal": formatar_dinheiro_br(c.ECONOMIA_MENSAL),
-                "resultado_ajustado": formatar_dinheiro_br(c.RESULTADO_AJUSTADO),
-                "situacao": c.SITUACAO,
-                "executavel": c.EXECUTAVEL,
-                "capacidade_de_aporte": formatar_dinheiro_br(c.CAPACIDADE_ATAQUE_ATUAL),
-                "metodo": c.METODO,
-                "prazo_meses": c.PRAZO_TOTAL,
-                "custo_futuro_total": None
-                if c.CUSTO_FUTURO_TOTAL is None
-                else formatar_dinheiro_br(c.CUSTO_FUTURO_TOTAL),
-                "estourou_horizonte": c.ESTOUROU_HORIZONTE,
-                "saldos": [
-                    {"mes": mes, "saldo": formatar_dinheiro_br(saldo)}
-                    for mes, saldo in c.SALDOS_NOS_HORIZONTES
-                ],
-            }
-            for c in snapshot.cenarios_economia
-        ],
     }
 
 

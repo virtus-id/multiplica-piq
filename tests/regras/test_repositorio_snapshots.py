@@ -792,3 +792,25 @@ def test_T164_snapshot_anterior_sem_a_chave_tem_projecao_vazia(
     reconstruido = RepositorioSnapshotsArquivo(caminho).obter(original.SNAPSHOT_ID)
 
     assertar_exato(reconstruido.projecao_extraordinarios, PROJECAO_VAZIA)
+
+
+def test_t471_snapshot_antigo_com_cenarios_de_economia_continua_legivel(
+    tmp_path: Path, _estado_e_parametros: tuple[EstadoFinanceiro, Parametros]
+) -> None:
+    """`T-471`: os cenários de economia foram removidos; a linha gravada com a
+    chave `cenarios_economia` (snapshots são imutáveis, `V-01`) é lida e a chave
+    é ignorada."""
+    import json
+
+    estado, parametros = _estado_e_parametros
+    caminho = tmp_path / "snapshots.jsonl"
+    original = _montar_snapshot_gab_c(estado=estado, parametros=parametros)
+    RepositorioSnapshotsArquivo(caminho).anexar(original)
+    bruto = json.loads(caminho.read_text(encoding="utf-8"))
+    bruto["cenarios_economia"] = [{"PERCENTUAL": "0.05", "ECONOMIA_MENSAL": "100"}]
+    caminho.write_text(json.dumps(bruto) + "\n", encoding="utf-8")
+
+    reconstruido = RepositorioSnapshotsArquivo(caminho).obter(original.SNAPSHOT_ID)
+
+    assert reconstruido.SNAPSHOT_ID == original.SNAPSHOT_ID
+    assert not hasattr(reconstruido, "cenarios_economia")
