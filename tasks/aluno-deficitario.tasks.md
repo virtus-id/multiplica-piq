@@ -17,7 +17,7 @@
 ### `T-435` — Parâmetros 1.0.3 (5% e 10%)
 - **Rastreia:** `RF-448`
 - [x] `parameters/parametros-1.0.3.json` (`P_ECONOMIA_RENDA_CENARIO_1 = 0.05`, `_2 = 0.10`; `ENGINE_VERSION` segue `1.0.2`), esquema com as duas chaves **opcionais** (1.0.1 e 1.0.2 continuam válidas), migração `011_parametros_economia.sql` (colunas `NULL`) e `fonte_parametros` do Supabase ignorando coluna nula.
-- [ ] **Ativação (fora do código, em produção):** aplicar a migração 011, rodar `scripts/semear_parametros.py --versao 1.0.3` e só então trocar `PARAMETROS_VERSION_VIGENTE`. Não feito: depende das OQ-1 a OQ-6.
+- [x] **Ativação cancelada (2026-11-03):** os cenários de 5% e 10% foram removidos do produto pelo responsável; nada a ativar em produção. O código será retirado em tarefa própria.
 
 ### `T-436` — Classificação e cenários de economia no motor
 - **Rastreia:** `RF-446`, `RF-448`, `RF-449`, `RF-454` · **Dependências:** `T-434`, `T-435`

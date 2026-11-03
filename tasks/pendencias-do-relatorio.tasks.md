@@ -37,7 +37,7 @@
 
 ### `T-468` — Dívida que não quita no horizonte na tabela da ordem
 - **Rastreia:** `RF-481`, `AC-514`
-- **Bloqueada por:** `T-467` e aprovação do texto "Não quita em 10 anos nas condições atuais".
+- **Bloqueada por:** `T-467` e aprovação do texto (aprovado em 2026-11-03 como "Não será quitada com os valores de hoje").
 - [x] Auditar quem lê `ORDEM_QUITACAO` supondo mês de quitação (`report/plano.py`, `app/http/serializacao_plano.py`, `PlanoDoDeficitario.tsx`, `PlanoDoAluno.tsx`) e tratar a posição sem mês
 - [x] Texto novo no `textos-canonicos.yaml`; linha da tabela e cartão no PDF e na tela
 - [x] Testes: 4 linhas no aluno3, rótulo nas duas sem quitação; plano em que tudo quita inalterado
