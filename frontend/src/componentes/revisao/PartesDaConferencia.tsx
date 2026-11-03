@@ -202,7 +202,7 @@ export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: E
         <table className="w-full min-w-[760px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b-2 border-line">
-              {['Ordem', 'Dívida', 'Saldo devedor', 'Taxa de juros', 'Parcela atual', 'Mês de quitação', 'Situação', ''].map(
+              {['Ordem', 'Dívida', 'Saldo devedor', 'Taxa de juros', 'Parcela atual', 'Mês de quitação', ''].map(
                 (titulo, i) => (
                   <th key={`${titulo}-${i}`} scope="col" className="px-2 py-2 font-bold">
                     {titulo || <span className="sr-only">Detalhes</span>}
@@ -228,7 +228,6 @@ export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: E
                     <Celula valor={campo(campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} />
                     <Celula valor={campo(campos, 'PARCELA_CONTRATUAL')} />
                     <Celula valor={p.mes_de_quitacao != null ? (p.mes_de_quitacao_rotulo ?? `mês ${p.mes_de_quitacao}`) : undefined} />
-                    <Celula valor={campo(campos, 'STATUS_DIVIDA')} />
                     <td className="px-2 py-2 text-right">
                       <button
                         type="button"
@@ -280,7 +279,6 @@ export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: E
                   <Celula valor={campo(d.campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} />
                   <Celula valor={campo(d.campos, 'PARCELA_CONTRATUAL')} />
                   <Celula valor={undefined} />
-                  <Celula valor={campo(d.campos, 'STATUS_DIVIDA')} />
                   <td className="px-2 py-2" />
                 </tr>
               </FragmentoDaDivida>

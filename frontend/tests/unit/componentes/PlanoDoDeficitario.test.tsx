@@ -191,7 +191,7 @@ describe("PlanoDoAluno — aluno deficitário", () => {
     const quitavel = posicao(1, "Consignado");
     const semQuitacao = {
       ...posicao(2, "Cheque especial"),
-      fora_do_horizonte: "Não quita em 10 anos nas condições atuais",
+      fora_do_horizonte: "Não será quitada com os valores de hoje",
     };
     render(<PlanoDoAluno plano={plano({ ordem: [quitavel, semQuitacao] })} />);
 
@@ -200,7 +200,7 @@ describe("PlanoDoAluno — aluno deficitário", () => {
     });
     expect(within(secao).getByText("2. Cheque especial")).toBeTruthy();
     expect(
-      within(secao).getAllByText("Não quita em 10 anos nas condições atuais"),
+      within(secao).getAllByText("Não será quitada com os valores de hoje"),
     ).toHaveLength(1);
   });
 
