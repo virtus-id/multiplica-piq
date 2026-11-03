@@ -741,8 +741,8 @@ estabilizacao:
 
 # `RF-480` (T-462) — o mês fecha em zero ou mais, mas a parcela de alguma dívida
 # não cobre os juros e o valor livre não estanca o crescimento. Mesmo caminho do
-# deficitário, mensagem própria. Só fatos: a orientação ao aluno aguarda o
-# especialista (`OQ-71`). Aprovado pelo produto em 2026-11-03. Sem a palavra "sobra".
+# deficitário, mensagem própria: os fatos e, depois, a orientação em dois passos
+# (`OQ-71`, `T-472`). Aprovado pelo produto em 2026-11-03. Sem a palavra "sobra".
 estabilizacao_por_divida:
   titulo: "Seu mês fecha positivo, mas suas dívidas estão crescendo"
   resultado_rotulo: "Valor livre no mês"
