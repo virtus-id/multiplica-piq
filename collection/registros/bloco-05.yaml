@@ -64,6 +64,7 @@ perguntas:
     bloco: 5
     enunciado: Que tipo de dívida é esta?
     tipo: SELECAO_UNICA
+    apresentacao: MENU
     obrigatoriedade: [REP]
     escopo_repeticao: DIVIDA_ID
     opcoes:
