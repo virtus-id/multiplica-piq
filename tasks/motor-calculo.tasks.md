@@ -7617,6 +7617,8 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 
 ### `T-466` — Extra do mês cobre primeiro a falta das dívidas que crescem
 
+> **Decisão de 2026-11-03:** adiada, fica no backlog. Só se faz se um caso real mostrar o problema.
+
 - **Tipo:** `FEATURE` · **Dependências:** `T-460` · **Rastreia:** `RF-79`, `AC-143`, `EC-58`
 - **Arquivos:** `engine/ciclo_mensal.py` (passo `M-04`), `engine/prognostico.py`, `hashes_congelados.json`, testes
 - **Por que separada:** mexe na aplicação do extra do ciclo mensal (alvo, resíduo, `DividaNoMes`, conservação por mês), a parte mais sensível do motor congelado. A classificação (`T-460`) já resolve o caso em que a sobra não cobre as faltas.

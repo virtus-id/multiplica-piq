@@ -176,7 +176,7 @@ def test_rf467_saldo_devedor_e_parcela_continuam_exigidos_antes_do_envio() -> No
 
     parcela = registros["B5.C02"]
     assert parcela.indispensavel is True and parcela.admite_nao_sei is False
-    assert "COND" in {o.name for o in parcela.obrigatoriedade}
+    assert "OBR" in {o.name for o in parcela.obrigatoriedade}  # sempre perguntada (RF-513)
 
     assert "B5.B05A" not in registros  # a pergunta do valor de quitação não existe mais
 

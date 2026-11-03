@@ -246,7 +246,6 @@ rotulos_de_dados:
   FONTE_DADO: "Fonte das informações"
   "FONTE_DADO (proposta)": "Fonte da proposta de quitação"
   "FONTE_DADO (troca)": "Fonte da proposta de troca"
-  STATUS_DIVIDA: "Situação da dívida"
   SALDO_DEVEDOR_ATUAL: "Saldo devedor atual"
   VALOR_QUITACAO_HOJE: "Valor para quitar hoje"
   QUITACAO_CONSULTADA: "Consultou o valor de quitação"
@@ -609,7 +608,7 @@ dividas:
   termina_no_valor: "Mês {mes}"
   nao_disponivel: "não disponível"
   # `RF-481` (T-468): a dívida que a simulação não quita em 10 anos. Sugestão, a validar.
-  fora_do_horizonte: "Não quita em 10 anos nas condições atuais"
+  fora_do_horizonte: "Não será quitada com os valores de hoje"
 
 reserva_explicacao: >-
   É a parte da sua reserva que você decidiu usar neste plano. Esse dinheiro
@@ -948,14 +947,14 @@ prognostico:
   azul_nota: "O plano que você acabou de ler, todo mês."
   azul_veredito: "Quitação prevista em {prazo}."
   azul_complemento: " Até {total} para dívidas por mês."
-  azul_veredito_nao_quita: "Neste ritmo, o plano não quita tudo em 10 anos."
+  azul_veredito_nao_quita: "Neste ritmo, nem todas as dívidas serão quitadas."
   verde_titulo: "Potencializando seu plano"
   verde_nota: "O mesmo plano, com mais {extra} por mês, o valor que você informou. É uma simulação sua, que não altera o plano aprovado."
   verde_veredito: "Quitação prevista em {prazo}: {antecipados} antes."
   verde_complemento: " Até {total} por mês."
   verde_veredito_mesmo_prazo: "Quitação prevista em {prazo}, no mesmo prazo, com custo menor."
   verde_veredito_sem_ganho: "Quitação prevista em {prazo}: o prazo e o custo do plano não mudam."
-  verde_veredito_nao_quita: "Mesmo com o valor extra, não quita tudo em 10 anos."
+  verde_veredito_nao_quita: "Mesmo com o valor extra, nem todas as dívidas serão quitadas."
   nenhuma: "Nenhuma no período"
   mes: "Mês"
   rotulo_divida_inicial: "Dívida inicial"
