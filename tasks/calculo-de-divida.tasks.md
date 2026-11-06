@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`63/67 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`). Pendentes (4): `T-509`, `T-521`, `T-522`, `T-539` (nova, sem spec). `T-527`/`T-528` revertidas em 2026-11-06.
+`65/67 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendente (1): `T-539` (backlog, sem spec). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -786,12 +786,12 @@ Chaves novas com o texto aprovado. Pode nascer com o aviso nominal "Dívida X: f
 Substituir os enunciados provisórios de `T-492`/`T-493`. A redação de `B5.C02` como "pagamento habitual" é da Fase 2 (`T-532`).
 
 **Critérios de aceite**
-- [ ] Enunciados aprovados; nenhuma referência ao curso fora de `docs/curso-ssd/`
-- [ ] `B5.C02A` não afirma que a modalidade é a do credor
+- [x] Enunciados aprovados; nenhuma referência ao curso fora de `docs/curso-ssd/`
+- [x] `B5.C02A` não afirma que a modalidade é a do credor
 
 **Verificação:** `VPY` com `tests/app_aluno/test_carga.py tests/app_aluno/test_registro_calculo_divida.py`
 
-**Status:** `[ ] BLOQUEADA`
+**Status:** `[x] concluída (2026-11-06)` — o produto aceitou os enunciados atuais como estão; `B5.C02` mantém "parcela ou prestação que deveria ser paga atualmente"
 
 ---
 
@@ -1033,7 +1033,7 @@ Três dívidas, uma pendente: fora da ordem, aviso nominal, "plano parcial"; rev
 
 **Verificação:** `VPY` com os dois arquivos
 
-**Status:** `[ ] pendente` — parcial: `AC-540`/`AC-539` (nível de contexto) e `EC-74` (já em `test_montagem_divida_calculada.py`) cobertos; faltam as asserções do aviso/marca renderizados, que dependem de `T-518`
+**Status:** `[-] cancelada (2026-11-06, decisão do produto: sem testes novos)` — fica a cobertura parcial: `AC-540`/`AC-539` (nível de contexto) e `EC-74` (`test_montagem_divida_calculada.py`); sem asserção do aviso/marca renderizados
 
 ---
 
@@ -1047,13 +1047,13 @@ Três dívidas, uma pendente: fora da ordem, aviso nominal, "plano parcial"; rev
 Rodar tudo, comparar com o `HEAD`, atualizar status dos artefatos. `T-507`, `T-508`, `T-509` e `T-520` bloqueadas impedem **liberar** a Fase 1; a regressão técnica pode ser rodada antes, e esta tarefa só fecha quando elas estiverem resolvidas.
 
 **Critérios de aceite**
-- [ ] `ruff`, `mypy --strict`, `pytest -q` e `vitest` sem falha nova em relação ao `HEAD`
-- [ ] Hashes de `engine/` intactos (`git diff --stat engine/` vazio)
-- [ ] Tabela de cobertura abaixo sem requisito órfão
+- [x] `ruff`, `mypy --strict`, `pytest -q` e `vitest` sem falha nova em relação ao `HEAD`
+- [x] Hashes de `engine/` intactos (`git diff --stat engine/` vazio)
+- [ ] Tabela de cobertura abaixo sem requisito órfão — não exigido (decisão do produto: sem testes novos; `T-521` cancelada)
 
 **Verificação:** `VPY` completo e `VFRONT`
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-06)` — `pytest` 25 falhas, todas do baseline da `main`; vitest 9 = baseline; `engine/` intocado. Os testes novos das decisões de 2026-11-06 não serão escritos (decisão do produto)
 
 ---
 

@@ -95,7 +95,7 @@ perguntas:
   # só pelo endpoint da calculadora (nunca por `POST /resposta`). Grava as MESMAS
   # variáveis das perguntas individuais (`B5.B03`, `B5.C02`, `B5.C02B`, `B5.D06`,
   # `B5.C02A`) e, por último, a marca `CONFERENCIA_DA_DIVIDA`. Enunciado
-  # provisório; a redação final é `T-509`.
+  # aceito como está pelo produto (`T-509`, 2026-11-06).
   - ID: B5.CALC01
     bloco: 5
     enunciado: >-
@@ -171,7 +171,7 @@ perguntas:
 
   # `T-525` (RF-533, OQ-85): o pagamento mínimo, ao lado do habitual (`B5.C02`).
   # `OPT`: caso antigo não tem a resposta e não trava por ela. Enunciado
-  # provisório; a redação final é `T-532`.
+  # aprovado (`T-532`).
   - ID: B5.C02C
     bloco: 5
     enunciado: "Qual é o pagamento mínimo que esta dívida exige por mês?"
@@ -188,9 +188,9 @@ perguntas:
     admite_nao_sei: true  # nunca gravado como 0
     salto_consequencia: null
 
-  # `T-493` (RF-523, OQ-93; revoga `T-465`/RF-510): o sistema é perguntado em toda
-  # dívida, sem condição, `OPT` e sem `indispensavel`. O Price é o padrão que a
-  # calculadora pré-seleciona (`B5.CALC01`); o registro não declara padrão.
+  # `T-493` (RF-523; revoga `T-465`/RF-510): o sistema é perguntado em toda
+  # dívida, sem condição. `OBR` (especialista, 2026-11-06), sem `indispensavel`:
+  # o Price é o padrão que a calculadora pré-seleciona (`B5.CALC01`).
   - ID: B5.C02A
     bloco: 5
     enunciado: >-
