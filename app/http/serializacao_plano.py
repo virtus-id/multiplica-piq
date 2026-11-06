@@ -32,11 +32,13 @@ from typing import Any, Final
 from app.casos.inventario import credor_da_ficha
 from app.casos.itens_despesa import rotulos_dos_itens
 from app.http.rotas_calculo import _respostas_do_calculo
+from app.montagem.calculo_divida import CAMPO_DA_DIVIDA
 from app.montagem.entrada import fotografia_do_mes, resumo_das_despesas
+from app.montagem.premissas import MARCA_DO_VALOR, PremissasDaDivida, premissas_da_ficha
 from app.revisao.comprovacao import NivelDaFicha
 from app.revisao.fila import ItemFila
 from app.revisao.lista_de_casos import LinhaDoCaso
-from collection.registro import RegistroPergunta
+from collection.registro import EscopoRepeticao, RegistroPergunta
 from collection.respostas import RespostasCaso
 from persistencia.app_aluno.itens import ItemRepetido, RepositorioItens
 from persistencia.supabase.conexao import ErroConexaoAusente
@@ -110,11 +112,27 @@ def maiores_gastos(
     return tuple(informados[:_QUANTIDADE_DE_MAIORES_GASTOS])
 
 
+# `T-517`/`T-519`: o campo da calculadora no `Divida` do motor. O prazo não
+# existe lá (o motor não o usa), então não há marca a mostrar.
+_CODIGO_NO_ESTADO: Final[Mapping[CAMPO_DA_DIVIDA, str]] = {
+    CAMPO_DA_DIVIDA.SALDO: "SALDO_DEVEDOR_ATUAL",
+    CAMPO_DA_DIVIDA.PARCELA: "PARCELA_CONTRATUAL",
+    CAMPO_DA_DIVIDA.TAXA: "TAXA_EFETIVA_MENSAL_NORMALIZADA",
+}
+# `T-519` (`OQ-87`): hipótese aparece como `estimado`; informado e pendente, sem marca.
+_MARCA_AO_REVISOR: Final[Mapping[MARCA_DO_VALOR, str]] = {
+    MARCA_DO_VALOR.CALCULADO: "calculado",
+    MARCA_DO_VALOR.ESTIMADO: "estimado",
+    MARCA_DO_VALOR.HIPOTESE: "estimado",
+}
+
+
 def vocabulario_do_caso(
     registros: tuple[RegistroPergunta, ...],
     respostas: RespostasCaso,
     dividas: Iterable[str],
     itens: Iterable[ItemRepetido] = (),
+    premissas: Iterable[PremissasDaDivida] | None = None,
 ) -> VocabularioDoCaso:
     """`RF-111` (`T-326`) — o que `report/` precisa para dar nome às coisas:
     o `rotulo` de cada opção do registro, por `VARIAVEL_GRAVADA` (a primeira
@@ -129,9 +147,37 @@ def vocabulario_do_caso(
             if opcao.valor_interno is not None:
                 opcoes.setdefault(opcao.valor_interno, opcao.rotulo)
     dividas = tuple(dividas)
+    com_premissas = premissas is not None
+    premissas = tuple(premissas or ())
+    pendentes = tuple(
+        (p.DIVIDA_ID, tuple(_CODIGO_NO_ESTADO[c] for c in p.faltas)) for p in premissas if p.faltas
+    )
+    marcas = {
+        p.DIVIDA_ID: {
+            # `T-531`: a estimada vive em `PAGAMENTO_MENSAL_EFETIVO`; `PARCELA_CONTRATUAL`
+            # leva o habitual (0 quando ausente) e não pode ser marcada `estimado`.
+            (
+                "PAGAMENTO_MENSAL_EFETIVO"
+                if valor.marca is MARCA_DO_VALOR.ESTIMADO
+                else _CODIGO_NO_ESTADO[campo]
+            ): _MARCA_AO_REVISOR[valor.marca]
+            for campo, valor in p.valores.items()
+            if campo in _CODIGO_NO_ESTADO and valor.marca in _MARCA_AO_REVISOR
+        }
+        for p in premissas
+    }
+    parcelas_estimadas = {
+        p.DIVIDA_ID: p.parcela_estimada.valor for p in premissas if p.parcela_estimada is not None
+    }
+    # Estimada com `P=0` declarado também marca o pagamento do plano.
+    for p in premissas:
+        if p.parcela_estimada is not None:
+            marcas[p.DIVIDA_ID]["PAGAMENTO_MENSAL_EFETIVO"] = _MARCA_AO_REVISOR[
+                MARCA_DO_VALOR.ESTIMADO
+            ]
     credores = {
         divida: credor
-        for divida in dividas
+        for divida in (*dividas, *(i for i, _ in pendentes))
         if (credor := credor_da_ficha(respostas, divida)) is not None
     }
     # `RF-412`: só respostas, transportadas; o texto e a frase de
@@ -147,6 +193,35 @@ def vocabulario_do_caso(
         # as mesmas respostas que o motor leu (`B3.04A` só vale com `B3.04` = Sim)
         resumo_das_despesas=resumo_das_despesas(_respostas_do_calculo(registros, respostas)),
         maiores_gastos=maiores_gastos(registros, respostas, itens),
+        com_premissas=com_premissas,
+        dividas_pendentes=pendentes,
+        marcas_da_divida=marcas,
+        parcelas_estimadas=parcelas_estimadas,
+        dividas_sem_habitual=frozenset(
+            p.DIVIDA_ID
+            for p in premissas
+            if p.parcela_estimada is not None and p.parcela_estimada.habitual_ausente
+        ),
+        dividas_com_hipotese=frozenset(
+            p.DIVIDA_ID for p in premissas if p.hipotese_conservadora is not None
+        ),
+    )
+
+
+def vocabulario_com_premissas(
+    registros: tuple[RegistroPergunta, ...],
+    respostas: RespostasCaso,
+    dividas: Iterable[str],
+    itens: tuple[ItemRepetido, ...],
+) -> VocabularioDoCaso:
+    """`T-518`: o plano do aluno e o PDF levam as premissas da dívida — a
+    pendência de informação e os avisos de pagamento (especialista,
+    2026-11-06: o plano parcial é liberado e aponta a pendência)."""
+    por_escopo: dict[EscopoRepeticao, tuple[str, ...]] = {}
+    for item in itens:
+        por_escopo[item.escopo] = (*por_escopo.get(item.escopo, ()), item.item_id)
+    return vocabulario_do_caso(
+        registros, respostas, dividas, itens, premissas_da_ficha(respostas, por_escopo)
     )
 
 
@@ -200,9 +275,7 @@ def serializar_plano(
                 # `explicacao` (T-177) é o mesmo "porquê" dito ao ALUNO.
                 # `T-305`: o texto técnico não sai para o aluno.
                 **(
-                    {"JUSTIFICATIVA_POSICAO": posicao.JUSTIFICATIVA_POSICAO}
-                    if para_revisor
-                    else {}
+                    {"JUSTIFICATIVA_POSICAO": posicao.JUSTIFICATIVA_POSICAO} if para_revisor else {}
                 ),
                 "explicacao": posicao.explicacao,
                 # `T-354`: a nota de incômodo que o aluno deu e o aviso de
@@ -234,8 +307,7 @@ def serializar_plano(
                 "fatos": [{"rotulo": rotulo, "valor": valor} for rotulo, valor in posicao.fatos],
                 "fonte": fontes.get(posicao.DIVIDA_ID),
                 "valores_de_apoio": [
-                    {"rotulo": rotulo, "valor": valor}
-                    for rotulo, valor in posicao.valores_de_apoio
+                    {"rotulo": rotulo, "valor": valor} for rotulo, valor in posicao.valores_de_apoio
                 ],
             }
             for posicao in contexto.ordem
@@ -547,8 +619,7 @@ def serializar_item_da_fila(
         "MOTIVO_RECALCULO": snapshot.MOTIVO_RECALCULO,
         "EVENTO_RECALCULO": (
             snapshot.EVENTO_RECALCULO.value
-            if snapshot.EVENTO_RECALCULO is not None
-            and hasattr(snapshot.EVENTO_RECALCULO, "value")
+            if snapshot.EVENTO_RECALCULO is not None and hasattr(snapshot.EVENTO_RECALCULO, "value")
             else snapshot.EVENTO_RECALCULO
         ),
         "METODO_RECOMENDADO_PIQ": (
@@ -567,9 +638,7 @@ def serializar_item_da_fila(
         "status_metodo": rotulo_de_codigo(textos.rotulos_de_codigos, snapshot.STATUS_METODO.value),
         # `T-330`: o método vale para o caso inteiro — o critério vai uma
         # vez, no destaque, nunca repetido por posição.
-        "criterio_metodo": textos.criterio_do_metodo.get(
-            snapshot.METODO_RECOMENDADO_PIQ.value, ""
-        ),
+        "criterio_metodo": textos.criterio_do_metodo.get(snapshot.METODO_RECOMENDADO_PIQ.value, ""),
         "motivo": rotulo_do_motivo_de_recalculo(snapshot, textos),
         "entra_por_politica": item.entra_por_politica,
         "e_metodologico": item.e_metodologico,
@@ -631,9 +700,7 @@ def serializar_opcoes_da_lista(
     visiveis = list(linhas)
 
     def _opcoes(codigos: Iterable[str]) -> list[dict[str, str]]:
-        return [
-            {"codigo": c, "rotulo": rotulo_de_codigo(rotulos, c)} for c in sorted(set(codigos))
-        ]
+        return [{"codigo": c, "rotulo": rotulo_de_codigo(rotulos, c)} for c in sorted(set(codigos))]
 
     return {
         "metodos": _opcoes(linha.metodo for linha in visiveis),
@@ -663,9 +730,15 @@ def serializar_estado_inputs(contexto: ContextoEstadoInputs) -> dict[str, Any]:
     Nenhum campo é omitido: o revisor compara o plano contra o estado
     COMPLETO, e um campo ausente da tela é um campo que ninguém confere.
     """
+
     def campos(lista: Iterable[ContextoCampo]) -> list[dict[str, str]]:
         # `T-326`: `nome` é o rótulo; `codigo`, o nome técnico (detalhe).
-        return [{"nome": c.nome, "valor": c.valor, "codigo": c.codigo} for c in lista]
+        # `T-519` (`RF-528`): `marca` só quando o sistema calculou/estimou.
+        return [
+            {"nome": c.nome, "valor": c.valor, "codigo": c.codigo}
+            | ({"marca": c.marca} if c.marca else {})
+            for c in lista
+        ]
 
     return {
         "campos": campos(contexto.campos),

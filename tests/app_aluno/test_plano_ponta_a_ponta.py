@@ -68,6 +68,7 @@ _T02_D001: dict[str, object] = {
     _PARCELA_CONTRATUAL: converter_para_dinheiro("200,00"),
     "TAXA_DIVIDA": converter_para_taxa("10"),
     "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
+    "SISTEMA_AMORTIZACAO": "PRICE",
     "PESO_EMOCIONAL": 5,
 }
 _T02_D002: dict[str, object] = {
@@ -76,6 +77,7 @@ _T02_D002: dict[str, object] = {
     _PARCELA_CONTRATUAL: converter_para_dinheiro("400,21"),
     "TAXA_DIVIDA": converter_para_taxa("2"),
     "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
+    "SISTEMA_AMORTIZACAO": "PRICE",
     "PESO_EMOCIONAL": 5,
 }
 

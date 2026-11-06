@@ -63,6 +63,9 @@ _DIRETORIO_REGISTROS_PADRAO: Final[Path] = Path(__file__).resolve().parent / "re
 _CAMINHO_ESQUEMA_PADRAO: Final[Path] = Path(__file__).resolve().parent / "esquema-registros.json"
 
 
+_VARIAVEL_DA_CONFERENCIA: Final[str] = "CONFERENCIA_DA_DIVIDA"
+
+
 class ErroDeCarga(Exception):
     """Carga inválida — sempre nomeia o `ID` do registro culpado (ou o
     caminho do arquivo, quando o `ID` nem chega a existir) e o campo
@@ -215,7 +218,7 @@ def _identificador_do_erro(caminho: Path, pergunta: dict[str, Any]) -> str:
 def _converter_registro(caminho: Path, pergunta: dict[str, Any]) -> RegistroPergunta:
     identificador = _identificador_do_erro(caminho, pergunta)
     try:
-        return RegistroPergunta(
+        registro = RegistroPergunta(
             ID=pergunta["ID"],
             bloco=pergunta["bloco"],
             enunciado=pergunta["enunciado"],
@@ -247,10 +250,27 @@ def _converter_registro(caminho: Path, pergunta: dict[str, Any]) -> RegistroPerg
                 EscopoRepeticao(pergunta["escopo_pai"]) if "escopo_pai" in pergunta else None
             ),
         )
+        _exigir_forma_do_calculo_divida(registro)
+        return registro
     except KeyError as erro:
         raise ErroDeCarga(f"Registro {identificador}: campo ausente {erro}") from erro
     except ValueError as erro:
         raise ErroDeCarga(f"Registro {identificador}: {erro}") from erro
+
+
+def _exigir_forma_do_calculo_divida(registro: RegistroPergunta) -> None:
+    """`T-491` (`RF-514`) — `CALCULO_DIVIDA` é a pergunta composta da ficha de
+    dívida: escopo `DIVIDA_ID`, grava a marca `CONFERENCIA_DA_DIVIDA` e não
+    tem opções (os campos e o sistema vêm do endpoint da calculadora). Outro
+    tipo não é tocado."""
+    if registro.tipo is not TipoResposta.CALCULO_DIVIDA:
+        return
+    if registro.escopo_repeticao is not EscopoRepeticao.DIVIDA_ID:
+        raise ValueError("CALCULO_DIVIDA exige escopo DIVIDA_ID")
+    if registro.VARIAVEL_GRAVADA != _VARIAVEL_DA_CONFERENCIA:
+        raise ValueError(f"CALCULO_DIVIDA exige VARIAVEL_GRAVADA {_VARIAVEL_DA_CONFERENCIA}")
+    if registro.opcoes:
+        raise ValueError("CALCULO_DIVIDA não declara opcoes")
 
 
 def _converter_opcao(bruta: dict[str, Any]) -> OpcaoRegistro:

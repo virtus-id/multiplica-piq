@@ -46,9 +46,10 @@ def test_registro_substitui_as_cinco_perguntas_por_uma() -> None:
     assert d06.obrigatoriedade == frozenset({Obrigatoriedade.OBR, Obrigatoriedade.REP})
     assert d06.indispensavel is True
     assert d06.admite_nao_sei is False
-    assert all(not o.admite_nao_sei for o in d06.opcoes)
-    assert {o.valor_interno for o in d06.opcoes} == {"MENSAL", "ANUAL"}
-    assert {o.variavel_do_campo for o in d06.opcoes} == {"TAXA_DIVIDA"}
+    # `RF-523` (`T-493`): a opção "Não sei a taxa" (`DESCONHECIDA`) é a única que admite "não sei".
+    assert [o.valor_interno for o in d06.opcoes if o.admite_nao_sei] == ["DESCONHECIDA"]
+    assert {o.valor_interno for o in d06.opcoes} == {"MENSAL", "ANUAL", "DESCONHECIDA"}
+    assert {o.variavel_do_campo for o in d06.opcoes} == {"TAXA_DIVIDA", None}
     assert "CET" in d06.enunciado and "taxa de juros" in d06.enunciado
 
 

@@ -325,6 +325,28 @@ class VocabularioDoCaso:
     #: `RF-469`: os maiores gastos que o aluno informou, (nome do item, valor),
     #: do maior para o menor, já cortados no tamanho do bloco. Vazio sem itens.
     maiores_gastos: tuple[tuple[str, Decimal], ...] = ()
+    #: `T-517` (`RF-527`, `PD-10`): dívidas que a calculadora não resolveu —
+    #: (DIVIDA_ID, campos do estado que faltam). Só transportado da aplicação.
+    dividas_pendentes: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    #: `T-519` (`RF-528`): DIVIDA_ID → campo do estado → `calculado`/`estimado`.
+    marcas_da_divida: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
+    #: `T-530`/`T-531` (`RF-532`, `RF-535`): DIVIDA_ID → parcela estimada de 24
+    #: meses (só as dívidas que têm uma) e as que não declararam pagamento
+    #: habitual. Só transportado; a marca `estimado` vale onde o plano paga a
+    #: estimada, e o aviso de "não é um zero declarado" onde o habitual faltou.
+    parcelas_estimadas: Mapping[str, Decimal] = field(default_factory=dict)
+    dividas_sem_habitual: frozenset[str] = frozenset()
+    #: `T-536` (`RF-538`, `RF-539`): dívidas cujos quatro valores não batem e o
+    #: aluno não escolheu o que recalcular; saldo e taxa do plano são hipótese.
+    dividas_com_hipotese: frozenset[str] = frozenset()
+    #: Avisos de pagamento (`T-529`..`T-536`): só saem quando a aplicação
+    #: montou o vocabulário com as premissas da ficha (aluno, PDF e revisor).
+    com_premissas: bool = False
+
+    @property
+    def plano_parcial(self) -> bool:
+        """`RF-527`: há dívida fora do plano por falta de dado."""
+        return bool(self.dividas_pendentes)
 
 
 def rotulo_de_codigo(rotulos: Mapping[str, str], codigo: str) -> str:
@@ -695,10 +717,16 @@ class ContextoCampo:
     nome: str
     valor: str
     codigo: str
+    #: `T-519` (`RF-528`, `PD-14`): `calculado`/`estimado` só no campo da dívida
+    #: que o sistema resolveu; digitado fica `None`. Nunca fórmula nem juros.
+    marca: str | None = None
 
 
 def _campos_de_apoio(
-    instancia: object, textos: TextosCanonicosPlano, vocabulario: VocabularioDoCaso
+    instancia: object,
+    textos: TextosCanonicosPlano,
+    vocabulario: VocabularioDoCaso,
+    marcas: Mapping[str, str] | None = None,
 ) -> tuple[ContextoCampo, ...]:
     """T-70 — todos os campos de uma dataclass `frozen` do motor
     (`EstadoFinanceiro`, `Divida`, `PerfilComportamental`,
@@ -710,6 +738,7 @@ def _campos_de_apoio(
             nome=rotulo_de_codigo(textos.rotulos_de_dados, campo.name),
             valor=_apresentar_dado(campo.name, getattr(instancia, campo.name), textos, vocabulario),
             codigo=campo.name,
+            marca=(marcas or {}).get(campo.name),
         )
         for campo in fields(instancia)  # type: ignore[arg-type]
         if campo.name not in _CAMPOS_IDENTIFICADORES
@@ -833,6 +862,16 @@ def nomear_dividas_curtas(
     return nomes
 
 
+def _marcas_da_divida(divida: Divida, vocabulario: VocabularioDoCaso) -> Mapping[str, str]:
+    """`T-531` (`RF-528`): a marca `estimado` do pagamento só aparece onde o plano
+    paga a parcela estimada (a prioritária); a que paga o mínimo não leva marca."""
+    marcas = dict(vocabulario.marcas_da_divida.get(divida.DIVIDA_ID, {}))
+    estimada = vocabulario.parcelas_estimadas.get(divida.DIVIDA_ID)
+    if marcas.get("PAGAMENTO_MENSAL_EFETIVO") and divida.PAGAMENTO_MENSAL_EFETIVO != estimada:
+        del marcas["PAGAMENTO_MENSAL_EFETIVO"]
+    return marcas
+
+
 def montar_contexto_estado_inputs(
     estado: EstadoFinanceiro,
     textos: TextosCanonicosPlano,
@@ -854,7 +893,12 @@ def montar_contexto_estado_inputs(
             ContextoDivida(
                 DIVIDA_ID=divida.DIVIDA_ID,
                 nome=nomes[divida.DIVIDA_ID],
-                campos=_campos_de_apoio(divida, textos, vocabulario),
+                campos=_campos_de_apoio(
+                    divida,
+                    textos,
+                    vocabulario,
+                    _marcas_da_divida(divida, vocabulario),
+                ),
             )
             for divida in estado.dividas
         ),
@@ -1001,7 +1045,8 @@ def _pendencias(
     `INVENTARIO_COMPLETO` mais a comparação `is DESCONHECIDO` de cada campo
     material de cada `Divida` de `estado_inputs.dividas` — ver docstring do
     módulo). `None` quando o plano não está `PROVISORIA`: nada a relatar."""
-    if snapshot.ORDEM_STATUS is not ORDEM_STATUS.PROVISORIA:
+    parcial = vocabulario is not None and vocabulario.plano_parcial
+    if snapshot.ORDEM_STATUS is not ORDEM_STATUS.PROVISORIA and not parcial:
         return None
 
     # `T-177`: o aluno lê "quanto precisaria pagar para quitar hoje", não
@@ -1020,6 +1065,17 @@ def _pendencias(
         for campos_da_divida in (_campos_desconhecidos_da_divida(divida, vocabulario),)
         if campos_da_divida
     )
+    if vocabulario is not None:
+        # `T-517` (`RF-527`): a dívida pendente não está no snapshot; o dado que
+        # falta vem da aplicação, nomeado pelo credor.
+        campos_faltantes_por_divida += tuple(
+            (
+                divida_id,
+                vocabulario.credores.get(divida_id, divida_id),
+                tuple(traduzir.get(campo, campo) for campo in campos),
+            )
+            for divida_id, campos in vocabulario.dividas_pendentes
+        )
 
     inventario_incompleto = snapshot.estado_inputs.INVENTARIO_COMPLETO is False
     # `RF-463` (`T-446`): plano provisório por outro motivo (o motor não
@@ -1855,7 +1911,9 @@ def _contexto_do_curso(
         return None
     aulas = bruto.get("aulas") or {}
     quadros = bruto.get("quadro_por_cenario") or {}
-    chave = ("estabilizacao_por_divida" if por_divida else "estabilizacao") if estabilizacao else metodo
+    chave = (
+        ("estabilizacao_por_divida" if por_divida else "estabilizacao") if estabilizacao else metodo
+    )
     numeros = quadros.get(chave) or quadros.get("padrao") or []
     escolhidas = tuple(
         (str(n), str(aulas[n]["titulo"]), str(aulas[n]["motivo"])) for n in numeros if n in aulas
@@ -1920,7 +1978,82 @@ def _avisos_gerais(
                 f"{nomes.get(divida.DIVIDA_ID, divida.DIVIDA_ID)}: {texto}"
                 for texto in _avisos_da_divida(divida.DIVIDA_ID, vocabulario, textos)
             )
+    if vocabulario and vocabulario.com_premissas:
+        avisos.extend(_avisos_de_pagamento(snapshot, vocabulario, textos, nomes))
     return tuple(avisos)
+
+
+def _avisos_de_pagamento(
+    snapshot: SnapshotOrdem,
+    vocabulario: VocabularioDoCaso,
+    textos: TextosCanonicosPlano,
+    nomes: Mapping[str, str],
+) -> tuple[str, ...]:
+    """`RF-532`, `RF-535`, `RF-536`, `T-529`/`T-530` — só LÊ o que o motor e a
+    aplicação publicaram (`AC-42`), nenhuma conta:
+
+    - parcela estimada de 24 meses: só onde o plano a paga (hipótese, aviso);
+    - habitual não informado: o alerta de crescimento usou `0`, e o aluno é
+      avisado de que não é um zero declarado (ressalva (a) do spike);
+    - inviabilidade: dívida que cresce com pagamento INFORMADO ou mês que não
+      fecha — o pagamento do aluno permanece e o texto não cita 24 meses;
+    - valor extra declarado maior do que sobra no mês (usado como está);
+    - valores incompatíveis sem escolha do aluno: só saldo e taxa da hipótese
+      conservadora governam o plano (`RF-538`, `RF-539`)."""
+    avisos = textos.avisos
+    diagnostico = snapshot.diagnostico
+    saida: list[str] = []
+    crescem = {x.DIVIDA_ID for x in diagnostico.DIVIDAS_QUE_CRESCEM}
+    for divida in snapshot.estado_inputs.dividas:
+        nome = nomes.get(divida.DIVIDA_ID, divida.DIVIDA_ID)
+        estimada = vocabulario.parcelas_estimadas.get(divida.DIVIDA_ID)
+        if estimada is not None and divida.PAGAMENTO_MENSAL_EFETIVO == estimada:
+            texto = avisos.get("parcela_estimada", "")
+            saida.append(texto.format(nome=nome, valor=formatar_dinheiro_br(estimada)))
+        saldo = divida.SALDO_DEVEDOR_ATUAL
+        taxa = divida.TAXA_EFETIVA_MENSAL_NORMALIZADA
+        if (
+            divida.DIVIDA_ID in vocabulario.dividas_com_hipotese
+            and isinstance(saldo, Decimal)
+            and isinstance(taxa, Decimal)
+        ):
+            saida.append(
+                avisos.get("hipotese_conservadora", "").format(
+                    nome=nome,
+                    saldo=formatar_dinheiro_br(saldo),
+                    taxa=formatar_taxa_br(taxa),
+                )
+            )
+        if divida.DIVIDA_ID in vocabulario.dividas_sem_habitual and divida.DIVIDA_ID in crescem:
+            saida.append(avisos.get("habitual_nao_informado", "").format(nome=nome))
+        elif (
+            divida.DIVIDA_ID in crescem
+            and isinstance(divida.PARCELA_CONTRATUAL, Decimal)
+            and divida.PARCELA_CONTRATUAL > 0
+            and divida.DIVIDA_ID not in vocabulario.parcelas_estimadas
+        ):
+            saida.append(
+                avisos.get("inviabilidade", "").format(
+                    nome=nome, valor=formatar_dinheiro_br(divida.PARCELA_CONTRATUAL)
+                )
+            )
+    if diagnostico.RESULTADO_CAIXA_OBSERVADO < 0 <= diagnostico.RESULTADO_MENSAL_ATUAL:
+        saida.append(
+            avisos.get("caixa_negativo", "").format(
+                valor=formatar_dinheiro_br(diagnostico.RESULTADO_CAIXA_OBSERVADO)
+            )
+        )
+    # Especialista, 2026-11-06: o valor declarado é usado como está; o aluno
+    # é avisado quando ele passa do que sobra no mês.
+    declarada = snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA
+    sobra = diagnostico.RESULTADO_CAIXA_OBSERVADO
+    if isinstance(declarada, Decimal) and declarada > max(sobra, Decimal(0)):
+        saida.append(
+            avisos.get("ataque_acima_da_sobra", "").format(
+                declarado=formatar_dinheiro_br(declarada), sobra=formatar_dinheiro_br(sobra)
+            )
+        )
+    return tuple(texto for texto in saida if texto)
 
 
 def _dividas_que_crescem(snapshot: SnapshotOrdem, nomes: Mapping[str, str]) -> dict[str, Any]:
@@ -1950,9 +2083,7 @@ def _avisos_da_divida(
     """`RF-412` (`B5.F01`) — o aviso de cada coisa que o aluno
     declarou sobre a dívida, com a frase de responsabilidade. Só texto: a
     ordem do plano e o motor não leem isto."""
-    chaves = (
-        ("garantia", divida_id in vocabulario.dividas_com_garantia),
-    )
+    chaves = (("garantia", divida_id in vocabulario.dividas_com_garantia),)
     return tuple(
         f"{textos.avisos[chave]} {textos.avisos.get('responsabilidade', '')}".strip()
         for chave, vale in chaves

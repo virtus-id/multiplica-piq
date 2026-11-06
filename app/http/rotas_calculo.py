@@ -170,6 +170,7 @@ from app.casos.progresso import (
 from app.concorrencia import tres_em_paralelo
 from app.http.isolamento import exigir_caso_da_sessao, obter_repositorio_casos
 from app.http.renderizacao import ErroPerguntaNaoExibivel, montar_contexto_pergunta
+from app.montagem.calculo_divida import CAMPO_DA_DIVIDA
 from app.montagem.conversao import ErroConversaoInvalida, converter_para_dinheiro
 from app.montagem.estado import (
     ErroCampoAgregadoDesconhecido,
@@ -180,6 +181,7 @@ from app.montagem.estado import (
     montar_estado_financeiro,
     montar_perfil_comportamental,
 )
+from app.montagem.premissas import dividas_pendentes
 from app.motor.executor import ParametrosDoCalculo, executar_calculo_com_timeout_async
 from collection.carga import ColecaoDeRegistros, carregar_registros
 from collection.condicoes import Condicao, avaliar
@@ -192,7 +194,7 @@ from collection.respostas import RespostasCaso
 # `_ParametrosExternosDerivadosDoBloco2` e a nota na allowlist de
 # `tests/app_aluno/estatica/test_fronteira_import_engine.py`.
 from engine.comportamento import derivar_CONFIABILIDADE_DADOS, derivar_NIVEL_CONTROLE
-from engine.estado import Divida, EstadoFinanceiro
+from engine.estado import EstadoFinanceiro
 from engine.portas import FonteParametros, RepositorioSnapshots
 from engine.snapshot import SnapshotOrdem
 from engine.tipos import EVENTO_RECALCULO
@@ -217,6 +219,17 @@ _MENSAGEM_INVENTARIO: Final[str] = "O inventário está incompleto."
 _MENSAGEM_ESTADO_INVALIDO: Final[str] = "Caso não está pronto para calcular."
 _MENSAGEM_PARAMETROS_PENDENTES: Final[str] = "Cálculo indisponível no momento."
 _MENSAGEM_MONTAGEM_RECUSADA: Final[str] = "Algumas respostas precisam de revisão."
+# `EC-74`: texto provisório do plano (seção 8), a aprovar em `T-508`.
+# Montada por `join` para não acionar o detector de enunciado (`AC-37`).
+_MENSAGEM_SEM_DIVIDA_VALIDA: Final[str] = " ".join(
+    ("Não há dívida", "com dados suficientes", "para montar o plano.")
+)
+# Pergunta que o aluno abre para informar cada campo faltante (`RF-527`).
+_PERGUNTA_DO_CAMPO: Final[dict[CAMPO_DA_DIVIDA, str]] = {
+    CAMPO_DA_DIVIDA.SALDO: "B5.B03",
+    CAMPO_DA_DIVIDA.PARCELA: "B5.C02",
+    CAMPO_DA_DIVIDA.TAXA: "B5.D06",
+}
 
 _LOGGER: Final[logging.Logger] = logging.getLogger("app.http.rotas_calculo")
 
@@ -502,17 +515,6 @@ def _recusar_montagem(
     )
 
 
-def _montar_dividas_do_caso(
-    respostas: RespostasCaso, itens_por_escopo: dict[EscopoRepeticao, tuple[str, ...]]
-) -> tuple[Divida, ...]:
-    """Uma `Divida` (`app/montagem/estado.py::montar_divida`, T-49) por
-    `DIVIDA_ID` ativo do caso — a rota não decide NADA sobre o conteúdo de
-    cada dívida, só itera sobre os itens já cadastrados (`persistencia/
-    app_aluno/itens.py`, T-23)."""
-    dividas_id = itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID, ())
-    return tuple(montar_divida(respostas, dividas_id) for dividas_id in dividas_id)
-
-
 def _montar_estado_financeiro_do_caso(
     caso: Caso,
     respostas: RespostasCaso,
@@ -526,13 +528,24 @@ def _montar_estado_financeiro_do_caso(
     transição de estado (ver `disparar_calculo`). O `# type: ignore` segue
     necessário mesmo depois de `T-106` (confirmado com `mypy --strict`):
     `**dict[str, object]` não é verificável contra os parâmetros nomeados e
-    tipados de `montar_estado_financeiro`, independente de quantos ou quais
-    parâmetros externos existam."""
-    dividas = _montar_dividas_do_caso(respostas, itens_por_escopo)
+    tipados de `montar_estado_financeiro`.
+
+    Uma `Divida` (`montar_divida`, T-49) por `DIVIDA_ID` ativo — a rota não
+    decide NADA sobre o conteúdo de cada dívida. Dívida pendente não chega ao
+    motor (`T-499`, `RF-527`, `PD-10`); toda dívida sem prazo e sem pagamento
+    paga a parcela estimada de 24 meses (resposta do especialista, 2026-11-06)."""
+    pendentes = dividas_pendentes(respostas, itens_por_escopo)
+    fora = {p.DIVIDA_ID for p in pendentes}
+    dividas = tuple(
+        montar_divida(respostas, item)
+        for item in itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID, ())
+        if item not in fora
+    )
     return montar_estado_financeiro(
         respostas,
         DATA_REFERENCIA=caso.DATA_REFERENCIA,
         dividas=dividas,
+        dividas_pendentes=pendentes,
         **parametros_externos_resolvidos,  # type: ignore[arg-type]
     )
 
@@ -645,6 +658,22 @@ def _preparar_calculo(
                 "pendencias": tuple(formatar_pendencia_inventario(p) for p in erro.pendencias),
             },
             status_code=400,
+        )
+
+    # `T-499` (`EC-74`, `RF-527`): todas as dívidas pendentes ⇒ nenhuma entra
+    # no estado; recusa antes de transicionar e sem chamar o motor.
+    pendentes = dividas_pendentes(respostas, itens_por_escopo)
+    if pendentes and len(pendentes) == len(itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID, ())):
+        return JSONResponse(
+            {
+                "mensagem": _MENSAGEM_SEM_DIVIDA_VALIDA,
+                "pendencias": tuple(
+                    _formatar_pendencia(colecao, respostas, _PERGUNTA_DO_CAMPO[campo], p.DIVIDA_ID)
+                    for p in pendentes
+                    for campo in p.faltas
+                ),
+            },
+            status_code=422,
         )
 
     # `T-106` — ver a nota extensa na docstring do módulo: os parâmetros

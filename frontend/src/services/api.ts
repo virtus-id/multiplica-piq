@@ -12,7 +12,9 @@
 import type {
   ParametrosDeCasos,
   RespostaDeCasos,
+  ConfirmacaoDaCalculadora,
   ConfirmacaoDeResposta,
+  CorpoDaCalculadora,
   EscoposDoCaso,
   Ficha,
   FormularioDoItem,
@@ -20,6 +22,7 @@ import type {
   ItemDaFila,
   ListaDeFichas,
   Plano,
+  RespostaDaPrevia,
   RespostaPergunta,
   RespostaPlano,
   RespostasDoCaso,
@@ -161,6 +164,39 @@ export function gravarResposta(
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: corpo.toString(),
   })
+}
+
+/**
+ * Prévia da calculadora da dívida (`T-510`, `RF-519`): não grava nada. Erro de
+ * negócio volta como `200` com `estado: ERRO`; `sinal` cancela a anterior.
+ */
+export function preverCalculadora(
+  casoId: string,
+  corpo: CorpoDaCalculadora,
+  sinal?: AbortSignal,
+): Promise<RespostaDaPrevia> {
+  return pedir<RespostaDaPrevia>(`/caso/${casoId}/calculadora/previa`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corpo),
+    signal: sinal,
+  })
+}
+
+/** Confirma e grava a ficha da dívida (`RF-525`); `422` nomeia o que corrigir, sem gravar. */
+export function confirmarCalculadora(
+  casoId: string,
+  itemId: string,
+  corpo: CorpoDaCalculadora,
+): Promise<ConfirmacaoDaCalculadora> {
+  return pedir<ConfirmacaoDaCalculadora>(
+    `/caso/${casoId}/divida/${encodeURIComponent(itemId)}/calculadora/confirmar`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    },
+  )
 }
 
 /**
@@ -421,6 +457,12 @@ export interface CampoDeEntrada {
   nome: string
   valor: string
   codigo: string
+  /**
+   * `T-514` (`RF-528`, `T-519`): só nos campos da dívida que o sistema calculou
+   * ou estimou (hipótese vem como `estimado`); digitado vem sem a chave. Contrato
+   * entregue por `serializar_estado_inputs` (`T-519`); nunca fórmula nem juros.
+   */
+  marca?: 'calculado' | 'estimado'
 }
 
 export interface EstadoInputs {

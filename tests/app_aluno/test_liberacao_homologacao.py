@@ -177,7 +177,7 @@ def test_reprovar_continua_possivel_com_pendencia(
     assert resposta.status_code == 200
 
 
-def test_ac149_indispensavel_ausente_calculo_roda_e_liberacao_nomeia_o_dado(
+def test_ac149_saldo_nao_sei_calculo_roda_e_plano_parcial_e_liberado(
     ambiente: _Ambiente, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     ambiente.responder_divida(SALDO_DEVEDOR_ATUAL=NAO_SEI)
@@ -189,21 +189,11 @@ def test_ac149_indispensavel_ausente_calculo_roda_e_liberacao_nomeia_o_dado(
     # pendência obrigatória nasce do saldo desconhecido.
     assert not any(p.ID == "B5.B03" for p in pendencias_obrigatorias(registros, respostas, itens))
 
-    status, corpo = ambiente.liberar_pela_rota(monkeypatch)
+    # `OQ-89` (especialista, 2026-11-06): a dívida com saldo "não sei" fica
+    # fora do plano e é apontada ao aluno; o plano parcial é liberado.
+    status, _ = ambiente.liberar_pela_rota(monkeypatch)
 
-    assert status == 409
-    pendencias = corpo["pendencias_homologacao"]
-    assert isinstance(pendencias, list)
-    (pendencia,) = pendencias
-    saldo = next(r for r in registros if r.ID == "B5.B03")
-    assert pendencia == {
-        "item_id": ambiente.divida,
-        # `T-328`: sem nomes (rota de `POST`), o nome cai no `item_id`.
-        "nome": ambiente.divida,
-        "ID_PERGUNTA": "B5.B03",
-        "enunciado": saldo.enunciado,
-        "motivo": "AUSENTE",
-    }
+    assert status == 200
 
 
 def test_t393_sem_o_custo_da_divida_o_calculo_bloqueia_e_a_liberacao_tambem(

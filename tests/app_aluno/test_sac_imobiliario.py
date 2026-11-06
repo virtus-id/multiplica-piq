@@ -1,12 +1,14 @@
-"""Pergunta Price ou SAC só no financiamento imobiliário — `RF-510`, `AC-510` (`T-465`).
+"""Pergunta Price ou SAC — `RF-510`, `AC-510` (`T-465`), revogada em parte por `RF-523`
+(`T-493`, `AC-533`): a pergunta vale para toda dívida, não só o imobiliário.
 
-REGRAS: RF-510, RF-509
+REGRAS: RF-510, RF-509, RF-523
 """
 
 from __future__ import annotations
 
 from app.montagem.estado import montar_divida
 from collection.carga import carregar_registros
+from collection.registro import Obrigatoriedade
 from engine.tipos import SISTEMA_AMORTIZACAO
 from tests.app_aluno.fixtures.caso_completo import montar_respostas_caso
 
@@ -28,14 +30,17 @@ def test_imobiliario_price_ou_sem_resposta_e_price() -> None:
     assert _sistema("FIN_IMOBILIARIO", None) is SISTEMA_AMORTIZACAO.PRICE
 
 
-def test_outras_dividas_sao_sempre_price_mesmo_com_resposta_antiga() -> None:
-    assert _sistema("CONSIGNADO", "SAC") is SISTEMA_AMORTIZACAO.PRICE
+def test_outras_dividas_tambem_chegam_ao_motor_como_sac() -> None:
+    # `RF-523`/`T-498`: revoga a restrição de `RF-510`; sem resposta, `PRICE`.
+    assert _sistema("CONSIGNADO", "SAC") is SISTEMA_AMORTIZACAO.SAC
+    assert _sistema("CONSIGNADO", None) is SISTEMA_AMORTIZACAO.PRICE
 
 
-def test_pergunta_so_aparece_no_imobiliario_com_parcela_e_e_indispensavel() -> None:
+def test_pergunta_vale_para_toda_divida_e_nao_e_indispensavel() -> None:
     (registro,) = [r for r in carregar_registros().registros if r.ID == "B5.C02A"]
-    assert registro.indispensavel is True
+    # `RF-523` (`T-493`): sem condição e sem `indispensavel`; obrigatória com
+    # padrão Price (especialista, 2026-11-06, revoga o `OPT` de `OQ-93`).
+    assert registro.indispensavel is False
+    assert registro.condicao_exibicao is None
+    assert Obrigatoriedade.OBR in registro.obrigatoriedade
     assert [o.valor_interno for o in registro.opcoes] == ["PRICE", "SAC"]
-    # `RF-513`: só o tipo decide; `B5.C01` saiu.
-    condicao = registro.condicao_exibicao
-    assert (condicao.variavel, condicao.valor) == ("TIPO_DIVIDA", "FIN_IMOBILIARIO")  # type: ignore[union-attr]

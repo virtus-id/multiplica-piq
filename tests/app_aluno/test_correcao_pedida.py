@@ -299,7 +299,9 @@ def test_ac175_pedir_correcao_devolve_ao_aluno_e_reenvio_volta_a_fila_como_v2(
             "mensagem": _MENSAGEM,
             "dados_a_conferir": [
                 {
-                    "nome": "Cheque especial (CAIXA ECONOMICA FEDERAL)",
+                    # `T-499`: a dívida pendente sai do estado; o nome volta com o
+                    # vocabulário das dívidas pendentes (plano 5.4, item d).
+                    "nome": None,
                     "enunciado": _ENUNCIADO_B5_B03,
                     "ID_PERGUNTA": "B5.B03",
                     "item_id": "D001",

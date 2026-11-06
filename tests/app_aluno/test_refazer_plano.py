@@ -47,7 +47,7 @@ from app.http.rotas_coleta import (
 )
 from app.http.rotas_plano import obter_contas_dos_casos
 from app.http.rotas_respostas import obter_repositorio_eventos_da_retomada
-from app.montagem.conversao import converter_para_taxa
+from app.montagem.conversao import converter_para_dinheiro, converter_para_taxa
 from app.revisao.fila import liberar
 from engine.estado import Divida
 from persistencia.app_aluno.arquivo import RepositorioCasosArquivo
@@ -300,6 +300,9 @@ def test_ac192_o_revisor_ve_o_que_mudou_desde_a_versao_anterior(
     cenario: Cenario,  # noqa: F811
 ) -> None:
     cliente, casos, snapshots, respostas, _ = cenario
+    # `T-499`: com o saldo em branco a dívida é pendente e sai do estado; o
+    # teste trata da taxa, então a ficha entra completa.
+    respostas.corrigir_no_item("D001", {"SALDO_DEVEDOR_ATUAL": converter_para_dinheiro("1.800,00")})
     with cliente:
         # v1 em conferência (`RF-409`: depois da entrega não há v2; a v2 nasce
         # quando o aluno retira o plano da conferência, `RF-115`).

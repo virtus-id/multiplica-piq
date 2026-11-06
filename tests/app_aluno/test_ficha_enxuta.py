@@ -28,9 +28,9 @@ def test_ac515_parcela_e_perguntada_em_toda_divida() -> None:
     assert Obrigatoriedade.OBR in parcela.obrigatoriedade and parcela.indispensavel
 
 
-def test_ac515_price_ou_sac_so_pelo_tipo_imobiliario() -> None:
-    condicao = _registro("B5.C02A").condicao_exibicao
-    assert (condicao.variavel, condicao.valor) == ("TIPO_DIVIDA", "FIN_IMOBILIARIO")
+def test_ac515_price_ou_sac_em_toda_divida() -> None:
+    # `RF-523` (`T-493`) revoga `RF-510`: sem `condicao_exibicao` (era só o imobiliário).
+    assert _registro("B5.C02A").condicao_exibicao is None
 
 
 def test_ac516_toda_divida_chega_ao_motor_como_ativa() -> None:
