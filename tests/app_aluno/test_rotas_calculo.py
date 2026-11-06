@@ -47,7 +47,7 @@ from app.http.rotas_calculo import (
     obter_repositorio_snapshots,
 )
 from app.http.sessao import iniciar_sessao_conta
-from app.montagem.conversao import ErroConversaoInvalida
+from app.montagem.conversao import ErroConversaoInvalida, converter_para_taxa
 from app.montagem.estado import (
     ErroCampoAgregadoDesconhecido,
     ErroRespostaAusente,
@@ -813,6 +813,18 @@ def test_t217_ficha_de_divida_filtra_por_item(
         )
         for item_id in ("D001", "D002")
     )
+    # `T-499` (`EC-74`): fichas sem saldo, parcela e taxa são pendentes e o
+    # `422` chegaria antes da montagem; as três respostas as tornam completas.
+    financeiras = tuple(
+        _resposta_t217(variavel, valor, item_id)
+        for item_id in ("D001", "D002")
+        for variavel, valor in (
+            ("SALDO_DEVEDOR_ATUAL", Decimal("1000")),
+            ("PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)", Decimal("100")),
+            ("TAXA_DIVIDA", converter_para_taxa("2")),
+            ("PERIODICIDADE_TAXA_DIVIDA", "MENSAL"),
+        )
+    )
     respostas = (
         _resposta_t217("POSSUI_GARANTIA", "NAO", "D001"),
         _resposta_t217(_GARANTIA, "IMOVEL", "D001"),
@@ -820,9 +832,11 @@ def test_t217_ficha_de_divida_filtra_por_item(
         _resposta_t217(_GARANTIA, "IMOVEL", "D002"),
     )
 
-    vistas = _respostas_vistas_pela_montagem(monkeypatch, ("B5.F01", "B5.F02"), respostas, itens)
+    vistas = _respostas_vistas_pela_montagem(
+        monkeypatch, ("B5.F01", "B5.F02"), financeiras + respostas, itens
+    )
 
-    assert vistas == (respostas[0], *respostas[2:])
+    assert vistas == (*financeiras, respostas[0], *respostas[2:])
 
 
 # ---------------------------------------------------------------------------

@@ -161,6 +161,19 @@ chamador — nunca um retorno "degradado" no lugar de um `SnapshotOrdem`.
 
 ---
 
+## `T-528` — mais de uma passagem do motor (`PD-16`)
+
+A dívida prioritária só se conhece rodando o motor (`app/montagem/prioridade.py`):
+até três passagens **em processo, sem snapshot, sem `anterior`**, antes da
+execução definitiva (que continua sendo UMA chamada de `calcular_plano` com
+persistência, `AC-12`). `avaliar_passagem` só LÊ dois campos do resultado
+(`DIVIDA_ALVO_ATUAL`, `RESULTADO_CAIXA_OBSERVADO`). `planejar_com_limite_async`
+roda o planejamento em thread, dentro do mesmo tempo limite do `EC-06`: se
+estourar, usa o estado provisório (uma passagem). O caso fica em `CALCULANDO`
+durante todas as passagens, então o progresso é o mesmo para 1 a 3 delas.
+
+---
+
 ## `T-91` — as quatro transições deste módulo também gravam a trilha do caso
 
 `_transicionar_para_erro` (`EC-04`/`EC-03`) e as duas transições de
@@ -193,6 +206,7 @@ import asyncio
 import hashlib
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, is_dataclass
 from typing import Final
 
@@ -211,7 +225,7 @@ from engine.motor import calcular_plano
 from engine.parametros import ErroParametros, Parametros
 from engine.portas import FonteParametros, RepositorioSnapshots
 from engine.snapshot import SnapshotOrdem
-from engine.tipos import EVENTO_RECALCULO
+from engine.tipos import EVENTO_RECALCULO, Dinheiro
 from persistencia.app_aluno.casos import RepositorioCasos
 from persistencia.app_aluno.eventos import RepositorioEventosCaso
 
@@ -367,6 +381,32 @@ def _transicionar_para_erro(insumos: ParametrosDoCalculo, motivo_tecnico: str) -
         estado=ESTADO_CASO.ERRO_DE_CALCULO.value,
         transicao="erro_no_calculo",
     )
+
+
+def avaliar_passagem(
+    estado: EstadoFinanceiro, parametros: Parametros
+) -> tuple[str | None, Dinheiro]:
+    """`PD-16`: uma passagem do motor que não grava nada — devolve a dívida-alvo
+    e o resultado de caixa observado, lidos como estão (Lei nº 3)."""
+    snapshot = calcular_plano(estado, parametros)
+    return snapshot.DIVIDA_ALVO_ATUAL, snapshot.diagnostico.RESULTADO_CAIXA_OBSERVADO
+
+
+async def planejar_com_limite_async(
+    planejar: Callable[[], EstadoFinanceiro],
+    provisorio: EstadoFinanceiro,
+    *,
+    tempo_limite_segundos: float = TEMPO_LIMITE_PADRAO_SEGUNDOS,
+) -> EstadoFinanceiro:
+    """`T-528`: o estado definitivo das passagens, ou o `provisorio` se o
+    planejamento falhar ou estourar o tempo (nunca deixa o caso preso)."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        return await asyncio.wait_for(run_in_threadpool(planejar), timeout=tempo_limite_segundos)
+    except Exception:  # noqa: BLE001 — qualquer falha cai para a passagem 1
+        _registrar_evento(nivel=logging.WARNING, mensagem="passagens: usando o estado provisório")
+        return provisorio
 
 
 def executar_calculo(estado: EstadoFinanceiro, insumos: ParametrosDoCalculo) -> SnapshotOrdem:

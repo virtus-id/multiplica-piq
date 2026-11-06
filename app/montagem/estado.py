@@ -200,7 +200,9 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Final
 
+from app.montagem.calculo_divida import CAMPO_DA_DIVIDA
 from app.montagem.conversao import converter_para_dinheiro
+from app.montagem.premissas import PremissasDaDivida, resolver_divida
 from collection.registro import EscopoRepeticao
 from collection.respostas import NAO_SEI, RespostasCaso, ValorResposta
 from engine.estado import (
@@ -228,7 +230,6 @@ from engine.taxa import derivar_TAXA_EFETIVA_MENSAL_NORMALIZADA
 from engine.tipos import (
     CONFIABILIDADE_DADOS,
     DESCONHECIDO,
-    SISTEMA_AMORTIZACAO,
     STATUS_DIVIDA,
     STATUS_VALIDADE_PROPOSTA,
     Desconhecido,
@@ -471,7 +472,9 @@ def _taxa_mensal_normalizada(respostas: RespostasCaso, DIVIDA_ID: str) -> TaxaTa
     return DESCONHECIDO
 
 
-def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
+def montar_divida(
+    respostas: RespostasCaso, DIVIDA_ID: str, *, recebe_estimada: bool = True
+) -> Divida:
     """RF-12, RF-14 (`AC-08`) — monta a `Divida` de uma ficha do Bloco 5 a
     partir das respostas gravadas para o item `DIVIDA_ID`.
 
@@ -481,6 +484,16 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
     aplicável — erro explícito (`ErroRespostaAusente`). Os quatro campos de
     gate (`_CAMPOS_DE_GATE_FORA_DE_ESCOPO`) são a única exceção documentada,
     pelos motivos da docstring do módulo.
+
+    **Parcela estimada (`T-526`, `T-529`, `RF-535`, `RF-537`, decisão do spike
+    `T-523`: hipótese adotada).** Dívida com `parcela_estimada` (habitual
+    ausente ou zero, sem prazo): `PARCELA_CONTRATUAL` recebe o habitual
+    declarado — `0` quando ausente, para o alerta de crescimento comparar com
+    o que o aluno de fato paga (`DESCONHECIDO` faria o motor pular a dívida);
+    `PAGAMENTO_MENSAL_EFETIVO` recebe o que o plano paga: a parcela estimada
+    na prioritária (`recebe_estimada`), o mínimo (`B5.C02C`) nas demais. Sem
+    mínimo, a estimada também vale; excluir a dívida (`OQ-84`) é decisão de
+    `app/montagem/prioridade.py`, que conhece a prioritária.
     """
     tipo_divida_bruto = respostas.valor_no_item(DIVIDA_ID, "TIPO_DIVIDA")
     if tipo_divida_bruto is None:
@@ -492,9 +505,32 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         raise ErroRespostaAusente(DIVIDA_ID, "B5.H01", "PESO_EMOCIONAL")
     assert isinstance(peso_emocional_bruto, int) and not isinstance(peso_emocional_bruto, bool)
 
-    parcela_declarada = _dinheiro_estrutural_ou_desconhecido(
-        respostas, DIVIDA_ID, _VARIAVEL_PARCELA_CONTRATUAL
+    # `RF-531`/`PD-07`: saldo, parcela, taxa mensal e sistema vêm de
+    # `resolver_divida` (valor informado ou calculado). Campo `PENDENTE` cai na
+    # leitura crua de antes. Prazo nunca chega ao motor.
+    premissas = resolver_divida(respostas, DIVIDA_ID)
+    valores = premissas.valores
+    saldo = valores[CAMPO_DA_DIVIDA.SALDO].valor
+    parcela = valores[CAMPO_DA_DIVIDA.PARCELA].valor
+    parcela_declarada: DinheiroTalvez = (
+        parcela
+        if isinstance(parcela, Decimal)
+        else _dinheiro_estrutural_ou_desconhecido(
+            respostas, DIVIDA_ID, _VARIAVEL_PARCELA_CONTRATUAL
+        )
     )
+
+    estimada = premissas.parcela_estimada
+    pagamento_do_plano: DinheiroTalvez
+    if estimada is not None:
+        parcela_declarada = _ZERO  # habitual ausente/zero, `RF-535` (aviso: não é zero declarado)
+        pagamento_do_plano = (
+            estimada.valor
+            if recebe_estimada or premissas.pagamento_minimo is None
+            else premissas.pagamento_minimo
+        )
+    else:
+        pagamento_do_plano = parcela_declarada
 
     return Divida(
         DIVIDA_ID=DIVIDA_ID,
@@ -502,8 +538,10 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         # `RF-513`: o status saiu do questionário; toda dívida cadastrada vale ativa.
         STATUS_DIVIDA=STATUS_DIVIDA.ATIVA,
         # B5.B03 — "não sei" em saldo produz DESCONHECIDO, nunca 0 (AC-08).
-        SALDO_DEVEDOR_ATUAL=_dinheiro_obrigatorio(
-            respostas, DIVIDA_ID, "B5.B03", "SALDO_DEVEDOR_ATUAL"
+        SALDO_DEVEDOR_ATUAL=(
+            saldo
+            if isinstance(saldo, Decimal)
+            else _dinheiro_obrigatorio(respostas, DIVIDA_ID, "B5.B03", "SALDO_DEVEDOR_ATUAL")
         ),
         # `T-408`: B5.B05, B5.B05A e B5.B05B saíram — o motor sempre usava o
         # saldo devedor no lugar do valor de quitação (nunca havia `VIGENTE`).
@@ -513,11 +551,15 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         # B5.D06 — valor e periodicidade na mesma resposta; a conversão ao
         # ano é do motor (`§16.1`). O CET não é lido: não há marca de qual dos
         # dois o aluno informou (`T-393`).
-        TAXA_EFETIVA_MENSAL_NORMALIZADA=_taxa_mensal_normalizada(respostas, DIVIDA_ID),
+        TAXA_EFETIVA_MENSAL_NORMALIZADA=(
+            premissas.taxa_mensal_normalizada
+            if premissas.taxa_mensal_normalizada is not None
+            else _taxa_mensal_normalizada(respostas, DIVIDA_ID)
+        ),
         CET=DESCONHECIDO,
         # B5.C02 — sempre perguntada (`RF-513`); sem resposta, DESCONHECIDO.
         PARCELA_CONTRATUAL=parcela_declarada,
-        PAGAMENTO_MENSAL_EFETIVO=parcela_declarada,
+        PAGAMENTO_MENSAL_EFETIVO=pagamento_do_plano,
         # Um valor mensal por dívida: a parcela declarada em B5.C02 é também o
         # pagamento mensal. Nada é inferido (nem "valor total", nem média):
         # sem o valor, os dois campos ficam DESCONHECIDO.
@@ -535,20 +577,9 @@ def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
         OPORTUNIDADE_VIGENTE=None,
         **_campos_prioridade_ordem(respostas, DIVIDA_ID),
         # `RF-510`: só o financiamento imobiliário pergunta; nas demais, `PRICE`.
-        SISTEMA_AMORTIZACAO=_sistema_de_amortizacao(respostas, DIVIDA_ID, tipo_divida_bruto),
+        # `RF-523`: Price ou SAC valem para qualquer modalidade (revoga `RF-510`).
+        SISTEMA_AMORTIZACAO=premissas.sistema,
     )
-
-
-def _sistema_de_amortizacao(
-    respostas: RespostasCaso, DIVIDA_ID: str, tipo_divida: object
-) -> SISTEMA_AMORTIZACAO:
-    """`RF-510` (`B5.C02A`): `SAC` só quando o financiamento imobiliário foi
-    declarado SAC. Sem resposta, `PRICE` (parcela fixa, o comportamento de
-    sempre): a pergunta é indispensável, então a falta vira pendência."""
-    resposta = respostas.valor_no_item(DIVIDA_ID, "SISTEMA_AMORTIZACAO")
-    if tipo_divida == TIPO_DIVIDA.FIN_IMOBILIARIO.value and resposta == "SAC":
-        return SISTEMA_AMORTIZACAO.SAC
-    return SISTEMA_AMORTIZACAO.PRICE
 
 
 def _campos_prioridade_ordem(respostas: RespostasCaso, DIVIDA_ID: str) -> dict[str, Any]:
@@ -1237,6 +1268,7 @@ def montar_estado_financeiro(
     dividas: tuple[Divida, ...],
     CONFIABILIDADE_DADOS: CONFIABILIDADE_DADOS,
     economia_nao_identificada: Dinheiro | None = None,
+    dividas_pendentes: tuple[PremissasDaDivida, ...] = (),
 ) -> EstadoFinanceiro:
     """RF-14, AC-18 — monta o `EstadoFinanceiro` COMPLETO a partir das
     respostas do caso, com `DATA_REFERENCIA` vinda do `Caso` (`app/casos/
@@ -1282,6 +1314,11 @@ def montar_estado_financeiro(
     é recebida pronta porque cada `Divida` é montada individualmente por
     `montar_divida` (T-49) — não é responsabilidade desta função descobrir
     quantas fichas de dívida existem nem iterar sobre elas.
+
+    `dividas_pendentes` (`T-499`, `RF-527`, `PD-10`): dívidas que a calculadora
+    não resolveu ficaram fora de `dividas`; com qualquer uma delas,
+    `INVENTARIO_COMPLETO` é `False` (leitura, não regra financeira — o motor
+    rebaixa a `PROVISORIA`).
 
     `INVENTARIO_COMPLETO` (`T-52`, `RF-15`, `AC-07`): NÃO é mais parâmetro
     externo — é lido diretamente das respostas por `_inventario_completo`
@@ -1342,7 +1379,8 @@ def montar_estado_financeiro(
         ECONOMIA_POTENCIAL_IMEDIATA=(
             _ZERO if economia_nao_identificada is None else economia_nao_identificada
         ),
-        INVENTARIO_COMPLETO=_inventario_completo(respostas),
+        # `RF-527`/`PD-10`: dívida pendente fora do estado ⇒ inventário incompleto.
+        INVENTARIO_COMPLETO=_inventario_completo(respostas) and not dividas_pendentes,
         dividas=dividas,
         perfil_comportamental=montar_perfil_comportamental(respostas),
         sinais_comportamentais=montar_sinais_comportamentais(respostas),

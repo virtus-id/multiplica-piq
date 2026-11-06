@@ -52,7 +52,8 @@
             "DATA",
             "TEXTO_CURTO",
             "SIM_NAO_TALVEZ",
-            "ESCALA_0_10"
+            "ESCALA_0_10",
+            "CALCULO_DIVIDA"
           ]
         },
         "obrigatoriedade": {

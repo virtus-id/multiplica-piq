@@ -1,0 +1,56 @@
+# Textos da calculadora da dívida — `POST /caso/{id}/calculadora/previa` e
+# `.../confirmar` (`T-502`, `RF-518`, `RF-519`, `AC-37`).
+#
+# ÚNICO arquivo onde esta redação vive: texto ao aluno é dado, nunca código.
+# Chaves: código de erro, estado da prévia e rótulo de marca (`MARCA_DO_VALOR`).
+#
+# APROVADO pelo produto: só a frase do `RF-519` (`erros_de_calculo`).
+# Todo o resto nasce com o marcador `[PROVISORIO T-507]`: é proposta, a aprovar
+# em `T-507` (marcador removido na aprovação).
+
+# `RF-519`: a mesma frase para todo erro de cálculo; nada calculado é salvo.
+erros_de_calculo:
+  NAO_REDUZ_SALDO: &frase_rf519 "Nas condições informadas, essa parcela não reduz o saldo devedor. Revise os dados ou simule outra condição."
+  SEM_CONVERGENCIA: *frase_rf519
+  TAXA_ACIMA_DO_TETO: *frase_rf519
+  PRAZO_ACIMA_DO_MAXIMO: *frase_rf519
+
+# `RF-518`: entrada recusada, por campo.
+erros_de_entrada:
+  VALOR_ILEGIVEL: "[PROVISORIO T-507] Não entendemos este valor. Use o formato 1.234,56."
+  SALDO_NAO_POSITIVO: "[PROVISORIO T-507] O saldo devedor precisa ser maior que zero."
+  PARCELA_NAO_POSITIVA: "[PROVISORIO T-507] A parcela precisa ser maior que zero."
+  TAXA_NEGATIVA: "[PROVISORIO T-507] A taxa não pode ser negativa."
+  TAXA_ACIMA_DO_TETO: "[PROVISORIO T-507] Esta taxa está acima do limite aceito. Confira o valor."
+  PRAZO_NAO_INTEIRO: "[PROVISORIO T-507] O prazo deve ser um número inteiro de meses."
+  PRAZO_NAO_POSITIVO: "[PROVISORIO T-507] O prazo precisa ser de pelo menos 1 mês."
+  PRAZO_ACIMA_DO_MAXIMO: "[PROVISORIO T-507] O prazo máximo aceito é de 480 meses."
+  SALDO_ACIMA_DO_MAXIMO: "[PROVISORIO T-507] O saldo devedor máximo aceito é de R$ 1.000.000.000,00."
+  PARCELA_ACIMA_DO_MAXIMO: "[PROVISORIO T-507] A parcela máxima aceita é de R$ 1.000.000.000,00."
+
+# Mensagem de cada estado da prévia (`RespostaDaPrevia.mensagem`); `ERRO` usa
+# `erros_de_calculo` ou `erros_de_entrada`.
+estados:
+  CALCULADO: "[PROVISORIO T-507] Calculamos o valor que faltava com base nos outros três."
+  CONFERIDO: "[PROVISORIO T-507] Os quatro valores são compatíveis entre si."
+  INCOMPATIVEL: "[PROVISORIO T-507] Os quatro valores não são compatíveis. Escolha qual informação recalcular."
+  PENDENTE: "[PROVISORIO T-507] Faltam informações para calcular. Informe mais um valor."
+  SEM_CALCULO: "[PROVISORIO T-507] Informe o que souber para começar o cálculo."
+
+# Rótulo da marca de cada valor (`RF-528`).
+marcas:
+  INFORMADO: "[PROVISORIO T-507] informado por você"
+  CALCULADO: "[PROVISORIO T-507] calculado"
+  ESTIMADO: "[PROVISORIO T-507] estimado"
+  HIPOTESE: "[PROVISORIO T-507] hipótese"
+  PENDENTE: "[PROVISORIO T-507] pendente"
+
+# `RF-532`, `RF-533`, `RF-536` (Fase 2, `T-532`): a parcela estimada vai em linha à
+# parte, nunca no campo digitado. PROVISÓRIO, a aprovar pelo produto.
+estimativa:
+  hipotese_24_meses: "[PROVISORIO T-532] Sem prazo nem pagamento informados, estimamos a parcela em 24 meses. Este valor é uma hipótese, não o valor do seu contrato."
+
+# `RF-538`, `RF-539` (Fase 3, `T-536`): valores incompatíveis sem escolha do aluno.
+# PROVISÓRIO, a aprovar em `T-537`.
+conservadora:
+  aviso: "[PROVISORIO T-537] Se você não escolher o que recalcular, o plano usa como hipótese apenas este saldo e esta taxa. A parcela e o prazo dessa hipótese não governam o plano: ele segue com o pagamento que você declarou."

@@ -30,6 +30,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
 
 from app.casos.inventario import pendencias_de_inventario
+from app.casos.liberacao import data_da_liberacao
 from app.casos.maquina import ESTADO_CASO
 from app.casos.progresso import RelatoDeProgresso, consultar_trilha_de_progresso
 from app.concorrencia import duas_em_paralelo, tres_em_paralelo
@@ -71,14 +72,15 @@ from app.http.rotas_revisao import (
 )
 from app.http.serializacao_plano import (
     fontes_por_divida,
+    itens_do_caso,
     serializar_estado_inputs,
     serializar_item_da_fila,
     serializar_linha_de_caso,
     serializar_opcoes_da_lista,
     serializar_plano,
-    itens_do_caso,
     vocabulario_do_caso,
 )
+from app.montagem.premissas import premissas_da_ficha
 from app.revisao.comprovacao import niveis_por_ficha
 from app.revisao.fila import (
     RepositorioCasosDaFila,
@@ -108,7 +110,6 @@ from persistencia.app_aluno.itens import ItemRepetido, RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
 from persistencia.app_aluno.revisoes import RepositorioRevisoesSupabase
 from persistencia.supabase.repositorio_snapshots import ErroSnapshotNaoEncontrado
-from app.casos.liberacao import data_da_liberacao
 from report.pdf import gerar_pdf_de_previa, snapshot_tem_liberacao_registrada
 from report.plano import (
     TextosCanonicosPlano,
@@ -493,6 +494,8 @@ def caso_para_revisao(
     # "Cheque especial — CAIXA", não `D011`; o código fica como detalhe. Com
     # versão anterior, o vocabulário cobre também as dívidas dela (uma dívida
     # removida ainda precisa de nome na lista de mudanças).
+    premissas_ficha = premissas_da_ficha(respostas_do_caso, itens_por_escopo)
+    no_plano = {d.DIVIDA_ID for d in snapshot.estado_inputs.dividas}
     vocabulario = vocabulario_do_caso(
         colecao.registros,
         respostas_do_caso,
@@ -503,6 +506,12 @@ def caso_para_revisao(
             for divida in versao.estado_inputs.dividas
         },
         itens_do_caso(repositorio_itens, CASO_ID_REVISAO),
+        # `T-517`/`T-519`: dívida pendente e marca por campo, só para o revisor.
+        premissas_ficha,
+        # `OQ-84`: resolvida e fora do snapshot atual = excluída por falta de mínimo.
+        sem_minimo=(
+            p.DIVIDA_ID for p in premissas_ficha if not p.faltas and p.DIVIDA_ID not in no_plano
+        ),
     )
 
     # `RF-121`: o plano chama o aluno pelo nome, como na tela dele.

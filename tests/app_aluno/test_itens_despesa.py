@@ -366,7 +366,9 @@ def _despesas_na_montagem(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> De
     monkeypatch.setattr(rotas_calculo, "montar_estado_financeiro", espiao)
     resposta = _cliente(monkeypatch, tmp_path).post(f"/caso/{CASO_ID}/calculo")
     assert resposta.status_code == 200, resposta.text
-    [estado] = montados
+    # A rota monta um estado provisório (prioridade em duas passagens, `T-528`)
+    # e o final: vale o último, o que o motor recebeu.
+    estado = montados[-1]
     return estado.DESPESAS_OPERACIONAIS_ATUAIS
 
 

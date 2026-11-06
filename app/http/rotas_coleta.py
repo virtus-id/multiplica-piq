@@ -195,6 +195,7 @@ _TIPOS_QUE_EXIGEM_CONVERSAO_DECIMAL: Final[frozenset[TipoResposta]] = frozenset(
 # 40 caracteres do teste estático.
 _MENSAGEM_PERGUNTA_NAO_ENCONTRADA: Final[str] = "Registro de pergunta inválido: ID desconhecido."
 _MENSAGEM_PERGUNTA_NAO_ABERTA: Final[str] = "Pergunta não está aberta para resposta."
+_MENSAGEM_SO_PELA_CALCULADORA: Final[str] = "Responda pela calculadora da dívida."
 _MENSAGEM_FALHA_SALVAR: Final[str] = "Não foi possível salvar."
 _MENSAGEM_FORA_DA_FAIXA: Final[str] = "Valor fora do intervalo aceito."
 _TEXTO_CAMPO_MAXIMO: Final[int] = 60
@@ -613,6 +614,9 @@ def responder_pergunta(
         registro = _localizar_registro(colecao, id_pergunta)
     except ErroPerguntaDesconhecida:
         return _resposta_de_erro(request, _MENSAGEM_PERGUNTA_NAO_ENCONTRADA, 400)
+    if registro.tipo is TipoResposta.CALCULO_DIVIDA:
+        # `T-496` (RF-514): só o endpoint da calculadora grava a marca.
+        return _resposta_de_erro(request, _MENSAGEM_SO_PELA_CALCULADORA, 422)
     if registro.VARIAVEL_GRAVADA is None:
         raise ErroRegistroSemVariavelGravada(registro.ID)
 

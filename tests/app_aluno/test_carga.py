@@ -632,15 +632,17 @@ def test_t223_faixa_nao_numerica_e_recusada(tmp_path: Path) -> None:
     assert "B1.01" in _recusa(tmp_path, pergunta)
 
 
-def test_t224_questionario_na_versao_1_3_0_e_b3_c00_com_painel() -> None:
+def test_t224_questionario_na_versao_1_5_0_e_b3_c00_com_painel() -> None:
     """RF-03/AC-38 (T-224, `OQ-52`): a versão única de todos os registros é a
     1.2.0 (1.0.3 da canônica; 1.1.0 em `T-389` com as 87 perguntas retiradas, RF-402;
-    1.2.0 na publicação do enxugamento (T-390 a T-397); 1.3.0 em `T-400`, RF-413).
+    1.2.0 na publicação do enxugamento (T-390 a T-397); 1.3.0 em `T-400`, RF-413;
+    1.4.0 em `T-494`, RF-523/RF-526: calculadora da dívida; 1.5.0 em `T-525`,
+    RF-533: pagamento mínimo, `B5.C02C`).
     `B3.C00` declara o painel da fotografia do mês e é o único registro que
     o faz (`T-408`: `B3.C02C`, o painel de comparação, saiu)."""
     colecao = carregar_registros(incluir_casos_de_prova=True)
 
-    assert colecao.QUESTIONARIO_VERSION == "1.3.0"
+    assert colecao.QUESTIONARIO_VERSION == "1.5.0"
     assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00"]
     assert next(r for r in colecao.registros if r.ID == "B3.C00").painel == "FOTOGRAFIA_DO_MES"
 
@@ -671,3 +673,35 @@ def test_t284_condicao_sobre_selecao_compara_valor_interno_nunca_rotulo() -> Non
         for folha in _folhas(r.condicao_exibicao)
         if folha.variavel in valores and folha.valor not in valores[folha.variavel]
     ] == []
+
+
+def _calculo_divida(**mudancas: object) -> dict[str, object]:
+    pergunta = _pergunta_minima(
+        "B5.CALC01",
+        VARIAVEL_GRAVADA="CONFERENCIA_DA_DIVIDA",
+        escopo_repeticao="DIVIDA_ID",
+        obrigatoriedade=["OPT", "REP"],
+    )
+    pergunta["tipo"] = "CALCULO_DIVIDA"
+    return {**pergunta, **mudancas}
+
+
+def test_t491_calculo_divida_bem_formada_carrega(tmp_path: Path) -> None:
+    """`T-491` (RF-514): décimo `TipoResposta`, escopo `DIVIDA_ID`, variável da marca."""
+    registro = _carregar_uma(tmp_path, _calculo_divida())
+
+    assert registro.tipo is TipoResposta.CALCULO_DIVIDA
+
+
+@pytest.mark.parametrize(
+    "mudanca",
+    [
+        {"escopo_repeticao": "NENHUM"},
+        {"VARIAVEL_GRAVADA": "SALDO_DEVEDOR_ATUAL"},
+        {"opcoes": [{"rotulo": "A", "valor_interno": "A"}]},
+    ],
+)
+def test_t491_calculo_divida_mal_formada_e_recusada_nomeando_o_registro(
+    tmp_path: Path, mudanca: dict[str, object]
+) -> None:
+    assert "B5.CALC01" in _recusa(tmp_path, _calculo_divida(**mudanca))

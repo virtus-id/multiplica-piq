@@ -46,8 +46,10 @@ class Obrigatoriedade(Enum):
 
 
 class TipoResposta(Enum):
-    """§11 da canônica — tipo de resposta de cada registro. Os nove membros
-    fecham o domínio dos tipos de entrada usados nas 291 perguntas."""
+    """§11 da canônica — tipo de resposta de cada registro. Os nove primeiros
+    membros fecham o domínio dos tipos de entrada usados nas 291 perguntas;
+    `CALCULO_DIVIDA` é o décimo (`T-491`, `RF-514`): pergunta composta, gravada
+    só pelo endpoint da calculadora, nunca por `POST /resposta`."""
 
     SELECAO_UNICA = "SELECAO_UNICA"
     SELECAO_MULTIPLA = "SELECAO_MULTIPLA"
@@ -58,6 +60,7 @@ class TipoResposta(Enum):
     TEXTO_CURTO = "TEXTO_CURTO"
     SIM_NAO_TALVEZ = "SIM_NAO_TALVEZ"
     ESCALA_0_10 = "ESCALA_0_10"
+    CALCULO_DIVIDA = "CALCULO_DIVIDA"
 
 
 class EscopoRepeticao(Enum):

@@ -110,6 +110,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.http.rotas_api_conta import roteador as roteador_api_conta
 from app.http.rotas_api_plano import roteador as roteador_api_plano
+from app.http.rotas_calculadora import roteador as roteador_calculadora
 from app.http.rotas_calculo import roteador as roteador_calculo
 from app.http.rotas_coleta import roteador as roteador_coleta
 from app.http.rotas_consentimento import roteador as roteador_consentimento
@@ -197,6 +198,8 @@ def criar_aplicacao() -> FastAPI:
     # segredo próprio, nunca por sessão — quem chama é máquina.
     aplicacao.include_router(roteador_provisionamento)
     aplicacao.include_router(roteador_calculo)
+    # `T-503`/`T-504`: prévia (sem gravar) e confirmação da calculadora da dívida.
+    aplicacao.include_router(roteador_calculadora)
     aplicacao.include_router(roteador_plano)
     aplicacao.include_router(roteador_revisao)
     aplicacao.include_router(roteador_operador)

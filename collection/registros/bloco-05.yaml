@@ -3,7 +3,7 @@
 # (RF-03, RF-04, RF-09, AC-04, AC-36). 55 das 58 perguntas são REP por
 # DIVIDA_ID (cada dívida é uma ficha) — só B5.00, B5.00A e B5.FIM02 não são
 # repetíveis (são perguntas de caso, não de ficha de dívida).
-QUESTIONARIO_VERSION: "1.3.0"
+QUESTIONARIO_VERSION: "1.5.0"
 perguntas:
   - ID: B5.00
     bloco: 5
@@ -91,6 +91,30 @@ perguntas:
       Define modelo da engine, exibição de B5.C07 (linhas reutilizáveis) e
       de B5.G03 (modalidades portáveis).
 
+  # `T-492` (RF-514, RF-523): a calculadora da dívida — pergunta composta, gravada
+  # só pelo endpoint da calculadora (nunca por `POST /resposta`). Grava as MESMAS
+  # variáveis das perguntas individuais (`B5.B03`, `B5.C02`, `B5.C02B`, `B5.D06`,
+  # `B5.C02A`) e, por último, a marca `CONFERENCIA_DA_DIVIDA`. Enunciado
+  # provisório; a redação final é `T-509`.
+  - ID: B5.CALC01
+    bloco: 5
+    enunciado: >-
+      Vamos conferir os números desta dívida: saldo devedor, parcela, taxa e
+      prazo restante.
+    apoio: >-
+      Informe o que souber. Com três desses valores, calculamos o quarto.
+    tipo: CALCULO_DIVIDA
+    obrigatoriedade: [OPT, REP]
+    escopo_repeticao: DIVIDA_ID
+    opcoes: []
+    VARIAVEL_GRAVADA: CONFERENCIA_DA_DIVIDA
+    condicao_exibicao: null
+    interpolacoes: []
+    validacoes_cruzadas: []
+    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
+    admite_nao_sei: false
+    salto_consequencia: null
+
   # Grupo B — Valores e saldo
   - ID: B5.B03
     bloco: 5
@@ -106,9 +130,8 @@ perguntas:
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      O saldo é obrigatório e exato: sem "não sei" (T-411).
+    admite_nao_sei: true  # `T-493` (RF-523, AC-537): revoga `T-411`; nunca gravado como 0
+    salto_consequencia: null
 
   # Grupo C — Fluxo
   - ID: B5.C02
@@ -125,26 +148,64 @@ perguntas:
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
+    admite_nao_sei: true  # `T-493` (RF-523, AC-537): nunca gravado como 0
     salto_consequencia: null
 
-  # `T-465` (RF-510): só o financiamento imobiliário pergunta o sistema. O prazo
-  # não é perguntado: o motor o deriva de saldo, taxa e parcela (RF-509).
+  # `T-492` (RF-514, RF-526): o prazo restante, em meses. Mesma variável que a
+  # calculadora grava. `OPT`: caso antigo não tem a resposta e não trava por ela.
+  - ID: B5.C02B
+    bloco: 5
+    enunciado: Quantos meses faltam para terminar de pagar esta dívida?
+    tipo: NUMERO
+    obrigatoriedade: [OPT, REP]
+    escopo_repeticao: DIVIDA_ID
+    opcoes:
+      - {rotulo: "______ meses", valor_interno: null}
+    VARIAVEL_GRAVADA: PRAZO_RESTANTE_MESES
+    condicao_exibicao: null
+    interpolacoes: []
+    validacoes_cruzadas: []
+    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
+    admite_nao_sei: true
+    salto_consequencia: null
+
+  # `T-525` (RF-533, OQ-85): o pagamento mínimo, ao lado do habitual (`B5.C02`).
+  # `OPT`: caso antigo não tem a resposta e não trava por ela. Enunciado
+  # provisório; a redação final é `T-532`.
+  - ID: B5.C02C
+    bloco: 5
+    enunciado: "[PROVISORIO T-532] Qual é o pagamento mínimo que esta dívida exige por mês?"
+    tipo: MOEDA
+    obrigatoriedade: [OPT, REP]
+    escopo_repeticao: DIVIDA_ID
+    opcoes:
+      - {rotulo: "R$ ______", valor_interno: null}
+    VARIAVEL_GRAVADA: PAGAMENTO_MINIMO_DIVIDA
+    condicao_exibicao: null
+    interpolacoes: []
+    validacoes_cruzadas: []
+    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
+    admite_nao_sei: true  # nunca gravado como 0
+    salto_consequencia: null
+
+  # `T-493` (RF-523, OQ-93; revoga `T-465`/RF-510): o sistema é perguntado em toda
+  # dívida, sem condição, `OPT` e sem `indispensavel`. O Price é o padrão que a
+  # calculadora pré-seleciona (`B5.CALC01`); o registro não declara padrão.
   - ID: B5.C02A
     bloco: 5
     enunciado: >-
-      Esse financiamento é pela tabela Price (parcelas fixas) ou pelo SAC
-      (parcelas que diminuem a cada mês)? No SAC, a parcela informada acima
-      deve ser a de hoje, que é a maior.
+      Esta dívida é pela tabela Price (parcelas fixas) ou pelo SAC (parcelas que
+      diminuem a cada mês)? No SAC, a parcela informada acima deve ser a de
+      hoje, que é a maior.
     tipo: SELECAO_UNICA
-    obrigatoriedade: [COND, REP]
+    obrigatoriedade: [OPT, REP]
     escopo_repeticao: DIVIDA_ID
     opcoes:
       - {rotulo: "Price (parcelas fixas).", valor_interno: PRICE}
       - {rotulo: "SAC (parcelas que diminuem a cada mês).", valor_interno: SAC}
     VARIAVEL_GRAVADA: SISTEMA_AMORTIZACAO
-    indispensavel: true  # sem a resposta o motor teria de adivinhar o sistema
-    condicao_exibicao: {tipo: IGUAL, variavel: TIPO_DIVIDA, valor: FIN_IMOBILIARIO}
+    indispensavel: false  # OQ-93: senão todo caso antigo travaria
+    condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
@@ -171,6 +232,7 @@ perguntas:
     opcoes:
       - {rotulo: ao mês, valor_interno: MENSAL, abre_campo: TAXA, variavel_do_campo: TAXA_DIVIDA}
       - {rotulo: ao ano, valor_interno: ANUAL, abre_campo: TAXA, variavel_do_campo: TAXA_DIVIDA}
+      - {rotulo: Não sei a taxa, valor_interno: DESCONHECIDA, admite_nao_sei: true}
     VARIAVEL_GRAVADA: PERIODICIDADE_TAXA_DIVIDA
     indispensavel: true
     condicao_exibicao: null

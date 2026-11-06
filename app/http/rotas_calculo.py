@@ -149,6 +149,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from collections.abc import Callable
 from typing import Annotated, Final
 
 from fastapi import APIRouter, Depends, Request
@@ -170,17 +171,24 @@ from app.casos.progresso import (
 from app.concorrencia import tres_em_paralelo
 from app.http.isolamento import exigir_caso_da_sessao, obter_repositorio_casos
 from app.http.renderizacao import ErroPerguntaNaoExibivel, montar_contexto_pergunta
+from app.montagem.calculo_divida import CAMPO_DA_DIVIDA
 from app.montagem.conversao import ErroConversaoInvalida, converter_para_dinheiro
 from app.montagem.estado import (
     ErroCampoAgregadoDesconhecido,
     ErroRespostaAusente,
     ErroSinalComportamentalAusente,
     ErroValorInternoDesconhecido,
-    montar_divida,
     montar_estado_financeiro,
     montar_perfil_comportamental,
 )
-from app.motor.executor import ParametrosDoCalculo, executar_calculo_com_timeout_async
+from app.montagem.premissas import PremissasDaDivida, dividas_pendentes
+from app.montagem.prioridade import PlanoDePagamentos, ResultadoDaPassagem, planejar_pagamentos
+from app.motor.executor import (
+    ParametrosDoCalculo,
+    avaliar_passagem,
+    executar_calculo_com_timeout_async,
+    planejar_com_limite_async,
+)
 from collection.carga import ColecaoDeRegistros, carregar_registros
 from collection.condicoes import Condicao, avaliar
 from collection.interpolacao import ErroInterpolacao
@@ -217,6 +225,17 @@ _MENSAGEM_INVENTARIO: Final[str] = "O inventário está incompleto."
 _MENSAGEM_ESTADO_INVALIDO: Final[str] = "Caso não está pronto para calcular."
 _MENSAGEM_PARAMETROS_PENDENTES: Final[str] = "Cálculo indisponível no momento."
 _MENSAGEM_MONTAGEM_RECUSADA: Final[str] = "Algumas respostas precisam de revisão."
+# `EC-74`: texto provisório do plano (seção 8), a aprovar em `T-508`.
+# Montada por `join` para não acionar o detector de enunciado (`AC-37`).
+_MENSAGEM_SEM_DIVIDA_VALIDA: Final[str] = " ".join(
+    ("Não há dívida", "com dados suficientes", "para montar o plano.")
+)
+# Pergunta que o aluno abre para informar cada campo faltante (`RF-527`).
+_PERGUNTA_DO_CAMPO: Final[dict[CAMPO_DA_DIVIDA, str]] = {
+    CAMPO_DA_DIVIDA.SALDO: "B5.B03",
+    CAMPO_DA_DIVIDA.PARCELA: "B5.C02",
+    CAMPO_DA_DIVIDA.TAXA: "B5.D06",
+}
 
 _LOGGER: Final[logging.Logger] = logging.getLogger("app.http.rotas_calculo")
 
@@ -502,17 +521,6 @@ def _recusar_montagem(
     )
 
 
-def _montar_dividas_do_caso(
-    respostas: RespostasCaso, itens_por_escopo: dict[EscopoRepeticao, tuple[str, ...]]
-) -> tuple[Divida, ...]:
-    """Uma `Divida` (`app/montagem/estado.py::montar_divida`, T-49) por
-    `DIVIDA_ID` ativo do caso — a rota não decide NADA sobre o conteúdo de
-    cada dívida, só itera sobre os itens já cadastrados (`persistencia/
-    app_aluno/itens.py`, T-23)."""
-    dividas_id = itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID, ())
-    return tuple(montar_divida(respostas, dividas_id) for dividas_id in dividas_id)
-
-
 def _montar_estado_financeiro_do_caso(
     caso: Caso,
     respostas: RespostasCaso,
@@ -523,18 +531,59 @@ def _montar_estado_financeiro_do_caso(
     que já está pronto (`dividas`, `DATA_REFERENCIA` do `Caso`) com o que já
     foi resolvido por `ParametrosExternosDoBloco6.obter` (`CONFIABILIDADE_
     DADOS` e, se aplicável, `economia_nao_identificada`), ANTES de qualquer
-    transição de estado (ver `disparar_calculo`). O `# type: ignore` segue
-    necessário mesmo depois de `T-106` (confirmado com `mypy --strict`):
-    `**dict[str, object]` não é verificável contra os parâmetros nomeados e
-    tipados de `montar_estado_financeiro`, independente de quantos ou quais
-    parâmetros externos existam."""
-    dividas = _montar_dividas_do_caso(respostas, itens_por_escopo)
-    return montar_estado_financeiro(
-        respostas,
-        DATA_REFERENCIA=caso.DATA_REFERENCIA,
-        dividas=dividas,
-        **parametros_externos_resolvidos,  # type: ignore[arg-type]
-    )
+    transição de estado (ver `disparar_calculo`). É o estado PROVISÓRIO
+    (passagem 1, sem rodar o motor, `T-528`): valida a montagem; as passagens
+    que elegem a dívida prioritária vêm depois, em `_planejar_definitivo`.
+
+    Uma `Divida` (`montar_divida`, T-49) por `DIVIDA_ID` ativo — a rota não
+    decide NADA sobre o conteúdo de cada dívida (`app/montagem/prioridade.py`
+    escolhe quem recebe a parcela estimada; dívida pendente não chega ao motor,
+    `T-499`, `RF-527`, `PD-10`)."""
+    return _planejar(caso, respostas, itens_por_escopo, parametros_externos_resolvidos).estado
+
+
+def _planejar(
+    caso: Caso,
+    respostas: RespostasCaso,
+    itens_por_escopo: dict[EscopoRepeticao, tuple[str, ...]],
+    parametros_externos_resolvidos: dict[str, object],
+    rodar: Callable[[EstadoFinanceiro], ResultadoDaPassagem] | None = None,
+) -> PlanoDePagamentos:
+    # O `# type: ignore` segue necessário mesmo depois de `T-106` (confirmado
+    # com `mypy --strict`): `**dict[str, object]` não é verificável contra os
+    # parâmetros nomeados e tipados de `montar_estado_financeiro`.
+    def montar(
+        dividas: tuple[Divida, ...], fora_do_plano: tuple[PremissasDaDivida, ...]
+    ) -> EstadoFinanceiro:
+        return montar_estado_financeiro(
+            respostas,
+            DATA_REFERENCIA=caso.DATA_REFERENCIA,
+            dividas=dividas,
+            dividas_pendentes=fora_do_plano,
+            **parametros_externos_resolvidos,  # type: ignore[arg-type]
+        )
+
+    return planejar_pagamentos(respostas, itens_por_escopo, montar, rodar)
+
+
+def _planejar_definitivo(
+    caso: Caso,
+    respostas: RespostasCaso,
+    itens_por_escopo: dict[EscopoRepeticao, tuple[str, ...]],
+    parametros_externos_resolvidos: dict[str, object],
+    fonte_parametros: FonteParametros,
+    parametros_versao: str,
+) -> EstadoFinanceiro:
+    """`T-527`: as passagens do motor (`PD-16`), chamadas em thread por
+    `planejar_com_limite_async`. Qualquer falha cai no estado provisório."""
+    parametros = fonte_parametros.carregar(parametros_versao)
+
+    def rodar(estado: EstadoFinanceiro) -> ResultadoDaPassagem:
+        alvo, caixa = avaliar_passagem(estado, parametros)
+        return ResultadoDaPassagem(alvo, caixa)
+
+    plano = _planejar(caso, respostas, itens_por_escopo, parametros_externos_resolvidos, rodar)
+    return plano.estado
 
 
 @roteador.post("/{CASO_ID}/calculo")
@@ -579,10 +628,10 @@ async def disparar_calculo(
     )
     if isinstance(resultado, JSONResponse):
         return resultado
-    estado_financeiro, insumos = resultado
+    estado_financeiro, insumos, planejar = resultado
 
     asyncio.create_task(
-        _executar_e_avancar(estado_financeiro, insumos, repositorio_eventos)
+        _executar_e_avancar(estado_financeiro, insumos, repositorio_eventos, planejar)
     )
 
     return JSONResponse({"CASO_ID": CASO_ID, "calculando": True})
@@ -598,10 +647,13 @@ def _preparar_calculo(
     repositorio_snapshots: RepositorioSnapshots,
     repositorio_eventos: RepositorioEventosCaso,
     parametros_externos: ParametrosExternosDoBloco6,
-) -> JSONResponse | tuple[EstadoFinanceiro, ParametrosDoCalculo]:
+) -> JSONResponse | tuple[
+    EstadoFinanceiro, ParametrosDoCalculo, Callable[[], EstadoFinanceiro]
+]:
     """A parte síncrona e bloqueante de `disparar_calculo` — `T-187`. Devolve
-    a resposta de erro pronta quando alguma guarda recusa, ou o par
-    `(estado_financeiro, insumos)` que a rota usa para agendar a execução.
+    a resposta de erro pronta quando alguma guarda recusa, ou a tripla
+    `(estado_financeiro, insumos, planejar)` que a rota usa para agendar a
+    execução (`planejar` roda as passagens da prioritária, `T-528`).
     Corpo idêntico ao que vivia direto na rota antes desta tarefa; só o
     ponto de chamada mudou."""
     # `caso`, `respostas` e `itens_por_escopo` são três consultas
@@ -645,6 +697,22 @@ def _preparar_calculo(
                 "pendencias": tuple(formatar_pendencia_inventario(p) for p in erro.pendencias),
             },
             status_code=400,
+        )
+
+    # `T-499` (`EC-74`, `RF-527`): todas as dívidas pendentes ⇒ nenhuma entra
+    # no estado; recusa antes de transicionar e sem chamar o motor.
+    pendentes = dividas_pendentes(respostas, itens_por_escopo)
+    if pendentes and len(pendentes) == len(itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID, ())):
+        return JSONResponse(
+            {
+                "mensagem": _MENSAGEM_SEM_DIVIDA_VALIDA,
+                "pendencias": tuple(
+                    _formatar_pendencia(colecao, respostas, _PERGUNTA_DO_CAMPO[campo], p.DIVIDA_ID)
+                    for p in pendentes
+                    for campo in p.faltas
+                ),
+            },
+            status_code=422,
         )
 
     # `T-106` — ver a nota extensa na docstring do módulo: os parâmetros
@@ -744,7 +812,17 @@ def _preparar_calculo(
         ),
     )
 
-    return estado_financeiro, insumos
+    def planejar() -> EstadoFinanceiro:
+        return _planejar_definitivo(
+            caso,
+            respostas,
+            itens_por_escopo,
+            parametros_externos_resolvidos,
+            fonte_parametros,
+            parametros_versao,
+        )
+
+    return estado_financeiro, insumos, planejar
 
 
 def snapshot_corrente(
@@ -764,6 +842,7 @@ async def _executar_e_avancar(
     estado: EstadoFinanceiro,
     insumos: ParametrosDoCalculo,
     repositorio_eventos: RepositorioEventosCaso,
+    planejar: Callable[[], EstadoFinanceiro] | None = None,
 ) -> None:
     """Roda em segundo plano (`asyncio.create_task`, chamado pela rota
     acima): executa o Bloco 6 (T-54/T-55) e, em caso de sucesso, transiciona
@@ -801,6 +880,10 @@ async def _executar_e_avancar(
     no loop principal: sem `run_in_threadpool` aqui, esta função travaria o
     processo inteiro pela duração das duas escritas, para qualquer outra
     requisição em andamento, não só para quem disparou este cálculo."""
+    if planejar is not None:
+        # `T-528`: as passagens que elegem a prioritária rodam com o caso já em
+        # `CALCULANDO`; falha ou tempo estourado ⇒ estado provisório.
+        estado = await planejar_com_limite_async(planejar, estado)
     snapshot = await executar_calculo_com_timeout_async(estado, insumos)
     if snapshot is not None:
         await run_in_threadpool(

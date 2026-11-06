@@ -195,6 +195,7 @@ from app.http.isolamento import (
 from app.http.rotas_coleta import _itens_por_escopo
 from app.http.serializacao_plano import rotulo_do_nivel, vocabulario_do_caso
 from app.montagem.entrada import conferir_desconto
+from app.montagem.premissas import campos_resolvidos
 from app.notificacao.email import (
     EnviadorDeEmail,
     obter_enviador,
@@ -375,7 +376,12 @@ def pendencias_homologacao_do_caso(
     Dependência própria para que a tela (`GET`) e a decisão (`POST`) leiam
     a MESMA lista."""
     respostas, itens_por_escopo = dados
-    return pendencias_de_homologacao(colecao.registros, respostas, itens_por_escopo)
+    return pendencias_de_homologacao(
+        colecao.registros,
+        respostas,
+        itens_por_escopo,
+        campos_resolvidos(respostas, itens_por_escopo),
+    )
 
 
 def _contexto_de_conferencia(

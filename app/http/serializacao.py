@@ -32,9 +32,9 @@ from typing import Any, Final
 
 from app.http.renderizacao import ContextoPergunta
 from app.montagem.entrada import FotografiaDoMes, LinhaDecomposicao
-from collection.registro import OpcaoRegistro, RegistroPergunta
+from collection.registro import OpcaoRegistro, RegistroPergunta, TipoResposta
 from collection.respostas import NAO_SEI, ValorResposta
-from engine.tipos import DinheiroTalvez
+from engine.tipos import SISTEMA_AMORTIZACAO, DinheiroTalvez
 
 REGRAS: Final[tuple[str, ...]] = ("RF-51", "RF-52", "RF-45")
 
@@ -114,7 +114,7 @@ def serializar_pergunta(
     decisão e foi respondida em 2026-09-17.
     """
     registro = contexto.registro
-    return {
+    payload: dict[str, Any] = {
         "CASO_ID": CASO_ID,
         "ID": registro.ID,
         "bloco": registro.bloco,
@@ -133,6 +133,10 @@ def serializar_pergunta(
         "valores_marcados": sorted(contexto.valores_marcados),
         "aviso": contexto.aviso.texto if contexto.aviso is not None else None,
     }
+    if registro.tipo is TipoResposta.CALCULO_DIVIDA:
+        # `T-496` (RF-523): a pergunta composta nasce com o sistema padrão.
+        payload["sistema"] = SISTEMA_AMORTIZACAO.PRICE.value
+    return payload
 
 
 def _dinheiro_ou_nulo(valor: DinheiroTalvez) -> str | None:

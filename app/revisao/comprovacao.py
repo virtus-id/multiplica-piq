@@ -89,8 +89,13 @@ def pendencias_de_homologacao(
     registros: tuple[RegistroPergunta, ...],
     respostas: RespostasCaso,
     itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]],
+    resolvidas: frozenset[tuple[str, str]] = frozenset(),
 ) -> tuple[PendenciaHomologacao, ...]:
-    """RF-93/RF-97 — o que impede a liberação, na ordem dos registros."""
+    """RF-93/RF-97 — o que impede a liberação, na ordem dos registros.
+
+    `resolvidas` (`PD-11`, `RF-526`): `(item_id, VARIAVEL_GRAVADA)` dos campos
+    que a calculadora calculou (`campos_resolvidos`); "não sei" neles não é
+    `AUSENTE`. Em campo pendente a guarda segue valendo (`OQ-89`)."""
     pendencias: list[PendenciaHomologacao] = []
     for registro in registros:
         if not registro.indispensavel or registro.VARIAVEL_GRAVADA is None:
@@ -109,6 +114,8 @@ def pendencias_de_homologacao(
         )
         for item_id in itens_por_escopo.get(registro.escopo_repeticao, ()):
             if not _aberta(registro, respostas, item_id):
+                continue
+            if (item_id, registro.VARIAVEL_GRAVADA) in resolvidas:
                 continue
             if _ausente(registro, respostas.valor_no_item(item_id, registro.VARIAVEL_GRAVADA)):
                 pendencias.append(PendenciaHomologacao(item_id, registro.ID, "AUSENTE"))

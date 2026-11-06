@@ -167,15 +167,16 @@ def test_rf466_rotulo_da_linha_de_resultado_antes_das_parcelas() -> None:
 
 def test_rf467_saldo_devedor_e_parcela_continuam_exigidos_antes_do_envio() -> None:
     """`B5.B03` (saldo) e `B5.C02` (parcela, quando a dívida tem parcela definida)
-    são `indispensavel` e não aceitam "não sei": o envio os cobra."""
+    são `indispensavel`: o envio os cobra. `RF-523` (`T-493`) revoga `T-411`: ambos
+    agora admitem "não sei", que não conta como valor e segue pendente no envio."""
     registros = {registro.ID: registro for registro in carregar_registros().registros}
 
     saldo = registros["B5.B03"]
-    assert saldo.indispensavel is True and saldo.admite_nao_sei is False
+    assert saldo.indispensavel is True and saldo.admite_nao_sei is True
     assert "REP" in {o.name for o in saldo.obrigatoriedade}
 
     parcela = registros["B5.C02"]
-    assert parcela.indispensavel is True and parcela.admite_nao_sei is False
+    assert parcela.indispensavel is True and parcela.admite_nao_sei is True
     assert "OBR" in {o.name for o in parcela.obrigatoriedade}  # sempre perguntada (RF-513)
 
     assert "B5.B05A" not in registros  # a pergunta do valor de quitação não existe mais
