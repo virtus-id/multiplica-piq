@@ -339,11 +339,8 @@ class VocabularioDoCaso:
     #: `T-536` (`RF-538`, `RF-539`): dívidas cujos quatro valores não batem e o
     #: aluno não escolheu o que recalcular; saldo e taxa do plano são hipótese.
     dividas_com_hipotese: frozenset[str] = frozenset()
-    #: Hipótese (b) do spike `T-523`: o valor extra declarado (`B3.C01`), para o
-    #: aviso de que o plano o reduziu ao que cabe no mês.
-    capacidade_declarada: Decimal | None = None
-    #: Avisos de pagamento (`T-529`..`T-536`) são do revisor: só saem quando a
-    #: aplicação montou o vocabulário com as premissas da ficha.
+    #: Avisos de pagamento (`T-529`..`T-536`): só saem quando a aplicação
+    #: montou o vocabulário com as premissas da ficha (aluno, PDF e revisor).
     com_premissas: bool = False
 
     @property
@@ -2000,7 +1997,7 @@ def _avisos_de_pagamento(
       avisado de que não é um zero declarado (ressalva (a) do spike);
     - inviabilidade: dívida que cresce com pagamento INFORMADO ou mês que não
       fecha — o pagamento do aluno permanece e o texto não cita 24 meses;
-    - valor extra declarado reduzido ao que cabe no mês (ressalva (b));
+    - valor extra declarado maior do que sobra no mês (usado como está);
     - valores incompatíveis sem escolha do aluno: só saldo e taxa da hipótese
       conservadora governam o plano (`RF-538`, `RF-539`)."""
     avisos = textos.avisos
@@ -2046,11 +2043,16 @@ def _avisos_de_pagamento(
                 valor=formatar_dinheiro_br(diagnostico.RESULTADO_CAIXA_OBSERVADO)
             )
         )
-    declarada = vocabulario.capacidade_declarada
-    usada = snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA
-    if declarada is not None and isinstance(usada, Decimal) and usada < declarada:
-        texto = avisos.get("capacidade_limitada", "")
-        saida.append(texto.format(valor=formatar_dinheiro_br(usada)))
+    # Especialista, 2026-11-06: o valor declarado é usado como está; o aluno
+    # é avisado quando ele passa do que sobra no mês.
+    declarada = snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA
+    sobra = diagnostico.RESULTADO_CAIXA_OBSERVADO
+    if isinstance(declarada, Decimal) and declarada > max(sobra, Decimal(0)):
+        saida.append(
+            avisos.get("ataque_acima_da_sobra", "").format(
+                declarado=formatar_dinheiro_br(declarada), sobra=formatar_dinheiro_br(sobra)
+            )
+        )
     return tuple(texto for texto in saida if texto)
 
 

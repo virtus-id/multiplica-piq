@@ -195,7 +195,7 @@ from app.http.isolamento import (
 from app.http.rotas_coleta import _itens_por_escopo
 from app.http.serializacao_plano import rotulo_do_nivel, vocabulario_do_caso
 from app.montagem.entrada import conferir_desconto
-from app.montagem.premissas import campos_resolvidos
+from app.montagem.premissas import campos_dispensados
 from app.notificacao.email import (
     EnviadorDeEmail,
     obter_enviador,
@@ -380,7 +380,7 @@ def pendencias_homologacao_do_caso(
         colecao.registros,
         respostas,
         itens_por_escopo,
-        campos_resolvidos(respostas, itens_por_escopo),
+        campos_dispensados(respostas, itens_por_escopo),
     )
 
 

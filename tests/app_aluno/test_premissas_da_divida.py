@@ -21,7 +21,7 @@ from app.montagem.premissas import (
     MARCA_DO_VALOR,
     SITUACAO_DA_DIVIDA,
     PremissasDaDivida,
-    campos_resolvidos,
+    campos_dispensados,
     dividas_pendentes,
     impressao_dos_valores,
     resolver_divida,
@@ -268,15 +268,16 @@ def test_pendentes_na_ordem_da_ficha_e_ec62_quatro_nao_sei() -> None:
     assert dividas_pendentes(respostas, {}) == ()
 
 
-def test_campos_resolvidos_so_os_calculados() -> None:
+def test_campos_dispensados_calculados_e_os_que_faltam_na_pendente() -> None:
     respostas = _respostas(
         ("D1", _ficha_nao_sei(F.PARCELA)),
         ("D2", _ficha_nao_sei(F.SALDO, F.TAXA)),
     )
     itens = {EscopoRepeticao.DIVIDA_ID: ("D1", "D2")}
-    resolvidos = campos_resolvidos(respostas, itens)
+    resolvidos = campos_dispensados(respostas, itens)
     assert ("D1", _VARIAVEL[F.PARCELA]) in resolvidos
-    assert not any(item == "D2" for item, _ in resolvidos)  # pendente não aparece
+    # `OQ-89`: o que falta na pendente não bloqueia (fora do plano, apontada ao aluno)
+    assert ("D2", _VARIAVEL[F.SALDO]) in resolvidos and ("D2", _VARIAVEL[F.TAXA]) in resolvidos
     assert ("D1", _VARIAVEL[F.SALDO]) not in resolvidos  # informado não aparece
 
 

@@ -174,7 +174,7 @@ perguntas:
   # provisório; a redação final é `T-532`.
   - ID: B5.C02C
     bloco: 5
-    enunciado: "[PROVISORIO T-532] Qual é o pagamento mínimo que esta dívida exige por mês?"
+    enunciado: "Qual é o pagamento mínimo que esta dívida exige por mês?"
     tipo: MOEDA
     obrigatoriedade: [OPT, REP]
     escopo_repeticao: DIVIDA_ID
@@ -198,13 +198,13 @@ perguntas:
       diminuem a cada mês)? No SAC, a parcela informada acima deve ser a de
       hoje, que é a maior.
     tipo: SELECAO_UNICA
-    obrigatoriedade: [OPT, REP]
+    obrigatoriedade: [OBR, REP]
     escopo_repeticao: DIVIDA_ID
     opcoes:
       - {rotulo: "Price (parcelas fixas).", valor_interno: PRICE}
       - {rotulo: "SAC (parcelas que diminuem a cada mês).", valor_interno: SAC}
     VARIAVEL_GRAVADA: SISTEMA_AMORTIZACAO
-    indispensavel: false  # OQ-93: senão todo caso antigo travaria
+    indispensavel: false  # especialista 2026-11-06: obrigatória, padrão Price (a montagem cai em Price)
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []

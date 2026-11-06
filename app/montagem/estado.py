@@ -472,9 +472,7 @@ def _taxa_mensal_normalizada(respostas: RespostasCaso, DIVIDA_ID: str) -> TaxaTa
     return DESCONHECIDO
 
 
-def montar_divida(
-    respostas: RespostasCaso, DIVIDA_ID: str, *, recebe_estimada: bool = True
-) -> Divida:
+def montar_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> Divida:
     """RF-12, RF-14 (`AC-08`) — monta a `Divida` de uma ficha do Bloco 5 a
     partir das respostas gravadas para o item `DIVIDA_ID`.
 
@@ -490,10 +488,9 @@ def montar_divida(
     ausente ou zero, sem prazo): `PARCELA_CONTRATUAL` recebe o habitual
     declarado — `0` quando ausente, para o alerta de crescimento comparar com
     o que o aluno de fato paga (`DESCONHECIDO` faria o motor pular a dívida);
-    `PAGAMENTO_MENSAL_EFETIVO` recebe o que o plano paga: a parcela estimada
-    na prioritária (`recebe_estimada`), o mínimo (`B5.C02C`) nas demais. Sem
-    mínimo, a estimada também vale; excluir a dívida (`OQ-84`) é decisão de
-    `app/montagem/prioridade.py`, que conhece a prioritária.
+    `PAGAMENTO_MENSAL_EFETIVO` recebe a parcela estimada de 24 meses em TODA
+    dívida sem prazo e sem pagamento (especialista, 2026-11-06: o plano precisa
+    de horizonte temporal). O mínimo (`B5.C02C`) fica só registrado.
     """
     tipo_divida_bruto = respostas.valor_no_item(DIVIDA_ID, "TIPO_DIVIDA")
     if tipo_divida_bruto is None:
@@ -524,11 +521,7 @@ def montar_divida(
     pagamento_do_plano: DinheiroTalvez
     if estimada is not None:
         parcela_declarada = _ZERO  # habitual ausente/zero, `RF-535` (aviso: não é zero declarado)
-        pagamento_do_plano = (
-            estimada.valor
-            if recebe_estimada or premissas.pagamento_minimo is None
-            else premissas.pagamento_minimo
-        )
+        pagamento_do_plano = estimada.valor
     else:
         pagamento_do_plano = parcela_declarada
 

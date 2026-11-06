@@ -67,7 +67,7 @@ from app.http.rotas_coleta import (
 from app.http.rotas_plano import obter_repositorio_snapshots
 from app.http.rotas_revisao import formatar_pendencia_homologacao
 from app.http.serializacao_plano import vocabulario_do_caso
-from app.montagem.premissas import campos_resolvidos
+from app.montagem.premissas import campos_dispensados
 from app.revisao.comprovacao import pendencias_de_homologacao
 from app.revisao.fila import DECISAO_REVISAO
 from collection.carga import ColecaoDeRegistros, carregar_registros
@@ -347,7 +347,7 @@ def _correcao_pedida(
                 colecao.registros,
                 respostas,
                 itens_por_escopo,
-                campos_resolvidos(respostas, itens_por_escopo),
+                campos_dispensados(respostas, itens_por_escopo, com_pendentes=False),
             )
         ],
     }

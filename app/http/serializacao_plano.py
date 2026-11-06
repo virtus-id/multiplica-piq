@@ -34,11 +34,11 @@ from app.casos.itens_despesa import rotulos_dos_itens
 from app.http.rotas_calculo import _respostas_do_calculo
 from app.montagem.calculo_divida import CAMPO_DA_DIVIDA
 from app.montagem.entrada import fotografia_do_mes, resumo_das_despesas
-from app.montagem.premissas import MARCA_DO_VALOR, PremissasDaDivida
+from app.montagem.premissas import MARCA_DO_VALOR, PremissasDaDivida, premissas_da_ficha
 from app.revisao.comprovacao import NivelDaFicha
 from app.revisao.fila import ItemFila
 from app.revisao.lista_de_casos import LinhaDoCaso
-from collection.registro import RegistroPergunta
+from collection.registro import EscopoRepeticao, RegistroPergunta
 from collection.respostas import RespostasCaso
 from persistencia.app_aluno.itens import ItemRepetido, RepositorioItens
 from persistencia.supabase.conexao import ErroConexaoAusente
@@ -133,7 +133,6 @@ def vocabulario_do_caso(
     dividas: Iterable[str],
     itens: Iterable[ItemRepetido] = (),
     premissas: Iterable[PremissasDaDivida] | None = None,
-    sem_minimo: Iterable[str] = (),
 ) -> VocabularioDoCaso:
     """`RF-111` (`T-326`) — o que `report/` precisa para dar nome às coisas:
     o `rotulo` de cada opção do registro, por `VARIAVEL_GRAVADA` (a primeira
@@ -152,10 +151,6 @@ def vocabulario_do_caso(
     premissas = tuple(premissas or ())
     pendentes = tuple(
         (p.DIVIDA_ID, tuple(_CODIGO_NO_ESTADO[c] for c in p.faltas)) for p in premissas if p.faltas
-    ) + tuple(
-        # `OQ-84`: fora do plano sem mínimo (`B5.C02C`); o revisor é avisado.
-        (divida, ("PAGAMENTO_MINIMO_DIVIDA",))
-        for divida in sem_minimo
     )
     marcas = {
         p.DIVIDA_ID: {
@@ -180,7 +175,6 @@ def vocabulario_do_caso(
             marcas[p.DIVIDA_ID]["PAGAMENTO_MENSAL_EFETIVO"] = _MARCA_AO_REVISOR[
                 MARCA_DO_VALOR.ESTIMADO
             ]
-    capacidade = respostas.valor("CAPACIDADE_ATAQUE_DECLARADA")
     credores = {
         divida: credor
         for divida in (*dividas, *(i for i, _ in pendentes))
@@ -211,7 +205,23 @@ def vocabulario_do_caso(
         dividas_com_hipotese=frozenset(
             p.DIVIDA_ID for p in premissas if p.hipotese_conservadora is not None
         ),
-        capacidade_declarada=capacidade if isinstance(capacidade, Decimal) else None,
+    )
+
+
+def vocabulario_com_premissas(
+    registros: tuple[RegistroPergunta, ...],
+    respostas: RespostasCaso,
+    dividas: Iterable[str],
+    itens: tuple[ItemRepetido, ...],
+) -> VocabularioDoCaso:
+    """`T-518`: o plano do aluno e o PDF levam as premissas da dívida — a
+    pendência de informação e os avisos de pagamento (especialista,
+    2026-11-06: o plano parcial é liberado e aponta a pendência)."""
+    por_escopo: dict[EscopoRepeticao, tuple[str, ...]] = {}
+    for item in itens:
+        por_escopo[item.escopo] = (*por_escopo.get(item.escopo, ()), item.item_id)
+    return vocabulario_do_caso(
+        registros, respostas, dividas, itens, premissas_da_ficha(respostas, por_escopo)
     )
 
 

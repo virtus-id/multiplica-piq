@@ -62,7 +62,7 @@ from app.http.rotas_coleta import (
     obter_repositorio_itens,
     obter_repositorio_respostas,
 )
-from app.http.serializacao_plano import itens_do_caso, vocabulario_do_caso
+from app.http.serializacao_plano import itens_do_caso, vocabulario_com_premissas
 from collection.carga import ColecaoDeRegistros
 from collection.respostas import RespostasCaso
 from engine.portas import RepositorioSnapshots
@@ -167,7 +167,7 @@ def exportar_pdf_do_plano(
 
     textos = carregar_textos_canonicos()
     # `T-326` (`RF-111`): no PDF, como na tela, a dívida por "tipo — credor".
-    vocabulario = vocabulario_do_caso(
+    vocabulario = vocabulario_com_premissas(
         colecao.registros,
         RespostasCaso(respostas=repositorio_respostas.listar_do_caso(CASO_ID)),
         (divida.DIVIDA_ID for divida in snapshot.estado_inputs.dividas),

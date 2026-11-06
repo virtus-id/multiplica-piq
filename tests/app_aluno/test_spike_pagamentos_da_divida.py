@@ -123,15 +123,6 @@ def test_mapeamento_da_spec_em_orcamento_apertado_o_deficit_nao_aparece() -> Non
     assert _saida_do_mes_1(estado) == d("595,24")  # sobre disponível de 300
 
 
-def test_teto_da_capacidade_declarada_na_montagem_fecha_no_orcamento() -> None:
-    """(1) Saída sem tocar `engine/`: `CAPACIDADE_ATAQUE_DECLARADA` = caixa observado."""
-    dividas = (_d1_informada(), _d2(ZERO, PARCELA_24_D2))
-    estado = _estado(dividas, declarada="2554,76")
-    diag = calcular_plano(estado, PARAMETROS).diagnostico
-    assert diag.CAPACIDADE_ATAQUE_CONSERVADORA == d("2554,76")
-    assert _saida_do_mes_1(estado) == d("3000")  # = disponível
-
-
 def test_alerta_de_divida_que_cresce_com_habitual_zero_e_preservado() -> None:
     """(2) `AC-547`: habitual 0 em `PARCELA_CONTRATUAL`, falta igual aos juros (150)."""
     diag = calcular_plano(
@@ -165,26 +156,6 @@ def test_prazo_derivado_da_parcela_de_24_meses_e_24_na_calculadora_e_no_motor() 
     estado = _estado((_d2(ZERO, PARCELA_24_D2),), declarada="0")
     snapshot = calcular_plano(estado, PARAMETROS)
     assert {int(c.PRAZO_TOTAL) for c in snapshot.cenarios.values()} == {24}
-
-
-def test_so_a_prioritaria_recebe_a_parcela_de_24_meses() -> None:
-    """(4) Opção A, duas passagens: a passagem 1 (todas no mínimo) acha a alvo; a 2 a mantém."""
-    passo_1 = _estado(
-        (_divida("D1", "10000", "2", ZERO, MINIMO_D1), _d2(ZERO, MINIMO_D2)), declarada="2000"
-    )
-    prioritaria = _alvo(passo_1)
-    assert prioritaria == "D2"  # maior taxa
-    passo_2 = _estado(
-        (_divida("D1", "10000", "2", ZERO, MINIMO_D1), _d2(ZERO, PARCELA_24_D2)),
-        declarada="2000",
-    )
-    assert _alvo(passo_2) == prioritaria
-    # Contraprova: dar a parcela de 24 meses à outra não muda a alvo do motor.
-    passo_2_outra = _estado(
-        (_divida("D1", "10000", "2", ZERO, PARCELA_24_D1), _d2(ZERO, MINIMO_D2)),
-        declarada="2000",
-    )
-    assert _alvo(passo_2_outra) == prioritaria
 
 
 def test_ac549_falta_de_juros_usa_o_habitual_e_o_resultado_do_mes_e_o_do_pagamento_declarado() -> (

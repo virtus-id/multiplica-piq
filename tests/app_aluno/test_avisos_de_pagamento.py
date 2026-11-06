@@ -15,11 +15,9 @@ from datetime import date
 from app.http.serializacao_plano import vocabulario_do_caso
 from app.montagem.conversao import converter_para_dinheiro as d
 from app.montagem.conversao import converter_para_taxa as t
-from app.montagem.estado import montar_estado_financeiro
+from app.montagem.estado import montar_divida, montar_estado_financeiro
 from app.montagem.premissas import premissas_da_ficha
-from app.montagem.prioridade import ResultadoDaPassagem, planejar_pagamentos
 from collection.respostas import NAO_SEI
-from engine.estado import EstadoFinanceiro
 from engine.motor import calcular_plano
 from engine.snapshot import SnapshotOrdem
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
@@ -51,23 +49,13 @@ def _plano(
     respostas = _caso({"D001": {**_FICHA, **ficha}})
     itens = _por_escopo(_itens(("D001",)))
 
-    def montar(dividas, fora):  # type: ignore[no-untyped-def]
-        return montar_estado_financeiro(
-            respostas,
-            DATA_REFERENCIA=DATA_REFERENCIA,
-            dividas=dividas,
-            dividas_pendentes=fora,
-            **PARAMETROS_EXTERNOS_PADRAO,  # type: ignore[arg-type]
-        )
-
-    def rodar(estado: EstadoFinanceiro) -> ResultadoDaPassagem:
-        snap = calcular_plano(estado, _PARAMETROS)
-        return ResultadoDaPassagem(
-            snap.DIVIDA_ALVO_ATUAL, snap.diagnostico.RESULTADO_CAIXA_OBSERVADO
-        )
-
-    plano = planejar_pagamentos(respostas, itens, montar, rodar)
-    snapshot = calcular_plano(plano.estado, _PARAMETROS)
+    estado = montar_estado_financeiro(
+        respostas,
+        DATA_REFERENCIA=DATA_REFERENCIA,
+        dividas=(montar_divida(respostas, "D001"),),
+        **PARAMETROS_EXTERNOS_PADRAO,  # type: ignore[arg-type]
+    )
+    snapshot = calcular_plano(estado, _PARAMETROS)
     vocabulario = vocabulario_do_caso(
         (), respostas, ["D001"], (), premissas_da_ficha(respostas, itens)
     )
@@ -118,17 +106,16 @@ def test_ac548_mes_que_nao_fecha_com_a_estimada_exibe_o_caixa_negativo() -> None
     assert "seu mês fecha em" in _avisos(contexto)
 
 
-def test_capacidade_reduzida_ao_caixa_e_avisada_como_hipotese() -> None:
-    # caixa negativo: o valor extra declarado (R$ 500,00) desce a zero
-    snapshot, vocabulario, contexto = _plano(
+def test_valor_declarado_acima_da_sobra_e_mantido_e_avisado() -> None:
+    """Especialista, 2026-11-06: usa o valor declarado e informa no plano."""
+    snapshot, _, contexto = _plano(
         {_PARCELA: NAO_SEI, "SALDO_DEVEDOR_ATUAL": d("40.000,00"), "TAXA_DIVIDA": t("3")}
     )
-    assert snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA == d("0")
-    assert vocabulario.capacidade_declarada == d("500")
-    assert "(hipótese)" in _avisos(contexto)
+    assert snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA == d("500")
+    assert "maior do que sobra" in _avisos(contexto)
 
 
-def test_capacidade_que_cabe_no_mes_nao_e_alterada_nem_avisada() -> None:
+def test_valor_declarado_que_cabe_no_mes_nao_e_avisado() -> None:
     snapshot, _, contexto = _plano({_PARCELA: NAO_SEI})
     assert snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA == d("500")
-    assert "(hipótese)" not in _avisos(contexto)
+    assert "maior do que sobra" not in _avisos(contexto)

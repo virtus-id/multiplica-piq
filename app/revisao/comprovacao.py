@@ -93,9 +93,9 @@ def pendencias_de_homologacao(
 ) -> tuple[PendenciaHomologacao, ...]:
     """RF-93/RF-97 — o que impede a liberação, na ordem dos registros.
 
-    `resolvidas` (`PD-11`, `RF-526`): `(item_id, VARIAVEL_GRAVADA)` dos campos
-    que a calculadora calculou (`campos_resolvidos`); "não sei" neles não é
-    `AUSENTE`. Em campo pendente a guarda segue valendo (`OQ-89`)."""
+    `resolvidas` (`PD-11`, `RF-526`, `OQ-89`): `(item_id, VARIAVEL_GRAVADA)` que
+    não bloqueiam (`campos_dispensados`): calculados pela calculadora e os que
+    faltam em dívida pendente, que fica fora do plano e é apontada ao aluno."""
     pendencias: list[PendenciaHomologacao] = []
     for registro in registros:
         if not registro.indispensavel or registro.VARIAVEL_GRAVADA is None:

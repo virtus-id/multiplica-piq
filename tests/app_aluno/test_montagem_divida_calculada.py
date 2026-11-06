@@ -282,7 +282,7 @@ def test_ec74_todas_pendentes_recusa_com_422_e_nao_chama_o_motor(
 
 
 def test_ac538_nao_sei_em_campo_calculado_nao_e_ausente_e_em_pendente_e() -> None:
-    from app.montagem.premissas import campos_resolvidos
+    from app.montagem.premissas import campos_dispensados
 
     registros = carregar_registros().registros
     calculada = _ficha(
@@ -293,7 +293,7 @@ def test_ac538_nao_sei_em_campo_calculado_nao_e_ausente_e_em_pendente_e() -> Non
         },
     )
     itens = {EscopoRepeticao.DIVIDA_ID: ("D001",)}
-    resolvidas = campos_resolvidos(calculada, itens)
+    resolvidas = campos_dispensados(calculada, itens)
     assert ("D001", "SALDO_DEVEDOR_ATUAL") in resolvidas
 
     sem = [
@@ -305,13 +305,15 @@ def test_ac538_nao_sei_em_campo_calculado_nao_e_ausente_e_em_pendente_e() -> Non
     ]
     assert ("D001", "B5.B03") in sem and ("D001", "B5.B03") not in com
 
+    # `OQ-89` (especialista, 2026-11-06): dívida pendente fica fora do plano e
+    # não bloqueia a liberação; a pendência é apontada ao aluno no plano.
     pendente = _ficha("D001", dict(_SEM_VALOR))
-    assert campos_resolvidos(pendente, itens) == frozenset()
-    ainda = [
+    dispensados = campos_dispensados(pendente, itens)
+    liberada = [
         (p.item_id, p.ID_PERGUNTA)
-        for p in pendencias_de_homologacao(registros, pendente, itens, frozenset())
+        for p in pendencias_de_homologacao(registros, pendente, itens, dispensados)
     ]
-    assert ("D001", "B5.B03") in ainda
+    assert ("D001", "B5.B03") not in liberada
 
 
 def test_sem_calculadora_homologacao_inalterada() -> None:

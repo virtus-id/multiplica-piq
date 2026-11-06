@@ -872,12 +872,12 @@ avisos:
   # `T-532` (RF-532, RF-535, RF-536): textos da Fase 2 da calculadora. Todos
   # PROVISÓRIOS, a aprovar pelo produto (marcador removido na aprovação).
   # Nenhum cita "24 meses" quando o aluno informou o pagamento (RF-536).
-  parcela_estimada: "[PROVISORIO T-532] {nome}: como você não informou o prazo nem quanto paga hoje, usamos uma hipótese de 24 meses para esta dívida (parcela de {valor})."
-  habitual_nao_informado: "[PROVISORIO T-532] {nome}: você não informou quanto paga hoje. Para o alerta de dívida que cresce, consideramos R$ 0,00, que não é um valor declarado por você."
-  inviabilidade: "[PROVISORIO T-532] {nome}: o pagamento informado ({valor}) não cobre os juros do mês e a dívida cresce. Mantivemos o seu pagamento no plano."
-  caixa_negativo: "[PROVISORIO T-532] Com os pagamentos considerados neste plano, o seu mês fecha em {valor}."
-  hipotese_conservadora: "[PROVISORIO T-537] {nome}: os valores informados não batem entre si e você não escolheu o que recalcular. Usamos como hipótese o saldo de {saldo} e a taxa de {taxa}; a parcela e o prazo desse cenário não governam o plano, que segue com o pagamento que você declarou."
-  capacidade_limitada: "[PROVISORIO T-532] O valor extra que você declarou foi reduzido para {valor}, o que cabe no seu mês (hipótese)."
+  parcela_estimada: "{nome}: como você não informou o prazo nem quanto paga hoje, usamos uma hipótese de 24 meses para esta dívida (parcela de {valor})."
+  habitual_nao_informado: "{nome}: você não informou quanto paga hoje. Para o alerta de dívida que cresce, consideramos R$ 0,00, que não é um valor declarado por você."
+  inviabilidade: "{nome}: o pagamento informado ({valor}) não cobre os juros do mês e a dívida cresce. Mantivemos o seu pagamento no plano."
+  caixa_negativo: "Com os pagamentos considerados neste plano, o seu mês fecha em {valor}."
+  hipotese_conservadora: "{nome}: os valores informados não batem entre si e você não escolheu o que recalcular. Usamos como hipótese o saldo de {saldo} e a taxa de {taxa}; a parcela e o prazo desse cenário não governam o plano, que segue com o pagamento que você declarou."
+  ataque_acima_da_sobra: "O valor extra que você informou ({declarado}) é maior do que sobra no seu mês ({sobra}). O plano mantém o valor que você informou."
   # RF-472. Sugestão, a validar pelo produto.
   numeros_nao_conferidos: "Alguns números deste plano não passaram na nossa conferência automática. Não os trate como definitivos: aguarde a revisão da nossa equipe antes de agir com base neles."
 

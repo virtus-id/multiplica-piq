@@ -78,6 +78,7 @@ from app.http.serializacao_plano import (
     serializar_linha_de_caso,
     serializar_opcoes_da_lista,
     serializar_plano,
+    vocabulario_com_premissas,
     vocabulario_do_caso,
 )
 from app.montagem.premissas import premissas_da_ficha
@@ -222,7 +223,7 @@ def _vocabulario(
 ) -> VocabularioDoCaso:
     """`T-326` — o vocabulário do caso para as dívidas DESTE snapshot. `itens`
     dá nome aos maiores gastos do relatório do deficitário (`RF-469`)."""
-    return vocabulario_do_caso(
+    return vocabulario_com_premissas(
         colecao.registros,
         respostas,
         (divida.DIVIDA_ID for divida in snapshot.estado_inputs.dividas),
@@ -494,8 +495,6 @@ def caso_para_revisao(
     # "Cheque especial — CAIXA", não `D011`; o código fica como detalhe. Com
     # versão anterior, o vocabulário cobre também as dívidas dela (uma dívida
     # removida ainda precisa de nome na lista de mudanças).
-    premissas_ficha = premissas_da_ficha(respostas_do_caso, itens_por_escopo)
-    no_plano = {d.DIVIDA_ID for d in snapshot.estado_inputs.dividas}
     vocabulario = vocabulario_do_caso(
         colecao.registros,
         respostas_do_caso,
@@ -506,12 +505,8 @@ def caso_para_revisao(
             for divida in versao.estado_inputs.dividas
         },
         itens_do_caso(repositorio_itens, CASO_ID_REVISAO),
-        # `T-517`/`T-519`: dívida pendente e marca por campo, só para o revisor.
-        premissas_ficha,
-        # `OQ-84`: resolvida e fora do snapshot atual = excluída por falta de mínimo.
-        sem_minimo=(
-            p.DIVIDA_ID for p in premissas_ficha if not p.faltas and p.DIVIDA_ID not in no_plano
-        ),
+        # `T-517`/`T-519`: dívida pendente e marca por campo.
+        premissas_da_ficha(respostas_do_caso, itens_por_escopo),
     )
 
     # `RF-121`: o plano chama o aluno pelo nome, como na tela dele.

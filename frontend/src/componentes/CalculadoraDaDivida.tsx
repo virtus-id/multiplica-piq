@@ -61,7 +61,7 @@ const TEXTOS = {
   ultimoPagamento: "Último pagamento",
   totalDeJuros: "Total de juros",
   calculando: "Calculando…",
-  parcelaEstimada: "Parcela estimada [PROVISORIO T-532]",
+  parcelaEstimada: "Parcela estimada ",
 } as const;
 
 const NOMES: Readonly<Record<CampoDaDivida, string>> = {

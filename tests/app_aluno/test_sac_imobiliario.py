@@ -38,9 +38,9 @@ def test_outras_dividas_tambem_chegam_ao_motor_como_sac() -> None:
 
 def test_pergunta_vale_para_toda_divida_e_nao_e_indispensavel() -> None:
     (registro,) = [r for r in carregar_registros().registros if r.ID == "B5.C02A"]
-    # `RF-523`/`OQ-93` (`T-493`): sem condição, `OPT` e sem `indispensavel`
-    # (revoga `T-465`: era só o imobiliário e indispensável).
+    # `RF-523` (`T-493`): sem condição e sem `indispensavel`; obrigatória com
+    # padrão Price (especialista, 2026-11-06, revoga o `OPT` de `OQ-93`).
     assert registro.indispensavel is False
     assert registro.condicao_exibicao is None
-    assert Obrigatoriedade.OPT in registro.obrigatoriedade
+    assert Obrigatoriedade.OBR in registro.obrigatoriedade
     assert [o.valor_interno for o in registro.opcoes] == ["PRICE", "SAC"]

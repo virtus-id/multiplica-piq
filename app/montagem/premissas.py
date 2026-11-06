@@ -502,6 +502,15 @@ def premissas_da_ficha(
     return tuple(resolver_divida(respostas, item) for item in _dividas_da_ficha(itens_por_escopo))
 
 
+def _respondido(respostas: RespostasCaso, item: str, campo: CAMPO_DA_DIVIDA) -> bool:
+    """O aluno respondeu ("não sei" conta); em branco continua bloqueando. A taxa
+    vale pela periodicidade, onde mora a opção "não sei a taxa" de `B5.D06`."""
+    variavel = (
+        _VARIAVEL_PERIODICIDADE if campo is CAMPO_DA_DIVIDA.TAXA else _VARIAVEL_DO_CAMPO[campo]
+    )
+    return respostas.valor_no_item(item, variavel) is not None
+
+
 def dividas_pendentes(
     respostas: RespostasCaso, itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]]
 ) -> tuple[PremissasDaDivida, ...]:
@@ -510,17 +519,25 @@ def dividas_pendentes(
     return tuple(p for p in resolvidas if p.situacao is SITUACAO_DA_DIVIDA.PENDENTE)
 
 
-def campos_resolvidos(
-    respostas: RespostasCaso, itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]]
+def campos_dispensados(
+    respostas: RespostasCaso,
+    itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]],
+    *,
+    com_pendentes: bool = True,
 ) -> frozenset[tuple[str, str]]:
-    """`PD-11`: `(item_id, VARIAVEL_GRAVADA)` dos campos que a calculadora
-    resolveu. "Não sei" em campo calculado não é `AUSENTE`; em campo pendente
-    continua sendo."""
+    """`PD-11`, `OQ-89`: `(item_id, VARIAVEL_GRAVADA)` que não bloqueiam a
+    liberação: os campos que a calculadora calculou e os que faltam numa dívida
+    `PENDENTE` respondidos com "não sei" (fora do plano e apontada ao aluno;
+    especialista, 2026-11-06: o plano parcial é liberado). `com_pendentes=False`
+    deixa só os calculados: o pedido de correção ainda lista o que falta."""
     resolvidos: set[tuple[str, str]] = set()
     for item in _dividas_da_ficha(itens_por_escopo):
-        for campo, valor in resolver_divida(respostas, item).valores.items():
-            if valor.marca is MARCA_DO_VALOR.CALCULADO:
+        premissas = resolver_divida(respostas, item)
+        for campo, valor in premissas.valores.items():
+            if valor.marca is MARCA_DO_VALOR.CALCULADO or (
+                com_pendentes and campo in premissas.faltas and _respondido(respostas, item, campo)
+            ):
                 resolvidos.add((item, _VARIAVEL_DO_CAMPO[campo]))
-                if campo is CAMPO_DA_DIVIDA.TAXA:  # taxa calculada dispensa a periodicidade
+                if campo is CAMPO_DA_DIVIDA.TAXA:  # sem taxa, a periodicidade também não vale
                     resolvidos.add((item, _VARIAVEL_PERIODICIDADE))
     return frozenset(resolvidos)

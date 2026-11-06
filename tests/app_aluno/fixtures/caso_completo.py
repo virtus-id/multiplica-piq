@@ -230,6 +230,8 @@ _VALORES_DIVIDA_PADRAO: Final[dict[str, object]] = {
     # `T-393`: B5.D06 é obrigatória (bloqueia o cálculo); 2% ao mês.
     "PERIODICIDADE_TAXA_DIVIDA": "MENSAL",
     "TAXA_DIVIDA": converter_para_taxa("2"),
+    # `B5.C02A` é obrigatória (especialista, 2026-11-06), padrão Price.
+    "SISTEMA_AMORTIZACAO": "PRICE",
     "PESO_EMOCIONAL": 5,
 }
 

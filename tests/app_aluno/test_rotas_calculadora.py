@@ -188,16 +188,10 @@ def test_todo_codigo_de_erro_estado_e_marca_tem_chave() -> None:
     assert set(textos["estados"]) >= {"CALCULADO", "CONFERIDO", "INCOMPATIVEL", "PENDENTE"}
 
 
-def test_unico_texto_aprovado_e_a_frase_do_rf519() -> None:
-    """O resto leva o marcador de texto provisório até `T-507` (Fase 1) / `T-532` (Fase 2)."""
+def test_nenhum_texto_leva_marcador_provisorio() -> None:
+    """Textos aprovados: nenhum marcador `[PROVISORIO ...]` sobra."""
     textos = yaml.safe_load(rotas_calculadora.CAMINHO_TEXTOS_CALCULADORA.read_text("utf-8"))
-    sem_marcador = {
-        texto
-        for grupo in textos.values()
-        for texto in grupo.values()
-        if not texto.startswith(("[PROVISORIO T-507]", "[PROVISORIO T-532]", "[PROVISORIO T-537]"))
-    }
-    assert sem_marcador == {_FRASE_RF519}
+    assert not [x for g in textos.values() for x in g.values() if "[PROVISORIO" in x]
 
 
 # ---------------------------------------------------------------- T-503: prévia

@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`57/66 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`). Pendentes (9): `T-507`, `T-508`, `T-509`, `T-518`, `T-520`, `T-521`, `T-522`, `T-532`, `T-537`.
+`63/67 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`). Pendentes (4): `T-509`, `T-521`, `T-522`, `T-539` (nova, sem spec). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -751,7 +751,7 @@ Trocar os marcadores provisórios pelo texto aprovado. Sem texto novo escrito po
 
 **Verificação:** `VPY` com `tests/app_aluno/estatica/`
 
-**Status:** `[ ] BLOQUEADA`
+**Status:** `[x] concluída (2026-11-06)` — textos aprovados pelo produto; marcadores `[PROVISORIO]` removidos de `calculadora.yaml`
 
 ---
 
@@ -771,7 +771,7 @@ Chaves novas com o texto aprovado. Pode nascer com o aviso nominal "Dívida X: f
 
 **Verificação:** `VPY` com `tests/app_aluno/estatica/ tests/app_aluno/test_pendencias_do_relatorio.py`
 
-**Status:** `[ ] BLOQUEADA`
+**Status:** `[x] concluída (2026-11-06)` — sem chave nova: o plano parcial usa a seção de pendências que já existe (`ContextoPendencias`, `campos_faltantes_por_divida`, texto `parcial`), com os textos aprovados
 
 ---
 
@@ -974,7 +974,7 @@ Aviso "dívida X, falta Y" e a marca de plano parcial no PDF/HTML do relatório 
 
 **Verificação:** `VPY` com `tests/app_aluno/test_pendencias_do_relatorio.py` e `VFRONT`
 
-**Status:** `[ ] BLOQUEADA` (por dependência de `T-508`)
+**Status:** `[x] implementada (2026-11-06)` — `serializacao_plano.vocabulario_com_premissas` liga as premissas ao plano do aluno (`rotas_api_plano._vocabulario`, também usado pela prévia do PDF) e ao PDF do aluno (`rotas_plano`): a dívida pendente aparece na seção de pendências e os avisos de pagamento chegam ao aluno — **testes adiados para a fase final**
 
 ---
 
@@ -1014,7 +1014,7 @@ Se o especialista aprovar a exceção, ajustar o predicado de `pendencias_de_hom
 
 **Verificação:** `VPY` completo
 
-**Status:** `[ ] BLOQUEADA`
+**Status:** `[x] implementada (2026-11-06)` — decisão do especialista (Marcelo), 2026-11-06: libera o plano parcial e aponta a pendência ao aluno. `premissas.campos_dispensados` (antes `campos_resolvidos`) inclui os campos que faltam em dívida `PENDENTE`; demais `AUSENTE` seguem bloqueando
 
 ---
 
@@ -1098,7 +1098,7 @@ Transformar o resultado do spike em decisão (`PD-17`), detalhar as tarefas `T-5
 
 **Verificação:** revisão do especialista (sem comando)
 
-**Status:** `[x] registrada (2026-11-05)` — **HIPÓTESE ADOTADA, aguardando confirmação do especialista (Marcelo); não é decisão aprovada.** Mapeamento (A) com as ressalvas (a) a (d), plano seção 11.2 e `PD-17`. A ressalva (b) fica isolada em `prioridade.limitar_capacidade_ao_caixa`. Verificação por revisão do especialista continua pendente.
+**Status:** `[x] decidida (2026-11-06)` — o especialista aprovou (a), (c) e (d) e recusou (b): o valor extra declarado é usado como está e o plano avisa quando passa da sobra (`avisos.ataque_acima_da_sobra`). Plano seção 11.2 e `PD-17`
 
 ---
 
@@ -1160,7 +1160,7 @@ Passo 1: estado com todas as estimáveis no mínimo, `engine.motor.calcular_plan
 
 **Verificação:** `VPY` com `tests/app_aluno/test_prioridade.py`
 
-**Status:** `[x] implementada (2026-11-05)` — `app/montagem/prioridade.py`; testes em `tests/app_aluno/test_prioridade.py` — **testes adiados para a fase final** (critérios de teste não marcados; testes já escritos nesta fase ficam onde estão)
+**Status:** `[~] revertida (2026-11-06)` — o especialista decidiu que toda dívida sem prazo e sem pagamento recebe a parcela de 24 meses; não há prioritária a eleger. `app/montagem/prioridade.py` e `tests/app_aluno/test_prioridade.py` removidos; `montar_divida` sem `recebe_estimada`
 
 ---
 
@@ -1177,7 +1177,7 @@ Passo 1: estado com todas as estimáveis no mínimo, `engine.motor.calcular_plan
 
 **Verificação:** `VPY` completo e `VFRONT`
 
-**Status:** `[x] implementada (2026-11-05)` — as passagens rodam em segundo plano com o caso em `CALCULANDO` (o progresso é o mesmo para 1 a 3 passagens); `TelaCalculando` não mudou (spinner sem percentual) — **testes adiados para a fase final** (critérios de teste não marcados; testes já escritos nesta fase ficam onde estão)
+**Status:** `[~] revertida (2026-11-06)` — sem prioritária, o motor roda uma vez: `avaliar_passagem`, `planejar_com_limite_async` e `_planejar_definitivo` removidos; `executor.py` voltou ao da `main`
 
 ---
 
@@ -1246,7 +1246,7 @@ Passo 1: estado com todas as estimáveis no mínimo, `engine.motor.calcular_plan
 
 **Verificação:** `VPY` com `tests/app_aluno/estatica/`
 
-**Status:** `[ ] PENDENTE de aprovação do produto` — textos provisórios marcados `[PROVISORIO T-532]` em `calculadora.yaml` (`estimativa`), `textos-canonicos.yaml` (`avisos`) e `bloco-05.yaml` (`B5.C02C`); nenhum aprovado. Falta também a redação nova de `B5.C02` (habitual, `OQ-85`)
+**Status:** `[x] concluída (2026-11-06)` — textos aprovados pelo produto e marcadores `[PROVISORIO T-532]` removidos de `calculadora.yaml`, `textos-canonicos.yaml` e `bloco-05.yaml` (`B5.C02C`). Segue a redação nova de `B5.C02` (habitual, `OQ-85`), que cabe a `T-509`
 
 ---
 
@@ -1324,7 +1324,7 @@ Aluno vê `hipótese` na ficha e no relatório com o texto de que só saldo e ta
 
 **Verificação:** `VPY` completo e `VFRONT`
 
-**Status:** `[x] concluída (implementação)` — implementado (prévia `hipotese_conservadora` + `CalculadoraDaDivida.tsx`, aviso em `report/plano.py`, marca `estimado` ao revisor); textos `[PROVISORIO T-537]`; **testes adiados para a fase final**, critérios de aceite não marcados
+**Status:** `[x] concluída (implementação)` — implementado (prévia `hipotese_conservadora` + `CalculadoraDaDivida.tsx`, aviso em `report/plano.py`, marca `estimado` ao revisor); textos aprovados (`T-537`, 2026-11-06); **testes adiados para a fase final**, critérios de aceite não marcados
 
 ---
 
@@ -1357,6 +1357,22 @@ Aluno vê `hipótese` na ficha e no relatório com o texto de que só saldo e ta
 **Verificação:** `VPY` completo e `VFRONT`
 
 **Status:** `[x] implementada (2026-11-05)` — `tests/app_aluno/test_cenario_conservador.py` (18 testes) + bloco `hipotese-conservadora` em `CalculadoraDaDivida.test.tsx`. O nível 5 da cascata (custo total) é função dos quatro primeiros e só aparece no desempate `EC-76` (ver relatório). `T-534` segue com `test_sem_aritmetica_sobre_snapshot` não verde por falha preexistente em `rotas_api_plano.py:164`
+
+---
+
+### `T-539` — PIQ recomenda ampliar ou reduzir o prazo de 24 meses
+- **Tipo:** `Spec`
+- **Dependências:** `T-526`
+- **Rastreia:** `RF-534` (resposta do especialista, 2026-11-06)
+- **Arquivos:** a definir na spec
+
+**Descrição**
+O especialista disse que, partindo dos 24 meses, "o PIQ pode recomendar ampliar ou reduzir esse prazo no plano do aluno". É capacidade nova: precisa de discovery e spec (critério da recomendação, onde aparece, texto) antes de qualquer código. Não implementada.
+
+**Critérios de aceite**
+- [ ] Discovery e spec aprovados
+
+**Status:** `[ ] backlog`
 
 ---
 
