@@ -31,6 +31,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import Botao from '../componentes/Botao'
+import CalculadoraDaDivida from '../componentes/CalculadoraDaDivida'
 import CampoPergunta from '../componentes/CampoPergunta'
 import CamposDoItem, {
   CampoNome,
@@ -56,7 +57,12 @@ import {
   obterPergunta,
   obterProximaPergunta,
 } from '../services/api'
-import type { ConfirmacaoDeResposta, FichaNova, Pergunta } from '../tipos'
+import type {
+  ConfirmacaoDaCalculadora,
+  ConfirmacaoDeResposta,
+  FichaNova,
+  Pergunta,
+} from '../tipos'
 import { avisoDeUmPorVez, TITULOS_POR_ESCOPO } from './TelaFichas'
 
 interface TelaPerguntaProps {
@@ -548,6 +554,29 @@ export default function TelaPergunta({
     setNaoSei(proxima.respondida_como_nao_sei)
   }
 
+  const calculadora = pergunta?.tipo === 'CALCULO_DIVIDA'
+
+  /**
+   * `T-513`: a confirmação da calculadora já gravou tudo e traz a `proxima`.
+   * Com aviso de gravação, a tela para na mesma pergunta; o "Continuar" da
+   * casca segue (como na gravação comum, `T-240`).
+   */
+  function aoConfirmarCalculadora(confirmada: ConfirmacaoDaCalculadora) {
+    const confirmacao: ConfirmacaoDeResposta = {
+      ...confirmada,
+      aviso: null,
+      avanco_permitido: true,
+      total_pendencias: pendencias,
+      abrir_fichas: [],
+    }
+    if (confirmada.avisos.length > 0 && pergunta) {
+      setPergunta({ ...pergunta, aviso: confirmada.avisos.map((a) => a.mensagem).join(' ') })
+      setConfirmacaoComAviso(confirmacao)
+      return
+    }
+    seguir(confirmacao)
+  }
+
   const anterior = pergunta?.anterior ?? null
   const seguinte = pergunta?.seguinte ?? null
 
@@ -618,9 +647,13 @@ export default function TelaPergunta({
       lateral={<LateralDaColeta trilha={pergunta.trilha} />}
       acoes={
         <>
-          <Botao onClick={() => void aoResponder()} disabled={gravando}>
-            {gravando ? 'Salvando…' : corrigindo ? 'Salvar a correção' : 'Continuar'}
-          </Botao>
+          {/* `T-513`: a calculadora tem o próprio "Continuar" (grava pela rota
+              dela); o da casca só aparece para seguir depois de um aviso. */}
+          {(!calculadora || confirmacaoComAviso) && (
+            <Botao onClick={() => void aoResponder()} disabled={gravando}>
+              {gravando ? 'Salvando…' : corrigindo ? 'Salvar a correção' : 'Continuar'}
+            </Botao>
+          )}
           {/* `AC-105`: o caminho para a pergunta anterior já respondida.
               Errar a anterior e perceber na seguinte é o caso mais comum de
               correção, e mandar o aluno à lista inteira para isso é
@@ -679,6 +712,25 @@ export default function TelaPergunta({
         </div>
       )}
 
+      {calculadora ? (
+        <>
+          <CalculadoraDaDivida
+            casoId={casoId}
+            pergunta={pergunta}
+            rotuloConfirmar={corrigindo ? 'Salvar a correção' : 'Continuar'}
+            aoEditar={() => {
+              setConfirmacaoComAviso(null)
+              setPergunta((atual) => (atual?.aviso ? { ...atual, aviso: null } : atual))
+            }}
+            aoConfirmar={aoConfirmarCalculadora}
+          />
+          {pergunta.aviso && (
+            <p role="status" className="aviso-atencao">
+              {pergunta.aviso}
+            </p>
+          )}
+        </>
+      ) : (
       <CampoPergunta
         pergunta={pergunta}
         invalido={semSelecao}
@@ -696,6 +748,7 @@ export default function TelaPergunta({
           setNaoSei(marcado)
         }}
       />
+      )}
 
       {erro && (
         <p role="alert" className="aviso-erro">

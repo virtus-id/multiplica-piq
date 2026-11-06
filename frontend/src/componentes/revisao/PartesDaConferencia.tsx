@@ -165,10 +165,17 @@ export function AnaliseFinanceira({ plano }: { plano: Plano }) {
   )
 }
 
-function Celula({ valor }: { valor: string | undefined }) {
+/** `T-514` (`RF-528`): só a marca por valor — nunca fórmula, juros ou intermediário (`PD-14`). */
+function marcaDe(campos: readonly CampoDeEntrada[], codigo: string): CampoDeEntrada['marca'] {
+  return campos.find((c) => c.codigo === codigo)?.marca
+}
+
+function Celula({ valor, marca }: { valor: string | undefined; marca?: CampoDeEntrada['marca'] }) {
   return (
     <td className="px-2 py-2 tabular-nums [overflow-wrap:anywhere]">
       {valor && valor.length > 0 ? valor : <span className="text-muted">{NAO_DISPONIVEL}</span>}
+      {/* O chip é texto: a cor só reforça. */}
+      {valor && marca && <span className="chip chip-mudo ml-2">{marca}</span>}
     </td>
   )
 }
@@ -199,10 +206,10 @@ export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: E
         Dívidas do plano
       </h2>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[860px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b-2 border-line">
-              {['Ordem', 'Dívida', 'Saldo devedor', 'Taxa de juros', 'Parcela atual', 'Mês de quitação', ''].map(
+              {['Ordem', 'Dívida', 'Saldo devedor', 'Taxa de juros', 'Parcela atual', 'Pagamento do plano', 'Mês de quitação', ''].map(
                 (titulo, i) => (
                   <th key={`${titulo}-${i}`} scope="col" className="px-2 py-2 font-bold">
                     {titulo || <span className="sr-only">Detalhes</span>}
@@ -224,9 +231,10 @@ export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: E
                       <strong className="block [overflow-wrap:anywhere]">{p.nome}</strong>
                       <small className="text-muted">{p.DIVIDA_ID}</small>
                     </td>
-                    <Celula valor={campo(campos, 'SALDO_DEVEDOR_ATUAL')} />
-                    <Celula valor={campo(campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} />
-                    <Celula valor={campo(campos, 'PARCELA_CONTRATUAL')} />
+                    <Celula valor={campo(campos, 'SALDO_DEVEDOR_ATUAL')} marca={marcaDe(campos, 'SALDO_DEVEDOR_ATUAL')} />
+                    <Celula valor={campo(campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} marca={marcaDe(campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} />
+                    <Celula valor={campo(campos, 'PARCELA_CONTRATUAL')} marca={marcaDe(campos, 'PARCELA_CONTRATUAL')} />
+                    <Celula valor={campo(campos, 'PAGAMENTO_MENSAL_EFETIVO')} marca={marcaDe(campos, 'PAGAMENTO_MENSAL_EFETIVO')} />
                     <Celula valor={p.mes_de_quitacao != null ? (p.mes_de_quitacao_rotulo ?? `mês ${p.mes_de_quitacao}`) : undefined} />
                     <td className="px-2 py-2 text-right">
                       <button
@@ -275,9 +283,10 @@ export function TabelaDeDividas({ plano, entradas }: { plano: Plano; entradas: E
                     <strong className="block [overflow-wrap:anywhere]">{d.nome}</strong>
                     <small className="text-muted">{d.DIVIDA_ID}</small>
                   </td>
-                  <Celula valor={campo(d.campos, 'SALDO_DEVEDOR_ATUAL')} />
-                  <Celula valor={campo(d.campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} />
-                  <Celula valor={campo(d.campos, 'PARCELA_CONTRATUAL')} />
+                  <Celula valor={campo(d.campos, 'SALDO_DEVEDOR_ATUAL')} marca={marcaDe(d.campos, 'SALDO_DEVEDOR_ATUAL')} />
+                  <Celula valor={campo(d.campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} marca={marcaDe(d.campos, 'TAXA_EFETIVA_MENSAL_NORMALIZADA')} />
+                  <Celula valor={campo(d.campos, 'PARCELA_CONTRATUAL')} marca={marcaDe(d.campos, 'PARCELA_CONTRATUAL')} />
+                  <Celula valor={campo(d.campos, 'PAGAMENTO_MENSAL_EFETIVO')} marca={marcaDe(d.campos, 'PAGAMENTO_MENSAL_EFETIVO')} />
                   <Celula valor={undefined} />
                   <td className="px-2 py-2" />
                 </tr>

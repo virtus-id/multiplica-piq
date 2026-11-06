@@ -25,6 +25,7 @@ export type TipoResposta =
   | 'TEXTO_CURTO'
   | 'SIM_NAO_TALVEZ'
   | 'ESCALA_0_10'
+  | 'CALCULO_DIVIDA'
 
 /** O sentinela de "não sei" na fronteira HTTP — nunca `null`, nunca `0`. */
 export const VALOR_NAO_SEI = 'NAO_SEI'
@@ -68,6 +69,8 @@ export interface Pergunta {
   respondida_como_nao_sei: boolean
   valores_marcados: string[]
   aviso: string | null
+  /** `T-496` (`RF-523`): só em `CALCULO_DIVIDA` — o sistema padrão da pergunta composta. */
+  sistema?: SistemaDaDivida
   /**
    * `T-294`: o R$ gravado pela opção com `abre_campo: MOEDA` escolhida
    * (`null` sem valor). Ausente quando nenhuma opção do registro o pede.
@@ -246,6 +249,68 @@ export interface AvisoDeGravacao {
   codigo: string
   mensagem: string
   ID_PERGUNTA: string
+}
+
+// ---------------------------------------------------------------------------
+// Calculadora da dívida — espelho de `app/http/rotas_calculadora.py` (`T-510`)
+// ---------------------------------------------------------------------------
+
+export type CampoDaDivida = 'SALDO' | 'PARCELA' | 'TAXA' | 'PRAZO'
+export type SistemaDaDivida = 'PRICE' | 'SAC'
+export type PeriodicidadeDaTaxa = 'MENSAL' | 'ANUAL'
+export type MarcaDoValor = 'INFORMADO' | 'CALCULADO' | 'PENDENTE' | 'ESTIMADO' | 'HIPOTESE'
+
+/** `null` = desconhecido ("não sei" ou em branco). Texto na grafia brasileira (`RF-530`). */
+export interface CorpoDaCalculadora {
+  sistema: SistemaDaDivida
+  periodicidade: PeriodicidadeDaTaxa
+  saldo: string | null
+  parcela: string | null
+  taxa: string | null
+  prazo: string | null
+  recalcular: CampoDaDivida | null
+}
+
+/** Tudo já formatado pelo servidor; `rotulo` é o texto da marca (`RF-528`). */
+export interface ValorCalculado {
+  texto: string
+  entrada: string
+  marca: MarcaDoValor
+  rotulo: string
+}
+
+export interface RespostaDaPrevia {
+  estado: 'CALCULADO' | 'CONFERIDO' | 'INCOMPATIVEL' | 'PENDENTE' | 'SEM_CALCULO' | 'ERRO'
+  campo_calculado: CampoDaDivida | null
+  valores: Partial<Record<CampoDaDivida, ValorCalculado>>
+  teorico: { campo: CampoDaDivida; texto: string } | null
+  /** Só em `INCOMPATIVEL`. */
+  alternativas: CampoDaDivida[]
+  resumo: {
+    prazo: number
+    primeira_parcela: string
+    ultimo_pagamento: string
+    total_de_juros: string
+  } | null
+  /** `RF-532`/`RF-533`: a parcela de 24 meses, em linha à parte e marcada; nunca no campo digitado. */
+  parcela_estimada: { texto: string; marca: MarcaDoValor; rotulo: string; hipotese: string } | null
+  /** `RF-538`/`RF-539`: só em `INCOMPATIVEL`; o saldo e a taxa que o plano usa se o aluno não escolher. */
+  hipotese_conservadora?: {
+    saldo: string
+    taxa: string
+    marca: MarcaDoValor
+    rotulo: string
+    aviso: string
+  } | null
+  erros: { campo: CampoDaDivida; codigo: string; mensagem: string }[]
+  mensagem: string | null
+}
+
+/** `POST .../calculadora/confirmar`: a mesma forma de `POST /resposta`, sem os campos de contagem. */
+export interface ConfirmacaoDaCalculadora {
+  ID_PERGUNTA: string
+  proxima: ProximaPergunta
+  avisos: AvisoDeGravacao[]
 }
 
 /** Erro tipado da API — o servidor sempre nomeia o motivo. */
