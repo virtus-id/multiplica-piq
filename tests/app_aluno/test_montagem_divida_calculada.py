@@ -361,15 +361,15 @@ def test_ac547_crescimento_habitual_150_falta_50_sem_estimada() -> None:
 
 
 @pytest.mark.parametrize("habitual", [NAO_SEI, d("0,00")])
-def test_ac547_crescimento_habitual_zero_ou_ausente_falta_200_mesmo_com_estimada(
+def test_t543_habitual_zero_ou_ausente_a_estimada_e_o_devido_e_o_pago(
     habitual: object,
 ) -> None:
+    """`OQ-96` (especialista, 2026-11-10): uma conta só do mês."""
     ficha = {**_DEZ_MIL_A_2, _PARCELA: habitual}
     respostas = _caso({"D001": ficha})
     premissas = resolver_divida(respostas, "D001")
     assert premissas.parcela_estimada is not None
     assert premissas.parcela_estimada.valor == d("528,72")
     divida = montar_divida(respostas, "D001")
-    assert divida.PARCELA_CONTRATUAL == d("0")  # devido: o habitual, nunca a estimada
-    assert divida.PAGAMENTO_MENSAL_EFETIVO == d("528,72")  # o que o plano paga
-    assert _faltas_de_juros(ficha) == {"D001": d("200,00")}
+    assert divida.PARCELA_CONTRATUAL == divida.PAGAMENTO_MENSAL_EFETIVO == d("528,72")
+    assert _faltas_de_juros(ficha) == {}  # a parcela de 24 meses cobre os juros

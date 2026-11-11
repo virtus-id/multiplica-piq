@@ -59,6 +59,8 @@ Para essa dívida, o "quanto você deveria pagar" deve ser também a parcela de 
 - **(a) Sim (recomendado).** O plano passa a ter uma conta só. Neste exemplo, ele diria "seu mês fecha em R$ -914,35; faltam cortar R$ 914,35". Quando a parcela couber no mês, o aluno recebe o plano de quitação em 24 meses. O aviso "consideramos R$ 0,00" deixa de existir para essa dívida.
 - **(b) Não.** Fica como está, com as duas contas na tela.
 
+**Resposta (2026-11-10):** opção (a), a recomendada.
+
 # Texto novo para conferir (2026-11-10)
 
 Quando o aluno informa um valor extra maior do que sobra no mês, o sistema não consegue usar o valor inteiro: o plano usa o que cabe no mês. O aviso antigo dizia "O plano mantém o valor que você informou", e isso não era verdade. O texto passa a ser:

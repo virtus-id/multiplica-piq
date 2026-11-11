@@ -154,13 +154,7 @@ def vocabulario_do_caso(
     )
     marcas = {
         p.DIVIDA_ID: {
-            # `T-531`: a estimada vive em `PAGAMENTO_MENSAL_EFETIVO`; `PARCELA_CONTRATUAL`
-            # leva o habitual (0 quando ausente) e não pode ser marcada `estimado`.
-            (
-                "PAGAMENTO_MENSAL_EFETIVO"
-                if valor.marca is MARCA_DO_VALOR.ESTIMADO
-                else _CODIGO_NO_ESTADO[campo]
-            ): _MARCA_AO_REVISOR[valor.marca]
+            _CODIGO_NO_ESTADO[campo]: _MARCA_AO_REVISOR[valor.marca]
             for campo, valor in p.valores.items()
             if campo in _CODIGO_NO_ESTADO and valor.marca in _MARCA_AO_REVISOR
         }
@@ -169,12 +163,13 @@ def vocabulario_do_caso(
     parcelas_estimadas = {
         p.DIVIDA_ID: p.parcela_estimada.valor for p in premissas if p.parcela_estimada is not None
     }
-    # Estimada com `P=0` declarado também marca o pagamento do plano.
+    # `T-543` (`OQ-96`): a estimada é o devido E o pagamento do plano; com `P=0`
+    # declarado também.
     for p in premissas:
         if p.parcela_estimada is not None:
-            marcas[p.DIVIDA_ID]["PAGAMENTO_MENSAL_EFETIVO"] = _MARCA_AO_REVISOR[
-                MARCA_DO_VALOR.ESTIMADO
-            ]
+            estimado = _MARCA_AO_REVISOR[MARCA_DO_VALOR.ESTIMADO]
+            marcas[p.DIVIDA_ID]["PARCELA_CONTRATUAL"] = estimado
+            marcas[p.DIVIDA_ID]["PAGAMENTO_MENSAL_EFETIVO"] = estimado
     credores = {
         divida: credor
         for divida in (*dividas, *(i for i, _ in pendentes))
@@ -197,11 +192,6 @@ def vocabulario_do_caso(
         dividas_pendentes=pendentes,
         marcas_da_divida=marcas,
         parcelas_estimadas=parcelas_estimadas,
-        dividas_sem_habitual=frozenset(
-            p.DIVIDA_ID
-            for p in premissas
-            if p.parcela_estimada is not None and p.parcela_estimada.habitual_ausente
-        ),
         dividas_com_hipotese=frozenset(
             p.DIVIDA_ID for p in premissas if p.hipotese_conservadora is not None
         ),
