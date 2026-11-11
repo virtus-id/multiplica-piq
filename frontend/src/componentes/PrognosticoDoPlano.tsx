@@ -69,6 +69,7 @@ function Linha({
       <h3 className={`m-0 text-xl ${cor.texto}`}>{caminho.titulo}</h3>
       <p className="text-muted m-0 mt-1 text-sm">{caminho.nota}</p>
       <p className="m-0 mt-2 text-ink">{caminho.veredito}</p>
+      {!caminho.sem_valor && (<>
       <div
         role="img"
         aria-label={`${caminho.titulo}. ${caminho.veredito}`}
@@ -118,6 +119,7 @@ function Linha({
         ))}
       </dl>
       {caminho.economia && <p className={`m-0 mt-3 font-bold ${cor.texto}`}>{caminho.economia}</p>}
+      </>)}
     </article>
   )
 }

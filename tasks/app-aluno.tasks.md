@@ -14023,3 +14023,17 @@ Relato de uso (2026-10-05): as colunas pequenas lado a lado do painel (T-349) de
 - [ ] Testes (servidor e tela) — pendentes: o pedido foi não rodar testes nesta etapa
 
 **Status:** `[ ] implementada, testes pendentes (2026-10-31)`
+
+## Ajustes do prognostico e do PDF (2026-11-11, `RF-541`)
+
+### `T-544` — "Se nada mudar" pela última parcela
+`VocabularioDoCaso.prazos_restantes` (da ficha); veredito, barra, "primeira quitação" e coluna da tabela seguem o prazo de cada dívida. Textos novos `vermelho_veredito_ultima` e `vermelho_veredito_nao_acaba` para o especialista conferir. **Status:** `[x] concluída (2026-11-11)`
+
+### `T-545` — Acelerado sempre presente
+Sem valor extra, caminho verde `sem_valor` (só texto) no PDF e na tela; fora da tabela. **Status:** `[x] concluída (2026-11-11)`
+
+### `T-546` — Mural do capítulo 6 sem página quase vazia
+`.mural` deixa de ser flex. **Status:** `[x] concluída (2026-11-11)`
+
+### `T-547` — Primeiro mês do capítulo 7 junto da descrição
+`pagina-mes-primeira` sem quebra antes. **Status:** `[x] concluída (2026-11-11)`

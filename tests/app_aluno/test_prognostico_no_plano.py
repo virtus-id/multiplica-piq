@@ -43,8 +43,17 @@ def _cores(snapshot: SnapshotOrdem) -> list[str]:
     return [caminho.cor for caminho in contexto.prognostico.caminhos]
 
 
-def test_sem_resposta_extra_mostra_vermelho_e_azul() -> None:
-    assert _cores(_snapshot()) == ["vermelho", "azul"]
+def _sem_valor(snapshot: SnapshotOrdem) -> list[bool]:
+    contexto = montar_contexto_plano(snapshot, carregar_textos_canonicos())
+    assert contexto.prognostico is not None
+    return [caminho.sem_valor for caminho in contexto.prognostico.caminhos]
+
+
+def test_sem_resposta_extra_o_verde_aparece_sem_valor() -> None:
+    """`T-545`: o acelerado aparece sempre; sem valor extra, só o aviso."""
+    snapshot = _snapshot()
+    assert _cores(snapshot) == ["vermelho", "azul", "verde"]
+    assert _sem_valor(snapshot) == [False, False, True]
 
 
 def test_com_valor_extra_mostra_tambem_o_verde() -> None:
@@ -53,8 +62,8 @@ def test_com_valor_extra_mostra_tambem_o_verde() -> None:
     assert _cores(snapshot) == ["vermelho", "azul", "verde"]
 
 
-def test_resposta_zero_nao_gera_verde() -> None:
-    assert _cores(_snapshot(converter_para_dinheiro("0"))) == ["vermelho", "azul"]
+def test_resposta_zero_deixa_o_verde_sem_valor() -> None:
+    assert _sem_valor(_snapshot(converter_para_dinheiro("0"))) == [False, False, True]
 
 
 def test_snapshot_sem_prognostico_nao_tem_capitulo() -> None:

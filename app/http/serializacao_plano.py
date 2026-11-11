@@ -127,6 +127,13 @@ _MARCA_AO_REVISOR: Final[Mapping[MARCA_DO_VALOR, str]] = {
 }
 
 
+def _prazo_restante(p: PremissasDaDivida) -> int | None:
+    prazo = p.valores[CAMPO_DA_DIVIDA.PRAZO].valor
+    if isinstance(prazo, int) and not isinstance(prazo, bool):
+        return prazo
+    return None if p.parcela_estimada is None else p.parcela_estimada.prazo_base
+
+
 def vocabulario_do_caso(
     registros: tuple[RegistroPergunta, ...],
     respostas: RespostasCaso,
@@ -163,6 +170,11 @@ def vocabulario_do_caso(
     parcelas_estimadas = {
         p.DIVIDA_ID: p.parcela_estimada.valor for p in premissas if p.parcela_estimada is not None
     }
+    # `T-544`: o prazo restante de cada dívida (informado, calculado ou a hipótese
+    # de 24 meses), para "Se nada mudar" dizer quando a última parcela vence.
+    prazos_restantes = {
+        p.DIVIDA_ID: prazo for p in premissas if (prazo := _prazo_restante(p)) is not None
+    }
     # `T-543` (`OQ-96`): a estimada é o devido E o pagamento do plano; com `P=0`
     # declarado também.
     for p in premissas:
@@ -192,6 +204,7 @@ def vocabulario_do_caso(
         dividas_pendentes=pendentes,
         marcas_da_divida=marcas,
         parcelas_estimadas=parcelas_estimadas,
+        prazos_restantes=prazos_restantes,
         dividas_com_hipotese=frozenset(
             p.DIVIDA_ID for p in premissas if p.hipotese_conservadora is not None
         ),
@@ -442,6 +455,7 @@ def serializar_plano(
                     "itens": list(caminho.itens),
                     "economia": caminho.economia,
                     "rotulo_curto": caminho.rotulo_curto,
+                    "sem_valor": caminho.sem_valor,
                 }
                 for caminho in contexto.prognostico.caminhos
             ],
