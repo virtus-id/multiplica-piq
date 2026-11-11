@@ -24,7 +24,7 @@ function comValor(texto: string | undefined, valor: string): string {
   return (texto ?? "").replace("{valor}", valor);
 }
 
-function preencher(
+export function preencher(
   texto: string | undefined,
   valores: Record<string, string>,
 ): string {

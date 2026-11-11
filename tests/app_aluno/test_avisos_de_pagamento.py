@@ -106,16 +106,19 @@ def test_ac548_mes_que_nao_fecha_com_a_estimada_exibe_o_caixa_negativo() -> None
     assert "seu mês fecha em" in _avisos(contexto)
 
 
-def test_valor_declarado_acima_da_sobra_e_mantido_e_avisado() -> None:
-    """Especialista, 2026-11-06: usa o valor declarado e informa no plano."""
-    snapshot, _, contexto = _plano(
-        {_PARCELA: NAO_SEI, "SALDO_DEVEDOR_ATUAL": d("40.000,00"), "TAXA_DIVIDA": t("3")}
-    )
+def test_valor_declarado_acima_da_sobra_avisa_o_valor_que_o_plano_usa() -> None:
+    """Especialista, 2026-11-06: o aluno é informado; `T-540`: com o valor
+    que o motor de fato usa (`MIN(estrutural, declarado) × fator`)."""
+    snapshot, _, contexto = _plano({_PARCELA: d("1.000,00")})
     assert snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA == d("500")
-    assert "maior do que sobra" in _avisos(contexto)
+    texto = _avisos(contexto)
+    assert "maior do que sobra no seu mês (R$ 400,00)" in texto
+    assert "usa R$ 380,00 por mês" in texto
 
 
-def test_valor_declarado_que_cabe_no_mes_nao_e_avisado() -> None:
-    snapshot, _, contexto = _plano({_PARCELA: NAO_SEI})
-    assert snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA == d("500")
-    assert "maior do que sobra" not in _avisos(contexto)
+def test_valor_declarado_sem_aviso_quando_cabe_ou_sem_cronograma() -> None:
+    _, _, cabe = _plano({_PARCELA: d("300,00")})
+    assert "maior do que sobra" not in _avisos(cabe)
+    snapshot, _, estabilizacao = _plano({_PARCELA: d("2.000,00")})
+    assert snapshot.diagnostico.MODO_ESTABILIZACAO
+    assert "maior do que sobra" not in _avisos(estabilizacao)

@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`65/67 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendente (1): `T-539` (backlog, sem spec). `T-527`/`T-528` revertidas em 2026-11-06.
+`68/71 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (2): `T-539` (backlog, sem spec), `T-543` (bloqueada por `OQ-96`). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1373,6 +1373,37 @@ O especialista disse que, partindo dos 24 meses, "o PIQ pode recomendar ampliar 
 - [ ] Discovery e spec aprovados
 
 **Status:** `[ ] backlog`
+
+---
+
+## Correções do caso `aluno.teste3` (2026-11-10)
+
+### `T-540` — Aviso do valor extra diz o valor que o plano usa
+- **Tipo:** `Fix` · **Rastreia:** `RF-536`, `OQ-83` · **Arquivos:** `report/plano.py`, `report/templates/plano/textos-canonicos.yaml`, `tests/app_aluno/test_avisos_de_pagamento.py`
+
+O aviso dizia "o plano mantém o valor que você informou", mas o motor usa `MIN(RESULTADO_MENSAL_ATUAL, declarado) × fator`, e em estabilização nem há cronograma. Agora compara com `RESULTADO_MENSAL_ATUAL`, mostra `CAPACIDADE_ATAQUE_CONSERVADORA` e só aparece fora da estabilização. Texto novo para o especialista conferir.
+
+**Status:** `[x] concluída (2026-11-10)`
+
+### `T-541` — Parcela estimada não trava a homologação
+- **Tipo:** `Fix` · **Rastreia:** `RF-93`, `OQ-89` · **Arquivos:** `app/montagem/premissas.py`
+
+`campos_dispensados` passa a dispensar também a parcela `ESTIMADO` respondida com "não sei": o plano já usa a de 24 meses e avisa o aluno. Em branco continua travando.
+
+**Status:** `[x] concluída (2026-11-10)`
+
+### `T-542` — Quadro do revisor na estabilização por dívida que cresce
+- **Tipo:** `Fix` · **Rastreia:** `RF-480` · **Arquivos:** `frontend/src/componentes/revisao/PartesDaConferencia.tsx`
+
+Com `ESTABILIZACAO_POR_DIVIDA`, o revisor vê o mesmo texto do aluno e do PDF ("seu mês fecha positivo, mas suas dívidas estão crescendo"), não mais "faltam cortar R$ 0,00".
+
+**Status:** `[x] concluída (2026-11-10)`
+
+### `T-543` — "Devido" da dívida com parcela estimada
+- **Tipo:** `Fix` · **Rastreia:** `RF-535`, `RF-537`, `OQ-96` · **Arquivos:** `app/montagem/estado.py::montar_divida`
+- **Bloqueada por:** resposta do especialista a `OQ-96`.
+
+**Status:** `[ ] BLOQUEADA`
 
 ---
 
