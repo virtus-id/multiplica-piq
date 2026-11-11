@@ -42,3 +42,27 @@ Registro das respostas do especialista. As perguntas 1, 8, 14 e 15 repetiam deci
 
 **14, 15, 16.** **Resposta:** Não entendeu o contexto.
 → 14 e 15 são as decisões 6 e 7 dele de 2026-11-03 (mantidas). 16 é decisão técnica da equipe (marcas derivadas das respostas atuais, `OQ-90`).
+
+---
+
+# Nova pergunta (2026-11-10) — efeito das respostas 1 e 2 juntas
+
+Não repete as anteriores: é o que aconteceu num caso real quando as respostas 1 e 2 se combinaram.
+
+**17.** Quando o aluno não informa prazo nem quanto paga, o plano usa a parcela de 24 meses para quitar a dívida (resposta 1). Já a conta que diz se o mês fecha e se a dívida cresce usa R$ 0,00 para essa mesma dívida (resposta 2). Com isso, o plano mostra ao aluno duas contas diferentes do mesmo mês.
+
+*Exemplo (caso de teste `aluno.teste3`):* sobram R$ 535,07 no mês. O aluno não informou quanto paga no cheque especial, e a parcela de 24 meses dá R$ 1.449,42. O plano diz ao mesmo tempo:
+- "Seu mês fecha positivo: ficam R$ 535,07 livres", porque conta o cheque especial como R$ 0,00;
+- "Com os pagamentos considerados neste plano, o seu mês fecha em R$ -914,35", porque conta a parcela de 24 meses.
+
+Para essa dívida, o "quanto você deveria pagar" deve ser também a parcela de 24 meses?
+- **(a) Sim (recomendado).** O plano passa a ter uma conta só. Neste exemplo, ele diria "seu mês fecha em R$ -914,35; faltam cortar R$ 914,35". Quando a parcela couber no mês, o aluno recebe o plano de quitação em 24 meses. O aviso "consideramos R$ 0,00" deixa de existir para essa dívida.
+- **(b) Não.** Fica como está, com as duas contas na tela.
+
+# Texto novo para conferir (2026-11-10)
+
+Quando o aluno informa um valor extra maior do que sobra no mês, o sistema não consegue usar o valor inteiro: o plano usa o que cabe no mês. O aviso antigo dizia "O plano mantém o valor que você informou", e isso não era verdade. O texto passa a ser:
+
+> "O valor extra que você informou (R$ 500,00) é maior do que sobra no seu mês (R$ 400,00). O plano usa R$ 380,00 por mês."
+
+(O valor usado fica um pouco abaixo da sobra por causa da margem de segurança que o plano já aplica.)

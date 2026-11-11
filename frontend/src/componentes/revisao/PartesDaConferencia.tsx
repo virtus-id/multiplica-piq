@@ -13,6 +13,7 @@ import type { BlocoDoDeficitario, CampoDeEntrada, CasoParaRevisao, EstadoInputs 
 import type { Plano, PosicaoDaOrdem } from '../../tipos'
 import Icone, { type NomeDoIcone } from '../Icone'
 import ListaDeDados from '../ListaDeDados'
+import { preencher } from '../PlanoDoDeficitario'
 
 const NAO_DISPONIVEL = 'não disponível'
 
@@ -141,11 +142,22 @@ export function AnaliseFinanceira({ plano }: { plano: Plano }) {
       </p>
       {plano.MODO_ESTABILIZACAO && (
         <div className="aviso-atencao" role="status">
-          <div>
-            <strong className="block">Primeiro, equilibrar o seu mês.</strong>
-            Resultado do mês: {plano.RESULTADO_CAIXA_OBSERVADO}. Faltam cortar {plano.FALTA_CORTAR} por
-            mês para chegar a zero.
-          </div>
+          {plano.ESTABILIZACAO_POR_DIVIDA ? (
+            // `T-542` (`RF-480`): o mês é positivo; o que estabiliza é a dívida que cresce.
+            <div>
+              <strong className="block">{plano.estabilizacao_por_divida_textos?.titulo}</strong>
+              {preencher(plano.estabilizacao_por_divida_textos?.texto, {
+                valor: plano.RESULTADO_CAIXA_OBSERVADO,
+                falta_total: plano.FALTA_TOTAL_DE_JUROS ?? '',
+              })}
+            </div>
+          ) : (
+            <div>
+              <strong className="block">Primeiro, equilibrar o seu mês.</strong>
+              Resultado do mês: {plano.RESULTADO_CAIXA_OBSERVADO}. Faltam cortar {plano.FALTA_CORTAR} por
+              mês para chegar a zero.
+            </div>
+          )}
         </div>
       )}
       {avisos.map((aviso) => (

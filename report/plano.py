@@ -2043,14 +2043,22 @@ def _avisos_de_pagamento(
                 valor=formatar_dinheiro_br(diagnostico.RESULTADO_CAIXA_OBSERVADO)
             )
         )
-    # Especialista, 2026-11-06: o valor declarado é usado como está; o aluno
-    # é avisado quando ele passa do que sobra no mês.
+    # Especialista, 2026-11-06: o declarado não é cortado pela aplicação; o
+    # aluno é avisado quando passa do que sobra. O motor usa
+    # `MIN(RESULTADO_MENSAL_ATUAL, declarado) × fator` (`T-540`), então o aviso
+    # diz o valor que o plano usa, e só existe com cronograma.
     declarada = snapshot.estado_inputs.CAPACIDADE_ATAQUE_DECLARADA
-    sobra = diagnostico.RESULTADO_CAIXA_OBSERVADO
-    if isinstance(declarada, Decimal) and declarada > max(sobra, Decimal(0)):
+    sobra = diagnostico.RESULTADO_MENSAL_ATUAL
+    if (
+        not diagnostico.MODO_ESTABILIZACAO
+        and isinstance(declarada, Decimal)
+        and declarada > sobra
+    ):
         saida.append(
             avisos.get("ataque_acima_da_sobra", "").format(
-                declarado=formatar_dinheiro_br(declarada), sobra=formatar_dinheiro_br(sobra)
+                declarado=formatar_dinheiro_br(declarada),
+                sobra=formatar_dinheiro_br(sobra),
+                usado=formatar_dinheiro_br(diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA),
             )
         )
     return tuple(texto for texto in saida if texto)

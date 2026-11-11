@@ -528,14 +528,18 @@ def campos_dispensados(
     """`PD-11`, `OQ-89`: `(item_id, VARIAVEL_GRAVADA)` que não bloqueiam a
     liberação: os campos que a calculadora calculou e os que faltam numa dívida
     `PENDENTE` respondidos com "não sei" (fora do plano e apontada ao aluno;
-    especialista, 2026-11-06: o plano parcial é liberado). `com_pendentes=False`
+    especialista, 2026-11-06: o plano parcial é liberado) e a parcela
+    `ESTIMADO` respondida com "não sei" (o plano usa a de 24 meses e avisa o
+    aluno, `T-541`). `com_pendentes=False`
     deixa só os calculados: o pedido de correção ainda lista o que falta."""
     resolvidos: set[tuple[str, str]] = set()
     for item in _dividas_da_ficha(itens_por_escopo):
         premissas = resolver_divida(respostas, item)
         for campo, valor in premissas.valores.items():
             if valor.marca is MARCA_DO_VALOR.CALCULADO or (
-                com_pendentes and campo in premissas.faltas and _respondido(respostas, item, campo)
+                com_pendentes
+                and (campo in premissas.faltas or valor.marca is MARCA_DO_VALOR.ESTIMADO)
+                and _respondido(respostas, item, campo)
             ):
                 resolvidos.add((item, _VARIAVEL_DO_CAMPO[campo]))
                 if campo is CAMPO_DA_DIVIDA.TAXA:  # sem taxa, a periodicidade também não vale
