@@ -566,6 +566,8 @@ export interface CaminhoDoPrognostico {
   /** "Economia frente ao plano base: R$ …"; só no plano acelerado. */
   economia: string
   rotulo_curto: string
+  /** `T-545`: acelerado sem valor extra informado; só texto, sem barra. */
+  sem_valor?: boolean
 }
 
 /** `T-377` — um mês de um plano: bloco do mural e cartão do mês. */

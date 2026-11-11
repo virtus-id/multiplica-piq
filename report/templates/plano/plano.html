@@ -337,8 +337,9 @@
         .mm-azul-texto { color: #1F5A96; }
         .mm-verde-texto { color: #0F6E56; }
         /* Mural: um bloco por mês, 6 por linha; cada bloco é um link. */
-        .mural { display: flex; flex-wrap: wrap; gap: 1.5mm; margin-bottom: 4mm; }
-        .mural-mes { display: block; box-sizing: border-box; width: 27mm; padding: 1.5mm 2mm; border-radius: 2mm; text-decoration: none; color: #1B2A2F; font-size: 7.5pt; line-height: 1.3; break-inside: avoid; }
+        /* `T-546`: bloco comum, não flex — o WeasyPrint não quebra flex entre páginas e empurrava o mural inteiro para a página seguinte. */
+        .mural { display: block; margin-bottom: 4mm; }
+        .mural-mes { display: inline-block; vertical-align: top; margin: 0 1.5mm 1.5mm 0; box-sizing: border-box; width: 27mm; padding: 1.5mm 2mm; border-radius: 2mm; text-decoration: none; color: #1B2A2F; font-size: 7.5pt; line-height: 1.3; break-inside: avoid; }
         .mural-mes { position: relative; }
         .mural-mes strong { display: block; font-size: 8.5pt; }
         .mural-rotulo { display: block; font-size: 6.5pt; opacity: 0.85; margin-top: 0.8mm; }
@@ -516,6 +517,8 @@
         /* Página de cada mês (cap. 7): modelo para imprimir e acompanhar. */
         @page { @bottom-right { content: counter(page) " / " counter(pages); font-family: "Inter", "DejaVu Sans", sans-serif; font-size: 8pt; color: #64748B; } }
         .pagina-mes { break-before: page; break-inside: avoid; }
+        /* `T-547`: o primeiro mês divide a página com a descrição do capítulo. */
+        .pagina-mes-primeira { break-before: auto; }
         .pm-topo { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5mm; }
         .pm-marca { font-size: 9pt; font-weight: bold; color: #0F6E56; letter-spacing: 0.3mm; }
         .pm-anexo { font-size: 8.5pt; font-weight: bold; color: #5E6E72; margin-top: 1mm; }
@@ -715,7 +718,9 @@
             <h3>{{ caminho.titulo }}</h3>
             <p class="caminho-nota">{{ caminho.nota }}</p>
             <p class="caminho-veredito">{{ caminho.veredito }}</p>
+            {% if not caminho.sem_valor %}
             {{ visuais.barra_do_caminho(caminho, caminho.titulo ~ ". " ~ caminho.veredito, prognostico.eixo_inicio or tp.get("eixo_inicio", mes ~ " 1"), prognostico.eixo_fim or (mes ~ " " ~ caminho.escala)) }}
+            {% endif %}
             {% if caminho.itens %}
             <ul class="caminho-itens">
                 {% for texto in caminho.itens %}<li>{{ texto }}</li>{% endfor %}
@@ -790,7 +795,7 @@
         {% for plano in prognostico.detalhes %}
         {% if plano.meses and plano.meses[0].pagina %}
         {% for mes in plano.meses %}
-        {{ visuais.pagina_do_mes(mes, plano, tp) }}
+        {{ visuais.pagina_do_mes(mes, plano, tp, loop.first and plano.cor == prognostico.detalhes[0].cor) }}
         {% endfor %}
         {% else %}
         <h3 class="subtitulo mm-{{ plano.cor }}-texto">{{ plano.titulo }}</h3>

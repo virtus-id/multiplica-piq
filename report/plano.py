@@ -334,6 +334,8 @@ class VocabularioDoCaso:
     #: meses (só as dívidas que têm uma). Só transportado; a marca `estimado`
     #: vale onde o plano paga a estimada.
     parcelas_estimadas: Mapping[str, Decimal] = field(default_factory=dict)
+    #: `T-544`: DIVIDA_ID → meses até a última parcela (só as dívidas com prazo conhecido).
+    prazos_restantes: Mapping[str, int] = field(default_factory=dict)
     #: `T-536` (`RF-538`, `RF-539`): dívidas cujos quatro valores não batem e o
     #: aluno não escolheu o que recalcular; saldo e taxa do plano são hipótese.
     dividas_com_hipotese: frozenset[str] = frozenset()
@@ -1393,6 +1395,8 @@ class ContextoCaminho:
     marcos_rotulos: tuple[str, ...] = ()
     #: "Economia frente ao plano base: R$ …" — só no plano acelerado.
     economia: str = ""
+    #: `T-545`: o acelerado sem valor extra informado; só texto, sem barra nem números.
+    sem_valor: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -1612,7 +1616,9 @@ def _quando_cada_divida_termina(
         return None
     numeros = _numeros_das_dividas(snapshot)
     if prognostico is not None:
-        colunas = tuple((c.rotulo_curto, c.quitacoes, c.cor) for c in prognostico.caminhos)
+        colunas = tuple(
+            (c.rotulo_curto, c.quitacoes, c.cor) for c in prognostico.caminhos if not c.sem_valor
+        )
     else:
         colunas = (
             (
@@ -1648,17 +1654,18 @@ def _prognostico(
     textos: TextosCanonicosPlano,
     nomes: Mapping[str, str],
     nomes_curtos: Mapping[str, str],
+    prazos: Mapping[str, int] | None = None,
 ) -> ContextoPrognostico | None:
     """Monta as linhas (`_linhas_do_prognostico`) e acrescenta os marcos de
     quitação de cada caminho e o mês a mês (`T-375`)."""
-    base = _linhas_do_prognostico(snapshot, cenario_recomendado, textos)
+    base = _linhas_do_prognostico(snapshot, cenario_recomendado, textos, nomes_curtos, prazos)
     if base is None:
         return None
     t = textos.prognostico
     prog = snapshot.prognostico
     numeros = _numeros_das_dividas(snapshot)
     quitacoes = {
-        "vermelho": prog.sem_acao.QUITACOES,
+        "vermelho": _quitacoes_de_hoje(prog.sem_acao.QUITACOES, numeros, prazos),
         "azul": tuple((meses_de_quitacao(snapshot) or {}).items()),
         "verde": prog.com_extra.QUITACOES if prog.com_extra is not None else (),
     }
@@ -1688,8 +1695,24 @@ def _sem_centavos(valor: str) -> str:
     return valor.removesuffix(",00")
 
 
+def _quitacoes_de_hoje(
+    do_motor: tuple[tuple[str, int], ...],
+    numeros: Mapping[str, int],
+    prazos: Mapping[str, int] | None,
+) -> tuple[tuple[str, int], ...]:
+    """`T-544`: com os prazos restantes da ficha, "Se nada mudar" termina onde cada
+    dívida termina de pagar as parcelas de hoje, e não onde o plano termina."""
+    if not prazos:
+        return do_motor
+    return tuple((d, prazos[d]) for d in numeros if d in prazos)
+
+
 def _linhas_do_prognostico(
-    snapshot: Any, cenario_recomendado: Any, textos: TextosCanonicosPlano
+    snapshot: Any,
+    cenario_recomendado: Any,
+    textos: TextosCanonicosPlano,
+    nomes_curtos: Mapping[str, str],
+    prazos: Mapping[str, int] | None = None,
 ) -> ContextoPrognostico | None:
     """`RF-77`/`RF-78` — LÊ `snapshot.prognostico` e o cenário recomendado; só
     formata e compara (nenhuma conta, `AC-42`: a diferença verde × azul vem
@@ -1701,7 +1724,11 @@ def _linhas_do_prognostico(
     if prog is None or not t or sem_ordem:
         return None
     sem = prog.sem_acao
-    escala = max(1, sem.HORIZONTE_MESES)
+    numeros = _numeros_das_dividas(snapshot)
+    de_hoje = _quitacoes_de_hoje((), numeros, prazos)
+    sem_prazo = [d for d in numeros if prazos and d not in prazos]
+    ultima = max((m for _, m in de_hoje), default=0)
+    escala = max(1, sem.HORIZONTE_MESES, ultima)
     saldo = formatar_dinheiro_br(sem.SALDO_NO_HORIZONTE)
 
     def _mes(n: int) -> str:
@@ -1721,7 +1748,11 @@ def _linhas_do_prognostico(
     destaques_vermelho = [
         (t.get("rotulo_divida_inicial", ""), formatar_dinheiro_br(sem.SALDO_INICIAL_TOTAL))
     ]
-    if sem.DIVIDAS_QUITADAS_SOZINHAS == 0:
+    if de_hoje:
+        destaques_vermelho.append(
+            (t.get("rotulo_primeira_prevista", ""), _mes(min(m for _, m in de_hoje)))
+        )
+    elif sem.DIVIDAS_QUITADAS_SOZINHAS == 0:
         destaques_vermelho.append((t.get("rotulo_primeira_prevista", ""), t.get("nenhuma", "")))
     elif sem.MESES_PRIMEIRA_VITORIA is not None:
         destaques_vermelho.append(
@@ -1736,16 +1767,27 @@ def _linhas_do_prognostico(
             (t.get("rotulo_dividas_crescem", ""), str(sem.DIVIDAS_QUE_CRESCEM))
         )
     zerado = sem.SALDO_NO_HORIZONTE == 0
+    if de_hoje and sem_prazo:
+        veredito_vermelho = t.get("vermelho_veredito_nao_acaba", "").format(
+            nomes=", ".join(nomes_curtos.get(d, d) for d in sem_prazo)
+        )
+    elif de_hoje:
+        id_ultima = next(d for d, m in de_hoje if m == ultima)
+        veredito_vermelho = t.get("vermelho_veredito_ultima", "").format(
+            quando=_mes(ultima), nome=nomes_curtos.get(id_ultima, id_ultima)
+        )
+    else:
+        veredito_vermelho = t.get(
+            "vermelho_veredito_zerado" if zerado else "vermelho_veredito", ""
+        ).format(quando=_quando(sem.HORIZONTE_MESES), saldo=saldo)
     vermelho = ContextoCaminho(
         cor="vermelho",
         titulo=t.get("vermelho_titulo", ""),
-        veredito=t.get("vermelho_veredito_zerado" if zerado else "vermelho_veredito", "").format(
-            quando=_quando(sem.HORIZONTE_MESES), saldo=saldo
-        ),
+        veredito=veredito_vermelho,
         nota=t.get("vermelho_nota", ""),
         marcador="",
         destaques=tuple(destaques_vermelho),
-        mes_fim=escala,
+        mes_fim=escala if sem_prazo or not de_hoje else ultima,
         escala=escala,
     )
 
@@ -1820,6 +1862,21 @@ def _linhas_do_prognostico(
                 ),
                 mes_fim=min(extra.PRAZO_TOTAL, escala) if extra.PRAZO_TOTAL else escala,
                 escala=escala,
+            )
+        )
+    else:
+        caminhos.append(
+            ContextoCaminho(
+                cor="verde",
+                titulo=t.get("verde_titulo", ""),
+                veredito=t.get("verde_veredito_sem_valor", ""),
+                nota=t.get("verde_nota_sem_valor", ""),
+                marcador="",
+                destaques=(),
+                mes_fim=0,
+                escala=escala,
+                rotulo_curto=t.get("verde_curto", ""),
+                sem_valor=True,
             )
         )
     return ContextoPrognostico(
@@ -2386,7 +2443,8 @@ def _montar_contexto_plano(
     nomes_curtos = nomear_dividas_curtas(
         snapshot.estado_inputs.dividas, textos, vocabulario or VocabularioDoCaso()
     )
-    prognostico = _prognostico(snapshot, cenario_recomendado, textos, nomes, nomes_curtos)
+    prazos = (vocabulario or VocabularioDoCaso()).prazos_restantes
+    prognostico = _prognostico(snapshot, cenario_recomendado, textos, nomes, nomes_curtos, prazos)
 
     # `RF-465` (`T-447`): plano provisório não se diz "definitivo". O deficitário
     # (modo estabilização) é provisório por definição: sem capacidade de ataque

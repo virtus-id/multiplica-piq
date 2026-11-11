@@ -137,9 +137,9 @@
    resumo do mês, tabela por dívida, "Como fecha o mês" e o que executar. O
    mês é sempre referência ("Mês 01"), nunca uma data; o período de pagamento
    fica em branco para o aluno preencher. `id` = âncora do mural. --------- #}
-{% macro pagina_do_mes(mes, plano, textos) %}
+{% macro pagina_do_mes(mes, plano, textos, primeira=false) %}
 {% set p = mes.pagina %}
-<section class="pagina-mes pagina-mes-{{ plano.cor }}{% if p.linhas | length > 18 %} pm-ultra{% elif p.linhas | length > 12 %} pm-minima{% elif p.linhas | length > 8 %} pm-muito-compacta{% elif p.linhas | length > 5 %} pm-compacta{% endif %}" id="{{ mes.ancora }}">
+<section class="pagina-mes pagina-mes-{{ plano.cor }}{% if primeira %} pagina-mes-primeira{% endif %}{% if p.linhas | length > 18 %} pm-ultra{% elif p.linhas | length > 12 %} pm-minima{% elif p.linhas | length > 8 %} pm-muito-compacta{% elif p.linhas | length > 5 %} pm-compacta{% endif %}" id="{{ mes.ancora }}">
     <div class="pm-topo">
         <div>
             <div class="pm-marca">{{ textos.get("pagina_marca", "") }}</div>
