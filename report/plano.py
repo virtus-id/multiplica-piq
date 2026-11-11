@@ -331,11 +331,9 @@ class VocabularioDoCaso:
     #: `T-519` (`RF-528`): DIVIDA_ID → campo do estado → `calculado`/`estimado`.
     marcas_da_divida: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
     #: `T-530`/`T-531` (`RF-532`, `RF-535`): DIVIDA_ID → parcela estimada de 24
-    #: meses (só as dívidas que têm uma) e as que não declararam pagamento
-    #: habitual. Só transportado; a marca `estimado` vale onde o plano paga a
-    #: estimada, e o aviso de "não é um zero declarado" onde o habitual faltou.
+    #: meses (só as dívidas que têm uma). Só transportado; a marca `estimado`
+    #: vale onde o plano paga a estimada.
     parcelas_estimadas: Mapping[str, Decimal] = field(default_factory=dict)
-    dividas_sem_habitual: frozenset[str] = frozenset()
     #: `T-536` (`RF-538`, `RF-539`): dívidas cujos quatro valores não batem e o
     #: aluno não escolheu o que recalcular; saldo e taxa do plano são hipótese.
     dividas_com_hipotese: frozenset[str] = frozenset()
@@ -1992,12 +1990,11 @@ def _avisos_de_pagamento(
     """`RF-532`, `RF-535`, `RF-536`, `T-529`/`T-530` — só LÊ o que o motor e a
     aplicação publicaram (`AC-42`), nenhuma conta:
 
-    - parcela estimada de 24 meses: só onde o plano a paga (hipótese, aviso);
-    - habitual não informado: o alerta de crescimento usou `0`, e o aluno é
-      avisado de que não é um zero declarado (ressalva (a) do spike);
+    - parcela estimada de 24 meses: hipótese, aviso (é o devido e o pago,
+      `T-543`; o "zero não declarado" da ressalva (a) saiu com `OQ-96`);
     - inviabilidade: dívida que cresce com pagamento INFORMADO ou mês que não
       fecha — o pagamento do aluno permanece e o texto não cita 24 meses;
-    - valor extra declarado maior do que sobra no mês (usado como está);
+    - valor extra declarado maior do que sobra no mês (`T-540`: diz o usado);
     - valores incompatíveis sem escolha do aluno: só saldo e taxa da hipótese
       conservadora governam o plano (`RF-538`, `RF-539`)."""
     avisos = textos.avisos
@@ -2024,9 +2021,7 @@ def _avisos_de_pagamento(
                     taxa=formatar_taxa_br(taxa),
                 )
             )
-        if divida.DIVIDA_ID in vocabulario.dividas_sem_habitual and divida.DIVIDA_ID in crescem:
-            saida.append(avisos.get("habitual_nao_informado", "").format(nome=nome))
-        elif (
+        if (
             divida.DIVIDA_ID in crescem
             and isinstance(divida.PARCELA_CONTRATUAL, Decimal)
             and divida.PARCELA_CONTRATUAL > 0

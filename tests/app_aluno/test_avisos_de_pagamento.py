@@ -78,32 +78,32 @@ def test_ac548_inviavel_pagamento_informado_permanece_e_texto_nao_cita_24_meses(
     assert "24 meses" not in texto
 
 
-def test_ac545_habitual_ausente_avisa_hipotese_de_24_meses_e_zero_nao_declarado() -> None:
+def test_ac545_habitual_ausente_avisa_hipotese_de_24_meses() -> None:
     snapshot, vocabulario, contexto = _plano({_PARCELA: NAO_SEI})
     divida = snapshot.estado_inputs.dividas[0]
-    assert divida.PARCELA_CONTRATUAL == d("0")
-    assert divida.PAGAMENTO_MENSAL_EFETIVO == d("528,72")
+    # `T-543` (`OQ-96`): a estimada é o devido e o pago
+    assert divida.PARCELA_CONTRATUAL == divida.PAGAMENTO_MENSAL_EFETIVO == d("528,72")
     texto = _avisos(contexto)
     assert "24 meses" in texto and "R$ 528,72" in texto
-    assert "não é um valor declarado" in texto
+    assert "R$ 0,00" not in texto
     assert "não cobre os juros" not in texto  # a ausência não vira "pagamento informado"
-    # a marca `estimado` mora no pagamento do plano, não no habitual
     estado = montar_contexto_estado_inputs(
         snapshot.estado_inputs, carregar_textos_canonicos(), vocabulario
     )
     marcas = {c.codigo: c.marca for c in estado.dividas[0].campos if c.marca}
-    assert marcas.get("PAGAMENTO_MENSAL_EFETIVO") == "estimado"
-    assert "PARCELA_CONTRATUAL" not in marcas
+    assert marcas.get("PAGAMENTO_MENSAL_EFETIVO") == marcas.get("PARCELA_CONTRATUAL") == "estimado"
 
 
-def test_ac548_mes_que_nao_fecha_com_a_estimada_exibe_o_caixa_negativo() -> None:
-    """(c) do spike: o estrutural é positivo e só o caixa acusa o aperto."""
+def test_t543_mes_que_nao_comporta_a_estimada_e_deficit_com_uma_conta_so() -> None:
+    """`OQ-96`: o resultado do mês e o caixa são o mesmo número; o plano
+    estabiliza por déficit, sem o aviso de caixa negativo à parte."""
     snapshot, _, contexto = _plano(
         {_PARCELA: NAO_SEI, "SALDO_DEVEDOR_ATUAL": d("40.000,00"), "TAXA_DIVIDA": t("3")}
     )
     diagnostico = snapshot.diagnostico
-    assert diagnostico.RESULTADO_CAIXA_OBSERVADO < 0 <= diagnostico.RESULTADO_MENSAL_ATUAL
-    assert "seu mês fecha em" in _avisos(contexto)
+    assert diagnostico.RESULTADO_CAIXA_OBSERVADO == diagnostico.RESULTADO_MENSAL_ATUAL < 0
+    assert diagnostico.MODO_ESTABILIZACAO
+    assert "seu mês fecha em" not in _avisos(contexto)
 
 
 def test_valor_declarado_acima_da_sobra_avisa_o_valor_que_o_plano_usa() -> None:

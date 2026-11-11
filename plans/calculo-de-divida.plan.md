@@ -588,6 +588,7 @@ Teste: `tests/app_aluno/test_spike_pagamentos_da_divida.py` (10 testes, `engine/
 | Ressalva do spike (11.1) | Como ficou | Onde |
 | ------------------------ | ---------- | ---- |
 | (a) habitual ausente = `PARCELA_CONTRATUAL` 0, com aviso de que não é "zero declarado" | `montar_divida` põe `0` no devido quando há `parcela_estimada`; `premissas.ParcelaEstimada.habitual_ausente` distingue ausente de zero declarado; o relatório avisa (`avisos.habitual_nao_informado`) | `app/montagem/estado.py`, `premissas.py`, `report/plano.py::_avisos_de_pagamento` |
+| (a) **revogada** (2026-11-10, `OQ-96`, `T-543`) | Com parcela estimada, `PARCELA_CONTRATUAL` = `PAGAMENTO_MENSAL_EFETIVO` = estimada; o mês tem uma conta só e o aviso `habitual_nao_informado` saiu | `app/montagem/estado.py`, `serializacao_plano.py`, `report/plano.py` |
 | (b) a montagem limita `CAPACIDADE_ATAQUE_DECLARADA` ao caixa observado, só para baixo, como `hipótese` | **Ponto único** `prioridade.limitar_capacidade_ao_caixa` (nunca sobe; caixa negativo vira `0`; `DESCONHECIDO` intacto); o relatório avisa a redução (`avisos.capacidade_limitada`, "(hipótese)") | `app/montagem/prioridade.py` |
 | (c) exibir o caixa negativo quando o orçamento aperta | aviso `avisos.caixa_negativo` quando `RESULTADO_CAIXA_OBSERVADO < 0 <= RESULTADO_MENSAL_ATUAL` (só o caixa acusa) | `report/plano.py` |
 | (d) a parcela de 24 meses independe do cenário (`RF-540`) | `parcela_estimada` depende só de saldo, taxa e sistema da dívida; o cenário conservador (Fase 3) injeta só saldo e taxa | `premissas.py` |
