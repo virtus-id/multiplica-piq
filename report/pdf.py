@@ -165,6 +165,9 @@ def renderizar_html_do_plano(
         quando_termina=contexto.quando_termina,
         aviso_sem_valor_extra=contexto.aviso_sem_valor_extra,
         aviso_de_conferencia=contexto.aviso_de_conferencia,
+        # `T-550` (devolução do especialista, 2026-11-13): cadastro de
+        # dívidas incompleto, avisado na capa.
+        aviso_cadastro_incompleto=contexto.aviso_cadastro_incompleto,
         ESTABILIZACAO_POR_DIVIDA=contexto.ESTABILIZACAO_POR_DIVIDA,
         FALTA_TOTAL_DE_JUROS=contexto.FALTA_TOTAL_DE_JUROS,
         dividas_que_crescem=contexto.dividas_que_crescem,

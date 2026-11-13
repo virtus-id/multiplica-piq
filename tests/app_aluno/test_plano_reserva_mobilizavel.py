@@ -133,9 +133,14 @@ def _bloco_da_reserva(html: str) -> str:
     Plano amigável (2026-10-03): o heading passou de "Reserva disponível
     para o plano" para "Sua reserva", e a `<section>` passou a ter atributos
     (`class`/`aria-labelledby`) — a âncora de recorte segue a mesma, só o
-    regex de abertura de `<section` ficou mais tolerante a atributos."""
+    regex de abertura de `<section` ficou mais tolerante a atributos.
+
+    `T-553` (devolução do especialista, 2026-11-13): o sumário do PDF linka
+    para `#titulo-reserva` usando o MESMO texto do heading ("Sua reserva"),
+    então o filtro por substring deixou de ser único. Filtra pelo `id`
+    estrutural do heading, não mais pelo texto dele."""
     secoes: list[str] = re.findall(r"<section[^>]*>.*?</section>", html, flags=re.DOTALL)
-    blocos = [secao for secao in secoes if "Sua reserva" in secao]
+    blocos = [secao for secao in secoes if 'id="titulo-reserva"' in secao]
     assert len(blocos) == 1, (
         f"esperado exatamente 1 bloco de reserva no HTML do plano, encontrados "
         f"{len(blocos)}"

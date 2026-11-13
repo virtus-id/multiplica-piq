@@ -566,6 +566,38 @@
 
         .nova-pagina { break-before: page; }
         .visual { margin: 0 0 3mm; }
+
+        {# `T-553`: marcador do PDF só por capítulo (h2) — sem isso, cada
+           h3/h4 (um por mês do cap. 7, um por dívida, uma por pergunta
+           frequente, três por página de mês) entra na lista lateral de
+           marcadores do leitor de PDF, e num plano de 78+ meses isso é
+           maior que o documento. #}
+        h3, h4 { bookmark-level: none; }
+
+        {# `T-553` (devolução do especialista, 2026-11-13): sumário só no PDF
+           — a tela (navegador comum) esconde por `@media screen`; o
+           WeasyPrint renderiza como impressão e mantém a página. #}
+        .sumario-pagina { break-before: page; break-after: page; }
+        .sumario-lista { list-style: none; margin: 4mm 0 0; padding: 0; }
+        .sumario-item {
+            display: flex; align-items: baseline; gap: 2mm;
+            margin-bottom: 2.5mm; text-decoration: none; color: inherit;
+        }
+        .sumario-titulo { flex: none; }
+        .sumario-pontos {
+            flex: 1 1 auto; border-bottom: 1px dotted #9AA6A3;
+            margin: 0 1mm 1mm; height: 0;
+        }
+        /* `target-counter` só tem efeito em `::before`/`::after` — por isso
+           o número de página é gerado aqui, não em `.sumario-pagina-numero`
+           como texto comum. */
+        .sumario-item::after {
+            content: target-counter(attr(href url), page);
+            flex: none; font-variant-numeric: tabular-nums;
+        }
+        @media screen {
+            .sumario-pagina { display: none; }
+        }
         /* `RF-124` (T-346): só na prévia do revisor — ver `previa` abaixo. */
         .faixa-previa {
             background: #fff4d6;
@@ -618,14 +650,73 @@
         {% if aviso_de_conferencia %}
         <p class="aviso"><strong>{{ aviso_de_conferencia }}</strong></p>
         {% endif %}
+        {# `T-551` (devolução do especialista, 2026-11-13): cadastro de
+           dívidas incompleto avisado cedo, não só no capítulo de
+           pendências no fim do documento. #}
+        {% if aviso_cadastro_incompleto %}
+        <p class="aviso"><strong>{{ aviso_cadastro_incompleto }}</strong></p>
+        {% endif %}
         {% if aviso_sem_valor_extra %}
         <p class="nota-meses">{{ aviso_sem_valor_extra }}</p>
         {% endif %}
     </div>
 
+    {# `T-553` (devolução do especialista, 2026-11-13): sumário, só no PDF
+       (`@media screen` acima esconde na tela). Cada item repete a MESMA
+       condição do capítulo que ele aponta — sem isso, o link apontaria
+       para um `id` que não existe na página (capítulo ausente neste
+       cenário). O número de página vem de `target-counter` (CSS), nunca
+       calculado aqui — `AC-42`. #}
+    <section class="sumario-pagina">
+        <h2>Sumário</h2>
+        <ul class="sumario-lista">
+            {% if curso_ssd and curso_ssd.apresentacao and not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
+            <li><a class="sumario-item" href="#cap-apresentacao-curso"><span class="sumario-titulo">{{ curso_ssd.apresentacao_titulo }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if cenario is defined and cenario.value == "ESTABILIZACAO" %}
+            <li><a class="sumario-item" href="#cap-estabilizacao"><span class="sumario-titulo">{{ textos.estabilizacao.get("titulo", "Primeiro, estancar o problema") }}</span><span class="sumario-pontos"></span></a></li>
+            {% else %}
+            {% if ordem %}
+            <li><a class="sumario-item" href="#cap-dividas"><span class="sumario-titulo">{{ secoes.get("dividas", "Suas dívidas, uma a uma") }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% endif %}
+            {% if ponto_de_partida %}
+            <li><a class="sumario-item" href="#cap-ponto-de-partida"><span class="sumario-titulo">{{ secoes.get("ponto_de_partida", "Seu ponto de partida") }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if cenario is defined and cenario.value == "ORDEM_VAZIA" %}
+            <li><a class="sumario-item" href="#cap-ordem-vazia"><span class="sumario-titulo">Primeiro, o que precisa ser resolvido</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if reserva_mobilizavel is defined %}
+            <li><a class="sumario-item" href="#titulo-reserva"><span class="sumario-titulo">{{ secoes.get("reserva", "Sua reserva") }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if not (cenario is defined and cenario.value in ("ESTABILIZACAO", "ORDEM_VAZIA")) and como_funciona %}
+            <li><a class="sumario-item" href="#cap-como-funciona"><span class="sumario-titulo">{{ secoes.get("como_funciona", "Como o seu plano funciona") }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
+            <li><a class="sumario-item" href="#cap-resumo"><span class="sumario-titulo">{{ secoes.get("resumo", "Seu plano em números") }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if prognostico and prognostico.detalhes %}
+            <li><a class="sumario-item" href="#mural-do-plano"><span class="sumario-titulo">{{ textos.prognostico.get("mural_titulo", "") }}</span><span class="sumario-pontos"></span></a></li>
+            <li><a class="sumario-item" href="#cap-mes-a-mes"><span class="sumario-titulo">{{ textos.prognostico.get("meses_titulo", "") }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if cenario_adicional %}
+            <li><a class="sumario-item" href="#titulo-cenario-adicional"><span class="sumario-titulo">{{ cenario_adicional.rotulo }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if pendencias_acionaveis or pendencias %}
+            <li><a class="sumario-item" href="#cap-pendencias"><span class="sumario-titulo">{{ textos.secoes.get("pendencias", "O que falta informar") }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if curso_ssd %}
+            <li><a class="sumario-item" href="#cap-curso-ssd"><span class="sumario-titulo">{{ curso_ssd.introducao_titulo }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+            {% if (duvidas is defined and duvidas) or (textos is defined and textos.duvidas) %}
+            <li><a class="sumario-item" href="#cap-duvidas"><span class="sumario-titulo">{{ textos.secoes.get("duvidas", "Perguntas frequentes") }}</span><span class="sumario-pontos"></span></a></li>
+            {% endif %}
+        </ul>
+    </section>
+
     {# Deficitário: a capa já leva ao número e à ação; a ligação com o curso fica na seção do curso. #}
     {% if curso_ssd and curso_ssd.apresentacao and not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
-    <section class="apresentacao">
+    <section class="apresentacao" id="cap-apresentacao-curso">
         <h2>{{ curso_ssd.apresentacao_titulo }}</h2>
         {% for paragrafo in curso_ssd.apresentacao %}
         <p>{{ paragrafo }}</p>
@@ -643,7 +734,7 @@
     {% if ordem %}
     {% set ns.n = ns.n + 1 %}
     <section class="secao">
-        {{ visuais.cabecalho_da_secao(ns.n, secoes.get("dividas", "Suas dívidas, uma a uma"), "dinheiro") }}
+        {{ visuais.cabecalho_da_secao(ns.n, secoes.get("dividas", "Suas dívidas, uma a uma"), "dinheiro", "cap-dividas") }}
         <p class="intro">{{ textos.textos_das_dividas.get("introducao", "") }}</p>
         {% for posicao in ordem %}
         {% include "posicao.html" %}
@@ -657,7 +748,7 @@
     {% if ponto_de_partida %}
     {% set ns.n = ns.n + 1 %}
     <section class="secao" style="break-inside: avoid;">
-        {{ visuais.cabecalho_da_secao(ns.n, secoes.get("ponto_de_partida", "Seu ponto de partida"), "conferencia") }}
+        {{ visuais.cabecalho_da_secao(ns.n, secoes.get("ponto_de_partida", "Seu ponto de partida"), "conferencia", "cap-ponto-de-partida") }}
         <p class="intro">{{ textos.ponto_de_partida.get("introducao", "") }}</p>
         {% for aviso in avisos_gerais %}<p class="muted"><strong>{{ aviso }}</strong></p>{% endfor %}
         {# RF-477/RF-478: o mesmo painel em todo cenário; o gráfico entra aqui nos
@@ -689,7 +780,7 @@
     {% set ns.n = ns.n + 1 %}
     {% set icones_dos_quadros = ["passo", "concluido", "taxa"] %}
     <section class="secao">
-        {{ visuais.cabecalho_da_secao(ns.n, secoes.get("como_funciona", "Como o seu plano funciona"), "avancar") }}
+        {{ visuais.cabecalho_da_secao(ns.n, secoes.get("como_funciona", "Como o seu plano funciona"), "avancar", "cap-como-funciona") }}
         <div class="quadros">
             {% for passo in como_funciona %}
             <div class="quadro">
@@ -710,7 +801,7 @@
     {% set mes = textos.grade_meses.get("rotulo_mes", "Mês") %}
     {% set tp = textos.prognostico %}
     <section class="secao nova-pagina">
-        {{ visuais.cabecalho_da_secao(ns.n, secoes.get("resumo", "Seu plano em números"), "prazo") }}
+        {{ visuais.cabecalho_da_secao(ns.n, secoes.get("resumo", "Seu plano em números"), "prazo", "cap-resumo") }}
         {% if prognostico %}
         <p class="intro">{{ prognostico.introducao }}</p>
         {% for caminho in prognostico.caminhos %}
@@ -789,7 +880,7 @@
 
     {# 7. Mês a mês, em detalhe — um cartão por mês, de cada plano (T-377) #}
     {% set ns.n = ns.n + 1 %}
-    <section class="secao nova-pagina">
+    <section class="secao nova-pagina" id="cap-mes-a-mes">
         {{ visuais.cabecalho_da_secao(ns.n, tp.get("meses_titulo", ""), "bandeira") }}
         <p class="intro">{{ tp.get("meses_intro", "") }}</p>
         {% for plano in prognostico.detalhes %}
@@ -840,7 +931,7 @@
     <section class="secao">
         <div class="secao-cabecalho">
             <span class="secao-numero">{{ ns.n }}</span>
-            <h2>{{ curso_ssd.introducao_titulo }}</h2>
+            <h2 id="cap-curso-ssd">{{ curso_ssd.introducao_titulo }}</h2>
         </div>
         <p class="intro">{{ curso_ssd.introducao }}</p>
         <div class="subtitulo">{{ curso_ssd.quadro_titulo }}</div>

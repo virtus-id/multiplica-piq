@@ -83,6 +83,13 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
         </p>
       )}
 
+      {/* `T-551`: cadastro de dívidas incompleto, avisado cedo. */}
+      {plano.aviso_cadastro_incompleto && (
+        <p className="aviso-atencao m-0 font-bold" role="alert">
+          {plano.aviso_cadastro_incompleto}
+        </p>
+      )}
+
       {/* `T-352`: plano normal sem valor extra neste mês. */}
       {plano.aviso_sem_valor_extra && (
         <p className="aviso-atencao m-0" role="status">
@@ -287,6 +294,13 @@ export default function PlanoDoAluno({ plano, revisor }: PlanoDoAlunoProps) {
             <p className="valor-hero m-0 tabular-nums">{plano.reserva_mobilizavel.valor}</p>
             {plano.reserva_explicacao && (
               <p className="text-muted m-0">{plano.reserva_explicacao}</p>
+            )}
+            {/* `T-550`: o total guardado, ao lado do que o aluno decidiu
+                poder usar — sem calcular diferença nenhuma aqui. */}
+            {plano.reserva_mobilizavel.total && plano.reserva_total_nota && (
+              <p className="text-muted m-0 text-sm">
+                {plano.reserva_total_nota.replace('{total}', plano.reserva_mobilizavel.total)}
+              </p>
             )}
           </>
         )}

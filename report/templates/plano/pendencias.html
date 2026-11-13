@@ -13,7 +13,7 @@
 #}
 {% import "visuais.html" as visuais %}
 <section class="secao">
-    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.secoes.get("pendencias", "O que falta informar"), "duvida") }}
+    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.secoes.get("pendencias", "O que falta informar"), "duvida", "cap-pendencias") }}
     <div class="aviso">
         <p style="margin: 0;">
             <strong>Este plano ainda é provisório.</strong> Faltam algumas

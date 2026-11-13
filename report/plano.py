@@ -254,6 +254,10 @@ class TextosCanonicosPlano:
     #: Plano amigável — frase de apoio ao valor da reserva mobilizável.
     #: Sugestão, a validar.
     reserva_explicacao: str = ""
+    #: `T-550` (devolução do especialista, 2026-11-13): nota com o total
+    #: guardado, ao lado do que o aluno decidiu poder usar neste plano —
+    #: nunca a diferença entre os dois (`AC-42`: nenhuma conta aqui).
+    reserva_total_nota: str = ""
     #: Plano amigável (`RF-92`-adjacente) — por campo material da dívida,
     #: onde o aluno encontra o dado que falta, e o `ID_PERGUNTA` do Bloco 5
     #: que grava esse campo (para o link "Responder agora").
@@ -267,6 +271,13 @@ class TextosCanonicosPlano:
     #: vale a de sempre.
     corpo_provisorio: str = ""
     duvidas_provisorio: tuple[tuple[str, str], ...] = ()
+    #: `T-551` (devolução do especialista, 2026-11-13): o plano fica
+    #: `PROVISORIA` também quando falta completar o cadastro das dívidas
+    #: (`B5.FIM02`), fora de estabilização — essa redação não fala em "mês
+    #: no negativo", que é falso nesse caso. Vazios = cai na variante de
+    #: `corpo_provisorio`/`duvidas_provisorio`.
+    corpo_provisorio_cadastro: str = ""
+    duvida_quando_muda_cadastro: str = ""
     #: Plano amigável — nota de rodapé "Sobre este plano". Sugestão, a
     #: validar.
     sobre_este_plano: str = ""
@@ -287,6 +298,17 @@ class TextosCanonicosPlano:
     #: (`fichas_faltando`) e a frase `responsabilidade`, que fecha todos eles.
     avisos: Mapping[str, str] = field(default_factory=dict)
     graficos: Mapping[str, str] = field(default_factory=dict)
+    #: `T-549` (devolução do especialista, 2026-11-13): por `METODO`, a
+    #: variante de `como_funciona`/`criterio_do_metodo` para quando a `§16.4`
+    #: está em jogo (alguma dívida do caso tem garantia essencial, está
+    #: negativada, tem garantia ou preferência de quitação declarada).
+    #: Método sem variante cai na redação de sempre.
+    como_funciona_com_prioridade: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    criterio_do_metodo_com_prioridade: Mapping[str, str] = field(default_factory=dict)
+    #: `T-552`: o sufixo que marca a parcela calculada/estimada no cartão da
+    #: dívida (`_fatos_da_divida`) — chave "calculado"/"estimado", mesmas de
+    #: `app/http/serializacao_plano.py::_MARCA_AO_REVISOR`.
+    marca_do_pagamento: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -388,6 +410,12 @@ def carregar_textos_canonicos(
         for metodo, passos in como_funciona_bruto.items()
         if metodo != "titulo"
     }
+    # `T-549`: mesma forma de `como_funciona`, variante da `§16.4`.
+    como_funciona_com_prioridade_bruto = bruto.get("como_funciona_com_prioridade") or {}
+    como_funciona_com_prioridade = {
+        str(metodo): tuple(str(passo) for passo in passos)
+        for metodo, passos in como_funciona_com_prioridade_bruto.items()
+    }
 
     duvidas_bruto = bruto.get("duvidas") or []
     duvidas = tuple((str(item["pergunta"]), str(item["resposta"])) for item in duvidas_bruto)
@@ -431,11 +459,14 @@ def carregar_textos_canonicos(
         prefixos_do_credor=tuple(str(p) for p in (bruto.get("prefixos_do_credor") or [])),
         nome_curto=str(bruto.get("nome_curto") or ""),
         reserva_explicacao=str(bruto.get("reserva_explicacao") or ""),
+        reserva_total_nota=str(bruto.get("reserva_total_nota") or ""),
         onde_achar=_mapa("onde_achar"),
         pergunta_do_campo=_mapa("pergunta_do_campo"),
         duvidas=duvidas,
         corpo_provisorio=str(bruto.get("corpo_provisorio") or ""),
         duvidas_provisorio=duvidas_provisorio,
+        corpo_provisorio_cadastro=str(bruto.get("corpo_provisorio_cadastro") or ""),
+        duvida_quando_muda_cadastro=str(bruto.get("duvida_quando_muda_cadastro") or ""),
         sobre_este_plano=str(bruto.get("sobre_este_plano") or ""),
         estabilizacao={str(k): str(v) for k, v in estabilizacao_bruto.items()},
         estabilizacao_por_divida={str(k): str(v) for k, v in por_divida_bruto.items()},
@@ -445,6 +476,9 @@ def carregar_textos_canonicos(
         sem_valor_extra=str(bruto.get("sem_valor_extra") or ""),
         avisos=_mapa("avisos"),
         graficos=_mapa("graficos"),
+        como_funciona_com_prioridade=como_funciona_com_prioridade,
+        criterio_do_metodo_com_prioridade=_mapa("criterio_do_metodo_com_prioridade"),
+        marca_do_pagamento=_mapa("marca_do_pagamento"),
     )
 
 
@@ -1109,6 +1143,11 @@ class ContextoReservaMobilizavel:
 
     pendente_de_decisao: bool  # RESERVA_MOBILIZAVEL is DESCONHECIDO
     valor: str  # "" quando pendente de decisão; formatado quando não
+    #: `T-550` (devolução do especialista, 2026-11-13): `estado_inputs.
+    #: RESERVA_TOTAL` (B4.02A), só para o aluno ver o total guardado ao lado
+    #: do que decidiu poder usar — leitura pura, nunca a diferença entre os
+    #: dois (`AC-42`). "" quando desconhecido.
+    total: str = ""
 
 
 def _reserva_mobilizavel(snapshot: SnapshotOrdem) -> ContextoReservaMobilizavel:
@@ -1133,14 +1172,19 @@ def _reserva_mobilizavel(snapshot: SnapshotOrdem) -> ContextoReservaMobilizavel:
     nenhum o converte em zero — a §13.1 é explícita: "o estado DESCONHECIDA
     não é convertido silenciosamente em zero como informação"."""
     RESERVA_MOBILIZAVEL = snapshot.diagnostico.RESERVA_MOBILIZAVEL
+    # `T-550`: mesma leitura pura, do total declarado (B4.02A) — não de
+    # `RESERVA_MOBILIZAVEL`, que já é o recorte usável neste plano.
+    RESERVA_TOTAL = snapshot.estado_inputs.RESERVA_TOTAL
+    total = formatar_dinheiro_br(RESERVA_TOTAL) if isinstance(RESERVA_TOTAL, Decimal) else ""
 
     if RESERVA_MOBILIZAVEL is DESCONHECIDO:
-        return ContextoReservaMobilizavel(pendente_de_decisao=True, valor="")
+        return ContextoReservaMobilizavel(pendente_de_decisao=True, valor="", total=total)
 
     return ContextoReservaMobilizavel(
         pendente_de_decisao=False,
         # `T-177`: `R$ 3.000,00`, não `3000.00`.
         valor=formatar_dinheiro_br(RESERVA_MOBILIZAVEL),
+        total=total,
     )
 
 
@@ -1289,6 +1333,15 @@ class ContextoPlano:
     dividas_que_crescem: tuple[tuple[str, str, str, str], ...] = ()
     #: `RF-412` — avisos do plano inteiro (`B5.00`: faltam fichas declaradas).
     avisos_gerais: tuple[str, ...] = ()
+    #: `T-549` (devolução do especialista, 2026-11-13): alguma dívida do
+    #: caso tem sinal da `§16.4` (garantia essencial, negativada, garantia
+    #: ou preferência de quitação) — para a tela do revisor escolher a
+    #: mesma variante de `criterio_do_metodo` que o PDF usa em `como_funciona`.
+    prioridade_de_garantia_ativa: bool = False
+    #: `T-551` (devolução do especialista, 2026-11-13): plano `PROVISORIA`
+    #: por cadastro incompleto, fora de estabilização — a página de capa
+    #: avisa cedo que o prazo mostrado é condicionado à dívida que falta.
+    aviso_cadastro_incompleto: str = ""
     #: `RF-465` (`T-447`): plano provisório (ordem `PROVISORIA` ou modo
     #: estabilização). Decide o banner e as dúvidas, e é lido pela tela.
     provisorio: bool = False
@@ -1989,14 +2042,20 @@ def _contexto_do_curso(
 
 
 def _fatos_da_divida(
-    divida: Divida | None, textos: TextosCanonicosPlano
+    divida: Divida | None, textos: TextosCanonicosPlano, marca_do_pagamento: str | None = None
 ) -> tuple[tuple[str, str], ...]:
     """Os números fixos do cartão de cada dívida, LIDOS de `Divida` —
     mesmos rótulos de `rotulos_de_apoio`, para que o documento possa omitir
     um valor de apoio que repita um destes. `DESCONHECIDO` vira "Não
     informado", nunca zero (`RF-16`). Vazio sem a dívida em
     `estado_inputs` (não deveria acontecer: a ordem só traz dívidas do
-    inventário)."""
+    inventário).
+
+    `marca_do_pagamento` (`T-552`, devolução do especialista, 2026-11-13):
+    "calculado"/"estimado" de `VocabularioDoCaso.marcas_da_divida` — o
+    aluno via "a parcela que você paga hoje" num valor que o PIQ calculou ou
+    estimou, nunca informado por ele. Sem marca (informado), o rótulo de
+    sempre, sem sufixo."""
     if divida is None:
         return ()
     nao_informado = rotulo_de_codigo(textos.rotulos_de_codigos, "DESCONHECIDO")
@@ -2009,8 +2068,106 @@ def _fatos_da_divida(
             texto = formatar_taxa_br(valor)
         else:
             texto = formatar_dinheiro_br(valor)
-        fatos.append((textos.rotulos_de_apoio.get(campo, campo), texto))
+        rotulo = textos.rotulos_de_apoio.get(campo, campo)
+        if campo == "PAGAMENTO_MENSAL_EFETIVO" and marca_do_pagamento:
+            rotulo += textos.marca_do_pagamento.get(marca_do_pagamento, "")
+        fatos.append((rotulo, texto))
     return tuple(fatos)
+
+
+def _fatos_com_recebe_extra(
+    divida: Divida | None,
+    textos: TextosCanonicosPlano,
+    marca: str | None,
+    divida_id: str,
+    alvo_desde: Mapping[str, int],
+) -> tuple[tuple[str, str], ...]:
+    """`T-548` — os `fatos` do cartão (`_fatos_da_divida`) com o fato extra
+    de quem recebe o valor extra. Função própria, e não `+` na montagem do
+    contexto, para que a concatenação de tuplas (texto) não seja lida como
+    aritmética sobre campo do snapshot pelo auditor de `AC-42`."""
+    return _fatos_da_divida(divida, textos, marca) + (
+        _fato_recebe_extra(divida_id, alvo_desde, textos),
+    )
+
+
+def _marca_do_pagamento(divida_id: str, vocabulario: VocabularioDoCaso | None) -> str | None:
+    """`T-552` — a marca ("calculado"/"estimado") de `PAGAMENTO_MENSAL_EFETIVO`
+    para esta dívida, só transportada de `vocabulario.marcas_da_divida`."""
+    if vocabulario is None:
+        return None
+    return vocabulario.marcas_da_divida.get(divida_id, {}).get("PAGAMENTO_MENSAL_EFETIVO")
+
+
+def _fato_recebe_extra(
+    divida_id: str, alvo_desde: Mapping[str, int], textos: TextosCanonicosPlano
+) -> tuple[str, str]:
+    """`T-548` — o fato extra do cartão: desde quando esta dívida recebe o
+    valor extra, ou que ela não recebe. Reaproveita a mesma renderização
+    genérica de `fatos` (`posicao.html`), sem campo novo no template."""
+    dt = textos.textos_das_dividas
+    if divida_id in alvo_desde:
+        return (
+            dt.get("recebe_extra_rotulo", "Recebe o valor extra"),
+            dt.get("recebe_extra_desde", "A partir do {mes}").format(
+                mes=rotulo_do_mes(alvo_desde[divida_id])
+            ),
+        )
+    return (
+        dt.get("recebe_extra_rotulo", "Recebe o valor extra"),
+        dt.get("nao_recebe_extra", "Não recebe: termina só com a parcela de sempre"),
+    )
+
+
+def _alvo_desde(snapshot: SnapshotOrdem) -> Mapping[str, int]:
+    """`T-548` (devolução do especialista, 2026-11-13) — o primeiro mês em
+    que cada dívida é `MesDoPlano.DIVIDA_ALVO` no cronograma do plano
+    (`snapshot.prognostico.MESES_DO_PLANO`, a mesma fonte que já alimenta
+    `divida_da_vez` do capítulo 7). Leitura pura, dedup por primeira
+    ocorrência; `{}` sem prognóstico (cenários sem cronograma).
+
+    Existe porque `ORDEM_QUITACAO` (a lista de "Suas dívidas, uma a uma")
+    pode vir na ordem em que a simulação QUITOU cada dívida (`RF-09`), que
+    não é a mesma coisa que a ordem em que o ATAQUE as escolheu — a dívida
+    sem valor extra pode terminar antes só com a própria parcela. Separar
+    os dois evita o relatório tratar posição na lista como prioridade de
+    ataque."""
+    if snapshot.prognostico is None:
+        return {}
+    primeiros: dict[str, int] = {}
+    for mes in snapshot.prognostico.MESES_DO_PLANO:
+        if mes.DIVIDA_ALVO is not None and mes.DIVIDA_ALVO not in primeiros:
+            primeiros[mes.DIVIDA_ALVO] = mes.MES
+    return primeiros
+
+
+def _tem_sinal_de_prioridade(divida: Divida | None) -> bool:
+    """`T-549`/`§16.4` (devolução do especialista, 2026-11-13) — leitura dos
+    mesmos quatro campos de `engine/prioridade_ordem.py::_regra_se_aplica`
+    (`GARANTIA_ESSENCIAL`, `NEGATIVADA`, `TIPO_GARANTIA`,
+    `PREFERENCIA_QUITACAO`): nenhuma reimplementação da regra, só a
+    constatação de que ela TEM entrada nesta dívida — o motor já decidiu o
+    resultado; aqui só se decide COMO explicar."""
+    if divida is None:
+        return False
+    return bool(
+        divida.GARANTIA_ESSENCIAL
+        or divida.NEGATIVADA
+        or divida.TIPO_GARANTIA is not None
+        or divida.PREFERENCIA_QUITACAO
+    )
+
+
+def _explicacao_da_posicao(
+    mapa: Mapping[str, str], *, eh_primeira_a_receber_extra: bool, com_prioridade: bool
+) -> str:
+    """`T-549` — escolhe a chave de `explicacao_da_posicao.{METODO}`: a
+    variante "primeira_com_prioridade" (quando o YAML a declara) explica que
+    a `§16.4` priorizou esta dívida antes de comparar o critério do método;
+    sem ela, cai em "primeira"/"seguintes" de sempre."""
+    if eh_primeira_a_receber_extra and com_prioridade and mapa.get("primeira_com_prioridade"):
+        return mapa["primeira_com_prioridade"]
+    return mapa.get("primeira" if eh_primeira_a_receber_extra else "seguintes", "")
 
 
 def _avisos_gerais(
@@ -2391,6 +2548,14 @@ def _montar_contexto_plano(
     # Revisão de design: cada cartão de dívida lê os próprios números da
     # `Divida` de origem, por `DIVIDA_ID` — leitura, nunca conta.
     dividas_por_id = {divida.DIVIDA_ID: divida for divida in snapshot.estado_inputs.dividas}
+    # `T-549`/`T-548` (devolução do especialista, 2026-11-13): quem de fato
+    # recebe o valor extra, e quando — separado da posição na lista acima,
+    # que pode ser a ordem de QUITAÇÃO, não a de ataque (ver `_alvo_desde`).
+    alvo_desde = _alvo_desde(snapshot)
+    primeiro_mes_alvo = min(alvo_desde.values()) if alvo_desde else None
+    regra_de_prioridade_ativa = any(
+        _tem_sinal_de_prioridade(d) for d in snapshot.estado_inputs.dividas
+    )
     ordem = tuple(
         ContextoPosicao(
             posicao=posicao_do_snapshot.posicao,
@@ -2410,12 +2575,20 @@ def _montar_contexto_plano(
                 )
                 for nome, valor in posicao_do_snapshot.valores_de_apoio.items()
             ),
-            # `T-177`: a redação ao aluno depende do MÉTODO recomendado (é
-            # ele que define o critério de ordenação) e de a posição ser a
-            # PRIMEIRA — a dívida em ataque agora — ou uma das seguintes.
-            explicacao=textos.explicacao_da_posicao.get(
-                snapshot.METODO_RECOMENDADO_PIQ.value, {}
-            ).get("primeira" if indice == 1 else "seguintes", ""),
+            # `T-177`/`T-549`: a redação ao aluno depende do MÉTODO
+            # recomendado e de a dívida ser a PRIMEIRA a receber o valor
+            # extra (não a primeira da lista — ver `alvo_desde` acima).
+            explicacao=_explicacao_da_posicao(
+                textos.explicacao_da_posicao.get(snapshot.METODO_RECOMENDADO_PIQ.value, {}),
+                eh_primeira_a_receber_extra=(
+                    primeiro_mes_alvo is not None
+                    and alvo_desde.get(posicao_do_snapshot.DIVIDA_ID) == primeiro_mes_alvo
+                ),
+                com_prioridade=(
+                    regra_de_prioridade_ativa
+                    and _tem_sinal_de_prioridade(dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID))
+                ),
+            ),
             mes_de_quitacao=quitacoes.get(posicao_do_snapshot.DIVIDA_ID),
             mes_de_quitacao_rotulo=(
                 rotulo_do_mes(quitacoes[posicao_do_snapshot.DIVIDA_ID])
@@ -2427,7 +2600,13 @@ def _montar_contexto_plano(
                 if posicao_do_snapshot.DIVIDA_ID in cenario_recomendado.ORDEM_FORA_DO_HORIZONTE
                 else ""
             ),
-            fatos=_fatos_da_divida(dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID), textos),
+            fatos=_fatos_com_recebe_extra(
+                dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID),
+                textos,
+                _marca_do_pagamento(posicao_do_snapshot.DIVIDA_ID, vocabulario),
+                posicao_do_snapshot.DIVIDA_ID,
+                alvo_desde,
+            ),
             avisos=_avisos_da_divida(
                 posicao_do_snapshot.DIVIDA_ID, vocabulario or VocabularioDoCaso(), textos
             ),
@@ -2452,10 +2631,25 @@ def _montar_contexto_plano(
     provisorio = (
         snapshot.ORDEM_STATUS is ORDEM_STATUS.PROVISORIA or snapshot.diagnostico.MODO_ESTABILIZACAO
     )
-    corpo = textos.corpo_provisorio if provisorio and textos.corpo_provisorio else textos.corpo
+    # `T-551` (devolução do especialista, 2026-11-13): `PROVISORIA` por
+    # cadastro incompleto (fora de estabilização) não fechou no negativo —
+    # dizer "até o mês deixar de fechar no negativo" seria falso. Variante
+    # própria, sem o motivo de estabilização.
+    provisorio_por_cadastro = (
+        snapshot.ORDEM_STATUS is ORDEM_STATUS.PROVISORIA
+        and not snapshot.diagnostico.MODO_ESTABILIZACAO
+    )
+    if provisorio_por_cadastro and textos.corpo_provisorio_cadastro:
+        corpo = textos.corpo_provisorio_cadastro
+    elif provisorio and textos.corpo_provisorio:
+        corpo = textos.corpo_provisorio
+    else:
+        corpo = textos.corpo
     duvidas = (
         textos.duvidas_provisorio if provisorio and textos.duvidas_provisorio else textos.duvidas
     )
+    if provisorio_por_cadastro and textos.duvida_quando_muda_cadastro and duvidas:
+        duvidas = ((duvidas[0][0], textos.duvida_quando_muda_cadastro), *duvidas[1:])
     por_divida = _dividas_que_crescem(snapshot, nomes)
     if por_divida:
         # `RF-480`: o mês já é positivo; "negativo" e "saldo positivo" não valem.
@@ -2485,6 +2679,26 @@ def _montar_contexto_plano(
         cenario=cenario,
         acoes=_contexto_acoes(snapshot, textos, nomes),
         pendencias=_pendencias(snapshot, textos.rotulos_de_pendencia, nomes, vocabulario),
+        prioridade_de_garantia_ativa=regra_de_prioridade_ativa,
+        # `T-551`: só na capa do plano normal, com cronograma que de fato
+        # termina — estabilização e ordem vazia não têm prazo; com o
+        # horizonte estourado, `PRAZO_TOTAL` é o TETO da simulação, não uma
+        # quitação real (`ORDEM_FORA_DO_HORIZONTE` não fica vazio), e dizer
+        # "a projeção termina em" seria falso.
+        aviso_cadastro_incompleto=(
+            textos.avisos.get("cadastro_incompleto_capa", "").format(
+                quantidade=len(snapshot.estado_inputs.dividas),
+                mes=rotulo_do_mes(cenario_recomendado.PRAZO_TOTAL),
+            )
+            if (
+                cenario.value not in ("ESTABILIZACAO", "ORDEM_VAZIA")
+                and not cenario_recomendado.ESTOUROU_HORIZONTE
+                and (pend := _pendencias(snapshot, textos.rotulos_de_pendencia, nomes, vocabulario))
+                is not None
+                and pend.inventario_incompleto
+            )
+            else ""
+        ),
         MODO_ESTABILIZACAO=snapshot.diagnostico.MODO_ESTABILIZACAO,
         # `T-177`: com `R$`. O template de estabilização deixou de
         # prefixá-lo — o valor chega pronto.
@@ -2512,7 +2726,15 @@ def _montar_contexto_plano(
             snapshot, vocabulario.resumo_das_despesas if vocabulario else None, textos, nomes
         ),
         avisos_gerais=_avisos_gerais(snapshot, vocabulario, textos, nomes),
-        como_funciona=textos.como_funciona.get(snapshot.METODO_RECOMENDADO_PIQ.value, ()),
+        # `T-549` (devolução do especialista, 2026-11-13): com a `§16.4` em
+        # jogo neste caso, a variante que explica a prioridade por garantia/
+        # negativação, quando o YAML a declara; sem ela, a de sempre.
+        como_funciona=(
+            (textos.como_funciona_com_prioridade.get(snapshot.METODO_RECOMENDADO_PIQ.value) or None)
+            if regra_de_prioridade_ativa
+            else None
+        )
+        or textos.como_funciona.get(snapshot.METODO_RECOMENDADO_PIQ.value, ()),
         pendencias_acionaveis=_pendencias_acionaveis(snapshot, textos, nomes, vocabulario),
         prognostico=prognostico,
         quando_termina=_quando_cada_divida_termina(snapshot, prognostico, nomes, textos),
