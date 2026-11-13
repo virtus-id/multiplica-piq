@@ -447,6 +447,10 @@ def serializar_plano(
                     ],
                     "mes_fim": caminho.mes_fim,
                     "escala": caminho.escala,
+                    # `T-555`: marco do início/fim da PRÓPRIA barra — o azul
+                    # não compara mais com o vermelho (RF-126 emendado).
+                    "eixo_inicio": caminho.eixo_inicio,
+                    "eixo_fim": caminho.eixo_fim,
                     "marcos": [
                         {
                             "mes": mes,

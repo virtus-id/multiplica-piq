@@ -1450,6 +1450,13 @@ class ContextoCaminho:
     economia: str = ""
     #: `T-545`: o acelerado sem valor extra informado; só texto, sem barra nem números.
     sem_valor: bool = False
+    #: `T-555` (pedido do usuário, 2026-11-13): o marco do início e do fim
+    #: DESTA barra — próprio de cada caminho, não compartilhado. O azul
+    #: (`RF-126`) deixa de ser comparado ao vermelho: tem a própria escala
+    #: (`mes_fim == escala`, barra sempre cheia) e os próprios marcos,
+    #: mostrando o plano como ele é, não um trecho de uma régua maior.
+    eixo_inicio: str = ""
+    eixo_fim: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -1842,6 +1849,8 @@ def _linhas_do_prognostico(
         destaques=tuple(destaques_vermelho),
         mes_fim=escala if sem_prazo or not de_hoje else ultima,
         escala=escala,
+        eixo_inicio=rotulo_do_mes(1),
+        eixo_fim=rotulo_do_mes(escala),
     )
 
     estourou = cenario_recomendado.ESTOUROU_HORIZONTE
@@ -1850,6 +1859,13 @@ def _linhas_do_prognostico(
     )
     if not estourou:
         azul_veredito += _complemento("azul_complemento", prog.PAGAMENTO_MENSAL_PLANO)
+    # `T-555` (pedido do usuário, 2026-11-13): a barra azul tem a PRÓPRIA
+    # escala — o prazo real do plano — em vez da escala compartilhada com o
+    # vermelho (que pode ser muito maior, por causa da última parcela de
+    # "se nada mudar"). Isso faz a barra azul mostrar o plano como ele é
+    # (sempre cheia, do Mês 1 ao próprio fim), não um trecho comparado a
+    # outra régua.
+    escala_azul = max(1, cenario_recomendado.PRAZO_TOTAL)
     azul = ContextoCaminho(
         cor="azul",
         titulo=t.get("azul_titulo", ""),
@@ -1866,8 +1882,10 @@ def _linhas_do_prognostico(
                 formatar_dinheiro_br(cenario_recomendado.CUSTO_FUTURO_TOTAL),
             ),
         ),
-        mes_fim=min(cenario_recomendado.PRAZO_TOTAL, escala) or escala,
-        escala=escala,
+        mes_fim=escala_azul,
+        escala=escala_azul,
+        eixo_inicio=rotulo_do_mes(1),
+        eixo_fim=rotulo_do_mes(escala_azul),
     )
     caminhos = [vermelho, azul]
 
@@ -1915,6 +1933,8 @@ def _linhas_do_prognostico(
                 ),
                 mes_fim=min(extra.PRAZO_TOTAL, escala) if extra.PRAZO_TOTAL else escala,
                 escala=escala,
+                eixo_inicio=rotulo_do_mes(1),
+                eixo_fim=rotulo_do_mes(escala),
             )
         )
     else:
@@ -1928,6 +1948,8 @@ def _linhas_do_prognostico(
                 destaques=(),
                 mes_fim=0,
                 escala=escala,
+                eixo_inicio=rotulo_do_mes(1),
+                eixo_fim=rotulo_do_mes(escala),
                 rotulo_curto=t.get("verde_curto", ""),
                 sem_valor=True,
             )

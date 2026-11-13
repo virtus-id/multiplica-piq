@@ -565,6 +565,10 @@ export interface CaminhoDoPrognostico {
   /** Só geometria da barra (meses): nunca exibidos como dado. */
   mes_fim: number
   escala: number
+  /** `T-555`: marco do início/fim da PRÓPRIA barra — o azul tem escala
+   * própria (prazo real do plano), não a do vermelho. */
+  eixo_inicio?: string
+  eixo_fim?: string
   /** Mês e número (em "Suas dívidas") de cada dívida quitada neste caminho. */
   marcos: { mes: number; numero: number; rotulo?: string }[]
   /** Dívidas que marcam a barra, em ordem de quitação (vazio no vermelho). */
