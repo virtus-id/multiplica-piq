@@ -588,13 +588,12 @@
             flex: 1 1 auto; border-bottom: 1px dotted #9AA6A3;
             margin: 0 1mm 1mm; height: 0;
         }
-        /* `target-counter` só tem efeito em `::before`/`::after` — por isso
-           o número de página é gerado aqui, não em `.sumario-pagina-numero`
-           como texto comum. */
-        .sumario-item::after {
-            content: target-counter(attr(href url), page);
-            flex: none; font-variant-numeric: tabular-nums;
-        }
+        {# `T-554` (pedido do usuário, 2026-11-13): o número de página é
+           texto comum, calculado em Python na 2ª passagem de `report/
+           pdf.py::_paginas_dos_capitulos` — o CSS `target-counter` que
+           existia aqui antes resolvia a página ERRADA nesta versão do
+           WeasyPrint (verificado à mão: sempre uma a menos que a real). #}
+        .sumario-pagina-numero { flex: none; font-variant-numeric: tabular-nums; }
         @media screen {
             .sumario-pagina { display: none; }
         }
@@ -661,55 +660,60 @@
         {% endif %}
     </div>
 
-    {# `T-553` (devolução do especialista, 2026-11-13): sumário, só no PDF
-       (`@media screen` acima esconde na tela). Cada item repete a MESMA
-       condição do capítulo que ele aponta — sem isso, o link apontaria
-       para um `id` que não existe na página (capítulo ausente neste
-       cenário). O número de página vem de `target-counter` (CSS), nunca
-       calculado aqui — `AC-42`. #}
+    {# `T-553`/`T-554` (devolução do especialista + pedido do usuário,
+       2026-11-13): sumário, só no PDF (`@media screen` acima esconde na
+       tela). Cada item repete a MESMA condição do capítulo que ele aponta
+       — sem isso, o link apontaria para um `id` que não existe na página
+       (capítulo ausente neste cenário). O número de página é texto comum,
+       lido de `pagina_por_capitulo` (`report/pdf.py::_paginas_dos_
+       capitulos`, 2ª passagem) — `{}` fora do PDF (tela, prévia em HTML
+       puro, 1ª passagem), e o item some sem número, nunca um errado. #}
+    {% macro item_sumario(id, titulo) %}
+    <li><a class="sumario-item" href="#{{ id }}"><span class="sumario-titulo">{{ titulo }}</span><span class="sumario-pontos"></span><span class="sumario-pagina-numero">{{ pagina_por_capitulo.get(id, "") if pagina_por_capitulo is defined else "" }}</span></a></li>
+    {% endmacro %}
     <section class="sumario-pagina">
         <h2>Sumário</h2>
         <ul class="sumario-lista">
             {% if curso_ssd and curso_ssd.apresentacao and not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
-            <li><a class="sumario-item" href="#cap-apresentacao-curso"><span class="sumario-titulo">{{ curso_ssd.apresentacao_titulo }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-apresentacao-curso", curso_ssd.apresentacao_titulo) }}
             {% endif %}
             {% if cenario is defined and cenario.value == "ESTABILIZACAO" %}
-            <li><a class="sumario-item" href="#cap-estabilizacao"><span class="sumario-titulo">{{ textos.estabilizacao.get("titulo", "Primeiro, estancar o problema") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-estabilizacao", textos.estabilizacao.get("titulo", "Primeiro, estancar o problema")) }}
             {% else %}
             {% if ordem %}
-            <li><a class="sumario-item" href="#cap-dividas"><span class="sumario-titulo">{{ secoes.get("dividas", "Suas dívidas, uma a uma") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-dividas", secoes.get("dividas", "Suas dívidas, uma a uma")) }}
             {% endif %}
             {% endif %}
             {% if ponto_de_partida %}
-            <li><a class="sumario-item" href="#cap-ponto-de-partida"><span class="sumario-titulo">{{ secoes.get("ponto_de_partida", "Seu ponto de partida") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-ponto-de-partida", secoes.get("ponto_de_partida", "Seu ponto de partida")) }}
             {% endif %}
             {% if cenario is defined and cenario.value == "ORDEM_VAZIA" %}
-            <li><a class="sumario-item" href="#cap-ordem-vazia"><span class="sumario-titulo">Primeiro, o que precisa ser resolvido</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-ordem-vazia", "Primeiro, o que precisa ser resolvido") }}
             {% endif %}
             {% if reserva_mobilizavel is defined %}
-            <li><a class="sumario-item" href="#titulo-reserva"><span class="sumario-titulo">{{ secoes.get("reserva", "Sua reserva") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("titulo-reserva", secoes.get("reserva", "Sua reserva")) }}
             {% endif %}
             {% if not (cenario is defined and cenario.value in ("ESTABILIZACAO", "ORDEM_VAZIA")) and como_funciona %}
-            <li><a class="sumario-item" href="#cap-como-funciona"><span class="sumario-titulo">{{ secoes.get("como_funciona", "Como o seu plano funciona") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-como-funciona", secoes.get("como_funciona", "Como o seu plano funciona")) }}
             {% endif %}
             {% if not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
-            <li><a class="sumario-item" href="#cap-resumo"><span class="sumario-titulo">{{ secoes.get("resumo", "Seu plano em números") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-resumo", secoes.get("resumo", "Seu plano em números")) }}
             {% endif %}
             {% if prognostico and prognostico.detalhes %}
-            <li><a class="sumario-item" href="#mural-do-plano"><span class="sumario-titulo">{{ textos.prognostico.get("mural_titulo", "") }}</span><span class="sumario-pontos"></span></a></li>
-            <li><a class="sumario-item" href="#cap-mes-a-mes"><span class="sumario-titulo">{{ textos.prognostico.get("meses_titulo", "") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("mural-do-plano", textos.prognostico.get("mural_titulo", "")) }}
+            {{ item_sumario("cap-mes-a-mes", textos.prognostico.get("meses_titulo", "")) }}
             {% endif %}
             {% if cenario_adicional %}
-            <li><a class="sumario-item" href="#titulo-cenario-adicional"><span class="sumario-titulo">{{ cenario_adicional.rotulo }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("titulo-cenario-adicional", cenario_adicional.rotulo) }}
             {% endif %}
             {% if pendencias_acionaveis or pendencias %}
-            <li><a class="sumario-item" href="#cap-pendencias"><span class="sumario-titulo">{{ textos.secoes.get("pendencias", "O que falta informar") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-pendencias", textos.secoes.get("pendencias", "O que falta informar")) }}
             {% endif %}
             {% if curso_ssd %}
-            <li><a class="sumario-item" href="#cap-curso-ssd"><span class="sumario-titulo">{{ curso_ssd.introducao_titulo }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-curso-ssd", curso_ssd.introducao_titulo) }}
             {% endif %}
             {% if (duvidas is defined and duvidas) or (textos is defined and textos.duvidas) %}
-            <li><a class="sumario-item" href="#cap-duvidas"><span class="sumario-titulo">{{ textos.secoes.get("duvidas", "Perguntas frequentes") }}</span><span class="sumario-pontos"></span></a></li>
+            {{ item_sumario("cap-duvidas", textos.secoes.get("duvidas", "Perguntas frequentes")) }}
             {% endif %}
         </ul>
     </section>
@@ -810,7 +814,10 @@
             <p class="caminho-nota">{{ caminho.nota }}</p>
             <p class="caminho-veredito">{{ caminho.veredito }}</p>
             {% if not caminho.sem_valor %}
-            {{ visuais.barra_do_caminho(caminho, caminho.titulo ~ ". " ~ caminho.veredito, prognostico.eixo_inicio or tp.get("eixo_inicio", mes ~ " 1"), prognostico.eixo_fim or (mes ~ " " ~ caminho.escala)) }}
+            {# `T-555`: o marco do início e do fim é da PRÓPRIA barra (RF-126
+               emendado) — cada caminho tem a sua escala; o azul não compara
+               mais com o vermelho. #}
+            {{ visuais.barra_do_caminho(caminho, caminho.titulo ~ ". " ~ caminho.veredito, caminho.eixo_inicio or tp.get("eixo_inicio", mes ~ " 1"), caminho.eixo_fim or (mes ~ " " ~ caminho.escala)) }}
             {% endif %}
             {% if caminho.itens %}
             <ul class="caminho-itens">

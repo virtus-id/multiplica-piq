@@ -69,6 +69,7 @@ REGRAS: `RF-20`, `RF-21`, `AC-14`, `AC-16`
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date
 
 from pathlib import Path
@@ -125,11 +126,21 @@ def _ambiente_templates_plano() -> Environment:
 
 
 def renderizar_html_do_plano(
-    contexto: ContextoPlano, textos: TextosCanonicosPlano, *, previa: bool = False
+    contexto: ContextoPlano,
+    textos: TextosCanonicosPlano,
+    *,
+    previa: bool = False,
+    pagina_por_capitulo: Mapping[str, int] | None = None,
 ) -> str:
     """Renderiza `plano.html` a partir de um `ContextoPlano` já montado —
     a MESMA função de renderização que a tela (T-64) chama. Nenhuma cópia do
     HTML/CSS existe neste módulo: só a passagem do contexto ao template
+
+    `pagina_por_capitulo` (`T-554`, pedido do usuário, 2026-11-13): o número
+    real da página de cada capítulo do sumário, por `id` — só preenchido na
+    SEGUNDA passagem de `_gerar_pdf_com_sumario` (abaixo). Vazio por padrão
+    (tela, prévia em HTML puro e a 1ª passagem): o sumário não mostra número
+    nenhum, nunca um número errado.
     único de `report/templates/plano/plano.html`.
 
     `textos` (plano amigável, 2026-10-03) — só os textos FIXOS que não são
@@ -188,6 +199,9 @@ def renderizar_html_do_plano(
         textos=textos,
         # `RF-124`: só a prévia do revisor abre com a faixa; o plano liberado nunca.
         previa=previa,
+        # `T-554`: número real da página de cada capítulo do sumário; `{}`
+        # fora da 2ª passagem de `_gerar_pdf_com_sumario`.
+        pagina_por_capitulo=pagina_por_capitulo or {},
     )
 
 
@@ -240,6 +254,32 @@ def gerar_html_da_previa(
     return renderizar_html_do_plano(contexto, textos, previa=True)
 
 
+def _paginas_dos_capitulos(html: str) -> dict[str, int]:
+    """`T-554` (pedido do usuário, 2026-11-13) — a página REAL de cada
+    capítulo do sumário, por `id`, lida do próprio WeasyPrint (`Document.
+    pages[i].anchors`, preenchido automaticamente por elemento com `id` —
+    não depende de nenhuma declaração CSS).
+
+    Existe porque o CSS `target-counter(attr(href url), page)` que o
+    sumário usava antes resolvia a página ERRADA nesta versão do
+    WeasyPrint: verificado à mão (documento mínimo, alvo em página
+    conhecida) que ele sempre devolve uma página a menos que a real — um
+    problema da função CSS, não de anchors/ids ausentes. Lendo a página de
+    cada `id` diretamente do documento JÁ RENDERIZADO, sem depender daquela
+    função, não tem esse erro.
+
+    Primeira página em que o `id` aparece vence (`setdefault`); os `id`s do
+    sumário são exclusivos do próprio capítulo, então não há colisão real."""
+    from weasyprint import HTML
+
+    documento = HTML(string=html, base_url=str(_DIRETORIO_RAIZ_REPORT) + "/").render()
+    paginas: dict[str, int] = {}
+    for indice, pagina in enumerate(documento.pages, start=1):
+        for ancora in pagina.anchors:
+            paginas.setdefault(ancora, indice)
+    return paginas
+
+
 def gerar_pdf_de_previa(
     snapshot: SnapshotOrdem,
     textos: TextosCanonicosPlano,
@@ -247,11 +287,24 @@ def gerar_pdf_de_previa(
     nome_do_aluno: str | None = None,
 ) -> bytes:
     """Os bytes do PDF da prévia — ver `gerar_html_da_previa`. Mesmo import
-    tardio de `weasyprint` de `gerar_pdf_do_plano` (dependência de sistema)."""
-    html = gerar_html_da_previa(snapshot, textos, vocabulario, nome_do_aluno)
+    tardio de `weasyprint` de `gerar_pdf_do_plano` (dependência de sistema).
+
+    `T-554`: duas passagens — a 1ª (`gerar_html_da_previa`, inalterada)
+    descobre a página real de cada capítulo (`_paginas_dos_capitulos`); a 2ª
+    (`renderizar_html_do_plano` direto, mesmo contexto) imprime esses
+    números no sumário. `data_base` é lido uma única vez (`date.today()`,
+    mesma regra de `gerar_html_da_previa`, `RF-445`) e reaproveitado nas
+    duas, para as duas passagens não divergirem se o dia virar entre elas."""
+    data_base = date.today()
+    html_sem_numeros = gerar_html_da_previa(snapshot, textos, vocabulario, nome_do_aluno, data_base)
 
     from weasyprint import HTML
 
+    pagina_por_capitulo = _paginas_dos_capitulos(html_sem_numeros)
+    contexto = montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno, data_base)
+    html = renderizar_html_do_plano(
+        contexto, textos, previa=True, pagina_por_capitulo=pagina_por_capitulo
+    )
     return bytes(HTML(string=html, base_url=str(_DIRETORIO_RAIZ_REPORT) + "/").write_pdf())
 
 
@@ -276,11 +329,22 @@ def gerar_pdf_do_plano(
     está instalada, isso permite que `report/plano.py`/`montar_contexto_
     plano`/`gerar_html_do_plano_liberado` continuem plenamente testáveis e
     utilizáveis (inclusive pela tela, T-64) sem que a mera importação deste
-    módulo por outro código exija a biblioteca nativa presente."""
-    html = gerar_html_do_plano_liberado(
+    módulo por outro código exija a biblioteca nativa presente.
+
+    `T-554`: duas passagens, mesmo esquema de `gerar_pdf_de_previa` — a 1ª
+    (`gerar_html_do_plano_liberado`, inalterada: é ela quem levanta
+    `ErroSnapshotNaoLiberado` ANTES de qualquer `weasyprint`) descobre a
+    página real de cada capítulo; a 2ª imprime esses números no sumário.
+    `renderizar_html_do_plano` (a função que a tela chama) continua de UMA
+    passagem só, sem essa lógica — o determinismo do PDF sobre o mesmo
+    snapshot (critério de aceite 3) é provado sobre ela, não sobre esta."""
+    html_sem_numeros = gerar_html_do_plano_liberado(
         caso, snapshot, textos, vocabulario, nome_do_aluno, data_base
     )
 
     from weasyprint import HTML
 
+    pagina_por_capitulo = _paginas_dos_capitulos(html_sem_numeros)
+    contexto = montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno, data_base)
+    html = renderizar_html_do_plano(contexto, textos, pagina_por_capitulo=pagina_por_capitulo)
     return bytes(HTML(string=html, base_url=str(_DIRETORIO_RAIZ_REPORT) + "/").write_pdf())

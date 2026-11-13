@@ -196,8 +196,8 @@ export default function PrognosticoDoPlano({
           <Linha
             key={caminho.cor}
             caminho={caminho}
-            eixoInicio={prognostico.eixo_inicio || textos.eixo_inicio || 'Mês 1 (início)'}
-            eixoFim={prognostico.eixo_fim || `Mês ${caminho.escala}`}
+            eixoInicio={caminho.eixo_inicio || textos.eixo_inicio || 'Mês 1 (início)'}
+            eixoFim={caminho.eixo_fim || `Mês ${caminho.escala}`}
           />
         ))}
       </div>
