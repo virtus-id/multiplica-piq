@@ -179,6 +179,8 @@ def renderizar_html_do_plano(
         # `T-550` (devolução do especialista, 2026-11-13): cadastro de
         # dívidas incompleto, avisado na capa.
         aviso_cadastro_incompleto=contexto.aviso_cadastro_incompleto,
+        # `T-557`: KPI "Quitação prevista" da capa do PDF.
+        fim_do_plano=contexto.fim_do_plano,
         ESTABILIZACAO_POR_DIVIDA=contexto.ESTABILIZACAO_POR_DIVIDA,
         FALTA_TOTAL_DE_JUROS=contexto.FALTA_TOTAL_DE_JUROS,
         dividas_que_crescem=contexto.dividas_que_crescem,

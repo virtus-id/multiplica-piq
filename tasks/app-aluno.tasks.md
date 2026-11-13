@@ -14057,3 +14057,26 @@ A explicação "primeira"/"seguintes" passa a escolher pela dívida que de fato 
 
 ### `T-553` — Sumário do PDF (`RF-543`)
 Página de sumário logo após a capa, com um link por capítulo e o número de página via CSS (`target-counter(attr(href url), page)`, nativo do WeasyPrint instalado) — nenhum número calculado em `.py`. Cada capítulo ganha um `id` estável; `h3`/`h4` (mês, pergunta, dívida) saem do marcador lateral do PDF (`bookmark-level: none`), que passa a listar só os capítulos. Só no PDF: `@media screen` esconde a página na tela. **Status:** `[x] concluída (2026-11-13)`
+
+## PDF no estilo Fintech (2026-11-13, `RF-544`)
+
+### `T-555` — Barra azul com a própria escala
+Já entregue no PR #39; citada aqui só como origem do estilo das barras. **Status:** `[x] concluída (2026-11-13)`
+
+### `T-556` — Base visual e cartões de dívida
+Tokens de cor e raio em `:root`, cartões brancos com anel fino, rótulos em pílula, cartões de dívida em duas colunas com o destaque (`divida-alvo`) da que recebe o extra primeiro (`ContextoPosicao.recebe_extra_primeiro`). **Status:** `[x] concluída (2026-11-13)`
+
+### `T-557` — Capa
+Página nomeada (`@page capa`), de borda a borda, com marca, título e três números lidos do contexto (`ContextoPlano.fim_do_plano` novo). Os números só saem quando todos valem. **Status:** `[x] concluída (2026-11-13)`
+
+### `T-558` — Sumário
+Página nomeada com onda verde em SVG, título dentro da faixa, capítulos numerados na mesma ordem do corpo e página de cada um (`pagina_por_capitulo`). **Status:** `[x] concluída (2026-11-13)`
+
+### `T-559` — Cabeçalho de capítulo, caixas, KPIs e tabelas
+Número do capítulo em quadrado verde, títulos em Inter 800, caixas, KPIs, ranking e tabelas no mesmo sistema. **Status:** `[x] concluída (2026-11-13)`
+
+### `T-560` — Barras do prognóstico
+Barra mais grossa, pontos brancos com anel na cor do caminho, título do caminho em pílula. **Status:** `[x] concluída (2026-11-13)`
+
+### `T-561` — Mural e mês a mês
+Tons do plano no mural e cartões do mês no mesmo sistema; as regras de quebra e de densidade das fichas ficam como estavam. **Status:** `[x] concluída (2026-11-13)`

@@ -60,33 +60,52 @@
         .icone { width: 5mm; height: 5mm; vertical-align: middle; }
 
         /* Capa ---------------------------------------------------------- */
+        /* `T-556` (estilo Fintech, 2026-11-13): a capa ocupa a folha inteira, sem
+           margem, numa página nomeada (`@page capa`). */
+        @page capa { size: A4; margin: 0; @bottom-right { content: none; } }
         .capa {
-            background: linear-gradient(135deg, #073B30 0%, #0B6B54 100%);
+            page: capa;
+            position: relative;
+            width: 210mm;
+            height: 296.9mm;
+            overflow: hidden;
+            padding: 16mm;
+            display: flex;
+            flex-direction: column;
             color: #FFFFFF;
-            border-radius: 6mm;
-            padding: 8mm 10mm 7mm;
-            margin-bottom: 5mm;
+            background: linear-gradient(158deg, #062F27 0%, #0A4D3F 52%, #0F6E56 100%);
+            break-after: page;
         }
+        .capa-topo { display: flex; justify-content: space-between; align-items: baseline; }
+        .capa-marca { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+        .capa-marca-sub { font-size: 7.5pt; color: rgba(255,255,255,0.66); }
+        .capa-meio { margin-top: auto; padding-bottom: 6mm; }
         .capa-para {
             display: inline-block;
-            font-size: 7.5pt;
+            font-size: 8pt;
             font-weight: 600;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            background: rgba(255,255,255,0.14);
+            letter-spacing: 0.02em;
+            background: rgba(255,255,255,0.13);
             border-radius: 5mm;
-            padding: 1.2mm 3.5mm;
-            margin-bottom: 5mm;
+            padding: 1.4mm 3.6mm;
+            margin-bottom: 6mm;
         }
-        .capa h1 { font-size: 26pt; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4mm; }
-        .capa .lead { font-size: 10.5pt; color: #CFE9DF; margin-bottom: 2mm; max-width: 150mm; }
+        .capa h1 { font-size: 30pt; line-height: 1.06; font-weight: 800; letter-spacing: -0.028em; margin-bottom: 5mm; color: #FFFFFF; }
+        .capa .lead { font-size: 10pt; color: rgba(255,255,255,0.8); margin-bottom: 3mm; max-width: 135mm; }
+        .capa-kpis { display: flex; gap: 3mm; margin-top: 8mm; }
+        .capa-kpi { flex: 1; background: rgba(255,255,255,0.09); border: 0.25mm solid rgba(255,255,255,0.15); border-radius: 3mm; padding: 4mm; }
+        .capa-kpi dt { font-size: 6.8pt; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.72); }
+        .capa-kpi dd { margin: 2mm 0 0; font-size: 14pt; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; }
+        .capa .nota-meses { color: rgba(255,255,255,0.78); }
+        .capa .aviso { background: rgba(255,255,255,0.12); color: #FFFFFF; }
+        .capa-faixa-previa { position: absolute; top: 0; left: 0; right: 0; }
         /* Primeira página: apresentação do documento (T-355). */
         .apresentacao { break-after: page; margin-bottom: 8mm; }
         .apresentacao h2 { font-size: 13pt; margin-bottom: 3mm; }
         .apresentacao p { margin: 0 0 3mm; }
         .capa .nota-meses {
-            font-size: 9pt;
-            border-top: 1px solid #E3F1EB;
+            font-size: 8.5pt;
+            border-top: 0.25mm solid rgba(255,255,255,0.25);
             padding-top: 3mm;
             margin: 0;
         }
@@ -577,23 +596,36 @@
         {# `T-553` (devolução do especialista, 2026-11-13): sumário só no PDF
            — a tela (navegador comum) esconde por `@media screen`; o
            WeasyPrint renderiza como impressão e mantém a página. #}
-        .sumario-pagina { break-before: page; break-after: page; }
-        .sumario-lista { list-style: none; margin: 4mm 0 0; padding: 0; }
+        /* `T-558` (estilo Fintech): página nomeada sem margem, com a onda verde
+           em SVG no topo e o título branco dentro da faixa. */
+        @page sumario { size: A4; margin: 0; @bottom-right { content: none; } }
+        .sumario-pagina { page: sumario; position: relative; min-height: 296.9mm; break-before: page; break-after: page; }
+        .sumario-onda { position: absolute; top: 0; left: 0; width: 210mm; height: 72mm; }
+        .sumario-cab { position: absolute; top: 16mm; left: 15mm; right: 15mm; color: #FFFFFF; }
+        .sumario-cab h2 { font-size: 17pt; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #FFFFFF; }
+        .sumario-cab p { margin: 2.4mm 0 0; font-size: 9.5pt; color: rgba(255,255,255,0.8); }
+        .sumario-cab p strong { color: #FFFFFF; }
+        .sumario-lista { list-style: none; margin: 0; padding: 76mm 15mm 10mm; }
+        .sm-cap { display: flex; gap: 4mm; margin-bottom: 3.2mm; break-inside: avoid; }
+        .sm-num { flex: none; width: 9mm; height: 9mm; line-height: 9mm; text-align: center; border-radius: 2.6mm; background: #0F6E56; color: #FFFFFF; font-weight: 800; font-size: 12pt; }
+        .sm-sem-num { padding-left: 13mm; }
+        .sm-corpo { flex: 1; min-width: 0; }
+        .sm-olho { margin: 0 0 0.2mm; line-height: 1.3; font-size: 6.6pt; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #586870; }
+        .sm-subs { list-style: none; margin: 1mm 0 0; padding: 0; }
+        .sm-subs li { font-size: 7.4pt; line-height: 1.3; color: #586870; margin-bottom: 0.4mm; }
         .sumario-item {
-            display: flex; align-items: baseline; gap: 2mm;
-            margin-bottom: 2.5mm; text-decoration: none; color: inherit;
+            display: flex; align-items: center; gap: 3mm;
+            text-decoration: none; color: #0B1F2A; font-weight: 700; font-size: 11pt; line-height: 1.25; letter-spacing: -0.01em;
         }
         .sumario-titulo { flex: none; }
-        .sumario-pontos {
-            flex: 1 1 auto; border-bottom: 1px dotted #9AA6A3;
-            margin: 0 1mm 1mm; height: 0;
-        }
+        .sumario-pontos { flex: 1 1 auto; height: 0.6mm; border-radius: 1mm; background: #CDE6DC; }
         {# `T-554` (pedido do usuário, 2026-11-13): o número de página é
            texto comum, calculado em Python na 2ª passagem de `report/
            pdf.py::_paginas_dos_capitulos` — o CSS `target-counter` que
            existia aqui antes resolvia a página ERRADA nesta versão do
            WeasyPrint (verificado à mão: sempre uma a menos que a real). #}
-        .sumario-pagina-numero { flex: none; font-variant-numeric: tabular-nums; }
+        .sumario-pagina-numero { flex: none; min-width: 11mm; text-align: center; font-size: 7.6pt; font-weight: 600; font-variant-numeric: tabular-nums; background: #FFFFFF; border: 0.25mm solid #E1E8E5; border-radius: 4mm; padding: 0.5mm 2.2mm; }
+        .sumario-pagina-numero:empty { display: none; }
         @media screen {
             .sumario-pagina { display: none; }
         }
@@ -632,11 +664,93 @@
         .pm-tabela thead th { border-bottom: 1.5px solid #1B2A2F; }
         .pm-resumo { background: #F3FAF7; }
         .pagina-mes-azul .pm-resumo { background: #F6F9FD; }
+
+        /* Estilo Fintech (RF-544, T-556 a T-563) ------------------------------
+           Cartões brancos com anel fino sobre o papel esverdeado, cantos de 3 mm,
+           rótulos em pílula, Inter em pesos 400 a 800. Vem por último de propósito:
+           sobrepõe as regras acima sem mexer em seletores nem em quebras de página
+           (o WeasyPrint não renderiza box-shadow, então o "anel" é uma borda). */
+        :root {
+            --papel: #F4F7F6; --tinta: #0B1F2A; --suave: #586870; --anel: 0.25mm solid #E1E8E5;
+            --fundo-suave: #E9F0ED; --acento: #0F6E56; --raio: 3mm;
+            --verm: #A63A2C; --azul: #1F5A96; --verde: #0F6E56;
+            --tom-verm: #FBECEA; --tom-azul: #E7EFF8; --tom-verde: #E3F1EB;
+        }
+        html, body { background: var(--papel); }
+        body { color: var(--tinta); }
+        .intro, .muted, .kpi-nota, .kpi-rodape, .numero-explicacao, .caminho-nota, .pm-subtitulo { color: var(--suave); }
+
+        .caixa, .linhas, .estatistica, .kpi, .kpi-extra, .ranking-cartao, .quadro, .composicao, .numero, .divida,
+        .caminho, .quando-termina-bloco, .pm-resumo, .cartao-mes, .ano, .mes {
+            background: #FFFFFF; border: var(--anel); border-radius: var(--raio); box-shadow: none;
+        }
+        .destaque { background: var(--tom-verde); border-radius: var(--raio); }
+        .aviso { background: #FFF4DC; color: #8A5A00; border-radius: var(--raio); }
+        .kpi-entrada, .kpi-positivo, .linha-forte { background: var(--tom-verde); }
+        .kpi-resultado, .estatistica.negativa { background: var(--tom-verm); }
+        .kpi-claro { background: #FFFFFF; border: var(--anel); }
+        .numero { border-top: 1.2mm solid var(--acento); }
+        .linhas { overflow: hidden; }
+        .linha { border-bottom: 0.25mm solid #EDF2EF; }
+
+        /* Cabeçalho de capítulo */
+        .secao-cabecalho { margin: 4mm 0 5mm; }
+        .secao-numero { width: 12mm; height: 12mm; line-height: 12mm; border-radius: 3mm; background: var(--acento); color: #FFFFFF; font-size: 14pt; font-weight: 800; }
+        .secao-cabecalho h2 { padding-left: 4mm; font-size: 19pt; font-weight: 800; letter-spacing: -0.024em; line-height: 1.1; }
+        .secao-icone { color: #B7C9C2; }
+
+        /* Cartões de dívida: duas colunas, anel verde na que recebe o extra */
+        .divida { display: inline-block; vertical-align: top; width: 48.2%; margin: 0 2% 4mm 0; padding: 4mm; }
+        .divida:nth-of-type(odd) { margin-right: 0; }
+        .divida-alvo { border: 0.45mm solid var(--acento); }
+        .divida-posicao { background: var(--fundo-suave); border: 0; color: var(--tinta); }
+        .divida-alvo .divida-posicao { background: var(--acento); color: #FFFFFF; }
+        .divida-topo h3 { font-size: 11pt; font-weight: 700; letter-spacing: -0.01em; }
+        .divida-ordem { display: inline-block; font-size: 6.8pt; font-weight: 700; letter-spacing: 0.04em; background: var(--fundo-suave); color: var(--tinta); border-radius: 4mm; padding: 0.6mm 2.2mm; }
+        .divida-alvo .divida-ordem { background: var(--acento); color: #FFFFFF; }
+        .fatos { display: block; }
+        .fato { display: flex; justify-content: space-between; align-items: baseline; gap: 3mm; width: auto; background: none; border: 0; border-top: 0.25mm solid #EDF2EF; border-radius: 0; padding: 1.5mm 0; }
+        .fato-valor { text-align: right; font-variant-numeric: tabular-nums; }
+        .fato-forte { background: var(--fundo-suave); border-top: 0; border-radius: 1.8mm; padding: 1.5mm 2.5mm; margin-top: 1mm; }
+
+        /* Caminhos do capítulo 5 */
+        .caminho { border-left: var(--anel); padding: 3.5mm 5mm; margin-bottom: 3.4mm; }
+        .caminho-vermelho, .caminho-azul, .caminho-verde { background: #FFFFFF; border-left: var(--anel); }
+        .caminho h3 { display: inline-block; font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.8mm 2.4mm; border-radius: 4mm; margin-bottom: 1.6mm; }
+        .caminho-vermelho h3 { background: var(--tom-verm); color: var(--verm); }
+        .caminho-azul h3 { background: var(--tom-azul); color: var(--azul); }
+        .caminho-verde h3 { background: var(--tom-verde); color: var(--verde); }
+        .caminho-veredito { font-size: 10.5pt; font-weight: 700; letter-spacing: -0.01em; color: var(--tinta); }
+        .caminho-destaques dd { font-weight: 800; }
+
+        /* Tabelas */
+        .quando-termina { background: #FFFFFF; border: var(--anel); border-radius: var(--raio); border-collapse: separate; border-spacing: 0; overflow: hidden; }
+        .quando-termina th, .quando-termina td { border-bottom: 0.25mm solid #EDF2EF; padding: 2mm 2.5mm; }
+        .quando-termina tbody tr:last-child th, .quando-termina tbody tr:last-child td { border-bottom: 0; }
+        .quando-termina td.coluna-vermelho { background: #FFFFFF; }
+        .quando-termina td.coluna-azul { background: var(--tom-azul); font-weight: 700; }
+        .quando-termina td.coluna-verde { background: #FFFFFF; }
+        .divida-numero { display: inline-block; min-width: 5mm; height: 5mm; line-height: 5mm; text-align: center; border-radius: 50%; background: var(--acento); color: #FFFFFF; font-size: 7pt; margin-right: 1.5mm; }
+        .ranking td { border-top: 0.25mm solid #EDF2EF; }
+        .pm-tabela thead th { background: var(--papel); }
+        .pm-tabela th, .pm-tabela td { border-bottom-color: #EDF2EF; }
+
+        /* Mural e mês a mês */
+        .mural-mes { border-radius: 2mm; }
+        .mural-azul { background: var(--tom-azul); }
+        .mural-quitacao.mural-azul { background: var(--azul); }
+        .cartao-mes { border-left-width: 0.25mm; }
+        .pm-marca { color: var(--acento); }
     </style>
 </head>
 <body>
-{% if previa %}<div class="faixa-previa">Prévia — ainda não liberado</div>{% endif %}
     <div class="capa">
+        {% if previa %}<div class="faixa-previa capa-faixa-previa">Prévia — ainda não liberado</div>{% endif %}
+        <div class="capa-topo">
+            <span class="capa-marca">{{ textos.cabecalho.get("marca", "") }}</span>
+            <span class="capa-marca-sub">{{ textos.cabecalho.get("marca_sub", "") }}</span>
+        </div>
+        <div class="capa-meio">
         <div class="capa-para">
             {% if nome_do_aluno %}{{ textos.cabecalho.get("preparado_para", "").format(nome=nome_do_aluno) }}{% else %}{{ textos.cabecalho.get("preparado_sem_nome", "") }}{% endif %}
         </div>
@@ -658,6 +772,16 @@
         {% if aviso_sem_valor_extra %}
         <p class="nota-meses">{{ aviso_sem_valor_extra }}</p>
         {% endif %}
+        {# `T-557`: os três números da capa só aparecem quando todos existem e valem:
+           plano normal, cronograma que termina no horizonte e total das dívidas completo. #}
+        {% if fim_do_plano and ponto_de_partida and ponto_de_partida.total_em_dividas and not ponto_de_partida.total_em_dividas_parcial and valor_mensal_destinado and not aviso_sem_valor_extra %}
+        <dl class="capa-kpis">
+            <div class="capa-kpi"><dt>{{ textos.cabecalho.get("kpi_divida", "") }}</dt><dd>{{ ponto_de_partida.total_em_dividas }}</dd></div>
+            <div class="capa-kpi"><dt>{{ textos.cabecalho.get("kpi_quitacao", "") }}</dt><dd>{{ fim_do_plano }}</dd></div>
+            <div class="capa-kpi"><dt>{{ textos.cabecalho.get("kpi_extra", "") }}</dt><dd>{{ valor_mensal_destinado }}</dd></div>
+        </dl>
+        {% endif %}
+        </div>
     </div>
 
     {# `T-553`/`T-554` (devolução do especialista + pedido do usuário,
@@ -668,17 +792,35 @@
        lido de `pagina_por_capitulo` (`report/pdf.py::_paginas_dos_
        capitulos`, 2ª passagem) — `{}` fora do PDF (tela, prévia em HTML
        puro, 1ª passagem), e o item some sem número, nunca um errado. #}
-    {% macro item_sumario(id, titulo) %}
-    <li><a class="sumario-item" href="#{{ id }}"><span class="sumario-titulo">{{ titulo }}</span><span class="sumario-pontos"></span><span class="sumario-pagina-numero">{{ pagina_por_capitulo.get(id, "") if pagina_por_capitulo is defined else "" }}</span></a></li>
+    {% set sm = namespace(n=0) %}
+    {% macro item_sumario(id, titulo, numerar=true, subs=[]) %}
+    {% if numerar %}{% set sm.n = sm.n + 1 %}{% endif %}
+    <li class="sm-cap{% if not numerar %} sm-sem-num{% endif %}">
+        {% if numerar %}<span class="sm-num">{{ sm.n }}</span>{% endif %}
+        <div class="sm-corpo">
+            {% if numerar %}<p class="sm-olho">{{ textos.cabecalho.get("sumario_capitulo", "") }} {{ sm.n }}</p>{% endif %}
+            <a class="sumario-item" href="#{{ id }}"><span class="sumario-titulo">{{ titulo }}</span><span class="sumario-pontos"></span><span class="sumario-pagina-numero">{{ pagina_por_capitulo.get(id, "") if pagina_por_capitulo is defined else "" }}</span></a>
+            {% if subs %}<ul class="sm-subs">{% for sub in subs %}<li>{{ sub }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+    </li>
     {% endmacro %}
     <section class="sumario-pagina">
-        <h2>Sumário</h2>
+        <svg class="sumario-onda" width="210mm" height="72mm" viewBox="0 0 210 72" aria-hidden="true" focusable="false">
+            <path d="M0 0H210V42C180 56 150 58 116 48C82 38 46 36 0 50Z" fill="#0B5444"></path>
+            <path d="M0 56C46 42 82 44 116 54C150 64 180 62 210 48" fill="none" stroke="#8FD9BC" stroke-width="1"></path>
+        </svg>
+        <div class="sumario-cab">
+            <h2>{{ textos.cabecalho.get("sumario_titulo", "") }}</h2>
+            <p><strong>{{ textos.cabecalho.get("sumario_sub", "").format(nome=nome_do_aluno) if nome_do_aluno else textos.cabecalho.get("sumario_sub_sem_nome", "") }}</strong></p>
+        </div>
         <ul class="sumario-lista">
             {% if curso_ssd and curso_ssd.apresentacao and not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
-            {{ item_sumario("cap-apresentacao-curso", curso_ssd.apresentacao_titulo) }}
+            {{ item_sumario("cap-apresentacao-curso", curso_ssd.apresentacao_titulo, false) }}
             {% endif %}
             {% if cenario is defined and cenario.value == "ESTABILIZACAO" %}
             {{ item_sumario("cap-estabilizacao", textos.estabilizacao.get("titulo", "Primeiro, estancar o problema")) }}
+            {# estabilizacao.html numera mais duas seções por dentro (fora do caso "dívida que cresce") #}
+            {% if not ESTABILIZACAO_POR_DIVIDA %}{% set sm.n = sm.n + 2 %}{% endif %}
             {% else %}
             {% if ordem %}
             {{ item_sumario("cap-dividas", secoes.get("dividas", "Suas dívidas, uma a uma")) }}
@@ -697,7 +839,7 @@
             {{ item_sumario("cap-como-funciona", secoes.get("como_funciona", "Como o seu plano funciona")) }}
             {% endif %}
             {% if not (cenario is defined and cenario.value == "ESTABILIZACAO") %}
-            {{ item_sumario("cap-resumo", secoes.get("resumo", "Seu plano em números")) }}
+            {{ item_sumario("cap-resumo", secoes.get("resumo", "Seu plano em números"), true, (prognostico.caminhos | map(attribute="titulo") | list) if prognostico else []) }}
             {% endif %}
             {% if prognostico and prognostico.detalhes %}
             {{ item_sumario("mural-do-plano", textos.prognostico.get("mural_titulo", "")) }}
