@@ -68,3 +68,34 @@ Quando o aluno informa um valor extra maior do que sobra no mês, o sistema não
 > "O valor extra que você informou (R$ 500,00) é maior do que sobra no seu mês (R$ 400,00). O plano usa R$ 380,00 por mês."
 
 (O valor usado fica um pouco abaixo da sobra por causa da margem de segurança que o plano já aplica.)
+
+---
+
+# Devolução sobre o plano do `aluno.teste3` (2026-11-13)
+
+Marcelo revisou a prévia do plano do `aluno.teste3` (89 páginas) e listou 8 problemas. A maioria é texto que diz algo que o cálculo não faz, e já foi corrigida sem depender de resposta (itens 2, 4 a 8: ver `RF-542`). Os itens 1 e 3 vêm de uma regra que ele mesmo definiu em 16/10 (`§16.4`), e o texto do plano não contava essa regra — também corrigido. Mas essa regra pode precisar de revisão, e é isso que a pergunta 18 traz.
+
+**18.** A `§16.4` faz a dívida com garantia de um bem essencial (ex.: a casa, no financiamento imobiliário) ser atacada **antes** de comparar juros, mesmo que ela seja a mais barata. No `teste3`, isso significa: o imóvel (0,949% a.m.) recebe todo o valor extra do plano, e o cheque especial (5% a.m., negativado) nunca recebe nada — ele só termina porque a própria parcela, sozinha, já paga a dívida. Conta do Marcelo: manter o valor extra no cheque especial em vez do imóvel economizaria cerca de R$ 43,34 de juros já no mês seguinte (sobre R$ 1.031,37, pela diferença de taxas). Ao longo de décadas de financiamento imobiliário, esse tipo de escolha custa muito mais.
+
+A regra continua assim mesmo quando a dívida com garantia é a **mais barata** do caso (como no teste3)?
+- **(a) Sim, mantém a `§16.4` como está.** Garantia de bem essencial continua vindo antes de qualquer comparação de juros, mesmo perdendo dinheiro no total pago. O texto do plano (já corrigido) explica esse motivo ao aluno.
+- **(b) Não. A prioridade por garantia só decide empate entre dívidas de custo parecido** (dentro da margem de `P_DIFERENCA_CUSTO_EQUIVALENTE`, que já existe na `§16.4`), e fora dessa margem o método volta a decidir por juros/valor. Muda a ordem de ataque de todos os casos com garantia e exige mudança de motor.
+- **(c) Não. A prioridade por garantia vale só para evitar execução/perda do bem** (ex.: atraso, risco de leilão), não para toda dívida com garantia essencial desde o primeiro mês. Também muda a ordem e exige mudança de motor.
+
+**19.** A reserva (`§13.1`/`§13.6`): hoje o cronograma do plano nunca usa a reserva — ela é só informação mostrada ao aluno, que decide por conta própria se e quando usar (texto já corrigido para não prometer o contrário). O Marcelo esperava ver a reserva entrando no cronograma como um abatimento de uma vez (ex.: mês 1, amortizando a dívida que o método escolher). Isso é um cálculo novo, de motor, e não existe hoje.
+
+O cronograma deve passar a usar a reserva (todo ou parte do que o aluno aceitou liberar) como um abatimento automático em alguma dívida?
+- **(a) Não, mantém como está.** Reserva é informação para o aluno decidir por conta própria; o plano nunca conta com ela.
+- **(b) Sim.** Precisa de regra: quanto (tudo que foi aceito liberar, ou um valor que ainda proteja uma reserva mínima?), em que mês e em qual dívida (a mesma do método, ou a de maior taxa?). Feature nova, de motor, com spec própria.
+
+# Textos novos para conferir (2026-11-13)
+
+Corrigidos sem depender das respostas 18/19 (prioridade confirmada por regra já existente, não por decisão nova):
+
+- A explicação da posição ganha uma terceira variante, usada só quando a `§16.4` prioriza a dívida (garantia essencial, negativada, com garantia ou com preferência de quitação declarada), por método:
+  > **Avalanche:** "Esta dívida tem garantia de um bem essencial, está negativada, ou você marcou que seria uma das primeiras a quitar — e o plano prioriza isso antes de comparar os juros. Por isso ela é atacada primeiro, mesmo que não seja a que mais cobra juros entre todas as suas dívidas."
+- "Como o seu plano funciona" (Avalanche) ganha a mesma ressalva: "Antes de comparar os juros, o plano prioriza a dívida com garantia de um bem essencial, negativada ou com preferência de quitação declarada. Todo o valor extra vai primeiro para ela, mesmo que não seja a que mais cobra juros. As outras recebem só a parcela de sempre."
+- Reserva: "Esse é o valor da sua reserva que você decidiu poder usar neste plano, se quiser. O cronograma mostrado não conta com esse dinheiro: ele usa só as parcelas e o valor extra do seu orçamento. Usar a reserva é uma decisão sua, a qualquer momento." e, abaixo do valor, "Reserva total guardada: R$ X."
+- Plano provisório por cadastro incompleto (fora de estabilização): "Este plano é provisório: o cadastro das suas dívidas ainda não está completo, e por isso ele será ajustado quando você completar as informações que faltam."
+- Capa, quando falta cadastrar dívida: "Considerando só as N dívidas cadastradas e as hipóteses indicadas, a projeção termina em {mês}. A inclusão da dívida que falta pode mudar esse resultado." (só quando o cronograma termina dentro do horizonte de 10 anos; sem o estouro do horizonte, que tornaria "termina em" falso.)
+- Parcela calculada ou estimada, no cartão da dívida: sufixo "(calculada a partir do saldo e da taxa)" ou "(estimativa de 24 meses, sem informação sua)" depois do rótulo, quando a marca existe; parcela informada pelo aluno continua sem sufixo.

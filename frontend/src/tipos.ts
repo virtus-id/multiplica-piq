@@ -427,6 +427,8 @@ export interface Pendencias {
 export interface ReservaMobilizavel {
   pendente_de_decisao: boolean
   valor: string
+  /** `T-550`: o total guardado (`RESERVA_TOTAL`), ao lado de `valor`; "" se desconhecido. */
+  total?: string
 }
 
 export interface Plano {
@@ -435,6 +437,10 @@ export interface Plano {
   /** `T-352`: plano normal sem valor extra no mês; vazio nos demais casos. */
   aviso_sem_valor_extra?: string
   aviso_de_conferencia?: string
+  /** `T-551`: cadastro de dívidas incompleto, avisado cedo; vazio nos demais casos. */
+  aviso_cadastro_incompleto?: string
+  /** `T-550`: nota com o total guardado da reserva, texto fixo do servidor. */
+  reserva_total_nota?: string
   /** `RF-412` — avisos do plano inteiro (faltam fichas de dívida declaradas). */
   avisos_gerais?: string[]
   /** Redação vigente de `textos-canonicos.yaml` — vem do servidor, nunca reescrita aqui. */

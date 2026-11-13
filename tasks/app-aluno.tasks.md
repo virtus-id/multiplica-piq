@@ -14037,3 +14037,23 @@ Sem valor extra, caminho verde `sem_valor` (só texto) no PDF e na tela; fora da
 
 ### `T-547` — Primeiro mês do capítulo 7 junto da descrição
 `pagina-mes-primeira` sem quebra antes. **Status:** `[x] concluída (2026-11-11)`
+
+## Devolução do especialista sobre o plano do `aluno.teste3` (2026-11-13, `RF-542`, `RF-543`)
+
+### `T-548` — Quem recebe o valor extra, separado de quando termina
+`report/plano.py::_alvo_desde` lê o primeiro mês em que cada dívida é `MesDoPlano.DIVIDA_ALVO` (`snapshot.prognostico.MESES_DO_PLANO`); fato novo "Recebe o valor extra" em todo cartão de dívida, sem reordenar a lista "Suas dívidas, uma a uma" (que continua na ordem de `ORDEM_QUITACAO`, podendo ser a de quitação, não a de ataque — RF-512). **Status:** `[x] concluída (2026-11-13)`
+
+### `T-549` — A explicação da posição e "como funciona" contam a regra de prioridade
+A explicação "primeira"/"seguintes" passa a escolher pela dívida que de fato é a primeira a receber o extra (`_alvo_desde`), não pelo índice na lista; com sinal da `§16.4` nessa dívida (`GARANTIA_ESSENCIAL`, `NEGATIVADA`, `TIPO_GARANTIA`, `PREFERENCIA_QUITACAO`), variante nova `primeira_com_prioridade` explica o motivo real. "Como o seu plano funciona" e o critério do método (revisor) trocam de redação, pelo mesmo sinal, com `como_funciona_com_prioridade`/`criterio_do_metodo_com_prioridade` — nenhuma reimplementação da regra, só leitura dos quatro campos de entrada já existentes em `Divida`. Textos novos, a validar. **Status:** `[x] concluída (2026-11-13)`
+
+### `T-550` — Reserva: total guardado ao lado do que o aluno decidiu usar
+`ContextoReservaMobilizavel.total` (`estado_inputs.RESERVA_TOTAL`) ao lado de `valor` (`RESERVA_MOBILIZAVEL`); `reserva_explicacao` deixa de dizer que o cronograma usa a reserva (ele não usa, `§13.6`) e de prometer "o restante continua guardado" sem mostrar o total. Sem conta nova — os dois valores são lidos, nunca subtraídos (`AC-42`). Textos novos, a validar. **Status:** `[x] concluída (2026-11-13)`
+
+### `T-551` — Plano provisório pelo motivo certo
+`ORDEM_STATUS.PROVISORIA` fora de estabilização (cadastro incompleto, `B5.FIM02`) usa `corpo_provisorio_cadastro`/`duvida_quando_muda_cadastro`, que não falam em "mês no negativo". Capa do plano avisa, quando o cadastro está incompleto e o cronograma termina dentro do horizonte, que o prazo mostrado considera só as dívidas cadastradas (`aviso_cadastro_incompleto`); sem aviso quando a simulação estoura o horizonte (o "termina em" seria falso). Textos novos, a validar. **Status:** `[x] concluída (2026-11-13)`
+
+### `T-552` — Origem da parcela no cartão da dívida
+`_fatos_da_divida` recebe a marca (`calculado`/`estimado`) de `VocabularioDoCaso.marcas_da_divida` e acrescenta o sufixo correspondente ao rótulo da parcela; sem marca (informado pelo aluno), sem sufixo. Textos novos em `marca_do_pagamento`, a validar. **Status:** `[x] concluída (2026-11-13)`
+
+### `T-553` — Sumário do PDF (`RF-543`)
+Página de sumário logo após a capa, com um link por capítulo e o número de página via CSS (`target-counter(attr(href url), page)`, nativo do WeasyPrint instalado) — nenhum número calculado em `.py`. Cada capítulo ganha um `id` estável; `h3`/`h4` (mês, pergunta, dívida) saem do marcador lateral do PDF (`bookmark-level: none`), que passa a listar só os capítulos. Só no PDF: `@media screen` esconde a página na tela. **Status:** `[x] concluída (2026-11-13)`

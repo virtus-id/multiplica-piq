@@ -38,6 +38,16 @@ corpo_provisorio: >-
   provisório: ele será ajustado quando o seu mês deixar de fechar no
   negativo.
 
+# `T-551` (devolução do especialista, 2026-11-13): `ORDEM_STATUS = PROVISORIA`
+# também cobre o cadastro de dívidas incompleto (`B5.FIM02 = NAO`), fora de
+# estabilização — nesse caso o mês pode já fechar positivo, e dizer "até o
+# mês deixar de fechar no negativo" seria falso. Sugestão, a validar.
+corpo_provisorio_cadastro: >-
+  Montamos este plano a partir das informações que você nos passou. Ele
+  mostra a ordem em que as dívidas devem ser quitadas. Este plano é
+  provisório: o cadastro das suas dívidas ainda não está completo, e por
+  isso ele será ajustado quando você completar as informações que faltam.
+
 # ---------------------------------------------------------------------------
 # Rótulos dos valores de apoio — T-177.
 #
@@ -90,25 +100,44 @@ explicacao_da_posicao:
       É a menor das suas dívidas. Quitando esta primeiro, você se livra mais
       cedo da parcela dela, e esse dinheiro passa a ajudar a pagar a
       próxima.
+    # `T-549` (devolução do especialista, 2026-11-13): quando a `§16.4`
+    # prioriza esta dívida (garantia essencial, negativada, garantia ou
+    # preferência de quitação), o motivo real não é "menor dívida". Sugestão,
+    # a validar.
+    primeira_com_prioridade: >-
+      Esta dívida tem garantia de um bem essencial, está negativada, ou você
+      marcou que seria uma das primeiras a quitar — e o plano prioriza isso
+      antes de comparar o valor das dívidas. Por isso ela é atacada primeiro,
+      mesmo que não seja a menor das suas dívidas.
     seguintes: >-
-      Vem depois das anteriores porque o valor dela é maior. Quando as de
-      cima forem quitadas, as parcelas que você pagava nelas passam a ajudar
-      a quitar esta.
+      Vem depois das anteriores nesta lista. Quando as de cima forem
+      quitadas, as parcelas que você pagava nelas passam a ajudar a quitar
+      esta.
   AVALANCHE:
     primeira: >-
       É a dívida que mais cobra juros de você. Quitando esta primeiro, você
       diminui o total que ainda vai pagar até o fim do plano.
+    primeira_com_prioridade: >-
+      Esta dívida tem garantia de um bem essencial, está negativada, ou você
+      marcou que seria uma das primeiras a quitar — e o plano prioriza isso
+      antes de comparar os juros. Por isso ela é atacada primeiro, mesmo que
+      não seja a que mais cobra juros entre todas as suas dívidas.
     seguintes: >-
-      Vem depois das anteriores porque cobra menos juros que elas. Quando as
-      de cima forem quitadas, as parcelas que você pagava nelas passam a
-      ajudar a quitar esta.
+      Vem depois das anteriores nesta lista. Quando as de cima forem
+      quitadas, as parcelas que você pagava nelas passam a ajudar a quitar
+      esta.
   HIBRIDO:
     primeira: >-
       É a dívida que você consegue quitar mais rápido sem aumentar de forma
       relevante o custo total. Quitar uma dívida logo no começo dá fôlego ao
       seu orçamento para seguir com as outras.
+    primeira_com_prioridade: >-
+      Esta dívida tem garantia de um bem essencial, está negativada, ou você
+      marcou que seria uma das primeiras a quitar — e o plano prioriza isso
+      antes de comparar a vitória rápida ou o custo. Por isso ela é atacada
+      primeiro.
     seguintes: >-
-      Vem depois das anteriores, na ordem de quem cobra mais juros. Quando as
+      Vem depois das anteriores nesta lista. Quando as
       de cima forem quitadas, as parcelas que você pagava nelas passam a
       ajudar a quitar esta.
 
@@ -438,6 +467,29 @@ criterio_do_metodo:
     Cada dívida entra quando é a de menor valor a quitar, entre as que
     restam; empates seguem a regra de desempate do método.
 
+# `T-549` (devolução do especialista, 2026-11-13): variante de
+# `criterio_do_metodo` para quando a `§16.4` está em jogo no caso (alguma
+# dívida com garantia essencial, negativada, com garantia ou com preferência
+# de quitação declarada) — a tela do revisor (`criterio_metodo`) não pode
+# dizer "entra pela taxa" quando o motor priorizou por garantia. Sugestão,
+# a validar.
+criterio_do_metodo_com_prioridade:
+  HIBRIDO: >-
+    Antes de tudo, entre as dívidas com garantia de um bem essencial,
+    negativadas ou com preferência de quitação declarada, a de maior
+    prioridade (nessa ordem). Só depois, entre as demais: primeiro uma
+    vitória rápida, depois pela maior economia de juros.
+  AVALANCHE: >-
+    Antes de tudo, entre as dívidas com garantia de um bem essencial,
+    negativadas ou com preferência de quitação declarada, a de maior
+    prioridade (nessa ordem). Só depois, entre as demais, a que mais
+    economiza juros por real pago.
+  BOLA_DE_NEVE: >-
+    Antes de tudo, entre as dívidas com garantia de um bem essencial,
+    negativadas ou com preferência de quitação declarada, a de maior
+    prioridade (nessa ordem). Só depois, entre as demais, a de menor valor
+    a quitar.
+
 
 # ---------------------------------------------------------------------------
 # Plano do aluno: textos de "consultoria individual" (2026-10-03).
@@ -568,6 +620,43 @@ como_funciona:
       Essa parcela se junta ao valor extra, que fica maior e passa para a
       próxima dívida. Assim, cada dívida acaba mais rápido que a anterior.
 
+# `T-549` (devolução do especialista, 2026-11-13): variante de
+# `como_funciona`, para quando a `§16.4` está em jogo neste caso — o PDF não
+# pode dizer "todo o valor extra vai para a que mais cobra juros" quando o
+# motor priorizou outra por garantia ou negativação. Sugestão, a validar.
+como_funciona_com_prioridade:
+  HIBRIDO:
+    - >-
+      Antes de comparar vitória rápida ou custo, o plano prioriza a dívida
+      com garantia de um bem essencial, negativada ou com preferência de
+      quitação declarada. Todo o valor extra vai primeiro para ela. As
+      outras recebem só a parcela de sempre.
+    - "Quando essa dívida acaba, a parcela que você pagava nela fica livre."
+    - >-
+      Essa parcela se junta ao valor extra, que fica maior e passa para a
+      próxima dívida. Assim, cada dívida acaba mais rápido que a anterior.
+  AVALANCHE:
+    - >-
+      Antes de comparar os juros, o plano prioriza a dívida com garantia de
+      um bem essencial, negativada ou com preferência de quitação
+      declarada. Todo o valor extra vai primeiro para ela, mesmo que não
+      seja a que mais cobra juros. As outras recebem só a parcela de
+      sempre.
+    - "Quando essa dívida acaba, a parcela que você pagava nela fica livre."
+    - >-
+      Essa parcela se junta ao valor extra, que fica maior e passa para a
+      próxima dívida. Assim, cada dívida acaba mais rápido que a anterior.
+  BOLA_DE_NEVE:
+    - >-
+      Antes de comparar o valor das dívidas, o plano prioriza a dívida com
+      garantia de um bem essencial, negativada ou com preferência de
+      quitação declarada. Todo o valor extra vai primeiro para ela, mesmo
+      que não seja a menor. As outras recebem só a parcela de sempre.
+    - "Quando essa dívida acaba, a parcela que você pagava nela fica livre."
+    - >-
+      Essa parcela se junta ao valor extra, que fica maior e passa para a
+      próxima dívida. Assim, cada dívida acaba mais rápido que a anterior.
+
 # Grade de cartões por mês e a legenda dos símbolos.
 grade_meses:
   titulo: "Seu plano, mês a mês"
@@ -614,11 +703,25 @@ dividas:
   nao_disponivel: "não disponível"
   # `RF-481` (T-468): a dívida que a simulação não quita em 10 anos. Sugestão, a validar.
   fora_do_horizonte: "Não será quitada com os valores de hoje"
+  # `T-548` (devolução do especialista, 2026-11-13): quem de fato recebe o
+  # valor extra, e desde quando — separado de "Termina no" (que pode vir só
+  # da parcela de sempre, sem nunca ter sido a dívida da vez). Sugestão, a
+  # validar.
+  recebe_extra_rotulo: "Recebe o valor extra"
+  recebe_extra_desde: "A partir do {mes}"
+  nao_recebe_extra: "Não recebe: termina só com a parcela de sempre"
 
+# `T-550` (devolução do especialista, 2026-11-13): o cronograma do plano não
+# usa a reserva (`§13.6`) — usar o valor é decisão do aluno, a qualquer
+# momento, e não é contado nas parcelas e no valor extra já mostrados.
+# Sugestão, a validar.
 reserva_explicacao: >-
-  É a parte da sua reserva que você decidiu usar neste plano. Esse dinheiro
-  ajuda a quitar as dívidas mais rápido. O restante continua guardado para
-  emergências.
+  Esse é o valor da sua reserva que você decidiu poder usar neste plano, se
+  quiser. O cronograma mostrado não conta com esse dinheiro: ele usa só as
+  parcelas e o valor extra do seu orçamento. Usar a reserva é uma decisão
+  sua, a qualquer momento.
+
+reserva_total_nota: "Reserva total guardada: {total}."
 
 # Pendências: onde o aluno encontra cada dado que falta, e a pergunta do
 # Bloco 5 que grava o campo (botão "Responder agora" na tela).
@@ -677,6 +780,14 @@ duvidas_provisorio:
   - *duvida_valor_extra
   - *duvida_divida_nova
   - *duvida_maior_divida
+
+# `T-551`: substitui a primeira dúvida de `duvidas_provisorio` quando o
+# motivo é cadastro incompleto (fora de estabilização) — não fala em "saldo
+# positivo", que já pode valer mesmo com o cadastro incompleto.
+duvida_quando_muda_cadastro: >-
+  Este plano é provisório porque o cadastro das suas dívidas ainda não está
+  completo. Ele muda quando você completar as informações que faltam ou
+  atualizar as suas respostas.
 
 sobre_este_plano: >-
   Este plano foi calculado com as informações que você nos passou. Quanto
@@ -879,6 +990,18 @@ avisos:
   ataque_acima_da_sobra: "O valor extra que você informou ({declarado}) é maior do que sobra no seu mês ({sobra}). O plano usa {usado} por mês."
   # RF-472. Sugestão, a validar pelo produto.
   numeros_nao_conferidos: "Alguns números deste plano não passaram na nossa conferência automática. Não os trate como definitivos: aguarde a revisão da nossa equipe antes de agir com base neles."
+  # `T-551` (devolução do especialista, 2026-11-13): na capa, cedo, quando o
+  # cadastro das dívidas está incompleto — o prazo mostrado é condicionado à
+  # dívida que falta. Sugestão, a validar.
+  cadastro_incompleto_capa: "Considerando só as {quantidade} dívidas cadastradas e as hipóteses indicadas, a projeção termina em {mes}. A inclusão da dívida que falta pode mudar esse resultado."
+
+# `T-552` (devolução do especialista, 2026-11-13): sufixo do rótulo da
+# parcela no cartão da dívida (`_fatos_da_divida`), quando o valor não foi
+# informado pelo aluno. Chaves iguais às de
+# `app/http/serializacao_plano.py::_MARCA_AO_REVISOR`. Sugestão, a validar.
+marca_do_pagamento:
+  calculado: " (calculada a partir do saldo e da taxa)"
+  estimado: " (estimativa de 24 meses, sem informação sua)"
 
 # Plano normal com capacidade de ataque zero no mês.
 sem_valor_extra: >-

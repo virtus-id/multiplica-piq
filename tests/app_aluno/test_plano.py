@@ -222,6 +222,17 @@ def test_nenhuma_variavel_nova_de_rotulo_visual_para_a_ordem() -> None:
         "rotulos_de_dados",
         "rotulos_de_codigos",
         "criterio_do_metodo",
+        # `T-549` a `T-552` (devolução do especialista, 2026-11-13): variante
+        # de `como_funciona`/`criterio_do_metodo` para a `§16.4` (prioridade
+        # por garantia/negativação), redação provisória por cadastro
+        # incompleto, nota da reserva total e marca da parcela calculada/
+        # estimada — nenhum renomeia `ORDEM_QUITACAO`.
+        "como_funciona_com_prioridade",
+        "criterio_do_metodo_com_prioridade",
+        "corpo_provisorio_cadastro",
+        "duvida_quando_muda_cadastro",
+        "reserva_total_nota",
+        "marca_do_pagamento",
     }
     # A ordem continua sem rótulo paralelo: nenhuma chave de apoio fala
     # sobre a ORDEM, só sobre campos de uma dívida.

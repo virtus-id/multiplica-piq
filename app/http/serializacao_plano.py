@@ -365,6 +365,9 @@ def serializar_plano(
             # `R$ 0,00` e nunca campo omitido.
             "pendente_de_decisao": contexto.reserva_mobilizavel.pendente_de_decisao,
             "valor": contexto.reserva_mobilizavel.valor,
+            # `T-550` (devolução do especialista, 2026-11-13): o total
+            # guardado, ao lado do que o aluno decidiu poder usar aqui.
+            "total": contexto.reserva_mobilizavel.total,
         },
         # `T-276` (RF-98, AC-152): seção à parte, lida do snapshot pelo
         # contexto — nenhum campo acima vem daqui.
@@ -548,6 +551,9 @@ def serializar_plano(
         },
         "aviso_sem_valor_extra": contexto.aviso_sem_valor_extra,
         "aviso_de_conferencia": contexto.aviso_de_conferencia,
+        # `T-551` (devolução do especialista, 2026-11-13): cadastro de
+        # dívidas incompleto, avisado cedo (capa).
+        "aviso_cadastro_incompleto": contexto.aviso_cadastro_incompleto,
         "pendencias_acionaveis": [
             {
                 "DIVIDA_ID": pendencia.DIVIDA_ID,
@@ -580,6 +586,7 @@ def serializar_plano(
                 "como_funciona_rotulos": list(textos.como_funciona_rotulos),
                 "dividas_textos": dict(textos.textos_das_dividas),
                 "reserva_explicacao": textos.reserva_explicacao,
+                "reserva_total_nota": textos.reserva_total_nota,
                 # `RF-465`: as dúvidas DESTE plano (provisório ou definitivo).
                 "duvidas": [
                     {"pergunta": pergunta, "resposta": resposta}

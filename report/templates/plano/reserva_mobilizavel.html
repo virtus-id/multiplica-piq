@@ -93,5 +93,11 @@
         <p class="muted" style="margin: 2mm 0 0;">{{ textos.reserva_explicacao }}</p>
         {% endif %}
     </div>
+    {# `T-550` (devolução do especialista, 2026-11-13): o total guardado,
+       ao lado do que o aluno decidiu poder usar — para o aluno ver os dois
+       números, sem o relatório calcular uma diferença entre eles. #}
+    {% if reserva_mobilizavel.total and textos is defined and textos.reserva_total_nota %}
+    <p class="muted pequeno" style="margin-top: 1mm;">{{ textos.reserva_total_nota.format(total=reserva_mobilizavel.total) }}</p>
+    {% endif %}
     {% endif %}
 </section>

@@ -146,17 +146,29 @@ def test_a_primeira_posicao_explica_diferente_das_seguintes() -> None:
 
     "Esta é a de menor valor para quitar" é verdade na posição 1 e FALSA da
     2 em diante: há uma menor acima dela. Cada método declara duas redações,
-    e a escolha é pelo índice."""
+    e a escolha é pelo índice.
+
+    `T-549` (devolução do especialista, 2026-11-13): `primeira_com_
+    prioridade` é uma TERCEIRA redação opcional, para quando a `§16.4`
+    prioriza a dívida por garantia/negativação — não substitui as duas de
+    sempre, e precisa ser diferente de ambas (senão não explica nada novo)."""
     por_metodo = carregar_textos_canonicos().explicacao_da_posicao
 
     assert por_metodo, "nenhuma explicação ao aluno cadastrada"
     for metodo, redacoes in por_metodo.items():
-        assert set(redacoes) == {"primeira", "seguintes"}, (
+        extra = set(redacoes) - {"primeira", "seguintes", "primeira_com_prioridade"}
+        assert not extra, f"{metodo} tem chave de explicação desconhecida: {extra}"
+        assert {"primeira", "seguintes"} <= set(redacoes), (
             f"{metodo} precisa das duas redações"
         )
         assert redacoes["primeira"] != redacoes["seguintes"], (
             f"{metodo}: as duas redações são iguais — volta a parecer template"
         )
+        if "primeira_com_prioridade" in redacoes:
+            assert redacoes["primeira_com_prioridade"] not in (
+                redacoes["primeira"],
+                redacoes["seguintes"],
+            ), f"{metodo}: a redação com prioridade repete uma das outras duas"
 
 
 def test_todo_metodo_do_motor_tem_explicacao_ao_aluno() -> None:

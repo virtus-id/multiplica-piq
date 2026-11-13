@@ -11,7 +11,7 @@
 {% set lista_de_duvidas = duvidas if (duvidas is defined and duvidas) else (textos.duvidas if textos is defined else ()) %}
 {% if lista_de_duvidas %}
 <section class="secao">
-    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.secoes.get("duvidas", "Perguntas frequentes"), "duvida") }}
+    {{ visuais.cabecalho_da_secao(ns.n if ns is defined else "", textos.secoes.get("duvidas", "Perguntas frequentes"), "duvida", "cap-duvidas") }}
     {% for pergunta, resposta in lista_de_duvidas %}
     <div class="pergunta">
         <h3>{{ pergunta }}</h3>
