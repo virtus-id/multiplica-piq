@@ -14520,10 +14520,10 @@ passo 1 de "Como o seu plano funciona", resposta de "Por que não começar pela
 maior dívida?", aviso da nota de incômodo) e as quatro frases. Sem termo técnico
 (sem nome de campo, rota ou arquivo).
 
-- [ ] As quatro frases idênticas às do YAML
-- [ ] Nada técnico no texto; nenhuma decisão já registrada é perguntada de novo
+- [x] As quatro frases idênticas às do YAML
+- [x] Nada técnico no texto; nenhuma decisão já registrada é perguntada de novo
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; as frases foram copiadas do YAML por script
 
 ---
 

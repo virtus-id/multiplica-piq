@@ -99,3 +99,24 @@ Corrigidos sem depender das respostas 18/19 (prioridade confirmada por regra já
 - Plano provisório por cadastro incompleto (fora de estabilização): "Este plano é provisório: o cadastro das suas dívidas ainda não está completo, e por isso ele será ajustado quando você completar as informações que faltam."
 - Capa, quando falta cadastrar dívida: "Considerando só as N dívidas cadastradas e as hipóteses indicadas, a projeção termina em {mês}. A inclusão da dívida que falta pode mudar esse resultado." (só quando o cronograma termina dentro do horizonte de 10 anos; sem o estouro do horizonte, que tornaria "termina em" falso.)
 - Parcela calculada ou estimada, no cartão da dívida: sufixo "(calculada a partir do saldo e da taxa)" ou "(estimativa de 24 meses, sem informação sua)" depois do rótulo, quando a marca existe; parcela informada pelo aluno continua sem sufixo.
+
+# Textos novos para conferir (2026-11-14)
+
+Agora o Marcelo pode mudar a ordem das dívidas na conferência, antes de liberar o plano. Quando ele muda, alguns textos do plano deixariam de ser verdade: eles dizem, por exemplo, que a primeira dívida é "a que mais cobra juros" ou "a menor", e com a ordem escolhida por ele isso pode não valer.
+
+Por isso, **só nos planos em que a ordem foi mudada na conferência**, quatro textos trocam por uma versão que explica a ordem sem citar o motivo do método. Em nenhum lugar o aluno lê que a ordem foi mudada, nem por quem. Nos planos em que a ordem não foi mexida, tudo continua igual.
+
+Onde cada texto aparece e como fica:
+
+1. **Explicação da dívida que recebe o valor extra primeiro** (no quadro dessa dívida):
+   > Esta é a dívida que o seu plano quita primeiro. Todo o valor extra vai para ela; quando ela acabar, a parcela que você pagava nela passa a ajudar a próxima.
+2. **"Como o seu plano funciona", primeiro quadro:**
+   > Todo o valor extra vai para a primeira dívida da lista do seu plano. As outras recebem só a parcela de sempre.
+3. **Resposta de "Por que não começar pela maior dívida?"** (nas dúvidas do plano):
+   > A ordem do seu plano foi montada olhando o conjunto das suas dívidas, e não só o tamanho de cada uma. Siga a lista: cada dívida recebe o valor extra na sua vez.
+4. **Aviso da nota de incômodo** (aparece quando o aluno deu nota 9 ou 10 de incômodo a uma dívida que não é a primeira):
+   > Esta dívida está no plano e termina no mês indicado em "Termina em".
+
+Continuam como estão: o segundo e o terceiro quadros de "Como o seu plano funciona", a explicação das outras dívidas e a indicação do método no fim do plano.
+
+Os quatro textos são sugestão. Se algum não estiver bom, basta mandar a redação que prefere.
