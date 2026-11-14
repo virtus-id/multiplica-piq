@@ -233,6 +233,27 @@ financeiro completo e devolve um plano carimbado com versão.
 | `RF-509` | **[mudança de motor] Sistema de amortização do financiamento imobiliário.** `Divida` ganha o campo opcional `SISTEMA_AMORTIZACAO` (`PRICE` ou `SAC`); ausente vale `PRICE`, ou seja, parcela fixa como hoje. Na `SAC`, a **amortização constante** é `AMORTIZACAO_SAC = parcela declarada − saldo × taxa mensal` (a parcela de hoje é a maior), o prazo restante é `saldo ÷ AMORTIZACAO_SAC` (derivado, nunca perguntado) e o pagamento de cada mês é `AMORTIZACAO_SAC + saldo do mês × taxa mensal`, que cai mês a mês. Se `AMORTIZACAO_SAC ≤ 0` (parcela não cobre os juros), não há solução e vale o `RF-79`. Só o financiamento imobiliário pergunta o sistema; as demais dívidas são `PRICE`. O valor extra reduz o prazo: a amortização constante continua a mesma e o pagamento do mês cai com o saldo (`OQ-69`). A parcela é usada como o aluno informou, sem seguros nem taxas separados (`OQ-70`) | Pedido do responsável do produto (2026-11-02) · calculadora do especialista (Price e SAC) | essencial |
 | `RF-512` | **[mudança de motor] A ordem publicada é a ordem de ataque e traz todas as dívidas.** Quando a simulação estoura o horizonte (`P_HORIZONTE_MAXIMO_SIMULACAO`), o `Cenario` ganha `ORDEM_DE_ATAQUE`: a sequência em que o método recomendado (com as prioridades da `§16.4`) escolheria o alvo, aplicado a partir do estado inicial, uma dívida por vez, até esgotar o inventário elegível. `ORDEM_QUITACAO` publicada passa a ser essa sequência, e não a ordem em que a simulação terminou as dívidas (que pode terminar uma dívida pequena antes, só com as próprias parcelas). O `Cenario` também ganha `ORDEM_FORA_DO_HORIZONTE`: as dívidas dessa sequência que a simulação não quita no horizonte. Sem estouro do horizonte, a ordem publicada continua sendo a de quitação da simulação (`RF-09`). `Cenario.ORDEM_QUITACAO` mantém o significado de "dívidas quitadas na simulação". Nenhum `P_*` novo | Pedido do responsável do produto (2026-11-02): no teste3 o extra ia para o imobiliário (garantia essencial) e a ordem dizia consignado primeiro · `RF-09`, `RF-79`, `§16.4` | essencial |
 
+### Rodada 7 (2026-11-14) — ordem de quitação definida pelo revisor
+
+> **MUDANÇA DE MOTOR, ADITIVA.** Decisão do responsável do produto
+> (2026-11-14), depois de o especialista (Marcelo, papel revisor) validar o
+> processo determinístico atual: na conferência, o revisor pode mudar a ordem
+> de quitação gerada para o aluno antes de liberar, e o plano liberado segue
+> essa ordem. **Nenhuma fórmula muda, nenhum `P_*` novo e a escolha do método
+> recomendado não muda**: só a escolha de qual dívida recebe o valor extra
+> passa a seguir a lista do revisor. Sem a entrada nova, a saída é a de hoje
+> (gabaritos intactos). Rota, tela, trilha, descarte e textos ao aluno estão em
+> `specs/app-aluno.spec.md` (`RF-546` a `RF-551`).
+>
+> **Numeração global** (último `RF-544`, `AC-553`, `EC-77`, `OQ-96`,
+> `US-411`): `RF-545`, `US-412`, `AC-554` a `AC-562`, `EC-78` a `EC-80`,
+> `OQ-97` e `OQ-98` são desta rodada; `OQ-102` (achado técnico, fora do escopo
+> de `RF-545`) foi acrescentada depois de `OQ-99`–`OQ-101` do `app-aluno`.
+
+| ID | Requisito | Regras / seções da canônica | Prioridade |
+| --- | --- | --- | --- |
+| `RF-545` | **[mudança de motor] Ordem de quitação definida pelo revisor.** `calcular_plano` ganha a entrada opcional `ordem_do_revisor`: uma lista de `DIVIDA_ID`. **Ausente ou vazia**, a saída é idêntica à de hoje, campo a campo, inclusive `hash_inputs` e `SNAPSHOT_ID`. **Presente**, a lista é a **sequência de ataque** (a ordem em que as dívidas recebem o valor extra, não a ordem de quitação) e precisa ser uma **permutação exata do conjunto** de `DIVIDA_ID` elegíveis depois dos gates — o mesmo conjunto que o motor publicaria para o mesmo estado sem ela (`RF-09`/`RF-512`), em qualquer ordem: sem repetição, sem falta, sem sobra, sem dívida bloqueada; fora disso o motor recusa com erro de validação e não produz snapshot. Com a lista válida: (1) o método recomendado é escolhido exatamente como hoje, sobre os cenários dos métodos **sem** a lista — `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, a comparação entre métodos e os cenários dos métodos não recomendados não mudam; (2) o cenário publicado do método recomendado é o do ciclo mensal com as mesmas fórmulas, os mesmos aportes e as mesmas regras, trocando só a escolha da dívida da vez (seletor do método mais `§16.4`) por: **a primeira dívida da lista ainda não quitada**; se não houver candidata na lista, vale o seletor do método (com `§16.4`); (3) tudo o que hoje deriva do cenário recomendado passa a derivar desse cenário, pelas mesmas regras: `ORDEM_QUITACAO` publicada (`RF-09`; com estouro do horizonte, `ORDEM_DE_ATAQUE` é a própria lista e `ORDEM_FORA_DO_HORIZONTE` são as dívidas dela que a simulação não quita, `RF-512`), `PRAZO_TOTAL`, custo futuro, mês de quitação de cada dívida, `MESES_DO_PLANO` (dívida da vez e detalhe mês a mês), aportes dentro do horizonte (`RF-70`) e o prognóstico com esforço extra (`com_extra`, `RF-78`) e o cenário adicional com recursos `PROVAVEL`/`POSSIVEL` (`RF-71`, `OQ-97` respondida), que também escolhem a dívida da vez pela lista; (4) o prognóstico "sem ação" (`RF-77`, o caminho vermelho) não muda; (5) a `JUSTIFICATIVA_POSICAO` de cada posição usa uma variante "definida pelo revisor" no lugar do critério do método (`O-01`, `O-04`, `H-05`), nunca vazia (`Q-05`); (6) o snapshot registra `ORDEM_DO_REVISOR` (a lista recebida), que entra em `hash_inputs` — logo `SNAPSHOT_ID` difere do cálculo sem a lista —, e o encadeamento (`V-01`) registra o motivo "ajuste da ordem pelo revisor" (como evento ou motivo, a critério do plano). Snapshot gravado antes deste requisito volta sem `ORDEM_DO_REVISOR` e com o mesmo `SNAPSHOT_ID`. O motor não conhece o revisor: autor e motivo interno são da aplicação. Nenhuma fórmula muda e nenhum `P_*` é criado | Decisão do responsável do produto (2026-11-14), processo determinístico validado pelo especialista · `RF-08`, `RF-09`, `RF-512`, `RF-70`, `RF-77`, `RF-78`, `§16.4`, `V-01`, `Q-05` · cenário adicional: `OQ-97` (respondida, segue a lista) · `RF-79`/`T-466`: `OQ-98` | essencial |
+
 ## 3. User Stories
 
 ### `US-01` — Saber por onde começar
@@ -481,6 +502,17 @@ Atende: `RF-66`, `RF-67`, `RF-68`, `RF-69`
 
 Atende: `RF-70`, `RF-71`, `RF-72`, `RF-73`, `RF-74`, `RF-75`, `RF-76`
 
+### Rodada 7 (2026-11-14) — ordem definida pelo revisor
+
+### `US-412` — Liberar o plano na ordem que eu conferi
+
+> Como **revisor (especialista do método)**, quero **que o motor recalcule o
+> cronograma inteiro na ordem de quitação que eu defini, com as mesmas
+> fórmulas e o mesmo método**, para **liberar ao aluno um plano coerente com a
+> ordem que aprovei, sem que nada mais do cálculo mude por baixo**.
+
+Atende: `RF-545`
+
 ## 4. Acceptance Criteria
 
 > Os critérios `AC-01` a `AC-18` são reprodução literal de gabaritos da seção 10
@@ -722,6 +754,23 @@ Atende: `RF-70`, `RF-71`, `RF-72`, `RF-73`, `RF-74`, `RF-75`, `RF-76`
 | `AC-512` | `US-27` | Dado o caso `aluno.teste3` (consignado 10.000 / 1,877% / 500 sem garantia; veículo 48.000 / 1,5% / 1.000 com garantia de veículo; cheque especial 20.000 / 5% / 500 negativado; financiamento imobiliário 200.000 / 0,949% / 1.500 com garantia essencial de imóvel; capacidade de ataque 475), quando o plano é calculado, então `ORDEM_QUITACAO` publicada tem as 4 dívidas na ordem de ataque do método (imobiliário, cheque especial, veículo, consignado), a primeira é a dívida que recebe o valor extra na simulação, e `ORDEM_FORA_DO_HORIZONTE` traz o imobiliário e o cheque especial (`RF-512`) |
 | `AC-513` | `US-27` | Dados os gabaritos `GAB-A`, `GAB-B` e `GAB-C` e qualquer carteira em que a simulação não estoura o horizonte, quando o motor roda após `RF-512`, então `ORDEM_QUITACAO` publicada é idêntica à de antes e `ORDEM_DE_ATAQUE` e `ORDEM_FORA_DO_HORIZONTE` são vazias (`RF-512`) |
 
+### Rodada 7 (2026-11-14) — ordem definida pelo revisor (**mudança de motor**)
+
+> **Rastreabilidade.** `RF-545` → `AC-554` a `AC-562`. `AC-554` fixa a
+> não-regressão dos gabaritos; `AC-558` o determinismo.
+
+| ID | Story | Critério verificável |
+| --- | --- | --- |
+| `AC-554` | `US-412` | Dados `GAB-A`, `GAB-B`, `GAB-C` e os cinco invariantes, quando `calcular_plano` roda sem `ordem_do_revisor` (e, em outra execução, com a lista vazia), então todos os campos do snapshot, `hash_inputs` e `SNAPSHOT_ID` são idênticos aos de antes de `RF-545` — tolerância zero — e o snapshot não traz `ORDEM_DO_REVISOR` (`RF-545`) |
+| `AC-555` | `US-412` | Dado um estado que não estoura o horizonte, com três dívidas elegíveis cuja ordem publicada sem a lista é (`D001`, `D002`, `D003`), e a lista (`D003`, `D001`, `D002`), quando `calcular_plano` roda, então em cada mês de `MESES_DO_PLANO` a dívida da vez é a primeira da lista ainda não quitada (`D003` desde o mês 1 até quitar, depois `D001`, depois `D002`); `ORDEM_QUITACAO` publicada é a ordem em que essa simulação quita as dívidas (`RF-09`); `ORDEM_DO_REVISOR` = (`D003`, `D001`, `D002`); e `METODO_RECOMENDADO_PIQ` e `STATUS_METODO` são iguais aos do cálculo sem a lista (`RF-545`) |
+| `AC-556` | `US-412` | Dado um estado em que a simulação estoura o horizonte, com ordem publicada sem a lista (`A`, `B`, `C`, `D`), e a lista (`D`, `C`, `B`, `A`), quando `calcular_plano` roda, então `ORDEM_QUITACAO` publicada e `ORDEM_DE_ATAQUE` são (`D`, `C`, `B`, `A`), a dívida da vez no mês 1 é `D`, e `ORDEM_FORA_DO_HORIZONTE` traz exatamente as dívidas da lista que a simulação não quita (`RF-545`, `RF-512`) |
+| `AC-557` | `US-412` | Dado o estado de `AC-555`, quando a lista (a) repete `D001`, (b) omite `D003`, (c) traz `D004`, que não existe, ou (d) traz uma dívida bloqueada pelo Gate 1, então `calcular_plano` recusa com erro de validação e nenhum snapshot é produzido; e, dado um estado em `MODO_ESTABILIZACAO` (sem ordem publicada), qualquer lista não vazia é recusada do mesmo modo (`RF-545`) |
+| `AC-558` | `US-412` | Dados o mesmo estado, os mesmos parâmetros, o mesmo snapshot anterior e a mesma lista, quando `calcular_plano` roda duas vezes, então os dois snapshots são idênticos, inclusive `hash_inputs` e `SNAPSHOT_ID` (`RF-545`) |
+| `AC-559` | `US-412` | Dado o estado de `AC-555`, quando `calcular_plano` roda com a lista e sem ela, então `prognostico.sem_acao` (caminho vermelho), `diagnostico`, `ORDEM_ACOES`, `comparacao` e os cenários dos métodos não recomendados são idênticos nas duas execuções (`RF-545`) |
+| `AC-560` | `US-412` | Dados o mesmo estado e o mesmo snapshot anterior, quando `calcular_plano` roda sem a lista e com a lista, então `hash_inputs` e `SNAPSHOT_ID` diferem; com duas listas diferentes, também diferem; e um snapshot gravado antes de `RF-545`, lido de volta, não traz `ORDEM_DO_REVISOR` e conserva o mesmo `SNAPSHOT_ID` (`RF-545`) |
+| `AC-561` | `US-412` | Dado o estado de `AC-555` com `CONTRIBUICAO_EXTRA_MENSAL` positiva e a lista, quando `calcular_plano` roda, então em cada mês de `com_extra.MESES` a dívida da vez é a primeira da lista ainda não quitada, e `com_extra.MESES_ANTECIPADOS` e `com_extra.ECONOMIA_CUSTO` comparam o verde com o plano **na ordem da lista**; e, com recurso extraordinário `PROVAVEL` ou `POSSIVEL` no estado, em cada mês do `cenario_adicional` a dívida da vez também é a primeira da lista ainda não quitada (`OQ-97`) (`RF-545`, `RF-78`, `RF-71`) |
+| `AC-562` | `US-412` | Dado um snapshot anterior v1 e a lista válida, quando `calcular_plano` roda, então o novo snapshot é a versão 2, aponta para a v1, registra o motivo "ajuste da ordem pelo revisor", e a `JUSTIFICATIVA_POSICAO` de cada posição é não vazia, traz a variante "definida pelo revisor" e não traz o critério do método (`O-01`, `O-04`, `H-05`) (`RF-545`, `V-01`, `Q-05`) |
+
 ## 5. Non-Functional Requirements
 
 - **Precisão:** aritmética decimal exata em todo o cálculo interno. Ponto
@@ -960,6 +1009,14 @@ Atende: `RF-70`, `RF-71`, `RF-72`, `RF-73`, `RF-74`, `RF-75`, `RF-76`
 | `EC-60` | `SAC` com parcela menor ou igual aos juros do mês | `AMORTIZACAO_SAC ≤ 0`: sem prazo calculável; a falta é `juros − parcela` e vale o `RF-79` (`RF-509`) |
 | `EC-61` | Financiamento de prazo maior que o horizonte, mesmo com a parcela cobrindo os juros | Não quita em 10 anos: entra no fim da ordem publicada, depois das quitadas (`RF-512`) |
 
+### Rodada 7 (2026-11-14) — ordem definida pelo revisor
+
+| ID | Situação | Comportamento esperado |
+| --- | --- | --- |
+| `EC-78` | Uma dívida da lista se quita só com as próprias parcelas antes da sua vez | A dívida da vez passa à próxima da lista ainda não quitada. Sem estouro do horizonte, `ORDEM_QUITACAO` publicada é a ordem de quitação da simulação (`RF-09`) e pode diferir da lista; `ORDEM_DO_REVISOR` guarda a lista como recebida (`RF-545`) |
+| `EC-79` | Estado em `MODO_ESTABILIZACAO`, sem ordem publicada | Só a ausência ou a lista vazia são aceitas; qualquer lista não vazia é recusada (`AC-557`) |
+| `EC-80` | A lista é igual à **ordem de ataque** que o método seguiu sem ela (a sequência das dívidas da vez, com as que nunca recebem o extra no fim, na ordem de quitação) | Para o motor é válida e os números são os mesmos do cálculo sem a lista; o snapshot traz `ORDEM_DO_REVISOR`, `hash_inputs` diferente e a justificativa "definida pelo revisor" (`RF-545`). Pela rota do revisor essa lista é a ordem vigente e é recusada com `409`, nada a recalcular (`app-aluno` `OQ-101`). A lista igual à `ORDEM_QUITACAO` publicada **não** é, em geral, a ordem de ataque (`EC-78`): pode mudar os números |
+
 ## 7. Assumptions
 
 - O motor recebe um estado financeiro já coletado e validado. Coleta é escopo de
@@ -1169,6 +1226,27 @@ Atende: `RF-70`, `RF-71`, `RF-72`, `RF-73`, `RF-74`, `RF-75`, `RF-76`
 - **Esta fatia não altera `app-aluno`.** Sinaliza impacto (Bloco 10,
   `T-77`/`T-78`/`T-79`, que passam a ter dado real para consumir) sem
   implementar nada naquele slug (seção 9).
+
+### Rodada 7 (2026-11-14) — premissas aceitas pelo responsável do produto
+
+Suposições do autor da spec, confirmadas em 2026-11-14 junto com as respostas
+de `OQ-97`, `OQ-99`, `OQ-100` e `OQ-101` (`OQ-98` segue aberta):
+
+- **Lista vazia = ausência.** `ordem_do_revisor` vazia produz exatamente a
+  saída sem a entrada (`AC-554`); o snapshot não traz `ORDEM_DO_REVISOR`.
+- **A lista é a ordem de ataque** (decisão técnica, 2026-11-14), não a de
+  quitação. **O universo da validação é o conjunto das dívidas elegíveis
+  depois dos gates** — o mesmo conjunto que o motor publicaria para o mesmo
+  estado sem a lista (`RF-09`, `RF-512`); a ordem publicada não é referência. Em `MODO_ESTABILIZACAO` não há ordem a ajustar: qualquer lista não
+  vazia é recusada (`EC-79`, `AC-557`).
+- **Sem estouro do horizonte, `ORDEM_QUITACAO` publicada continua sendo a
+  ordem de quitação da simulação** e pode diferir da lista (`EC-78`);
+  `ORDEM_DO_REVISOR` guarda a lista como recebida.
+- **Falha do motor no recálculo (`ErroInvariante`, `ErroParametros`) não
+  produz snapshot**: o chamador não anexa nada (`app-aluno` `EC-82`).
+- **O motor não conhece o revisor nem a aplicação**: quem decide descartar a
+  lista num plano novo é a aplicação (`app-aluno` `RF-550`); para o motor,
+  cálculo sem a entrada é o cálculo de sempre.
 
 ## 8. Risks
 
@@ -1561,6 +1639,14 @@ Atende: `RF-70`, `RF-71`, `RF-72`, `RF-73`, `RF-74`, `RF-75`, `RF-76`
 | `OQ-69` | Na `SAC`, o valor extra do mês reduz o **prazo** ou a **parcela**? | Define a simulação do imobiliário com extra | `RF-509` | `resolvida (2026-11-02, responsável do produto)` — reduz o **prazo**: a amortização constante continua a mesma e o pagamento do mês cai com o saldo |
 | `OQ-70` | A parcela de financiamento que o aluno informa inclui seguros e taxas (que não amortizam)? | Prazo derivado e `AMORTIZACAO_SAC` | `RF-509` | `resolvida (2026-11-02, responsável do produto)` — não são necessários: o motor trabalha com a parcela como o aluno informou, sem perguntar seguros nem taxas |
 | `OQ-72` | Como o Avalanche compara o benefício de uma dívida que quita no horizonte (medido por simulação) com o de uma que não quita (medido só pela taxa)? As duas medidas estão em escalas diferentes: sem as prioridades da `§16.4`, o cheque especial a 5% fica atrás do veículo a 1,5% | Muda a ordem de outros alunos | `RF-512` | `respondida (2026-11-03, responsável do produto)` — a ordem segue a lógica atual do motor, igual para todos os casos, sem mudança. Se a primeira dívida da ordem não tem como quitar, o caso vai para o tratamento do deficitário (plano provisório de estabilização, sem cronograma) |
+
+### Rodada 7 — ordem definida pelo revisor (2026-11-14)
+
+| ID | Pergunta | Por que importa | Bloqueia | Status |
+| --- | --- | --- | --- | --- |
+| `OQ-97` | O **cenário adicional** (`RF-71`, projeção com `PROVAVEL` e `POSSIVEL`) também segue a lista do revisor, ou continua na ordem do método? A decisão diz "o cronograma inteiro" e lista o que muda (prazo, custo, prognóstico azul e verde, mural, mês a mês), sem citar o cenário adicional | O aluno lê o cenário adicional ao lado do plano: em ordens diferentes, os dois podem mostrar dívidas terminando em sequências diferentes | Parte de `RF-545` sobre o cenário adicional | `respondida (2026-11-14, responsável do produto)` — **sim**: o cenário adicional também segue a lista do revisor, como o resto do cronograma (`RF-545` item 3, `AC-561`) |
+| `OQ-98` | Quando a `T-466` (o extra cobre primeiro a falta das dívidas que crescem, `RF-79`, hoje adiada) for feita, essa cobertura vem antes da lista do revisor, ou a lista manda também sobre ela? | As duas regras escolhem quem recebe o extra no mesmo mês | Nada hoje (`T-466` está no backlog, sem data) | `aberta` — não bloqueia `RF-545` |
+| `OQ-102` | O prognóstico verde (`RF-78`) e o cenário adicional (`RF-71`) do **Híbrido** devem usar o seletor com as prioridades da `§16.4`? Hoje `engine/motor.py:560` (`sel_por_metodo[HIBRIDO]`) guarda o seletor do Híbrido **sem** `aplicar_prioridade_ordem`, enquanto o cenário do Híbrido é simulado **com** ela; Avalanche e Bola de Neve usam o seletor com `§16.4` nos três | Com o Híbrido recomendado e uma dívida priorizada pela `§16.4`, o verde e o cenário adicional podem seguir outra dívida da vez que a do plano | Nada desta rodada: corrigir muda a saída sem a lista (`AC-554`). Fora do escopo de `RF-545`; vai ao backlog do `motor-calculo` | `aberta` — achado técnico (2026-11-14), não bloqueia `RF-545` |
 
 ## 11. Definições incorporadas
 
