@@ -26,7 +26,7 @@
   "engine/prioridade_ordem.py": "d1b81cb1df834df620f01706710bfdf76357ea13cffb7a440a3fa1a0cfb37c6b",
   "engine/prognostico.py": "115738cf93816f5df4789208915e5de67f97520a127668443c533ccc94c6b8b5",
   "engine/risco.py": "44da471ec4eb085658a913082a6ac784b4708c2a2cd24e7748dfa03887c0c305",
-  "engine/snapshot.py": "f497606ec85df181f6227ce3475df86fc5f0257e12f491c94f5b74a4ba1fb4a9",
+  "engine/snapshot.py": "4a069a221717d1bc7dc243b77946b3e7cc671364be7f102cdb38d77d136f7249",
   "engine/status_metodo.py": "2ac516366621942afe043eb10318c3a85fd31dd56039187ab8cc85102c0a7a3b",
   "engine/taxa.py": "4517a06c266294d9992e94b8e56d2222a9e8fc66033db3d888e4dd2e7fa36fd5",
   "engine/tipos.py": "2c17378595973f04ad00b7d0a99724f1bb5d737b08d2bc29cd9cbe941c91417c",

@@ -7706,12 +7706,12 @@ ORDEM_DO_REVISOR=None)` só põe a chave `"ORDEM_DO_REVISOR"` no payload quando
 não é `None`; `montar_SnapshotOrdem(..., ORDEM_DO_REVISOR=None)` repassa o valor
 ao campo e ao hash.
 
-- [ ] Sem o argumento, o JSON canônico do hash é byte a byte o de hoje (`T-565` verde)
-- [ ] Com uma tupla, a chave entra no payload e o `hash_inputs` muda
-- [ ] Nenhum chamador de `montar_SnapshotOrdem` muda nesta tarefa
-- [ ] Rehash só de `engine/snapshot.py`; gates: lint, build, test
+- [x] Sem o argumento, o JSON canônico do hash é byte a byte o de hoje (`T-565` verde)
+- [x] Com uma tupla, a chave entra no payload e o `hash_inputs` muda
+- [x] Nenhum chamador de `montar_SnapshotOrdem` muda nesta tarefa
+- [x] Rehash só de `engine/snapshot.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 
