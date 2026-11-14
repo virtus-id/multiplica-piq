@@ -14413,11 +14413,11 @@ textos = _textos_da_ordem_do_revisor(textos)`.
 - **Tipo:** `Test` · **Dependências:** `T-574`, `T-594` · **Rastreia:** `AC-574`, `AC-575` · plano `R18.9` (Relatório)
 - **Arquivos:** `tests/app_aluno/test_plano_ordem_do_revisor.py` (novo)
 
-- [ ] `AC-574`: dois snapshots do mesmo estado (com e sem a lista) → os únicos textos fixos do `ContextoPlano` que diferem são as quatro variantes; no com lista, nenhum texto contém "revisor"/"especialista" nem diz que a ordem mudou; as quatro passagens sem "mais cobra juros", "a menor" e a frase da `§16.4`; rodapé com o método — conferido no plano serializado da tela e no HTML do PDF liberado e da prévia
-- [ ] `AC-575`: snapshot sem o campo (inclusive um lido de linha antiga) → explicação da posição, "Como o seu plano funciona", resposta da maior dívida e aviso de incômodo idênticos aos de hoje
-- [ ] Gates: lint, build, test
+- [x] `AC-574`: dois snapshots do mesmo estado (com e sem a lista) → os únicos textos fixos do `ContextoPlano` que diferem são as quatro variantes; no com lista, nenhum texto contém "revisor"/"especialista" nem diz que a ordem mudou; as quatro passagens sem "mais cobra juros", "a menor" e a frase da `§16.4`; rodapé com o método — conferido no plano serializado da tela e no HTML do PDF liberado e da prévia
+- [x] `AC-575`: snapshot sem o campo (inclusive um lido de linha antiga) → explicação da posição, "Como o seu plano funciona", resposta da maior dívida e aviso de incômodo idênticos aos de hoje
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; os dois estados (sem e com a `§16.4` em jogo) cobrem `primeira`/`primeira_com_prioridade` e `como_funciona`/`como_funciona_com_prioridade`; no HTML, conferido o texto visível (um comentário de CSS do template cita "prévia do revisor")
 
 ---
 
