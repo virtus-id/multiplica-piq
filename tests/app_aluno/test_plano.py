@@ -233,6 +233,9 @@ def test_nenhuma_variavel_nova_de_rotulo_visual_para_a_ordem() -> None:
         "duvida_quando_muda_cadastro",
         "reserva_total_nota",
         "marca_do_pagamento",
+        # `T-594` (RF-551): variantes neutras dos textos que explicam a
+        # ordem, com `ORDEM_DO_REVISOR` — não renomeiam `ORDEM_QUITACAO`.
+        "ordem_do_revisor",
     }
     # A ordem continua sem rótulo paralelo: nenhuma chave de apoio fala
     # sobre a ORDEM, só sobre campos de uma dívida.

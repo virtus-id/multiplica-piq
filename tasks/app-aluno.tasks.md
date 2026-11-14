@@ -14400,11 +14400,11 @@ e `duvidas_provisorio`; `incomodo["aviso"]`). Chave ausente → mantém o texto 
 sempre. Em `montar_contexto_plano`: `if snapshot.ORDEM_DO_REVISOR is not None:
 textos = _textos_da_ordem_do_revisor(textos)`.
 
-- [ ] Carimbo/rodapé "método X" e `JUSTIFICATIVA_POSICAO` não passam pela troca
-- [ ] `primeira_da_lista`, `seguintes` e os passos 2 e 3 ficam
-- [ ] `test_sem_aritmetica_sobre_snapshot` verde; gates: lint, build, test
+- [x] Carimbo/rodapé "método X" e `JUSTIFICATIVA_POSICAO` não passam pela troca
+- [x] `primeira_da_lista`, `seguintes` e os passos 2 e 3 ficam
+- [x] `test_sem_aritmetica_sobre_snapshot` verde; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; `test_sem_aritmetica_sobre_snapshot` sem violação em `report/plano.py` (a única que acusa, `app/http/rotas_api_plano.py` "saidas_totais", já vem de `main`); `test_plano.py::test_nenhuma_variavel_nova_de_rotulo_visual_para_a_ordem` ganhou o campo `ordem_do_revisor` na lista
 
 ---
 
