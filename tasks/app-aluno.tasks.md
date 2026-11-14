@@ -14255,12 +14255,12 @@ textos.rotulos_de_codigos)` — a mesma montagem da homologação.
 - **Tipo:** `Test` · **Dependências:** `T-585` · **Rastreia:** `AC-563`, `AC-564`, `AC-568` · `OQ-99`, `OQ-100` · plano `R18.9`
 - **Arquivos:** `tests/app_aluno/test_rotas_ordem_do_revisor.py` (novo; fakes de arquivo e `dependency_overrides`, padrão de `test_rotas_revisao_decisao.py`)
 
-- [ ] `AC-563`: `200`; v2 encadeada à v1 com `estado_inputs` e `PARAMETROS_VERSION` da v1 mesmo com outra versão vigente (fake de `FonteParametros` que registra a versão pedida); `ORDEM_DO_REVISOR` = lista; v1 intacta; caso em `AGUARDANDO_REVISAO` e na fila; antes/depois iguais aos que cada snapshot publica
-- [ ] `AC-564`: lista vazia sem motivo → v3 sem `ORDEM_DO_REVISOR`, ordem, prazo e custo iguais aos da v1, caso na conferência
-- [ ] `AC-568`: evento com ordem anterior/nova, motivo, autor, data e os dois `SNAPSHOT_ID`; estado inalterado; `caplog` sem o motivo; plano, Início e PDF do aluno sem o motivo
-- [ ] Gates: lint, build, test
+- [x] `AC-563`: `200`; v2 encadeada à v1 com `estado_inputs` e `PARAMETROS_VERSION` da v1 mesmo com outra versão vigente (fake de `FonteParametros` que registra a versão pedida); `ORDEM_DO_REVISOR` = lista; v1 intacta; caso em `AGUARDANDO_REVISAO` e na fila; antes/depois iguais aos que cada snapshot publica
+- [x] `AC-564`: lista vazia sem motivo → v3 sem `ORDEM_DO_REVISOR`, ordem, prazo e custo iguais aos da v1, caso na conferência
+- [x] `AC-568`: evento com ordem anterior/nova, motivo, autor, data e os dois `SNAPSHOT_ID`; estado inalterado; `caplog` sem o motivo; plano, Início e PDF do aluno sem o motivo
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
@@ -14272,15 +14272,15 @@ textos.rotulos_de_codigos)` — a mesma montagem da homologação.
 **Descrição.** Em todas: nenhum snapshot anexado, nenhum evento gravado,
 estado inalterado.
 
-- [ ] `AC-565`: `409` em `COLETA_INICIAL`, `CALCULANDO`, `PLANO_LIBERADO`, `ACOMPANHAMENTO`; `409` "nada a recalcular" com a vigente na v1, com a lista vazia na v1 e com a mesma lista na v2
-- [ ] `AC-566`: `422` com a causa para repetida, faltando, fora do conjunto (inexistente e bloqueada por gate) e motivo vazio com lista não vazia
-- [ ] `AC-567`: `401` sem sessão; `403` com sessão de aluno, inclusive o dono; `404` caso inexistente e caso sem snapshot
-- [ ] `EC-80`/`EC-84`: lista igual à ordem de ataque vigente (inclusive a de uma dívida só, e a da carteira em que ataque ≠ `ORDEM_QUITACAO`) → `409`
-- [ ] `EC-81`: fake de casos que muda o estado entre a 1ª e a 2ª leitura → `409`
-- [ ] `EC-82`: fonte que levanta `ErroParametros` e motor que levanta `ErroInvariante` (`monkeypatch`) → `500`, caso em `AGUARDANDO_REVISAO`, `historico[-1]` intacto
-- [ ] Gates: lint, build, test
+- [x] `AC-565`: `409` em `COLETA_INICIAL`, `CALCULANDO`, `PLANO_LIBERADO`, `ACOMPANHAMENTO`; `409` "nada a recalcular" com a vigente na v1, com a lista vazia na v1 e com a mesma lista na v2
+- [x] `AC-566`: `422` com a causa para repetida, faltando, fora do conjunto (inexistente e bloqueada por gate) e motivo vazio com lista não vazia
+- [x] `AC-567`: `401` sem sessão; `403` com sessão de aluno, inclusive o dono; `404` caso inexistente e caso sem snapshot
+- [x] `EC-80`/`EC-84`: lista igual à ordem de ataque vigente (inclusive a de uma dívida só, e a da carteira em que ataque ≠ `ORDEM_QUITACAO`) → `409`
+- [x] `EC-81`: fake de casos que muda o estado entre a 1ª e a 2ª leitura → `409`
+- [x] `EC-82`: fonte que levanta `ErroParametros` e motor que levanta `ErroInvariante` (`monkeypatch`) → `500`, caso em `AGUARDANDO_REVISAO`, `historico[-1]` intacto
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; `ACOMPANHAMENTO` não existe mais na máquina de estados: o teste recusa todo estado ≠ `AGUARDANDO_REVISAO`; a dívida bloqueada por gate vem de snapshot do motor (pela coleta a pendente não chega ao motor, `T-499`)
 
 ---
 
