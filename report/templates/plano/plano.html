@@ -79,7 +79,7 @@
         .capa-topo { display: flex; justify-content: space-between; align-items: baseline; }
         .capa-marca { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
         .capa-marca-sub { font-size: 7.5pt; color: rgba(255,255,255,0.66); }
-        .capa-meio { margin-top: auto; padding-bottom: 6mm; }
+        .capa-meio { margin-top: 78mm; padding-bottom: 6mm; }
         .capa-para {
             display: inline-block;
             font-size: 8pt;
@@ -100,7 +100,7 @@
         .capa .aviso { background: rgba(255,255,255,0.12); color: #FFFFFF; }
         .capa-faixa-previa { position: absolute; top: 0; left: 0; right: 0; }
         /* Primeira página: apresentação do documento (T-355). */
-        .apresentacao { break-after: page; margin-bottom: 8mm; }
+        .apresentacao { margin-bottom: 8mm; }
         .apresentacao h2 { font-size: 13pt; margin-bottom: 3mm; }
         .apresentacao p { margin: 0 0 3mm; }
         .capa .nota-meses {
@@ -613,18 +613,16 @@
         .sm-olho { margin: 0 0 0.2mm; line-height: 1.3; font-size: 6.6pt; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #586870; }
         .sm-subs { list-style: none; margin: 1mm 0 0; padding: 0; }
         .sm-subs li { font-size: 7.4pt; line-height: 1.3; color: #586870; margin-bottom: 0.4mm; }
-        .sumario-item {
-            display: flex; align-items: center; gap: 3mm;
-            text-decoration: none; color: #0B1F2A; font-weight: 700; font-size: 11pt; line-height: 1.25; letter-spacing: -0.01em;
-        }
-        .sumario-titulo { flex: none; }
-        .sumario-pontos { flex: 1 1 auto; height: 0.6mm; border-radius: 1mm; background: #CDE6DC; }
+        .sumario-item { display: table; width: 100%; text-decoration: none; color: #0B1F2A; font-weight: 700; font-size: 11pt; line-height: 1.25; letter-spacing: -0.01em; }
+        .sumario-item > span { display: table-cell; vertical-align: middle; }
+        .sumario-titulo { white-space: nowrap; width: 1%; }
+        .sumario-pontos { background: linear-gradient(#CDE6DC, #CDE6DC) 3mm 50% / calc(100% - 6mm) 0.6mm no-repeat; }
         {# `T-554` (pedido do usuário, 2026-11-13): o número de página é
            texto comum, calculado em Python na 2ª passagem de `report/
            pdf.py::_paginas_dos_capitulos` — o CSS `target-counter` que
            existia aqui antes resolvia a página ERRADA nesta versão do
            WeasyPrint (verificado à mão: sempre uma a menos que a real). #}
-        .sumario-pagina-numero { flex: none; min-width: 11mm; text-align: center; font-size: 7.6pt; font-weight: 600; font-variant-numeric: tabular-nums; background: #FFFFFF; border: 0.25mm solid #E1E8E5; border-radius: 4mm; padding: 0.5mm 2.2mm; }
+        .sumario-pagina-numero { width: 12mm; text-align: center; font-size: 7.6pt; font-weight: 600; font-variant-numeric: tabular-nums; background: #FFFFFF; border: 0.25mm solid #E1E8E5; border-radius: 4mm; padding: 0.5mm 2.2mm; }
         .sumario-pagina-numero:empty { display: none; }
         @media screen {
             .sumario-pagina { display: none; }
@@ -699,9 +697,8 @@
         .secao-cabecalho h2 { padding-left: 4mm; font-size: 19pt; font-weight: 800; letter-spacing: -0.024em; line-height: 1.1; }
         .secao-icone { color: #B7C9C2; }
 
-        /* Cartões de dívida: duas colunas, anel verde na que recebe o extra */
-        .divida { display: inline-block; vertical-align: top; width: 48.2%; margin: 0 2% 4mm 0; padding: 4mm; }
-        .divida:nth-of-type(odd) { margin-right: 0; }
+        /* Cartões de dívida: uma coluna (quebra de página confiável), anel verde na que recebe o extra */
+        .divida { display: block; margin: 0 0 4mm; padding: 4mm 5mm; }
         .divida-alvo { border: 0.45mm solid var(--acento); }
         .divida-posicao { background: var(--fundo-suave); border: 0; color: var(--tinta); }
         .divida-alvo .divida-posicao { background: var(--acento); color: #FFFFFF; }
@@ -710,7 +707,10 @@
         .divida-alvo .divida-ordem { background: var(--acento); color: #FFFFFF; }
         .fatos { display: block; }
         .fato { display: flex; justify-content: space-between; align-items: baseline; gap: 3mm; width: auto; background: none; border: 0; border-top: 0.25mm solid #EDF2EF; border-radius: 0; padding: 1.5mm 0; }
-        .fato-valor { text-align: right; font-variant-numeric: tabular-nums; }
+        .fato-rotulo { flex: 1 1 0; min-width: 0; }
+        .fato-valor { flex: none; max-width: 60%; text-align: right; font-variant-numeric: tabular-nums; }
+        .subtitulo { break-after: avoid; }
+        .mural-quitacao strong { padding-right: 4mm; }
         .fato-forte { background: var(--fundo-suave); border-top: 0; border-radius: 1.8mm; padding: 1.5mm 2.5mm; margin-top: 1mm; }
 
         /* Caminhos do capítulo 5 */
@@ -1018,7 +1018,7 @@
     {% set tp = textos.prognostico %}
     {# 6. Seu plano detalhado — o mural: um bloco por mês, cada um é um link (T-377) #}
     {% set ns.n = ns.n + 1 %}
-    <section class="secao nova-pagina" id="mural-do-plano">
+    <section class="secao" id="mural-do-plano">
         {{ visuais.cabecalho_da_secao(ns.n, tp.get("mural_titulo", ""), "prazo") }}
         <p class="intro">{{ tp.get("mural_intro", "") }}</p>
         {% for plano in prognostico.detalhes %}

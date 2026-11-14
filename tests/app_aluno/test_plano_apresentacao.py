@@ -156,7 +156,7 @@ def test_a_primeira_posicao_explica_diferente_das_seguintes() -> None:
 
     assert por_metodo, "nenhuma explicação ao aluno cadastrada"
     for metodo, redacoes in por_metodo.items():
-        extra = set(redacoes) - {"primeira", "seguintes", "primeira_com_prioridade"}
+        extra = set(redacoes) - {"primeira", "seguintes", "primeira_com_prioridade", "primeira_da_lista"}
         assert not extra, f"{metodo} tem chave de explicação desconhecida: {extra}"
         assert {"primeira", "seguintes"} <= set(redacoes), (
             f"{metodo} precisa das duas redações"

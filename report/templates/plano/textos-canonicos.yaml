@@ -106,9 +106,15 @@ explicacao_da_posicao:
     # a validar.
     primeira_com_prioridade: >-
       Esta dívida tem garantia de um bem essencial, está negativada, ou você
-      marcou que seria uma das primeiras a quitar — e o plano prioriza isso
+      marcou que seria uma das primeiras a quitar. O plano prioriza isso
       antes de comparar o valor das dívidas. Por isso ela é atacada primeiro,
       mesmo que não seja a menor das suas dívidas.
+    # `T-564`: 1ª da lista que NÃO recebe o extra primeiro (a lista segue a ordem de
+    # quitação, o extra vai antes para a dívida priorizada). Sugestão, a validar.
+    primeira_da_lista: >-
+      Esta dívida abre a lista, mas o valor extra começa em outra, que o plano
+      prioriza. Ela termina no mês indicado e, quando acabar, a parcela que
+      você pagava nela fica livre para ajudar as próximas.
     seguintes: >-
       Vem depois das anteriores nesta lista. Quando as de cima forem
       quitadas, as parcelas que você pagava nelas passam a ajudar a quitar
@@ -119,9 +125,15 @@ explicacao_da_posicao:
       diminui o total que ainda vai pagar até o fim do plano.
     primeira_com_prioridade: >-
       Esta dívida tem garantia de um bem essencial, está negativada, ou você
-      marcou que seria uma das primeiras a quitar — e o plano prioriza isso
+      marcou que seria uma das primeiras a quitar. O plano prioriza isso
       antes de comparar os juros. Por isso ela é atacada primeiro, mesmo que
       não seja a que mais cobra juros entre todas as suas dívidas.
+    # `T-564`: 1ª da lista que NÃO recebe o extra primeiro (a lista segue a ordem de
+    # quitação, o extra vai antes para a dívida priorizada). Sugestão, a validar.
+    primeira_da_lista: >-
+      Esta dívida abre a lista, mas o valor extra começa em outra, que o plano
+      prioriza. Ela termina no mês indicado e, quando acabar, a parcela que
+      você pagava nela fica livre para ajudar as próximas.
     seguintes: >-
       Vem depois das anteriores nesta lista. Quando as de cima forem
       quitadas, as parcelas que você pagava nelas passam a ajudar a quitar
@@ -133,9 +145,15 @@ explicacao_da_posicao:
       seu orçamento para seguir com as outras.
     primeira_com_prioridade: >-
       Esta dívida tem garantia de um bem essencial, está negativada, ou você
-      marcou que seria uma das primeiras a quitar — e o plano prioriza isso
+      marcou que seria uma das primeiras a quitar. O plano prioriza isso
       antes de comparar a vitória rápida ou o custo. Por isso ela é atacada
       primeiro.
+    # `T-564`: 1ª da lista que NÃO recebe o extra primeiro (a lista segue a ordem de
+    # quitação, o extra vai antes para a dívida priorizada). Sugestão, a validar.
+    primeira_da_lista: >-
+      Esta dívida abre a lista, mas o valor extra começa em outra, que o plano
+      prioriza. Ela termina no mês indicado e, quando acabar, a parcela que
+      você pagava nela fica livre para ajudar as próximas.
     seguintes: >-
       Vem depois das anteriores nesta lista. Quando as
       de cima forem quitadas, as parcelas que você pagava nelas passam a
@@ -709,7 +727,7 @@ dividas:
   posicao: "{indice}ª dívida a ser quitada"
   por_que: "Por que ela está nesta posição"
   numeros: "Números desta dívida"
-  termina_no: "Termina no"
+  termina_no: "Termina em"
   termina_no_valor: "Mês {mes}"
   nao_disponivel: "não disponível"
   # `RF-481` (T-468): a dívida que a simulação não quita em 10 anos. Sugestão, a validar.
@@ -719,7 +737,7 @@ dividas:
   # da parcela de sempre, sem nunca ter sido a dívida da vez). Sugestão, a
   # validar.
   recebe_extra_rotulo: "Recebe o valor extra"
-  recebe_extra_desde: "A partir do {mes}"
+  recebe_extra_desde: "A partir de {mes}"
   nao_recebe_extra: "Não recebe: termina só com a parcela de sempre"
 
 # `T-550` (devolução do especialista, 2026-11-13): o cronograma do plano não
@@ -982,7 +1000,7 @@ incomodo:
   aviso: >-
     A ordem segue o critério do método do seu plano, explicado em "Como o seu
     plano funciona". Esta dívida está no plano e termina no mês indicado em
-    "Termina no".
+    "Termina em".
 
 # `RF-412` — avisos do que o aluno declarou. `garantia` e `fichas_faltando`
 # são redação proposta, a aprovar (o aviso de atraso saiu em `RF-511`). Todo
@@ -1025,9 +1043,8 @@ sem_valor_extra: >-
 prognostico:
   titulo: "Seu plano em números"
   introducao: >-
-    O plano começa no mês seguinte à sua aprovação. Os três
-    caminhos usam a mesma escala de meses e são projeções feitas a partir das
-    suas respostas.
+    O plano começa no mês seguinte à sua aprovação. Cada caminho tem a sua
+    própria escala de meses e é uma projeção feita a partir das suas respostas.
   eixo_inicio: "Mês 1"
   item_quita: "{mes} · Quita {nome}"
   # Cap. 6, "Seu plano detalhado" (mural), e cap. 7, "Mês a mês, em detalhe".

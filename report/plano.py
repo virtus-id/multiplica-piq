@@ -2137,7 +2137,7 @@ def _fato_recebe_extra(
     if divida_id in alvo_desde:
         return (
             dt.get("recebe_extra_rotulo", "Recebe o valor extra"),
-            dt.get("recebe_extra_desde", "A partir do {mes}").format(
+            dt.get("recebe_extra_desde", "A partir de {mes}").format(
                 mes=rotulo_do_mes(alvo_desde[divida_id])
             ),
         )
@@ -2187,7 +2187,11 @@ def _tem_sinal_de_prioridade(divida: Divida | None) -> bool:
 
 
 def _explicacao_da_posicao(
-    mapa: Mapping[str, str], *, eh_primeira_a_receber_extra: bool, com_prioridade: bool
+    mapa: Mapping[str, str],
+    *,
+    eh_primeira_a_receber_extra: bool,
+    com_prioridade: bool,
+    abre_a_lista: bool = False,
 ) -> str:
     """`T-549` — escolhe a chave de `explicacao_da_posicao.{METODO}`: a
     variante "primeira_com_prioridade" (quando o YAML a declara) explica que
@@ -2195,6 +2199,8 @@ def _explicacao_da_posicao(
     sem ela, cai em "primeira"/"seguintes" de sempre."""
     if eh_primeira_a_receber_extra and com_prioridade and mapa.get("primeira_com_prioridade"):
         return mapa["primeira_com_prioridade"]
+    if abre_a_lista and not eh_primeira_a_receber_extra and mapa.get("primeira_da_lista"):
+        return mapa["primeira_da_lista"]
     return mapa.get("primeira" if eh_primeira_a_receber_extra else "seguintes", "")
 
 
@@ -2612,6 +2618,7 @@ def _montar_contexto_plano(
             explicacao=_explicacao_da_posicao(
                 textos.explicacao_da_posicao.get(snapshot.METODO_RECOMENDADO_PIQ.value, {}),
                 eh_primeira_a_receber_extra=_recebe_primeiro(posicao_do_snapshot.DIVIDA_ID),
+                abre_a_lista=indice == 1,
                 com_prioridade=(
                     regra_de_prioridade_ativa
                     and _tem_sinal_de_prioridade(dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID))
