@@ -7879,16 +7879,16 @@ derivar do publicado: `ORDEM_STATUS`; aportes dentro do horizonte e
 **Descrição.** Estados pequenos fabricados no padrão de `tests/regras/`;
 tolerância zero para ordem, prazo, método e status. Um teste por critério.
 
-- [ ] `AC-555`: dívida da vez mês a mês por `MESES_DO_PLANO` = primeira da lista não quitada; `ORDEM_QUITACAO` = ordem de quitação da simulação; `ORDEM_DO_REVISOR` = lista; método e status iguais aos sem lista
-- [ ] `AC-556`: estado com estouro (carteira dos testes de `T-467`/`T-469`): `ORDEM_QUITACAO` e `ORDEM_DE_ATAQUE` = lista, alvo do mês 1 = `D`, `ORDEM_FORA_DO_HORIZONTE` = as da lista não quitadas
-- [ ] `AC-557`: (a) repetida, (b) faltando, (c) inexistente, (d) bloqueada pelo Gate 1 → `ErroOrdemDoRevisor`; estado em `MODO_ESTABILIZACAO` com lista não vazia → idem (`EC-79`); com `()` aceito
-- [ ] `AC-558`: duas execuções iguais → snapshots idênticos, inclusive `hash_inputs` e `SNAPSHOT_ID`
-- [ ] `AC-560`: sem × com lista e lista × outra lista → `hash_inputs` e `SNAPSHOT_ID` diferem
-- [ ] `AC-562`: anterior v1 → v2 aponta para v1, `MOTIVO_RECALCULO` = `MOTIVO_AJUSTE_DA_ORDEM`, justificativas não vazias, com "definida pelo revisor", sem o texto de `_DESCRICAO_CRITERIO`
-- [ ] `EC-78`: dívida da lista quitada só com as parcelas antes da vez → alvo passa à próxima; `ORDEM_QUITACAO` difere da lista; `ORDEM_DO_REVISOR` = lista recebida
-- [ ] Gates: lint, build, test
+- [x] `AC-555`: dívida da vez mês a mês por `MESES_DO_PLANO` = primeira da lista não quitada; `ORDEM_QUITACAO` = ordem de quitação da simulação; `ORDEM_DO_REVISOR` = lista; método e status iguais aos sem lista
+- [x] `AC-556`: estado com estouro (carteira dos testes de `T-467`/`T-469`): `ORDEM_QUITACAO` e `ORDEM_DE_ATAQUE` = lista, alvo do mês 1 = `D`, `ORDEM_FORA_DO_HORIZONTE` = as da lista não quitadas
+- [x] `AC-557`: (a) repetida, (b) faltando, (c) inexistente, (d) bloqueada pelo Gate 1 → `ErroOrdemDoRevisor`; estado em `MODO_ESTABILIZACAO` com lista não vazia → idem (`EC-79`); com `()` aceito
+- [x] `AC-558`: duas execuções iguais → snapshots idênticos, inclusive `hash_inputs` e `SNAPSHOT_ID`
+- [x] `AC-560`: sem × com lista e lista × outra lista → `hash_inputs` e `SNAPSHOT_ID` diferem
+- [x] `AC-562`: anterior v1 → v2 aponta para v1, `MOTIVO_RECALCULO` = `MOTIVO_AJUSTE_DA_ORDEM`, justificativas não vazias, com "definida pelo revisor", sem o texto de `_DESCRICAO_CRITERIO`
+- [x] `EC-78`: dívida da lista quitada só com as parcelas antes da vez → alvo passa à próxima; `ORDEM_QUITACAO` difere da lista; `ORDEM_DO_REVISOR` = lista recebida
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 
