@@ -14453,12 +14453,12 @@ motivo preenchido); "Voltar à ordem do método" (só com `ajustada`, sem motivo
 mensagem e preservam lista e motivo; antes/depois de `ultimoAjuste`. Com
 `editavel = false`, lista só leitura.
 
-- [ ] Rótulos "Subir {nome}"/"Descer {nome}"; subir desativado na primeira, descer na última
-- [ ] Nova posição, resultado e erro anunciados por `aria-live`; tudo operável por teclado
-- [ ] Mover não chama a API
-- [ ] Build do frontend verde
+- [x] Rótulos "Subir {nome}"/"Descer {nome}"; subir desativado na primeira, descer na última
+- [x] Nova posição, resultado e erro anunciados por `aria-live`; tudo operável por teclado
+- [x] Mover não chama a API
+- [x] Build do frontend verde
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; o botão que chega à ponta fica desativado e o foco passa ao outro botão da mesma dívida; antes/depois numa tabela com cabeçalhos
 
 ---
 
