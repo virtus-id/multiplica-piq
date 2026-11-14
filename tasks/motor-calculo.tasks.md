@@ -7686,12 +7686,12 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 `hash_inputs` e o `SNAPSHOT_ID` obtidos. É a prova de "idênticos aos de antes de
 `RF-545`" que as tarefas seguintes não podem quebrar.
 
-- [ ] Um caso parametrizado por gabarito/invariante, usando as fixtures existentes de `tests/gabaritos/` e `tests/invariantes/`
-- [ ] Valores fixados lidos da execução atual (branch antes de `T-566`), não escritos à mão
-- [ ] Os testes de gabarito e de invariante existentes não são editados
-- [ ] Gates: lint, build, test
+- [x] Um caso parametrizado por gabarito/invariante, usando as fixtures existentes de `tests/gabaritos/` e `tests/invariantes/`
+- [x] Valores fixados lidos da execução atual (branch antes de `T-566`), não escritos à mão
+- [x] Os testes de gabarito e de invariante existentes não são editados
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 
