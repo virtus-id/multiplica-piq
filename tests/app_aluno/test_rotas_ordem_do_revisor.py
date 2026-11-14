@@ -266,8 +266,11 @@ def _cliente(aplicacao: FastAPI, conta_id: str | None) -> TestClient:
 def cenario(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Cenario:
     monkeypatch.setenv("CHAVE_ASSINATURA_SESSAO", _CHAVE_TESTE)
     monkeypatch.setenv("PARAMETROS_VERSION_VIGENTE", "1.0.1")
-    # Sem banco: a data da liberação e o nome do aluno caem no "sem dado".
+    # Sem banco: a data da liberação cai no "sem dado". Trocada direto porque,
+    # com um pool já aberto por outra suíte, a leitura esperaria a conexão.
     monkeypatch.delenv("DATABASE_URL", raising=False)
+    for modulo in (rotas_api_plano, rotas_plano):
+        monkeypatch.setattr(modulo, "data_da_liberacao", lambda *_args: None)
     casos = RepositorioCasosArquivo(tmp_path / "casos.jsonl")
     agora = datetime(2026, 1, 1, tzinfo=UTC)
     casos.criar(
