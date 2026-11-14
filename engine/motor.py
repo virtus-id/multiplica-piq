@@ -617,6 +617,7 @@ def calcular_plano(
         # Passos 10a-10d (RF-545, plano R13.1): só com a lista do revisor.
         # Sem ela, o cenário publicado é o do método e nada abaixo muda.
         cenario_publicado = cenario_recomendado
+        sel_publicado: SelecionarAlvo | None = None
         if lista is not None:
             # 10a: permutação do CONJUNTO da ordem do método recém-publicada
             # (elegíveis depois dos gates, RF-09/RF-512) — antes de simular.
@@ -649,9 +650,13 @@ def calcular_plano(
                 particao,
                 definida_pelo_revisor=True,
             )
+
+        # 10e (RF-545 item 3, plano R13.5): ORDEM_STATUS, aportes no
+        # horizonte, cenário adicional e prognóstico derivam do cenário
+        # publicado — sem a lista, o próprio cenário do método.
         beneficios_marginais = _beneficios_marginais_da_ordem(
             dividas,
-            cenario_recomendado,
+            cenario_publicado,
             diagnostico_pre.CAPACIDADE_ATAQUE_CONSERVADORA,
             parametros,
         )
@@ -663,12 +668,12 @@ def calcular_plano(
         # RF-70/OQ-46/EC-56 (T-159, plano R9M.5 passo 4): aporte cujo mês a
         # projeção recomendada não alcança sai da base como FORA_DO_HORIZONTE.
         aportes_aplicados: tuple[AporteProjetado, ...] = tuple(
-            aporte for aporte in aportes_base if aporte.mes <= cenario_recomendado.PRAZO_TOTAL
+            aporte for aporte in aportes_base if aporte.mes <= cenario_publicado.PRAZO_TOTAL
         )
         fora_do_horizonte = tuple(
             ItemNaoProjetado(ITEM_ID=aporte.ITEM_ID, motivo=MOTIVO_NAO_PROJETADO.FORA_DO_HORIZONTE)
             for aporte in aportes_base
-            if aporte.mes > cenario_recomendado.PRAZO_TOTAL
+            if aporte.mes > cenario_publicado.PRAZO_TOTAL
         )
 
         # Passo 10b (RF-71, T-162): cenário adicional, depois da escolha do
@@ -679,6 +684,11 @@ def calcular_plano(
         }
         if resultado_hibrido.selecionar_alvo is not None:
             sel_por_metodo[METODO.HIBRIDO] = resultado_hibrido.selecionar_alvo
+        # RF-545 (OQ-97, AC-561): com a lista, o adicional e o verde também
+        # tiram a dívida da vez dela.
+        sel_do_plano = (
+            sel_por_metodo[metodo_recomendado] if sel_publicado is None else sel_publicado
+        )
         projecao_extraordinarios = ProjecaoExtraordinarios(
             aportes_base=aportes_aplicados,
             nao_projetados=(*nao_projetados, *fora_do_horizonte),
@@ -687,7 +697,7 @@ def calcular_plano(
                 diagnostico_pre=diagnostico_pre,
                 dividas=dividas,
                 metodo=metodo_recomendado,
-                sel=sel_por_metodo[metodo_recomendado],
+                sel=sel_do_plano,
                 parametros=parametros,
             ),
         )
@@ -698,9 +708,9 @@ def calcular_plano(
             estado=estado,
             diagnostico_pre=diagnostico_pre,
             dividas=dividas,
-            cenario_recomendado=cenario_recomendado,
+            cenario_recomendado=cenario_publicado,
             parametros=parametros,
-            selecionar_alvo=sel_por_metodo[metodo_recomendado],
+            selecionar_alvo=sel_do_plano,
             aportes_do_verde=aportes_por_mes(
                 selecionar_aportes(
                     estado.recursos_extraordinarios,
@@ -708,6 +718,8 @@ def calcular_plano(
                     RESULTADO_MENSAL_ATUAL=diagnostico_pre.RESULTADO_MENSAL_ATUAL,
                 )[0]
             ),
+            # RF-545 item 4 (AC-559): o "sem ação" fica no horizonte do método.
+            horizonte_sem_acao=cenario_recomendado.PRAZO_TOTAL,
         )
 
         # Segunda passada de Diagnostico (RF-66/RF-68, OQ-44 decisão (2),

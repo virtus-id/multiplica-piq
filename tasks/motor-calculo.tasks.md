@@ -7863,11 +7863,11 @@ derivar do publicado: `ORDEM_STATUS`; aportes dentro do horizonte e
 `com_extra` com o cenário/seletor publicado; `sem_acao` com
 `horizonte_sem_acao = cenário do método.PRAZO_TOTAL`.
 
-- [ ] `prognostico.sem_acao`, `diagnostico` e `ORDEM_ACOES` não dependem da lista
-- [ ] Sem lista, os argumentos novos assumem o valor que reproduz a chamada de hoje (`T-565` verde)
-- [ ] Rehash só de `engine/motor.py`; gates: lint, build, test
+- [x] `prognostico.sem_acao`, `diagnostico` e `ORDEM_ACOES` não dependem da lista
+- [x] Sem lista, os argumentos novos assumem o valor que reproduz a chamada de hoje (`T-565` verde)
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 
