@@ -14433,10 +14433,10 @@ textos = _textos_da_ordem_do_revisor(textos)`.
 `POST /api/revisao/caso/${casoId}/ordem` com JSON, erros pelo `pedir` existente
 (lê `detail`, `T-337`).
 
-- [ ] Tipos idênticos ao contrato de `R18.4`
-- [ ] `tsc`/build do frontend verde
+- [x] Tipos idênticos ao contrato de `R18.4`
+- [x] `tsc`/build do frontend verde
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 

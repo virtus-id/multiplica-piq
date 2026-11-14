@@ -498,6 +498,32 @@ export interface CasoParaRevisao {
   /** `RF-452`: só no aluno deficitário; déficit é característica do caso, não pendência. */
   deficitario?: BlocoDoDeficitario | null
   fila: ItemDaFila
+  /** `RF-546`/`RF-548`: a ordem de ataque vigente; `editavel` é veredito do servidor. */
+  ordem_do_revisor: OrdemNaConferencia
+}
+
+/** `RF-548` — a ordem de ataque vigente na conferência, pelo nome legível (`RF-111`). */
+export interface OrdemNaConferencia {
+  vigente: { DIVIDA_ID: string; nome: string }[]
+  ajustada: boolean
+  editavel: boolean
+}
+
+/** `RF-546` (item 4) — prazo e custo de um snapshot, lidos pelo servidor. */
+export interface PrazoECusto {
+  SNAPSHOT_ID: string
+  prazo: { meses: number; estourou_horizonte: boolean }
+  custo_total_de_juros: { valor: string; motivo: string | null }
+}
+
+/** Resposta `200` de `POST /api/revisao/caso/{id}/ordem` — `RF-546`. */
+export interface ResultadoDoAjusteDaOrdem {
+  SNAPSHOT_ID: string
+  versao: number
+  ordem_vigente: string[]
+  ajustada: boolean
+  antes: PrazoECusto
+  depois: PrazoECusto
 }
 
 export interface BlocoDoDeficitario {
@@ -513,6 +539,23 @@ export interface BlocoDoDeficitario {
 
 export function obterCasoParaRevisao(casoId: string): Promise<CasoParaRevisao> {
   return pedir<CasoParaRevisao>(`/api/revisao/caso/${casoId}`)
+}
+
+/**
+ * O revisor recalcula o plano numa ordem de ataque — `RF-546`. Lista vazia =
+ * voltar à ordem do método (sem motivo, `OQ-99`). `409`/`422` chegam com a
+ * frase do servidor (`detail`, `T-337`).
+ */
+export function ajustarOrdem(
+  casoId: string,
+  ordem: string[],
+  motivo: string,
+): Promise<ResultadoDoAjusteDaOrdem> {
+  return pedir<ResultadoDoAjusteDaOrdem>(`/api/revisao/caso/${casoId}/ordem`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ordem, motivo }),
+  })
 }
 
 /**
