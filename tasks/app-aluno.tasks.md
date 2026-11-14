@@ -14339,12 +14339,12 @@ editavel}`; `vigente` de `ordem_vigente(historico[-1])`; `nome` de
 - **Tipo:** `Test` · **Dependências:** `T-584` · **Rastreia:** `RF-549`, `AC-571`, `EC-83` · `RF-93`, `RF-96`, `RF-97` · plano `R18.5` (Liberar)
 - **Arquivos:** `tests/app_aluno/test_liberacao_homologacao.py`
 
-- [ ] `AC-571`: liberar a v2 → `snapshot_liberado_id` = v2; `ordem_final_de_ataque` = `ORDEM_QUITACAO` da v2; plano do aluno com ordem, dívida da vez, meses de quitação, prazo, custo, azul e verde da v2; "Se nada mudar" igual ao da v1
-- [ ] Pendências de homologação iguais antes e depois do ajuste
-- [ ] `EC-83`: `liberar` depois de um ajuste libera o mais recente
-- [ ] Gates: lint, build, test
+- [x] `AC-571`: liberar a v2 → `snapshot_liberado_id` = v2; `ordem_final_de_ataque` = `ORDEM_QUITACAO` da v2; plano do aluno com ordem, dívida da vez, meses de quitação, prazo, custo, azul e verde da v2; "Se nada mudar" igual ao da v1
+- [x] Pendências de homologação iguais antes e depois do ajuste
+- [x] `EC-83`: `liberar` depois de um ajuste libera o mais recente
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; pendências comparadas no caso sem pendência: pela coleta atual não há como montar uma que deixe o cálculo rodar (dívida pendente é dispensada, `OQ-89`)
 
 ---
 

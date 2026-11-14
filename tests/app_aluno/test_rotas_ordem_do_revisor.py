@@ -111,10 +111,12 @@ _D003: dict[str, object] = {
 }
 
 
-def respostas_com_tres_dividas() -> list[Resposta]:
-    """T02 (cartão rotativo e empréstimo pessoal) mais um segundo pessoal."""
+def respostas_com_tres_dividas(**mais_fichas: dict[str, object]) -> list[Resposta]:
+    """T02 (cartão rotativo e empréstimo pessoal) mais um segundo pessoal e,
+    se pedidas, outras fichas de dívida."""
+    fichas = {"D002": _T02_D002, "D003": _D003, **mais_fichas}
     base = montar_respostas_caso(
-        valores_caso={**_T02_CASO, "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": len(DIVIDAS)},
+        valores_caso={**_T02_CASO, "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1 + len(fichas)},
         valores_divida=_T02_D001,
         valores_item_despesa={"VALOR_DESPESA": converter_para_dinheiro("3.500,00")},
         valores_despesa_nao_mensal={
@@ -124,7 +126,7 @@ def respostas_com_tres_dividas() -> list[Resposta]:
     ).respostas
     outras = tuple(
         r
-        for divida_id, valores in (("D002", _T02_D002), ("D003", _D003))
+        for divida_id, valores in fichas.items()
         for r in montar_respostas_caso(valores_divida=valores, DIVIDA_ID=divida_id).respostas
         if r.item_id == divida_id
     )
