@@ -14484,12 +14484,12 @@ da prévia passam a refletir a v2). Em `409`/`422`, nada recarrega.
 - **Tipo:** `Test` · **Dependências:** `T-597` · **Rastreia:** `AC-569`, `AC-570` (componente) · plano `R18.9` (Frontend)
 - **Arquivos:** `frontend/tests/unit/api.test.ts`, `frontend/tests/unit/componentes/OrdemDoRevisor.test.tsx` (novo)
 
-- [ ] `api.test.ts`: método, URL, corpo JSON e leitura do `detail` em erro
-- [ ] `AC-569`: nomes na ordem; subir/descer desativados nas pontas; mover não chama a API; estado de "Recalcular nesta ordem" (lista igual, motivo vazio, ambos ok); "Voltar" só com `ajustada`; rótulos que nomeiam a dívida; `editavel=false` sem botões
-- [ ] `409`/`422`: mensagem exibida, lista e motivo preservados; botões desativados durante o envio
-- [ ] `vitest` verde
+- [x] `api.test.ts`: método, URL, corpo JSON e leitura do `detail` em erro
+- [x] `AC-569`: nomes na ordem; subir/descer desativados nas pontas; mover não chama a API; estado de "Recalcular nesta ordem" (lista igual, motivo vazio, ambos ok); "Voltar" só com `ajustada`; rótulos que nomeiam a dívida; `editavel=false` sem botões
+- [x] `409`/`422`: mensagem exibida, lista e motivo preservados; botões desativados durante o envio
+- [x] `vitest` verde
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
