@@ -14272,7 +14272,7 @@ textos.rotulos_de_codigos)` — a mesma montagem da homologação.
 **Descrição.** Em todas: nenhum snapshot anexado, nenhum evento gravado,
 estado inalterado.
 
-- [x] `AC-565`: `409` em `COLETA_INICIAL`, `CALCULANDO`, `PLANO_LIBERADO`, `ACOMPANHAMENTO`; `409` "nada a recalcular" com a vigente na v1, com a lista vazia na v1 e com a mesma lista na v2
+- [x] `AC-565`: `409` em todo estado ≠ `AGUARDANDO_REVISAO` (`COLETA_INICIAL`, `CALCULANDO`, `PLANO_LIBERADO`…); `409` "nada a recalcular" com a vigente na v1, com a lista vazia na v1 e com a mesma lista na v2
 - [x] `AC-566`: `422` com a causa para repetida, faltando, fora do conjunto (inexistente e bloqueada por gate) e motivo vazio com lista não vazia
 - [x] `AC-567`: `401` sem sessão; `403` com sessão de aluno, inclusive o dono; `404` caso inexistente e caso sem snapshot
 - [x] `EC-80`/`EC-84`: lista igual à ordem de ataque vigente (inclusive a de uma dívida só, e a da carteira em que ataque ≠ `ORDEM_QUITACAO`) → `409`
@@ -14280,7 +14280,7 @@ estado inalterado.
 - [x] `EC-82`: fonte que levanta `ErroParametros` e motor que levanta `ErroInvariante` (`monkeypatch`) → `500`, caso em `AGUARDANDO_REVISAO`, `historico[-1]` intacto
 - [x] Gates: lint, build, test
 
-**Status:** `[x] concluída (2026-11-14)`; `ACOMPANHAMENTO` não existe mais na máquina de estados: o teste recusa todo estado ≠ `AGUARDANDO_REVISAO`; a dívida bloqueada por gate vem de snapshot do motor (pela coleta a pendente não chega ao motor, `T-499`)
+**Status:** `[x] concluída (2026-11-14)`; o teste recusa todo estado ≠ `AGUARDANDO_REVISAO` (`ACOMPANHAMENTO` saiu com `RF-413`; spec corrigida); a dívida bloqueada por gate vem de snapshot do motor (pela coleta a pendente não chega ao motor, `T-499`)
 
 ---
 
@@ -14327,10 +14327,10 @@ editavel}`; `vigente` de `ordem_vigente(historico[-1])`; `nome` de
 
 - [x] `ordem_do_revisor`: caso editável (três dívidas, nomes legíveis, `ajustada` falso/verdadeiro) e `editavel = false` fora de `AGUARDANDO_REVISAO`, em estabilização e com uma dívida só
 - [x] `AC-570`: depois do `POST`, o `GET` do caso e a prévia (`GET /revisao/caso/{id}/plano/pdf`, com `gerar_pdf_de_previa` substituída) recebem a v2; dívida da vez no Mês 01 = primeira da lista
-- [x] `AC-572`: liberado v1, refeito com taxa 4% → 8% (v2), ajustado (v3) → "O que mudou" lista 4% → 8%
+- [x] `AC-572`: v1 retirada da conferência (`RF-115`), reenviada com taxa 4% → 8% (v2), ajustada (v3) → "O que mudou" lista 4% → 8%
 - [x] Gates: lint, build, test
 
-**Status:** `[x] concluída (2026-11-14)`; `AC-572` pelo caminho de `RF-115` (retirar da conferência): `RF-409` desligou o plano novo depois da liberação — spec a corrigir
+**Status:** `[x] concluída (2026-11-14)`; `AC-572` pelo caminho de `RF-115` (retirar da conferência): `RF-409` desligou o plano novo depois da liberação — spec corrigida
 
 ---
 
@@ -14350,17 +14350,18 @@ editavel}`; `vigente` de `ordem_vigente(historico[-1])`; `nome` de
 
 ### `T-592` — Testar que todo plano novo descarta a ordem do revisor
 
-- **Tipo:** `Test` · **Dependências:** `T-584` · **Rastreia:** `RF-550`, `AC-573`, `EC-81` (2ª parte) · `RF-113`, `RF-115`, `RF-118` · plano `R18.5` (Plano novo)
+- **Tipo:** `Test` · **Dependências:** `T-584` · **Rastreia:** `RF-550`, `AC-573`, `EC-81` (2ª parte) · `RF-113`, `RF-115`, `RF-409` · plano `R18.5` (Plano novo)
 - **Arquivos:** `tests/app_aluno/test_descarte_ordem_do_revisor.py` (novo)
 
 **Descrição.** `RF-550` não tem código: o cálculo de sempre já roda sem a
-lista. Esta tarefa prova isso nos três caminhos de reenvio.
+lista. Esta tarefa prova isso nos dois caminhos de reenvio e que o plano liberado não volta.
 
-- [x] Partindo de um caso cuja última versão é ajustada: reenvio depois de "Pedir correção", de "Quero editar minhas respostas" e plano novo depois da liberação → nova versão encadeada ao ajuste, sem `ORDEM_DO_REVISOR`, ordem do método, caso na fila
+- [x] Partindo de um caso cuja última versão é ajustada: reenvio depois de "Pedir correção" e de "Quero editar minhas respostas" → nova versão encadeada ao ajuste, sem `ORDEM_DO_REVISOR`, ordem do método, caso na fila
+- [x] Liberado o plano ajustado, o pedido de plano novo é recusado (`409`) e a versão liberada continua a ajustada (`RF-409`)
 - [x] Nenhum texto de aviso sobre a ordem nas respostas do aluno
 - [x] Gates: lint, build, test
 
-**Status:** `[x] concluída (2026-11-14)`; caminho `RF-118` (plano novo depois da liberação) desligado por `RF-409`: testado que o pedido é recusado e a ordem ajustada liberada fica — spec a corrigir
+**Status:** `[x] concluída (2026-11-14)`; caminho `RF-118` (plano novo depois da liberação) desligado por `RF-409`: testado que o pedido é recusado e a ordem ajustada liberada fica — spec corrigida
 
 ---
 

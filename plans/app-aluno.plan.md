@@ -3395,7 +3395,7 @@ conteúdo inválido (lista ou motivo).
   `test_rotas_revisao_decisao.py`): `AC-563` (v2 encadeada, `estado_inputs` e
   `PARAMETROS_VERSION` da v1 mesmo com a vigente diferente — fake de
   `FonteParametros` que registra a versão pedida —, v1 intacta, estado e fila);
-  `AC-564`; `AC-565` (quatro estados + os três casos de `OQ-101`); `AC-566`;
+  `AC-564`; `AC-565` (todo estado ≠ `AGUARDANDO_REVISAO` + os três casos de `OQ-101`); `AC-566`;
   `AC-567`; `AC-568` (trilha por `listar_do_caso`, estado inalterado, `caplog`
   sem o motivo, rotas de aluno sem o motivo); `EC-81` (fake de casos que muda o
   estado entre a 1ª e a 2ª leitura); `EC-82` (fonte que levanta
@@ -3409,9 +3409,10 @@ conteúdo inválido (lista ou motivo).
   `ordem_final_de_ataque`, plano do aluno com prognóstico azul/verde da v2 e
   "Se nada mudar" igual ao da v1); `AC-572` (`anterior_para_comparar` unitário
   e pela rota); `ordem_do_revisor.editavel` nos três casos sem edição.
-- **Descarte (`AC-573`):** os três caminhos de reenvio (`RF-113`, `RF-115`,
-  `RF-118`) partindo de um caso cuja última versão é ajustada: a nova versão
-  sem `ORDEM_DO_REVISOR`, ordem do método, caso na fila.
+- **Descarte (`AC-573`):** os dois caminhos de reenvio (`RF-113`, `RF-115`)
+  partindo de um caso cuja última versão é ajustada: a nova versão sem
+  `ORDEM_DO_REVISOR`, ordem do método, caso na fila; liberado o ajustado, o
+  pedido de plano novo é recusado (`RF-409` de `enxugamento-questionario`).
 - **Relatório (`AC-574`, `AC-575`):** dois snapshots do mesmo estado (com e sem
   a lista) → os únicos textos fixos que diferem no `ContextoPlano` são as quatro
   variantes; nenhum contém "revisor"/"especialista"; rodapé com o método.
