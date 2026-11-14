@@ -207,7 +207,7 @@ from app.casos.progresso import transicionar_e_registrar
 # tratamento de erro exige.
 from engine.ciclo_mensal import ErroInvariante
 from engine.estado import EstadoFinanceiro
-from engine.motor import calcular_plano
+from engine.motor import MOTIVO_AJUSTE_DA_ORDEM, calcular_plano
 from engine.parametros import ErroParametros, Parametros
 from engine.portas import FonteParametros, RepositorioSnapshots
 from engine.snapshot import SnapshotOrdem
@@ -567,3 +567,74 @@ async def executar_calculo_com_timeout_async(
             transicao="operador_retoma_apos_erro",
         )
         return None
+
+
+# ---------------------------------------------------------------------------
+# `T-583` — ajuste da ordem pelo revisor (`RF-546`, `OQ-100`, `EC-82`, plano
+# `R18.4`). Duas funções pequenas em vez de `executar_calculo`: aquele
+# transiciona `CALCULANDO → ERRO_DE_CALCULO` na falha, e aqui o caso não sai
+# da conferência. Nenhuma das duas recebe o motivo interno do revisor — não
+# há como logá-lo (NFR de observabilidade).
+# ---------------------------------------------------------------------------
+
+
+def calcular_ajuste_da_ordem(
+    snapshot: SnapshotOrdem,
+    ordem_do_revisor: tuple[str, ...],
+    fonte_parametros: FonteParametros,
+    caso_id: str,
+) -> SnapshotOrdem:
+    """Recalcula `snapshot` com a lista do revisor — vazia na volta à ordem
+    do método. Mesmo `estado_inputs` e mesma `PARAMETROS_VERSION` do snapshot
+    (`OQ-100`: só a ordem muda), sem remontar o estado a partir das
+    respostas. Não anexa e não transiciona. `ErroOrdemDoRevisor` propaga
+    (`422` na rota); `ErroParametros`/`ErroInvariante` são logados pela
+    allowlist e relançados (`EC-82`)."""
+    try:
+        parametros = fonte_parametros.carregar(snapshot.PARAMETROS_VERSION)
+    except ErroParametros as erro:
+        _registrar_evento(
+            nivel=logging.ERROR,
+            mensagem=f"ErroParametros: {erro}",
+            caso_id=caso_id,
+            snapshot_id=snapshot.SNAPSHOT_ID,
+            parametros_version=snapshot.PARAMETROS_VERSION,
+        )
+        raise
+    try:
+        return calcular_plano(
+            snapshot.estado_inputs,
+            parametros,
+            anterior=snapshot,
+            motivo=MOTIVO_AJUSTE_DA_ORDEM,
+            ordem_do_revisor=ordem_do_revisor,
+        )
+    except ErroInvariante as erro:
+        _registrar_evento(
+            nivel=logging.ERROR,
+            mensagem=f"ErroInvariante: {erro}",
+            caso_id=caso_id,
+            snapshot_id=snapshot.SNAPSHOT_ID,
+            hash_inputs=snapshot.hash_inputs,
+            engine_version=parametros.ENGINE_VERSION,
+            parametros_version=parametros.PARAMETROS_VERSION,
+        )
+        raise
+
+
+def anexar_ajuste_da_ordem(
+    novo: SnapshotOrdem, repositorio_snapshots: RepositorioSnapshots, caso_id: str
+) -> None:
+    """`V-01`: anexa o snapshot do ajuste à cadeia (a escrita continua só por
+    `RepositorioSnapshots.anexar`, `AC-43`) e registra o fato com os campos
+    da allowlist — o anterior vai na mensagem, que só carrega `SNAPSHOT_ID`."""
+    repositorio_snapshots.anexar(novo)
+    _registrar_evento(
+        nivel=logging.INFO,
+        mensagem=f"ajuste da ordem anexado; anterior {novo.snapshot_anterior_id}",
+        caso_id=caso_id,
+        snapshot_id=novo.SNAPSHOT_ID,
+        hash_inputs=novo.hash_inputs,
+        engine_version=novo.ENGINE_VERSION,
+        parametros_version=novo.PARAMETROS_VERSION,
+    )

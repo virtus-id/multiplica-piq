@@ -14197,12 +14197,12 @@ logados pela allowlist de `_registrar_evento` e relançados.
 `_registrar_evento` com `SNAPSHOT_ID` novo e anterior, `hash_inputs`,
 `ENGINE_VERSION`, `PARAMETROS_VERSION`.
 
-- [ ] Nenhuma das duas recebe o motivo interno (não há como logá-lo)
-- [ ] `executar_calculo` sem diff; nenhuma remontagem de estado a partir das respostas
-- [ ] `test_sem_escrita_de_snapshot` verde (a escrita continua só por `RepositorioSnapshots.anexar`)
-- [ ] Gates: lint, build, test
+- [x] Nenhuma das duas recebe o motivo interno (não há como logá-lo)
+- [x] `executar_calculo` sem diff; nenhuma remontagem de estado a partir das respostas
+- [x] `test_sem_escrita_de_snapshot` verde (a escrita continua só por `RepositorioSnapshots.anexar`)
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
