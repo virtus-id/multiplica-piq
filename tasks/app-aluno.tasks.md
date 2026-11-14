@@ -14222,12 +14222,12 @@ possível recalcular. O plano não mudou.") → relê o estado (`409`, `EC-81`) 
 ordem_vigente(novo)[0]`, autor = conta da sessão). `200` com `CASO_ID`,
 `SNAPSHOT_ID`, `versao`, `ordem_vigente`, `ajustada`.
 
-- [ ] Parâmetro de rota chamado `CASO_ID_REVISAO` (auditoria de isolamento)
-- [ ] Permutação validada só no motor (nenhuma validação duplicada na rota)
-- [ ] Toda recusa sai antes de `anexar` e do evento; erros por `HTTPException(detail=<frase>)`
-- [ ] Gates: lint, build, test
+- [x] Parâmetro de rota chamado `CASO_ID_REVISAO` (auditoria de isolamento)
+- [x] Permutação validada só no motor (nenhuma validação duplicada na rota)
+- [x] Toda recusa sai antes de `anexar` e do evento; erros por `HTTPException(detail=<frase>)`
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
@@ -14242,11 +14242,11 @@ ordem_vigente(novo)[0]`, autor = conta da sessão). `200` com `CASO_ID`,
 `serializar_registro(registrar_homologacao(snapshot, ()), nomes,
 textos.rotulos_de_codigos)` — a mesma montagem da homologação.
 
-- [ ] Nenhuma conta na rota: os dois valores são lidos/serializados
-- [ ] Custo não disponível sai com o rótulo do motivo, como na homologação
-- [ ] Gates: lint, build, test
+- [x] Nenhuma conta na rota: os dois valores são lidos/serializados
+- [x] Custo não disponível sai com o rótulo do motivo, como na homologação
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 

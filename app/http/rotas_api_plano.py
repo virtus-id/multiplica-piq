@@ -28,12 +28,14 @@ from typing import Annotated, Any, Final, Literal, Protocol
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel
 
 from app.casos.inventario import pendencias_de_inventario
 from app.casos.liberacao import data_da_liberacao
 from app.casos.maquina import ESTADO_CASO
 from app.casos.progresso import RelatoDeProgresso, consultar_trilha_de_progresso
 from app.concorrencia import duas_em_paralelo, tres_em_paralelo
+from app.http.edicao import MENSAGEM_FORA_DA_CONFERENCIA
 from app.http.fatos_de_risco import fatos_de_risco_por_divida
 from app.http.isolamento import (
     exigir_caso_da_sessao,
@@ -43,6 +45,7 @@ from app.http.isolamento import (
 from app.http.jornada import parte_da_pergunta
 from app.http.mensagens_de_estado import mensagem_do_estado_do_caso
 from app.http.mudancas_do_plano import mudancas_entre
+from app.http.rotas_calculo import obter_fonte_parametros
 from app.http.rotas_coleta import _itens_por_escopo
 from app.http.rotas_coleta import obter_colecao_de_registros as obter_colecao_da_coleta
 from app.http.rotas_coleta import obter_repositorio_itens as obter_repositorio_itens_da_coleta
@@ -68,6 +71,7 @@ from app.http.rotas_plano import (
 )
 from app.http.rotas_revisao import (
     obter_repositorio_casos_da_fila,
+    obter_repositorio_eventos_da_decisao,
     obter_repositorio_snapshots_da_fila,
 )
 from app.http.serializacao_plano import (
@@ -82,12 +86,14 @@ from app.http.serializacao_plano import (
     vocabulario_do_caso,
 )
 from app.montagem.premissas import premissas_da_ficha
+from app.motor.executor import anexar_ajuste_da_ordem, calcular_ajuste_da_ordem
 from app.revisao.comprovacao import niveis_por_ficha
 from app.revisao.fila import (
     RepositorioCasosDaFila,
     listar_fila_de_revisao,
     montar_item_da_fila,
 )
+from app.revisao.homologacao import registrar_homologacao, serializar_registro
 from app.revisao.lista_de_casos import (
     CAMPO_DE_ORDEM,
     FiltrosDaLista,
@@ -96,9 +102,13 @@ from app.revisao.lista_de_casos import (
     consultar_casos,
     montar_linhas,
 )
+from app.revisao.ordem_do_revisor import ordem_vigente, registrar_ajuste_na_trilha
 from collection.carga import ColecaoDeRegistros
 from collection.respostas import RespostasCaso
-from engine.portas import RepositorioSnapshots
+from engine.ciclo_mensal import ErroInvariante
+from engine.motor import ErroOrdemDoRevisor
+from engine.parametros import ErroParametros
+from engine.portas import FonteParametros, RepositorioSnapshots
 from engine.snapshot import SnapshotOrdem
 from persistencia.app_aluno.casos import RepositorioCasos
 from persistencia.app_aluno.contas import (
@@ -106,7 +116,7 @@ from persistencia.app_aluno.contas import (
     RepositorioContasSupabase,
     listar_revisores,
 )
-from persistencia.app_aluno.eventos import RepositorioEventosCasoSupabase
+from persistencia.app_aluno.eventos import RepositorioEventosCaso, RepositorioEventosCasoSupabase
 from persistencia.app_aluno.itens import ItemRepetido, RepositorioItens
 from persistencia.app_aluno.respostas import RepositorioRespostas
 from persistencia.app_aluno.revisoes import RepositorioRevisoesSupabase
@@ -153,7 +163,9 @@ def _resumo_do_caso(snapshot: Any) -> dict[str, object]:
     saldos = [d.SALDO_DEVEDOR_ATUAL for d in snapshot.estado_inputs.dividas]
     informados = [v for v in saldos if isinstance(v, Decimal)]
     return {
-        "total_em_dividas": formatar_dinheiro_br(sum(informados, Decimal(0))) if informados else None,
+        "total_em_dividas": (
+            formatar_dinheiro_br(sum(informados, Decimal(0))) if informados else None
+        ),
         "total_em_dividas_parcial": len(informados) < len(saldos),
         # `RF-443`: saídas do mês = despesas + não mensais + parcelas devidas das
         # dívidas, as mesmas parcelas que o motor desconta em `RESULTADO_MENSAL_ATUAL`
@@ -173,6 +185,15 @@ _RAIZ_DA_CONFERENCIA: Final[str] = "/revisao/caso/{CASO_ID_REVISAO}"
 
 # Mensagens curtas de propósito — limiar de `AC-37` (T-08).
 _MENSAGEM_SEM_PLANO: Final[str] = "Nenhum plano liberado ainda."
+# `T-584` (`RF-546`, `R18.8`) — as frases longas em pedaços, pelo mesmo limiar.
+_MENSAGEM_CASO_FORA_DA_CONFERENCIA: Final[str] = "O caso não está na conferência."
+_MENSAGEM_SEM_MOTIVO_INTERNO: Final[str] = "Escreva o motivo interno."
+_MENSAGEM_NADA_A_RECALCULAR: Final[str] = " ".join(
+    ("Esta já é a ordem vigente.", "Nada a recalcular.")
+)
+_MENSAGEM_FALHA_NO_RECALCULO: Final[str] = " ".join(
+    ("Não foi possível recalcular.", "O plano não mudou.")
+)
 
 
 class ErroCasoDesaparecidoAposIsolamento(Exception):
@@ -595,6 +616,122 @@ def previa_do_pdf_do_plano(
         snapshot, textos, vocabulario, _nome_do_aluno(emails, CASO_ID_REVISAO)
     )
     return Response(content=pdf, media_type="application/pdf")
+
+
+class PedidoDeAjusteDaOrdem(BaseModel):
+    """`RF-546` — a ordem de ataque em `DIVIDA_ID`; `[]` volta à ordem do
+    método. O motivo interno só é obrigatório com a lista não vazia
+    (`OQ-99`)."""
+
+    ordem: list[str]
+    motivo: str = ""
+
+
+def _recusa_fora_da_conferencia(estado: ESTADO_CASO) -> HTTPException:
+    """`409` com o caso fora de `AGUARDANDO_REVISAO`; retirado pelo aluno, a
+    frase da decisão (`RF-116`, `R18.8`)."""
+    if estado is ESTADO_CASO.COLETA_INICIAL:
+        return HTTPException(status_code=409, detail=MENSAGEM_FORA_DA_CONFERENCIA)
+    return HTTPException(status_code=409, detail=_MENSAGEM_CASO_FORA_DA_CONFERENCIA)
+
+
+def _prazo_e_custo(snapshot: SnapshotOrdem, textos: TextosCanonicosPlano) -> dict[str, object]:
+    """`RF-546` (item 4) — lidos do snapshot, sem conta (`AC-42`): o prazo do
+    cenário recomendado e o custo de juros pela MESMA montagem da
+    homologação (`RF-96`), com o rótulo do motivo quando não disponível."""
+    cenario = snapshot.cenarios[snapshot.METODO_RECOMENDADO_PIQ]
+    custo = serializar_registro(
+        registrar_homologacao(snapshot, ()), rotulos=textos.rotulos_de_codigos
+    )["itens"]["custo_total_de_juros"]
+    return {
+        "SNAPSHOT_ID": snapshot.SNAPSHOT_ID,
+        "prazo": {"meses": cenario.PRAZO_TOTAL, "estourou_horizonte": cenario.ESTOUROU_HORIZONTE},
+        "custo_total_de_juros": {"valor": custo["valor"], "motivo": custo["motivo"]},
+    }
+
+
+@roteador.post("/api" + _RAIZ_DA_CONFERENCIA + "/ordem")
+def ajustar_ordem(
+    CASO_ID_REVISAO: str,
+    pedido: PedidoDeAjusteDaOrdem,
+    conta_id_revisor: Annotated[str, Depends(exigir_papel_revisor)],
+    repositorio_casos: Annotated[RepositorioCasos, Depends(obter_repositorio_casos_da_fila)],
+    repositorio_snapshots: Annotated[
+        RepositorioSnapshots, Depends(obter_repositorio_snapshots_da_fila)
+    ],
+    repositorio_eventos: Annotated[
+        RepositorioEventosCaso, Depends(obter_repositorio_eventos_da_decisao)
+    ],
+    fonte_parametros: Annotated[FonteParametros, Depends(obter_fonte_parametros)],
+) -> JSONResponse:
+    """`RF-546`, `RF-547` — o revisor muda a ordem de ataque na conferência
+    (plano `R18.1`, passos 1–8). Toda recusa sai antes de `anexar` e do
+    evento. A permutação é validada só no motor (`ErroOrdemDoRevisor` →
+    `422` com a causa); a regra de `OQ-101` é desta rota. O caso não muda de
+    estado: continua em `AGUARDANDO_REVISAO` e na fila.
+
+    `CASO_ID_REVISAO`, não `CASO_ID`: rota de papel, não de dono (nota de
+    `caso_para_revisao`). `def`, não `async def` — mesma nota de
+    `processar_decisao` (`T-187`): o cálculo e as gravações bloqueiam."""
+    caso = repositorio_casos.buscar(CASO_ID_REVISAO)
+    if caso is None or caso.snapshot_raiz_id is None:
+        raise HTTPException(status_code=404, detail=_MENSAGEM_SEM_PLANO)
+    historico = repositorio_snapshots.historico(caso.snapshot_raiz_id)
+    if not historico:
+        raise HTTPException(status_code=404, detail=_MENSAGEM_SEM_PLANO)
+    snapshot = historico[-1]
+    if caso.estado is not ESTADO_CASO.AGUARDANDO_REVISAO:
+        raise _recusa_fora_da_conferencia(caso.estado)
+
+    ordem = tuple(pedido.ordem)
+    motivo = pedido.motivo.strip()
+    if ordem and not motivo:
+        raise HTTPException(status_code=422, detail=_MENSAGEM_SEM_MOTIVO_INTERNO)
+    # `OQ-101`: a lista igual à vigente, ou a volta sem ajuste, não recalcula.
+    vigente, ajustada = ordem_vigente(snapshot)
+    if ordem == vigente or (not ordem and not ajustada):
+        raise HTTPException(status_code=409, detail=_MENSAGEM_NADA_A_RECALCULAR)
+
+    try:
+        novo = calcular_ajuste_da_ordem(snapshot, ordem, fonte_parametros, CASO_ID_REVISAO)
+    except ErroOrdemDoRevisor as erro:
+        raise HTTPException(status_code=422, detail=str(erro)) from erro
+    except (ErroParametros, ErroInvariante) as erro:
+        # `EC-82`: o executor já registrou a falha; nada anexado nem gravado.
+        raise HTTPException(status_code=500, detail=_MENSAGEM_FALHA_NO_RECALCULO) from erro
+
+    # `EC-81`: o aluno pode ter retirado o plano durante o cálculo.
+    relido = repositorio_casos.buscar(CASO_ID_REVISAO)
+    if relido is None or relido.estado is not ESTADO_CASO.AGUARDANDO_REVISAO:
+        raise _recusa_fora_da_conferencia(
+            relido.estado if relido is not None else ESTADO_CASO.COLETA_INICIAL
+        )
+
+    anexar_ajuste_da_ordem(novo, repositorio_snapshots, CASO_ID_REVISAO)
+    nova, ajustada_agora = ordem_vigente(novo)
+    registrar_ajuste_na_trilha(
+        repositorio_eventos,
+        caso_id=CASO_ID_REVISAO,
+        autor=conta_id_revisor,
+        motivo=motivo,
+        ordem_anterior=vigente,
+        ordem_nova=nova,
+        snapshot_anterior_id=snapshot.SNAPSHOT_ID,
+        snapshot_novo_id=novo.SNAPSHOT_ID,
+        agora=datetime.now(UTC),
+    )
+    textos = carregar_textos_canonicos()
+    return JSONResponse(
+        {
+            "CASO_ID": CASO_ID_REVISAO,
+            "SNAPSHOT_ID": novo.SNAPSHOT_ID,
+            "versao": novo.versao,
+            "ordem_vigente": list(nova),
+            "ajustada": ajustada_agora,
+            "antes": _prazo_e_custo(snapshot, textos),
+            "depois": _prazo_e_custo(novo, textos),
+        }
+    )
 
 
 def _snapshot_anterior(
