@@ -7820,11 +7820,11 @@ inline (`motor.py:497`) passa a ter nome, **sem mudar valor**, para servir de
 `sel_do_metodo` do Híbrido. `sel_por_metodo[HIBRIDO]` (`motor.py:560`) **não**
 muda (`OQ-102`, `T-578`).
 
-- [ ] O seletor é a única peça nova da simulação; `engine/ciclo_mensal.py` sem diff
-- [ ] Seletor do Híbrido com `§16.4` nomeado, mesmo objeto/valor de antes (`T-565` verde)
-- [ ] Rehash só de `engine/motor.py`; gates: lint, build, test
+- [x] O seletor é a única peça nova da simulação; `engine/ciclo_mensal.py` sem diff
+- [x] Seletor do Híbrido com `§16.4` nomeado, mesmo objeto/valor de antes (`T-565` verde)
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 

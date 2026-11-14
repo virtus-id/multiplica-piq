@@ -115,7 +115,7 @@ from engine.ataque_imediato import (
     derivar_RESERVA_RECOMENDADA,
 )
 from engine.beneficio_marginal import BeneficioMarginal, calcular_beneficio_marginal
-from engine.ciclo_mensal import Cenario, SelecionarAlvo, simular_cenario
+from engine.ciclo_mensal import Cenario, EstadoSimulacao, SelecionarAlvo, simular_cenario
 from engine.comparacao import comparar_cenarios
 from engine.diagnostico import Diagnostico, calcular_diagnostico
 from engine.estado import CERTEZA_RECURSO_EXTRAORDINARIO, Divida, EstadoFinanceiro
@@ -214,6 +214,26 @@ def _validar_ordem_do_revisor(
             + "; ".join(causas)
             + " (RF-545, AC-557)."
         )
+
+
+def _selecionar_pela_ordem_do_revisor(
+    lista: tuple[str, ...], dividas: Mapping[str, Divida], sel_do_metodo: SelecionarAlvo
+) -> SelecionarAlvo:
+    """`RF-545` (2) · `AC-555` · `EC-78` — a dívida da vez é a primeira de
+    `lista` ainda não quitada; sem candidata, vale `sel_do_metodo` (o seletor
+    do método recomendado COM `§16.4`). A primeira não quitada é estável até
+    quitar, o que já dá o alvo fixo (`O-02`). Única peça nova da simulação:
+    `engine/ciclo_mensal.py` não muda."""
+
+    def selecionar_pela_ordem_do_revisor(
+        estado: EstadoSimulacao, delta: Dinheiro
+    ) -> Divida | None:
+        for divida_id in lista:
+            if divida_id not in estado.quitadas:
+                return dividas[divida_id]
+        return sel_do_metodo(estado, delta)
+
+    return selecionar_pela_ordem_do_revisor
 
 
 def _inventario(estado: EstadoFinanceiro) -> dict[str, Divida]:
@@ -532,14 +552,18 @@ def calcular_plano(
             resultado_hibrido.classificacao is CLASSIFICACAO_CENARIO.CALCULAVEL
             and resultado_hibrido.selecionar_alvo is not None
         ):
+            # RF-545 (T-572): o seletor do Híbrido com §16.4 ganha nome para
+            # servir de fallback da lista do revisor; valor igual ao de antes.
+            # sel_por_metodo[HIBRIDO] abaixo continua SEM §16.4 (OQ-102).
+            sel_hibrido = aplicar_prioridade_ordem(
+                resultado_hibrido.selecionar_alvo, dividas, parametros
+            )
             cenario_hibrido = dataclasses.replace(
                 simular_cenario(
                     estado,
                     diagnostico_pre,
                     dividas,
-                    aplicar_prioridade_ordem(
-                        resultado_hibrido.selecionar_alvo, dividas, parametros
-                    ),
+                    sel_hibrido,
                     parametros,
                     aportes_base_por_mes,
                 ),
