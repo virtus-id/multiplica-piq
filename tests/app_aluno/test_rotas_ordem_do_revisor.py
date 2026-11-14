@@ -19,7 +19,7 @@ import json
 import logging
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -30,7 +30,7 @@ from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
 from app.casos.maquina import ESTADO_CASO, Caso
-from app.http import rotas_plano
+from app.http import rotas_api_plano, rotas_plano
 from app.http.aplicacao import criar_aplicacao
 from app.http.edicao import MENSAGEM_FORA_DA_CONFERENCIA
 from app.http.isolamento import obter_repositorio_casos, obter_repositorio_contas_para_papel
@@ -57,6 +57,7 @@ from app.http.rotas_inicio import (
 )
 from app.http.rotas_plano import obter_contas_dos_casos
 from app.http.rotas_plano import obter_repositorio_snapshots as obter_repositorio_snapshots_do_aluno
+from app.http.rotas_respostas import obter_repositorio_eventos_da_retomada
 from app.http.rotas_revisao import (
     obter_colecao_de_registros_da_revisao,
     obter_repositorio_casos_da_fila,
@@ -73,7 +74,7 @@ from app.notificacao.email import obter_enviador
 from app.revisao.fila import RegistroRevisao
 from app.revisao.ordem_do_revisor import TIPO_EVENTO_AJUSTE_DA_ORDEM, ordem_vigente
 from collection.carga import carregar_registros
-from collection.respostas import Resposta
+from collection.respostas import Resposta, ValorResposta
 from engine.ciclo_mensal import ErroInvariante
 from engine.estado import EstadoFinanceiro
 from engine.motor import calcular_plano
@@ -90,6 +91,7 @@ from tests.app_aluno.test_rotas_calculo import (
     _ParametrosExternosFabricados,
     _RepositorioItensDublê,
 )
+from tests.invariantes.test_gab04_estabilizacao import _estado_gab04
 from tests.regras.test_ordem_do_revisor import (
     _estado,
     _estado_ac555,
@@ -137,6 +139,16 @@ class Respostas:
 
     def listar_do_caso(self, caso_id: str) -> tuple[Resposta, ...]:
         return tuple(self.respostas)
+
+    def trocar(self, item_id: str, valores: dict[str, ValorResposta]) -> None:
+        """O aluno muda respostas da ficha `item_id` (`RF-69`)."""
+        modelo = next(r for r in self.respostas if r.item_id == item_id)
+        self.respostas = [
+            r for r in self.respostas if not (r.item_id == item_id and r.ID_PERGUNTA in valores)
+        ] + [
+            replace(modelo, ID_PERGUNTA=variavel, valor=valor)
+            for variavel, valor in valores.items()
+        ]
 
 
 class Revisoes:
@@ -306,6 +318,7 @@ def cenario(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Cenario:
         obter_repositorio_snapshots_da_fila: lambda: snapshots,
         obter_repositorio_eventos: lambda: eventos,
         obter_repositorio_eventos_da_decisao: lambda: eventos,
+        obter_repositorio_eventos_da_retomada: lambda: eventos,
         obter_repositorio_revisoes_da_decisao: lambda: revisoes,
         obter_repositorio_revisoes_do_inicio: lambda: revisoes,
         obter_fonte_parametros: lambda: fonte,
@@ -694,3 +707,109 @@ def test_ec82_falha_do_motor_responde_500_e_o_plano_nao_muda(
         "Não foi possível recalcular. O plano não mudou.",
     )
     _nada_mudou(cenario, historico, ESTADO_CASO.AGUARDANDO_REVISAO)
+
+
+# --- T-590: a conferência depois do ajuste ---
+
+
+def _ordem_na_conferencia(cenario: Cenario) -> dict[str, Any]:
+    resposta = cenario.revisor.get(f"/api/revisao/caso/{CASO_ID}")
+    assert resposta.status_code == 200
+    ordem: dict[str, Any] = resposta.json()["ordem_do_revisor"]
+    return ordem
+
+
+def test_ac569_ordem_vigente_pelo_nome_do_plano_editavel_na_conferencia(
+    cenario: Cenario,
+) -> None:
+    cenario.enviar()
+    corpo = cenario.revisor.get(f"/api/revisao/caso/{CASO_ID}").json()
+    nomes = {p["DIVIDA_ID"]: p["nome"] for p in corpo["plano"]["ordem"]}
+    assert all(nome != divida_id for divida_id, nome in nomes.items())
+
+    assert corpo["ordem_do_revisor"] == {
+        "vigente": [{"DIVIDA_ID": d, "nome": nomes[d]} for d in DIVIDAS],
+        "ajustada": False,
+        "editavel": True,
+    }
+
+    cenario.ajustar(_LISTA)
+    ordem = _ordem_na_conferencia(cenario)
+    assert [p["DIVIDA_ID"] for p in ordem["vigente"]] == _LISTA
+    assert [p["nome"] for p in ordem["vigente"]] == [nomes[d] for d in _LISTA]
+    assert (ordem["ajustada"], ordem["editavel"]) == (True, True)
+
+
+def test_ac569_sem_edicao_fora_da_conferencia(cenario: Cenario) -> None:
+    cenario.enviar()
+    assert cenario.decidir("decisao=LIBERAR").status_code == 200
+
+    ordem = _ordem_na_conferencia(cenario)
+
+    assert cenario.caso().estado is ESTADO_CASO.PLANO_LIBERADO
+    assert ordem["editavel"] is False
+
+
+@pytest.mark.parametrize(
+    "estado",
+    [
+        pytest.param(_estado_gab04, id="estabilizacao"),
+        pytest.param(lambda: _estado("4800", ("D001", "2000", "0.02", "200")), id="uma-divida"),
+    ],
+)
+def test_ac569_sem_edicao_em_estabilizacao_e_com_uma_divida(
+    cenario: Cenario, estado: Callable[[], EstadoFinanceiro]
+) -> None:
+    cenario.instalar(calcular_plano(estado(), FonteParametrosArquivo().carregar("1.0.1")))
+
+    assert _ordem_na_conferencia(cenario)["editavel"] is False
+
+
+def test_ac570_conferencia_homologacao_e_previa_recebem_a_v2(
+    cenario: Cenario, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    previas: list[SnapshotOrdem] = []
+
+    def previa(snapshot: SnapshotOrdem, *_args: object) -> bytes:
+        previas.append(snapshot)
+        return b"%PDF-previa"
+
+    monkeypatch.setattr(rotas_api_plano, "gerar_pdf_de_previa", previa)
+    cenario.enviar()
+
+    assert cenario.ajustar(_LISTA).status_code == 200
+
+    v2 = cenario.historico()[-1]
+    plano = cenario.revisor.get(f"/api/revisao/caso/{CASO_ID}").json()["plano"]
+    assert [p["DIVIDA_ID"] for p in plano["ordem"]] == list(_ids(v2))
+    # A dívida da vez no Mês 01 é a primeira da lista.
+    primeira = next(p for p in plano["ordem"] if p["DIVIDA_ID"] == _LISTA[0])
+    recebe = next(f["valor"] for f in primeira["fatos"] if f["rotulo"] == "Recebe o valor extra")
+    assert recebe == f"A partir de {plano['prognostico']['eixo_inicio']}"
+    decisao = cenario.revisor.get(f"/revisao/caso/{CASO_ID}/decisao").json()
+    assert decisao["SNAPSHOT_ID"] == v2.SNAPSHOT_ID
+    assert cenario.revisor.get(f"/revisao/caso/{CASO_ID}/plano/pdf").status_code == 200
+    (na_previa,) = previas
+    assert na_previa == v2
+    assert v2.prognostico is not None
+    assert v2.prognostico.MESES_DO_PLANO[0].DIVIDA_ALVO == _LISTA[0]
+
+
+def test_ac572_o_que_mudou_compara_os_envios_e_pula_o_ajuste(cenario: Cenario) -> None:
+    """`AC-572` parte de um plano liberado que o aluno refez; desde `RF-409`
+    (`enxugamento-questionario`) o plano entregue é definitivo e a v2 nasce
+    quando o aluno retira o plano da conferência (`RF-115`) — o mesmo caminho
+    de `test_ac192`."""
+    cenario.enviar()
+    cenario.respostas.trocar("D003", {"TAXA_DIVIDA": converter_para_taxa("8")})
+    assert cenario.aluno.post(f"/caso/{CASO_ID}/retomar-edicao").status_code == 200
+    cenario.enviar()
+    assert cenario.ajustar(_LISTA).status_code == 200
+    assert [s.versao for s in cenario.historico()] == [1, 2, 3]
+
+    mudancas = cenario.revisor.get(f"/api/revisao/caso/{CASO_ID}").json()["mudancas"]
+
+    assert mudancas is not None
+    (taxa,) = [m for m in mudancas if m["situacao"] == "alterado"]
+    assert "axa" in taxa["nome"]
+    assert "4" in taxa["de"] and "8" in taxa["para"]

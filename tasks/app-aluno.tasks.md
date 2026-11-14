@@ -14325,12 +14325,12 @@ editavel}`; `vigente` de `ordem_vigente(historico[-1])`; `nome` de
 - **Tipo:** `Test` · **Dependências:** `T-584`, `T-588`, `T-589` · **Rastreia:** `AC-569` (servidor), `AC-570` (servidor), `AC-572` · `RF-124` · plano `R18.9` (Conferência)
 - **Arquivos:** `tests/app_aluno/test_rotas_ordem_do_revisor.py`
 
-- [ ] `ordem_do_revisor`: caso editável (três dívidas, nomes legíveis, `ajustada` falso/verdadeiro) e `editavel = false` fora de `AGUARDANDO_REVISAO`, em estabilização e com uma dívida só
-- [ ] `AC-570`: depois do `POST`, o `GET` do caso e a prévia (`GET /revisao/caso/{id}/plano/pdf`, com `gerar_pdf_de_previa` substituída) recebem a v2; dívida da vez no Mês 01 = primeira da lista
-- [ ] `AC-572`: liberado v1, refeito com taxa 4% → 8% (v2), ajustado (v3) → "O que mudou" lista 4% → 8%
-- [ ] Gates: lint, build, test
+- [x] `ordem_do_revisor`: caso editável (três dívidas, nomes legíveis, `ajustada` falso/verdadeiro) e `editavel = false` fora de `AGUARDANDO_REVISAO`, em estabilização e com uma dívida só
+- [x] `AC-570`: depois do `POST`, o `GET` do caso e a prévia (`GET /revisao/caso/{id}/plano/pdf`, com `gerar_pdf_de_previa` substituída) recebem a v2; dívida da vez no Mês 01 = primeira da lista
+- [x] `AC-572`: liberado v1, refeito com taxa 4% → 8% (v2), ajustado (v3) → "O que mudou" lista 4% → 8%
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; `AC-572` pelo caminho de `RF-115` (retirar da conferência): `RF-409` desligou o plano novo depois da liberação — spec a corrigir
 
 ---
 
