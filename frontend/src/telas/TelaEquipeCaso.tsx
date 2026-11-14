@@ -22,6 +22,7 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import Botao from '../componentes/Botao'
 import Esqueleto from '../componentes/Esqueleto'
 import Icone from '../componentes/Icone'
+import OrdemDoRevisor from '../componentes/OrdemDoRevisor'
 import PontoDePartida from '../componentes/PontoDePartida'
 import {
   AnaliseFinanceira,
@@ -34,6 +35,7 @@ import Tela from '../componentes/Tela'
 import {
   type CasoParaRevisao,
   type OpcoesDeDecisao,
+  type ResultadoDoAjusteDaOrdem,
   decidirRevisao,
   obterCasoParaRevisao,
   obterOpcoesDeDecisao,
@@ -85,9 +87,13 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
   const [aviso, setAviso] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
+  // `RF-548`/`AC-570`: o antes/depois é a resposta do `POST` e sobrevive à recarga.
+  const [ultimoAjuste, setUltimoAjuste] = useState<ResultadoDoAjusteDaOrdem | null>(null)
 
-  const carregar = useCallback(async () => {
-    setCarregando(true)
+  // `recarga`: depois do ajuste da ordem, relê sem trocar a tela pelo
+  // esqueleto — o revisor continua onde estava.
+  const carregar = useCallback(async (recarga = false) => {
+    if (!recarga) setCarregando(true)
     setErro(null)
     try {
       const [caso, opcoes] = await Promise.all([
@@ -100,9 +106,16 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
     } catch (falha) {
       setErro(falha instanceof Error ? falha.message : 'Não foi possível carregar o caso.')
     } finally {
-      setCarregando(false)
+      if (!recarga) setCarregando(false)
     }
   }, [casoId])
+
+  function aoAjustarOrdem(resultado: ResultadoDoAjusteDaOrdem) {
+    // `AC-570`: plano do aluno, homologação e prévia passam a ser os da nova versão.
+    setUltimoAjuste(resultado)
+    setAviso('Plano recalculado na nova ordem. O plano, a homologação e a prévia já são os da nova versão.')
+    void carregar(true)
+  }
 
   useEffect(() => {
     void carregar()
@@ -232,6 +245,19 @@ export default function TelaEquipeCaso({ casoId, voltar }: TelaEquipeCasoProps) 
           <AnaliseFinanceira plano={plano} />
           {dados.deficitario && <CenariosDoDeficitario bloco={dados.deficitario} />}
           <TabelaDeDividas plano={plano} entradas={entradas} />
+
+          {/* `RF-548`: só com duas ou mais dívidas; a edição depende de
+              `editavel`, que o servidor decide. A `key` remonta a seção com a
+              nova ordem vigente depois do recálculo. */}
+          {(dados.ordem_do_revisor?.vigente.length ?? 0) >= 2 && (
+            <OrdemDoRevisor
+              key={fila.SNAPSHOT_ID}
+              casoId={casoId}
+              ordem={dados.ordem_do_revisor}
+              ultimoAjuste={ultimoAjuste}
+              aoAjustar={aoAjustarOrdem}
+            />
+          )}
 
           {plano.ponto_de_partida && (
             <PontoDePartida

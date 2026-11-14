@@ -14471,11 +14471,11 @@ mensagem e preservam lista e motivo; antes/depois de `ultimoAjuste`. Com
 `ultimoAjuste`; no `200`, chama `carregar()` (plano do aluno, homologação e link
 da prévia passam a refletir a v2). Em `409`/`422`, nada recarrega.
 
-- [ ] Seção só aparece com duas ou mais dívidas na ordem (o componente cuida do `editavel`)
-- [ ] Antes/depois continua visível depois da recarga
-- [ ] Build do frontend verde
+- [x] Seção só aparece com duas ou mais dívidas na ordem (o componente cuida do `editavel`)
+- [x] Antes/depois continua visível depois da recarga
+- [x] Build do frontend verde
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; a recarga depois do ajuste é `carregar(true)`, sem trocar a tela pelo esqueleto (o revisor não perde o lugar); a seção remonta pela `key` do `SNAPSHOT_ID` com a nova ordem vigente
 
 ---
 
