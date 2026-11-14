@@ -14172,13 +14172,13 @@ sort_keys=True))`.
 - **Tipo:** `Test` · **Dependências:** `T-581` · **Rastreia:** `RF-546`, `RF-547`, `RF-549`, `AC-568`, `AC-572` · plano `R18.9`
 - **Arquivos:** `tests/app_aluno/test_ordem_do_revisor.py` (novo)
 
-- [ ] `ordem_vigente` nos quatro ramos, inclusive a carteira em que uma dívida termina só com as parcelas (ordem de ataque ≠ `ORDEM_QUITACAO`) e a dívida que só recebe resíduo no mês em que quita (vai para o fim)
-- [ ] `e_ajuste_da_ordem` verdadeiro no ajuste e na volta, falso nos demais
-- [ ] `anterior_para_comparar`: pula ajustes; `None` com menos de dois snapshots de envio (`AC-572`, unitário)
-- [ ] Evento gravado com as seis chaves e estados nulos; `lista_de_casos` mantém o "parado há" do envio
-- [ ] Gates: lint, build, test
+- [x] `ordem_vigente` nos quatro ramos, inclusive a carteira em que uma dívida termina só com as parcelas (ordem de ataque ≠ `ORDEM_QUITACAO`) e a dívida que só recebe resíduo no mês em que quita (vai para o fim)
+- [x] `e_ajuste_da_ordem` verdadeiro no ajuste e na volta, falso nos demais
+- [x] `anterior_para_comparar`: pula ajustes; `None` com menos de dois snapshots de envio (`AC-572`, unitário)
+- [x] Evento gravado com as seis chaves e estados nulos; `lista_de_casos` mantém o "parado há" do envio
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
