@@ -31,6 +31,7 @@ from __future__ import annotations
 import dataclasses
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -814,3 +815,114 @@ def test_t471_snapshot_antigo_com_cenarios_de_economia_continua_legivel(
 
     assert reconstruido.SNAPSHOT_ID == original.SNAPSHOT_ID
     assert not hasattr(reconstruido, "cenarios_economia")
+
+
+# ---------------------------------------------------------------------------
+# T-568 — SnapshotOrdem.ORDEM_DO_REVISOR (RF-545, AC-560)
+# ---------------------------------------------------------------------------
+_LISTA_DO_REVISOR = ("D003", "D001", "D002")
+
+
+def _linha_postgres(original: SnapshotOrdem) -> dict[str, Any]:
+    """Linha de `piq_motor_calculo.snapshots` como o `psycopg` a devolveria,
+    montada com o mesmo `_dados_completos` que `anexar` grava (sem banco)."""
+    import json
+
+    from persistencia.supabase.repositorio_snapshots import _dados_completos
+
+    return {
+        "SNAPSHOT_ID": original.SNAPSHOT_ID,
+        "versao": original.versao,
+        "snapshot_anterior_id": original.snapshot_anterior_id,
+        "DATA_REFERENCIA": original.DATA_REFERENCIA,
+        "MOTIVO_RECALCULO": original.MOTIVO_RECALCULO,
+        "EVENTO_RECALCULO": None,
+        "hash_inputs": original.hash_inputs,
+        "METODO_RECOMENDADO_PIQ": original.METODO_RECOMENDADO_PIQ.value,
+        "STATUS_METODO": original.STATUS_METODO.value,
+        "ORDEM_STATUS": original.ORDEM_STATUS.value,
+        "REVISAO_HUMANA_OBRIGATORIA": original.REVISAO_HUMANA_OBRIGATORIA,
+        "DIVIDA_ALVO_ATUAL": original.DIVIDA_ALVO_ATUAL,
+        "PROXIMA_DIVIDA": original.PROXIMA_DIVIDA,
+        "ENGINE_VERSION": original.ENGINE_VERSION,
+        "PARAMETROS_VERSION": original.PARAMETROS_VERSION,
+        "dados_completos": json.loads(json.dumps(_dados_completos(original))),
+    }
+
+
+@pytest.mark.regra
+def test_t568_ordem_do_revisor_round_trip_arquivo(
+    tmp_path: Path, _estado_e_parametros: tuple[EstadoFinanceiro, Parametros]
+) -> None:
+    """`AC-560`: a lista gravada volta como a mesma tupla e o mesmo
+    `SNAPSHOT_ID`; o formato no arquivo é uma lista JSON."""
+    import json
+
+    estado, parametros = _estado_e_parametros
+    original = dataclasses.replace(
+        _montar_snapshot_gab_c(estado=estado, parametros=parametros),
+        ORDEM_DO_REVISOR=_LISTA_DO_REVISOR,
+    )
+    caminho = tmp_path / "snapshots.jsonl"
+    RepositorioSnapshotsArquivo(caminho).anexar(original)
+
+    assert json.loads(caminho.read_text(encoding="utf-8"))["ORDEM_DO_REVISOR"] == list(
+        _LISTA_DO_REVISOR
+    )
+    reconstruido = RepositorioSnapshotsArquivo(caminho).obter(original.SNAPSHOT_ID)
+    assertar_exato(reconstruido.ORDEM_DO_REVISOR, _LISTA_DO_REVISOR)
+    assertar_exato(reconstruido.SNAPSHOT_ID, original.SNAPSHOT_ID)
+    assertar_exato(reconstruido, original)
+
+
+@pytest.mark.regra
+def test_t568_snapshot_anterior_sem_a_chave_volta_sem_ordem_do_revisor(
+    tmp_path: Path, _estado_e_parametros: tuple[EstadoFinanceiro, Parametros]
+) -> None:
+    """`AC-560`: linha de `snapshots.jsonl` gravada antes de `RF-545` (sem a
+    chave) → `ORDEM_DO_REVISOR is None` e o mesmo `SNAPSHOT_ID`."""
+    import json
+
+    estado, parametros = _estado_e_parametros
+    caminho = tmp_path / "snapshots.jsonl"
+    original = _montar_snapshot_gab_c(estado=estado, parametros=parametros)
+    RepositorioSnapshotsArquivo(caminho).anexar(original)
+    bruto = json.loads(caminho.read_text(encoding="utf-8"))
+    assert bruto["ORDEM_DO_REVISOR"] is None
+    del bruto["ORDEM_DO_REVISOR"]
+    caminho.write_text(json.dumps(bruto) + "\n", encoding="utf-8")
+
+    reconstruido = RepositorioSnapshotsArquivo(caminho).obter(original.SNAPSHOT_ID)
+
+    assert reconstruido.ORDEM_DO_REVISOR is None
+    assertar_exato(reconstruido.SNAPSHOT_ID, original.SNAPSHOT_ID)
+    assertar_exato(reconstruido, original)
+
+
+@pytest.mark.regra
+@pytest.mark.parametrize("lista", [None, _LISTA_DO_REVISOR])
+def test_t568_ordem_do_revisor_round_trip_caminho_postgres(
+    lista: tuple[str, ...] | None, _estado_e_parametros: tuple[EstadoFinanceiro, Parametros]
+) -> None:
+    """`AC-560`: `_dados_completos` → `_bruto_para_formato_arquivo` preserva a
+    lista (ou a ausência dela); linha anterior sem a chave volta com `None`."""
+    from persistencia.arquivo.repositorio_snapshots import _desserializar_snapshot
+    from persistencia.supabase.repositorio_snapshots import _bruto_para_formato_arquivo
+
+    estado, parametros = _estado_e_parametros
+    original = dataclasses.replace(
+        _montar_snapshot_gab_c(estado=estado, parametros=parametros), ORDEM_DO_REVISOR=lista
+    )
+    linha = _linha_postgres(original)
+
+    reconstruido = _desserializar_snapshot(_bruto_para_formato_arquivo(linha))
+    assertar_exato(reconstruido.ORDEM_DO_REVISOR, lista)
+    assertar_exato(reconstruido.SNAPSHOT_ID, original.SNAPSHOT_ID)
+
+    dados_antigos = dict(linha["dados_completos"])
+    del dados_antigos["ORDEM_DO_REVISOR"]
+    antigo = _desserializar_snapshot(
+        _bruto_para_formato_arquivo({**linha, "dados_completos": dados_antigos})
+    )
+    assert antigo.ORDEM_DO_REVISOR is None
+    assertar_exato(antigo.SNAPSHOT_ID, original.SNAPSHOT_ID)

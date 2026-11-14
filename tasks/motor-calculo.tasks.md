@@ -7740,12 +7740,12 @@ lido, nunca recalculado na leitura.
 - **Tipo:** `Test` · **Dependências:** `T-567` · **Rastreia:** `AC-560` (leitura do snapshot antigo) · plano `R13.9`
 - **Arquivos:** `tests/regras/test_snapshot.py` (ou o teste de paridade arquivo × Supabase existente, `T-76`)
 
-- [ ] Arquivo: snapshot com a lista → gravar → ler → mesma tupla, mesmo `SNAPSHOT_ID`
-- [ ] Arquivo: linha de `snapshots.jsonl` gravada sem a chave → `None` e mesmo `SNAPSHOT_ID` (`AC-560`)
-- [ ] Supabase: `_dados_completos` → `_bruto_para_formato_arquivo` com e sem o campo (sem banco real)
-- [ ] Gates: lint, build, test
+- [x] Arquivo: snapshot com a lista → gravar → ler → mesma tupla, mesmo `SNAPSHOT_ID`
+- [x] Arquivo: linha de `snapshots.jsonl` gravada sem a chave → `None` e mesmo `SNAPSHOT_ID` (`AC-560`)
+- [x] Supabase: `_dados_completos` → `_bruto_para_formato_arquivo` com e sem o campo (sem banco real)
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 
