@@ -14140,11 +14140,11 @@ ordem de quitação → `ORDEM_QUITACAO` sem prognóstico), restrita ao conjunto
 MOTIVO_AJUSTE_DA_ORDEM`); `anterior_para_comparar(historico)` (penúltimo entre
 os que não são ajuste; `None` com menos de dois).
 
-- [ ] Nenhuma importação de `report/plano.py`; nenhuma operação numérica sobre campos do snapshot
-- [ ] `test_sem_aritmetica_sobre_snapshot` e `test_fronteira_import_engine` verdes
-- [ ] Gates: lint, build, test
+- [x] Nenhuma importação de `report/plano.py`; nenhuma operação numérica sobre campos do snapshot
+- [x] `test_sem_aritmetica_sobre_snapshot` e `test_fronteira_import_engine` verdes
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
@@ -14159,11 +14159,11 @@ snapshot_novo_id, agora)` grava `EventoCaso(tipo_evento=TIPO_EVENTO_AJUSTE_DA_OR
 estado_de=None, estado_para=None, ocorrido_em=agora, detalhe=json.dumps({...},
 sort_keys=True))`.
 
-- [ ] `estado_de`/`estado_para` nulos (o "parado há" de `lista_de_casos._ultima_entrada` não zera)
-- [ ] `detalhe` com as seis chaves de `R18.4`; motivo vazio aceito (volta, `OQ-99`)
-- [ ] Gates: lint, build, test
+- [x] `estado_de`/`estado_para` nulos (o "parado há" de `lista_de_casos._ultima_entrada` não zera)
+- [x] `detalhe` com as seis chaves de `R18.4`; motivo vazio aceito (volta, `OQ-99`)
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
