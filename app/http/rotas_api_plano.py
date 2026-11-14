@@ -102,7 +102,11 @@ from app.revisao.lista_de_casos import (
     consultar_casos,
     montar_linhas,
 )
-from app.revisao.ordem_do_revisor import ordem_vigente, registrar_ajuste_na_trilha
+from app.revisao.ordem_do_revisor import (
+    anterior_para_comparar,
+    ordem_vigente,
+    registrar_ajuste_na_trilha,
+)
 from collection.carga import ColecaoDeRegistros
 from collection.respostas import RespostasCaso
 from engine.ciclo_mensal import ErroInvariante
@@ -481,7 +485,14 @@ def caso_para_revisao(
     (`para_revisor=True`).
 
     `mudancas` (`RF-123`, `AC-192`): o que mudou nos dados de entrada em
-    relação à versão anterior; `null` na versão 1.
+    relação à versão anterior; `null` na versão 1. `T-589` (`RF-549`,
+    `AC-572`): o anterior pula os snapshots de ajuste da ordem — o revisor
+    continua vendo o que o ALUNO mudou.
+
+    `ordem_do_revisor` (`T-588`, `RF-548`): a ordem de ataque vigente pelo
+    nome do plano (`RF-111`), se foi ajustada e se dá para editar — veredito
+    do servidor: em conferência, fora de estabilização e com duas ou mais
+    dívidas.
 
     O parâmetro se chama `CASO_ID_REVISAO`, não `CASO_ID`, de propósito: a
     auditoria de isolamento casa pelo nome literal, e esta rota é do
@@ -510,7 +521,7 @@ def caso_para_revisao(
     )
     respostas_do_caso = RespostasCaso(respostas=respostas_brutas)
 
-    anterior = _snapshot_anterior(snapshot, repositorio_snapshots)
+    anterior = anterior_para_comparar(historico)
 
     # `T-326` (`RF-111`): rótulos do registro e credores — o revisor lê
     # "Cheque especial — CAIXA", não `D011`; o código fica como detalhe. Com
@@ -548,6 +559,8 @@ def caso_para_revisao(
             montar_contexto_estado_inputs(anterior.estado_inputs, textos, vocabulario),
         )
     )
+    vigente, ajustada = ordem_vigente(snapshot)
+    nome_por_divida = {posicao.DIVIDA_ID: posicao.nome for posicao in contexto.ordem}
     return JSONResponse(
         {
             "CASO_ID": CASO_ID_REVISAO,
@@ -573,6 +586,15 @@ def caso_para_revisao(
                 textos,
                 emails.emails_dos_casos((CASO_ID_REVISAO,)).get(CASO_ID_REVISAO),
             ),
+            "ordem_do_revisor": {
+                "vigente": [
+                    {"DIVIDA_ID": d, "nome": nome_por_divida.get(d) or d} for d in vigente
+                ],
+                "ajustada": ajustada,
+                "editavel": caso.estado is ESTADO_CASO.AGUARDANDO_REVISAO
+                and not snapshot.diagnostico.MODO_ESTABILIZACAO
+                and len(vigente) >= 2,
+            },
         }
     )
 
@@ -732,18 +754,6 @@ def ajustar_ordem(
             "depois": _prazo_e_custo(novo, textos),
         }
     )
-
-
-def _snapshot_anterior(
-    snapshot: SnapshotOrdem, repositorio_snapshots: RepositorioSnapshots
-) -> SnapshotOrdem | None:
-    """A versão anterior da cadeia, ou `None` na versão 1 (ou se ela sumiu)."""
-    if snapshot.snapshot_anterior_id is None:
-        return None
-    try:
-        return repositorio_snapshots.obter(snapshot.snapshot_anterior_id)
-    except ErroSnapshotNaoEncontrado:
-        return None
 
 
 def _nome_do_aluno(emails: EmailsDosAlunos, caso_id: str) -> str | None:

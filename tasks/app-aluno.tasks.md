@@ -14296,11 +14296,11 @@ editavel}`; `vigente` de `ordem_vigente(historico[-1])`; `nome` de
 `contexto.ordem` (o do plano, `RF-111`), senão o `DIVIDA_ID`; `editavel` =
 `AGUARDANDO_REVISAO` **e** fora de `MODO_ESTABILIZACAO` **e** duas ou mais dívidas.
 
-- [ ] O veredito de `editavel` é do servidor; o cliente não recalcula
-- [ ] Demais campos do payload inalterados
-- [ ] Gates: lint, build, test
+- [x] O veredito de `editavel` é do servidor; o cliente não recalcula
+- [x] Demais campos do payload inalterados
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
@@ -14313,10 +14313,10 @@ editavel}`; `vigente` de `ordem_vigente(historico[-1])`; `nome` de
 `anterior_para_comparar(historico)`; o atual continua `historico[-1]`.
 `_snapshot_anterior` fica sem uso e sai.
 
-- [ ] v1 → `mudancas = null`, como hoje; testes existentes de `RF-123` (`test_rotas_revisao_comparacao.py`) verdes
-- [ ] Gates: lint, build, test
+- [x] v1 → `mudancas = null`, como hoje; testes existentes de `RF-123` (`test_rotas_revisao_comparacao.py`) verdes
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
