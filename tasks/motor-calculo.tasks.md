@@ -7897,12 +7897,12 @@ tolerância zero para ordem, prazo, método e status. Um teste por critério.
 - **Tipo:** `Test` · **Dependências:** `T-574` · **Rastreia:** `AC-559`, `AC-561`, `EC-80` · `OQ-97` · plano `R13.9`
 - **Arquivos:** `tests/regras/test_ordem_do_revisor.py`
 
-- [ ] `AC-559`: com e sem a lista, `prognostico.sem_acao`, `diagnostico`, `ORDEM_ACOES`, `comparacao` e cenários não recomendados idênticos
-- [ ] `AC-561`: `CONTRIBUICAO_EXTRA_MENSAL` positiva → alvo de cada mês de `com_extra.MESES` = primeira da lista não quitada; `MESES_ANTECIPADOS`/`ECONOMIA_CUSTO` comparam com o plano na ordem da lista; com recurso `PROVAVEL` (e outro com `POSSIVEL`), alvo de cada mês do `cenario_adicional` idem
-- [ ] `EC-80`: lista = ordem de ataque que o método seguiu (lida do mês a mês, numa carteira em que uma dívida termina sozinha) → mesmos números, mas `ORDEM_DO_REVISOR` presente, `hash_inputs` diferente e justificativa "definida pelo revisor"; contraexemplo: lista = `ORDEM_QUITACAO` publicada → números diferentes
-- [ ] Gates: lint, build, test
+- [x] `AC-559`: com e sem a lista, `prognostico.sem_acao`, `diagnostico`, `ORDEM_ACOES`, `comparacao` e cenários não recomendados idênticos
+- [x] `AC-561`: `CONTRIBUICAO_EXTRA_MENSAL` positiva → alvo de cada mês de `com_extra.MESES` = primeira da lista não quitada; `MESES_ANTECIPADOS`/`ECONOMIA_CUSTO` comparam com o plano na ordem da lista; com recurso `PROVAVEL` (e outro com `POSSIVEL`), alvo de cada mês do `cenario_adicional` idem
+- [x] `EC-80`: lista = ordem de ataque que o método seguiu (lida do mês a mês, numa carteira em que uma dívida termina sozinha) → mesmos números, mas `ORDEM_DO_REVISOR` presente, `hash_inputs` diferente e justificativa "definida pelo revisor"; contraexemplo: lista = `ORDEM_QUITACAO` publicada → números diferentes
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 

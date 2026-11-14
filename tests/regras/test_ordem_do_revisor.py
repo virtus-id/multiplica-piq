@@ -14,13 +14,22 @@ from decimal import Decimal
 
 import pytest
 
-from engine.estado import Divida, EstadoFinanceiro
+from engine.ciclo_mensal import EstadoSimulacao, simular_cenario
+from engine.diagnostico import calcular_diagnostico
+from engine.estado import (
+    CERTEZA_RECURSO_EXTRAORDINARIO,
+    JANELA_RECURSO_EXTRAORDINARIO,
+    Divida,
+    EstadoFinanceiro,
+    RecursoExtraordinario,
+)
+from engine.extraordinarios import aportes_por_mes, selecionar_aportes
 from engine.motor import MOTIVO_AJUSTE_DA_ORDEM, ErroOrdemDoRevisor, calcular_plano
 from engine.ordem import _DESCRICAO_CRITERIO
 from engine.parametros import Parametros
 from engine.precisao import dinheiro
 from engine.prognostico import MesDoPlano
-from engine.tipos import DESCONHECIDO
+from engine.tipos import DESCONHECIDO, Dinheiro
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from tests.fixtures.carregar import carregar_gab_c
 from tests.invariantes.test_gab04_estabilizacao import _estado_gab04
@@ -235,3 +244,168 @@ def test_ec78_divida_que_acaba_sozinha_antes_da_vez_e_pulada() -> None:
     assert meses[mes_d003 - 1].DIVIDA_ALVO == "D001"
     assert tuple(p.DIVIDA_ID for p in com.ORDEM_QUITACAO) != lista
     assert com.ORDEM_DO_REVISOR == lista
+
+
+# --- T-576: derivados do cenário publicado e a lista igual à ordem de ataque ---
+
+
+def _estado_ec80() -> EstadoFinanceiro:
+    """`D003` termina sozinha (parcela alta, sem juros) antes de ser a vez."""
+    return _estado(
+        "3600",
+        ("D001", "2000", "0.02", "200"),
+        ("D002", "4000", "0.03", "250"),
+        ("D003", "3000", "0.00", "1000"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("estado", "lista"),
+    [
+        pytest.param(_estado_ac555, _LISTA, id="estado-ac555"),
+        # a lista alonga o prazo (4 -> 5): o vermelho fica no horizonte do método
+        pytest.param(_estado_ec80, ("D001", "D003", "D002"), id="prazo-publicado-maior"),
+    ],
+)
+def test_ac559_vermelho_diagnostico_acoes_comparacao_e_outros_metodos_nao_mudam(
+    estado: Callable[[], EstadoFinanceiro], lista: tuple[str, ...]
+) -> None:
+    parametros = _parametros()
+    sem = calcular_plano(estado(), parametros)
+    com = calcular_plano(estado(), parametros, ordem_do_revisor=lista)
+
+    assert sem.prognostico is not None and com.prognostico is not None
+    assert com.prognostico.sem_acao == sem.prognostico.sem_acao
+    assert com.diagnostico == sem.diagnostico
+    assert com.ORDEM_ACOES == sem.ORDEM_ACOES
+    assert com.comparacao == sem.comparacao
+    outros = set(sem.cenarios) - {sem.METODO_RECOMENDADO_PIQ}
+    assert outros
+    for metodo in outros:
+        assert com.cenarios[metodo] == sem.cenarios[metodo]
+    # o publicado muda (a lista não é a ordem do método)
+    recomendado = sem.METODO_RECOMENDADO_PIQ
+    assert com.cenarios[recomendado] != sem.cenarios[recomendado]
+
+
+def _selecionar_pela_lista(
+    lista: Sequence[str], dividas: dict[str, Divida]
+) -> Callable[[EstadoSimulacao, Dinheiro], Divida | None]:
+    """Oráculo do teste: a primeira da lista ainda não quitada."""
+
+    def selecionar(estado: EstadoSimulacao, _delta: Dinheiro) -> Divida | None:
+        divida_id = _primeira_nao_quitada(lista, estado.quitadas)
+        return None if divida_id is None else dividas[divida_id]
+
+    return selecionar
+
+
+@pytest.mark.parametrize(
+    "certeza",
+    [CERTEZA_RECURSO_EXTRAORDINARIO.PROVAVEL, CERTEZA_RECURSO_EXTRAORDINARIO.POSSIVEL],
+)
+def test_ac561_verde_e_cenario_adicional_seguem_a_lista(
+    certeza: CERTEZA_RECURSO_EXTRAORDINARIO,
+) -> None:
+    recurso = RecursoExtraordinario(
+        ITEM_ID="R1",
+        VALOR_RECURSO_EXTRAORDINARIO=dinheiro("1500"),
+        JANELA_RECURSO_EXTRAORDINARIO=JANELA_RECURSO_EXTRAORDINARIO.UM_A_TRES_MESES,
+        CERTEZA_RECURSO_EXTRAORDINARIO=certeza,
+    )
+    estado = replace(
+        _estado_ac555(),
+        CONTRIBUICAO_EXTRA_MENSAL=dinheiro("150"),
+        recursos_extraordinarios=(recurso,),
+    )
+    parametros = _parametros()
+    sem = calcular_plano(estado, parametros)
+    com = calcular_plano(estado, parametros, ordem_do_revisor=_LISTA)
+
+    # verde (RF-78): dívida da vez pela lista; comparado ao plano da lista
+    assert com.prognostico is not None and com.prognostico.com_extra is not None
+    verde = com.prognostico.com_extra
+    _assertar_vez_segue_a_lista(verde.MESES, _LISTA)
+    plano = com.cenarios[com.METODO_RECOMENDADO_PIQ]
+    assert verde.MESES_ANTECIPADOS == max(0, plano.PRAZO_TOTAL - verde.PRAZO_TOTAL)
+    assert verde.ECONOMIA_CUSTO == max(
+        dinheiro(0), plano.CUSTO_FUTURO_TOTAL - verde.CUSTO_FUTURO_TOTAL
+    )
+
+    # cenário adicional (RF-71, OQ-97): o snapshot não guarda o mês a mês;
+    # o oráculo simula com a lista e precisa bater, e a vez dele segue a lista
+    adicional = com.projecao_extraordinarios.cenario_adicional
+    assert adicional is not None
+    diagnostico = calcular_diagnostico(estado, parametros)
+    dividas = {divida.DIVIDA_ID: divida for divida in estado.dividas}
+    aportes, _ = selecionar_aportes(
+        estado.recursos_extraordinarios,
+        certezas=frozenset(CERTEZA_RECURSO_EXTRAORDINARIO),
+        RESULTADO_MENSAL_ATUAL=diagnostico.RESULTADO_MENSAL_ATUAL,
+    )
+    oraculo = simular_cenario(
+        estado,
+        diagnostico,
+        dividas,
+        _selecionar_pela_lista(_LISTA, dividas),
+        parametros,
+        aportes_por_mes(aportes),
+    )
+    assert adicional.ORDEM_QUITACAO == oraculo.ORDEM_QUITACAO
+    assert adicional.PRAZO_TOTAL == oraculo.PRAZO_TOTAL
+    assert adicional.CUSTO_FUTURO_TOTAL == oraculo.CUSTO_FUTURO_TOTAL
+    quitadas: set[str] = set()
+    for mes in oraculo.meses:
+        quitadas |= set(mes.quitacoes)
+        assert mes.estado_final.DIVIDA_ALVO_ATUAL == _primeira_nao_quitada(_LISTA, quitadas)
+    sem_adicional = sem.projecao_extraordinarios.cenario_adicional
+    assert sem_adicional is not None
+    assert adicional.ORDEM_QUITACAO != sem_adicional.ORDEM_QUITACAO
+
+
+def _ordem_de_ataque_lida_do_mes_a_mes(
+    meses: Sequence[MesDoPlano], ordem_quitacao: Sequence[str]
+) -> tuple[str, ...]:
+    """`EC-80`: as dívidas da vez, na ordem, e no fim as que nunca receberam o
+    extra, na ordem de quitação."""
+    vez: list[str] = []
+    for mes in meses:
+        if mes.DIVIDA_ALVO is not None and mes.DIVIDA_ALVO not in vez:
+            vez.append(mes.DIVIDA_ALVO)
+    return (*vez, *(divida_id for divida_id in ordem_quitacao if divida_id not in vez))
+
+
+def test_ec80_lista_igual_a_ordem_de_ataque_mantem_os_numeros() -> None:
+    estado = _estado_ec80()
+    parametros = _parametros()
+    sem = calcular_plano(estado, parametros)
+    assert sem.prognostico is not None
+    cenario_sem = sem.cenarios[sem.METODO_RECOMENDADO_PIQ]
+    ataque = _ordem_de_ataque_lida_do_mes_a_mes(
+        sem.prognostico.MESES_DO_PLANO, cenario_sem.ORDEM_QUITACAO
+    )
+    publicada = tuple(p.DIVIDA_ID for p in sem.ORDEM_QUITACAO)
+    assert ataque != publicada
+
+    com = calcular_plano(estado, parametros, ordem_do_revisor=ataque)
+
+    cenario_com = com.cenarios[com.METODO_RECOMENDADO_PIQ]
+    assert cenario_com.ORDEM_QUITACAO == cenario_sem.ORDEM_QUITACAO
+    assert cenario_com.PRAZO_TOTAL == cenario_sem.PRAZO_TOTAL
+    assert cenario_com.CUSTO_FUTURO_TOTAL == cenario_sem.CUSTO_FUTURO_TOTAL
+    assert cenario_com.meses == cenario_sem.meses
+    assert tuple(p.DIVIDA_ID for p in com.ORDEM_QUITACAO) == publicada
+    assert com.prognostico == sem.prognostico
+    assert com.ORDEM_DO_REVISOR == ataque
+    assert com.hash_inputs != sem.hash_inputs
+    assert all(
+        "definida pelo revisor" in p.JUSTIFICATIVA_POSICAO for p in com.ORDEM_QUITACAO
+    )
+
+    # contraexemplo: a ORDEM_QUITACAO publicada usada como lista muda os números
+    contra = calcular_plano(estado, parametros, ordem_do_revisor=publicada)
+    cenario_contra = contra.cenarios[contra.METODO_RECOMENDADO_PIQ]
+    assert (cenario_contra.PRAZO_TOTAL, cenario_contra.CUSTO_FUTURO_TOTAL) != (
+        cenario_sem.PRAZO_TOTAL,
+        cenario_sem.CUSTO_FUTURO_TOTAL,
+    )
