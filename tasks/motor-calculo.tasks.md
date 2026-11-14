@@ -7842,12 +7842,12 @@ None)`; `tuple(ordem_do_revisor or ()) or None` (`()` ≡ ausente). Só com list
 `ORDEM_DO_REVISOR` no snapshot e no hash, `MOTIVO_RECALCULO = motivo or
 MOTIVO_AJUSTE_DA_ORDEM`, `EVENTO_RECALCULO` = o recebido.
 
-- [ ] Passos 3–9 intocados: `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, `comparacao` e cenários não recomendados vêm dos cenários **sem** a lista
-- [ ] Lista inválida levanta `ErroOrdemDoRevisor` antes de simular o publicado; nenhum snapshot é montado
-- [ ] Sem lista o ramo novo não executa (`T-565` verde)
-- [ ] Rehash só de `engine/motor.py`; gates: lint, build, test
+- [x] Passos 3–9 intocados: `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, `comparacao` e cenários não recomendados vêm dos cenários **sem** a lista
+- [x] Lista inválida levanta `ErroOrdemDoRevisor` antes de simular o publicado; nenhum snapshot é montado
+- [x] Sem lista o ramo novo não executa (`T-565` verde)
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 

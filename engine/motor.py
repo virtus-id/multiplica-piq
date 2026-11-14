@@ -101,7 +101,7 @@ REGRAS: RF-01, RF-10, RF-12, RF-27
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from decimal import localcontext
 from typing import Final
 
@@ -453,6 +453,8 @@ def calcular_plano(
     anterior: SnapshotOrdem | None = None,
     evento: EVENTO_RECALCULO | None = None,
     motivo: str = "",
+    *,
+    ordem_do_revisor: Sequence[str] | None = None,
 ) -> SnapshotOrdem:
     """Ponto de entrada único do motor — §5 do plano, os 11 passos (ver
     docstring do módulo para o detalhamento passo a passo). Devolve o
@@ -466,7 +468,16 @@ def calcular_plano(
     ela não impede esta função de calcular — R-02/R-04 (não chamar sem
     evento e sem quitação) é responsabilidade do CHAMADOR, não desta função,
     que sempre calcula e devolve um snapshot quando invocada.
+
+    `ordem_do_revisor` (`RF-545`): lista de `DIVIDA_ID` na ordem de ataque
+    definida pelo revisor. Ausente ou vazia, a saída é a de sempre
+    (`AC-554`). Presente, os passos 3-9 não mudam; depois da ordem do método
+    (passo 10), a lista é validada (`ErroOrdemDoRevisor`, `AC-557`, nenhum
+    snapshot) e o cenário publicado do método recomendado é simulado com a
+    dívida da vez tirada dela (passos 10a-10d, plano `R13.1`).
     """
+    # RF-545: lista vazia é o mesmo que ausente (premissa aceita, AC-554).
+    lista = tuple(ordem_do_revisor or ()) or None
     # Fronteira de precisão (critério de aceite 1) — todo o cálculo, do
     # início ao fim, roda sob CONTEXTO_MOTOR, nunca herdado do ambiente.
     with localcontext(CONTEXTO_MOTOR):
@@ -537,6 +548,11 @@ def calcular_plano(
         sel_bola_de_neve = aplicar_prioridade_ordem(
             criar_selecionar_alvo_bola_de_neve(dividas, parametros), dividas, parametros
         )
+        # RF-545 (10b): seletor de cada método COM §16.4, fallback da lista.
+        sel_com_prioridade: dict[METODO, SelecionarAlvo] = {
+            METODO.AVALANCHE: sel_avalanche,
+            METODO.BOLA_DE_NEVE: sel_bola_de_neve,
+        }
         cenario_bola_de_neve = dataclasses.replace(
             simular_cenario(
                 estado, diagnostico_pre, dividas, sel_bola_de_neve, parametros, aportes_base_por_mes
@@ -558,6 +574,7 @@ def calcular_plano(
             sel_hibrido = aplicar_prioridade_ordem(
                 resultado_hibrido.selecionar_alvo, dividas, parametros
             )
+            sel_com_prioridade[METODO.HIBRIDO] = sel_hibrido
             cenario_hibrido = dataclasses.replace(
                 simular_cenario(
                     estado,
@@ -591,10 +608,47 @@ def calcular_plano(
 
         # Passo 10: ordem publicada (RF-09) sobre o cenário RECOMENDADO,
         # seguida da consolidação de ORDEM_STATUS (T-64, AC-33).
-        cenario_recomendado = cenarios_por_metodo[resultado_recomendacao.METODO_RECOMENDADO_PIQ]
+        metodo_recomendado = resultado_recomendacao.METODO_RECOMENDADO_PIQ
+        cenario_recomendado = cenarios_por_metodo[metodo_recomendado]
         ordem_publicada = publicar_ORDEM_QUITACAO(
-            cenario_recomendado, resultado_recomendacao.METODO_RECOMENDADO_PIQ, dividas, particao
+            cenario_recomendado, metodo_recomendado, dividas, particao
         )
+
+        # Passos 10a-10d (RF-545, plano R13.1): só com a lista do revisor.
+        # Sem ela, o cenário publicado é o do método e nada abaixo muda.
+        cenario_publicado = cenario_recomendado
+        if lista is not None:
+            # 10a: permutação do CONJUNTO da ordem do método recém-publicada
+            # (elegíveis depois dos gates, RF-09/RF-512) — antes de simular.
+            _validar_ordem_do_revisor(
+                lista,
+                frozenset(posicao.DIVIDA_ID for posicao in ordem_publicada.ORDEM_QUITACAO),
+                diagnostico_pre.MODO_ESTABILIZACAO,
+            )
+            # 10b-10c: mesmas fórmulas e aportes, só a dívida da vez muda.
+            sel_publicado = _selecionar_pela_ordem_do_revisor(
+                lista, dividas, sel_com_prioridade[metodo_recomendado]
+            )
+            cenario_publicado = dataclasses.replace(
+                simular_cenario(
+                    estado,
+                    diagnostico_pre,
+                    dividas,
+                    sel_publicado,
+                    parametros,
+                    aportes_base_por_mes,
+                ),
+                metodo=cenario_recomendado.metodo,
+                classificacao=cenario_recomendado.classificacao,
+            )
+            # 10d: ordem publicada do cenário da lista, justificativa variante.
+            ordem_publicada = publicar_ORDEM_QUITACAO(
+                cenario_publicado,
+                metodo_recomendado,
+                dividas,
+                particao,
+                definida_pelo_revisor=True,
+            )
         beneficios_marginais = _beneficios_marginais_da_ordem(
             dividas,
             cenario_recomendado,
@@ -625,7 +679,6 @@ def calcular_plano(
         }
         if resultado_hibrido.selecionar_alvo is not None:
             sel_por_metodo[METODO.HIBRIDO] = resultado_hibrido.selecionar_alvo
-        metodo_recomendado = resultado_recomendacao.METODO_RECOMENDADO_PIQ
         projecao_extraordinarios = ProjecaoExtraordinarios(
             aportes_base=aportes_aplicados,
             nao_projetados=(*nao_projetados, *fora_do_horizonte),
@@ -684,12 +737,18 @@ def calcular_plano(
         # snapshot final carimbado e encadeado (RF-10, V-01..V-03, AC-16).
         gatilho = avaliar_gatilho_recalculo(evento)
         motivo_final = motivo if motivo else gatilho.motivo
+        if lista is not None and not motivo:
+            # RF-545 (V-01, AC-562): o ajuste é registrado como motivo; o
+            # EVENTO_RECALCULO é o recebido (plano R13.5).
+            motivo_final = MOTIVO_AJUSTE_DA_ORDEM
 
         return montar_SnapshotOrdem(
             estado=estado,
             parametros=parametros,
             diagnostico=diagnostico,
-            cenarios=cenarios_por_metodo,
+            # RF-545: o recomendado é o cenário publicado (o próprio cenário
+            # do método sem a lista); os demais métodos não mudam.
+            cenarios={**cenarios_por_metodo, metodo_recomendado: cenario_publicado},
             comparacao=comparacao,
             resultado_metodo=resultado_recomendacao,
             ordem_status=resultado_status_ordem.ORDEM_STATUS,
@@ -699,4 +758,5 @@ def calcular_plano(
             anterior=anterior,
             projecao_extraordinarios=projecao_extraordinarios,
             prognostico=prognostico,
+            ORDEM_DO_REVISOR=lista,
         )
