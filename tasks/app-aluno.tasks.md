@@ -14119,10 +14119,10 @@ Tons do plano no mural e cartões do mês no mesmo sistema; as regras de quebra 
 justificativa no padrão dos precedentes (a aplicação reconhece o ajuste pela
 constante e traduz o erro em `422`).
 
-- [ ] Só esses dois símbolos entram; nada mais da allowlist muda
-- [ ] Teste estático verde; gates: lint, build, test
+- [x] Só esses dois símbolos entram; nada mais da allowlist muda
+- [x] Teste estático verde; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 

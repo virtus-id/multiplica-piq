@@ -131,6 +131,12 @@ NOMES_PERMITIDOS_DE_ENGINE: Final[frozenset[str]] = frozenset(
     {
         # engine.motor
         "engine.motor.calcular_plano",
+        # engine.motor — ordem do revisor (T-579, RF-546): a aplicação
+        # reconhece o snapshot de ajuste pela constante do motor (nunca uma
+        # cópia do texto) e traduz a exceção da lista recusada em `422`. Uma
+        # constante e um tipo de exceção — nenhuma regra de cálculo.
+        "engine.motor.ErroOrdemDoRevisor",
+        "engine.motor.MOTIVO_AJUSTE_DA_ORDEM",
         # engine.estado — tipos de entrada
         "engine.estado.EstadoFinanceiro",
         "engine.estado.Divida",
