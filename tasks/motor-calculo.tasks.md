@@ -7778,11 +7778,11 @@ não decidiu esta posição." — nunca vazia, sem o texto de `_DESCRICAO_CRITER
 vermelho continuar com o horizonte do cenário **do método** quando o cenário
 publicado vier da lista (`T-574`).
 
-- [ ] Sem o argumento, saída idêntica (`T-565` verde)
-- [ ] Só o `sem_acao` usa o argumento; `MESES_DO_PLANO` e `com_extra` não
-- [ ] Rehash só de `engine/prognostico.py`; gates: lint, build, test
+- [x] Sem o argumento, saída idêntica (`T-565` verde)
+- [x] Só o `sem_acao` usa o argumento; `MESES_DO_PLANO` e `com_extra` não
+- [x] Rehash só de `engine/prognostico.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 
