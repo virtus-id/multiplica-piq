@@ -7726,12 +7726,12 @@ ou `null` → `None`; lista → `tuple`); a escrita já serializa o campo. Supab
 Sem migração (vive em `dados_completos`, como `prognostico`). O `SNAPSHOT_ID` é
 lido, nunca recalculado na leitura.
 
-- [ ] Formato gravado: `"ORDEM_DO_REVISOR": ["D003", "D001", "D002"]` ou `null`
-- [ ] Linha antiga sem a chave volta com `ORDEM_DO_REVISOR is None` e o `SNAPSHOT_ID` gravado
-- [ ] Nenhuma migração SQL nova
-- [ ] Rehash só dos dois arquivos; gates: lint, build, test
+- [x] Formato gravado: `"ORDEM_DO_REVISOR": ["D003", "D001", "D002"]` ou `null`
+- [x] Linha antiga sem a chave volta com `ORDEM_DO_REVISOR is None` e o `SNAPSHOT_ID` gravado
+- [x] Nenhuma migração SQL nova
+- [x] Rehash só dos dois arquivos; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 

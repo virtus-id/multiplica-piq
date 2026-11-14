@@ -814,6 +814,12 @@ def _prognostico(bruto: dict[str, Any] | None) -> Prognostico | None:
     )
 
 
+def _ordem_do_revisor(bruto: list[str] | None) -> tuple[str, ...] | None:
+    """RF-545 (`T-567`) — snapshot anterior não tem a chave (ou tem `null`) →
+    `None`. O `SNAPSHOT_ID` é lido como gravado, nunca recalculado (AC-560)."""
+    return None if bruto is None else tuple(bruto)
+
+
 def _desserializar_snapshot(bruto: dict[str, Any]) -> SnapshotOrdem:
     """Reconstrói um `SnapshotOrdem` completo a partir do dict já decodificado
     de uma linha `snapshots.jsonl` (`json.loads` já aplicado). Espelha campo
@@ -852,4 +858,5 @@ def _desserializar_snapshot(bruto: dict[str, Any]) -> SnapshotOrdem:
         PARAMETROS_VERSION=bruto["PARAMETROS_VERSION"],
         projecao_extraordinarios=_projecao_extraordinarios(bruto.get("projecao_extraordinarios")),
         prognostico=_prognostico(bruto.get("prognostico")),
+        ORDEM_DO_REVISOR=_ordem_do_revisor(bruto.get("ORDEM_DO_REVISOR")),
     )
