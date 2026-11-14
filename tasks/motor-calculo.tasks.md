@@ -7760,11 +7760,11 @@ definida pelo revisor (ORDEM_DO_REVISOR, RF-545); o critério do método {METODO
 não decidiu esta posição." — nunca vazia, sem o texto de `_DESCRICAO_CRITERIO`;
 `valores_de_apoio` inalterados. Com `False`, nada muda.
 
-- [ ] Nenhum chamador atual passa o argumento (saída idêntica; `T-565` verde)
-- [ ] Com `True`, nenhuma justificativa contém o critério `O-01`/`O-04`/`H-05`
-- [ ] Rehash só de `engine/ordem.py`; gates: lint, build, test
+- [x] Nenhum chamador atual passa o argumento (saída idêntica; `T-565` verde)
+- [x] Com `True`, nenhuma justificativa contém o critério `O-01`/`O-04`/`H-05`
+- [x] Rehash só de `engine/ordem.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 

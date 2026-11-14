@@ -126,6 +126,7 @@ REGRAS: Final[tuple[str, ...]] = (
     "AC-09",
     "AC-18",
     "AC-33",
+    "RF-545",
 )
 
 _DESCRICAO_CRITERIO: Final[Mapping[METODO, str]] = {
@@ -229,11 +230,23 @@ def _valores_de_apoio(divida: Divida, metodo: METODO) -> dict[str, Dinheiro | De
     return valores
 
 
-def _justificativa(posicao: int, divida_id: str, metodo: METODO) -> str:
+def _justificativa(
+    posicao: int, divida_id: str, metodo: METODO, definida_pelo_revisor: bool = False
+) -> str:
     """`Q-05`: string técnica, sempre não vazia. Cita a posição, o
     `DIVIDA_ID` e o critério normativo do método recomendado — texto de
     auditoria interna, não prosa de usuário final (critério de aceite 5).
+
+    `RF-545` (`AC-562`): com a ordem definida pelo revisor, a variante não
+    cita o critério do método (`O-01`, `O-04`, `H-05`) — não foi ele que
+    decidiu a posição.
     """
+    if definida_pelo_revisor:
+        return (
+            f"Posição {posicao}: {divida_id} — ordem definida pelo revisor "
+            f"(ORDEM_DO_REVISOR, RF-545); o critério do método {metodo.value} "
+            "não decidiu esta posição."
+        )
     criterio = _DESCRICAO_CRITERIO[metodo]
     return (
         f"Posição {posicao}: {divida_id} — método {metodo.value}, critério: "
@@ -246,6 +259,8 @@ def publicar_ORDEM_QUITACAO(
     metodo_recomendado: METODO,
     dividas: Mapping[str, Divida],
     particao: ParticaoElegibilidade,
+    *,
+    definida_pelo_revisor: bool = False,
 ) -> ResultadoOrdemPublicada:
     """`RF-09` · `Q-01..Q-05` — publica `ORDEM_QUITACAO` a partir da
     sequência JÁ PROJETADA de `cenario_recomendado.ORDEM_QUITACAO`
@@ -265,6 +280,9 @@ def publicar_ORDEM_QUITACAO(
     (`engine/gates.py`, T-32): `particao.ORDEM_ACOES` é repassada tal
     como veio (fila paralela) e `particao.bloqueadas` alimenta a checagem
     defensiva de `ErroOrdemInconsistente` (critério de aceite 4).
+
+    `definida_pelo_revisor` (`RF-545`): o cenário veio da lista do revisor;
+    só a `JUSTIFICATIVA_POSICAO` muda, `valores_de_apoio` não.
     """
     ids_bloqueados = {resultado.DIVIDA_ID for resultado in particao.bloqueadas}
 
@@ -289,7 +307,9 @@ def publicar_ORDEM_QUITACAO(
             PosicaoOrdem(
                 posicao=indice,
                 DIVIDA_ID=divida_id,
-                JUSTIFICATIVA_POSICAO=_justificativa(indice, divida_id, metodo_recomendado),
+                JUSTIFICATIVA_POSICAO=_justificativa(
+                    indice, divida_id, metodo_recomendado, definida_pelo_revisor
+                ),
                 valores_de_apoio=_valores_de_apoio(divida, metodo_recomendado),
             )
         )
