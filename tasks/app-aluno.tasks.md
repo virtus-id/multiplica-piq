@@ -14498,11 +14498,11 @@ da prévia passam a refletir a v2). Em `409`/`422`, nada recarrega.
 - **Tipo:** `Test` · **Dependências:** `T-598` · **Rastreia:** `AC-570` · plano `R18.9` (Frontend)
 - **Arquivos:** `frontend/tests/unit/componentes/TelaEquipeCaso.test.tsx`
 
-- [ ] Depois do `200`: antes/depois exibido e `GET` do caso chamado de novo
-- [ ] Depois de `409`/`422`: nenhuma recarga
-- [ ] `vitest` verde
+- [x] Depois do `200`: antes/depois exibido e `GET` do caso chamado de novo
+- [x] Depois de `409`/`422`: nenhuma recarga
+- [x] `vitest` verde
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; os 7 testes de `TelaEquipeCaso.test.tsx` que já falham em `main` seguem falhando, sem relação com esta rodada
 
 ---
 
