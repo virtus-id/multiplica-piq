@@ -14378,11 +14378,11 @@ pela maior dívida?" (resposta inalterada) e bloco `ordem_do_revisor` com
 *pergunta_maior_divida`, `resposta_maior_divida`, `aviso_incomodo` — as
 redações sugeridas 1–4 da spec, marcadas "sugestão, a validar com o especialista".
 
-- [ ] Nenhum texto existente muda (os testes atuais do plano seguem verdes)
-- [ ] Nenhuma das quatro contém "revisor", "especialista", "mais cobra juros", "a menor"
-- [ ] `test_textos_ao_aluno` verde; gates: lint, build, test
+- [x] Nenhum texto existente muda (os testes atuais do plano seguem verdes)
+- [x] Nenhuma das quatro contém "revisor", "especialista", "mais cobra juros", "a menor"
+- [x] `test_textos_ao_aluno` verde; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`
 
 ---
 
