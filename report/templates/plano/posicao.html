@@ -15,7 +15,7 @@
 #}
 {% set dt = textos.textos_das_dividas if textos is defined else {} %}
 {% set rotulos_dos_fatos = posicao.fatos | map(attribute=0) | list %}
-<div class="divida">
+<div class="divida{% if posicao.recebe_extra_primeiro %} divida-alvo{% endif %}">
     <div class="divida-topo">
         <span class="divida-posicao">{{ posicao.indice }}</span>
         <div>

@@ -512,6 +512,17 @@ criterio_do_metodo_com_prioridade:
 cabecalho:
   preparado_para: "Plano preparado para {nome}"
   preparado_sem_nome: "Plano preparado para você"
+  # `T-556`/`T-557`/`T-558` (estilo Fintech, 2026-11-13): marca, KPIs da capa e
+  # sumário. Sugestão, a validar.
+  marca: "Servidor Sem Dívidas"
+  marca_sub: "PIQ, plano inteligente de quitação"
+  kpi_divida: "Dívida total hoje"
+  kpi_quitacao: "Quitação prevista"
+  kpi_extra: "Valor extra por mês"
+  sumario_titulo: "Sumário"
+  sumario_sub: "Seu plano de quitação de dívidas, preparado para {nome}"
+  sumario_sub_sem_nome: "Seu plano de quitação de dívidas"
+  sumario_capitulo: "Capítulo"
 
 explicacao_mes_1: >-
   O plano começa no mês seguinte à sua aprovação. Todos os meses abaixo

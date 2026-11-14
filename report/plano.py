@@ -1236,6 +1236,9 @@ class ContextoPosicao:
     #: garantia), cada um terminando na frase de responsabilidade. Texto,
     #: nunca regra de ordem.
     avisos: tuple[str, ...] = ()
+    #: `T-556`: esta dívida é a primeira a receber o valor extra — o PDF a
+    #: destaca com um anel verde. Só leitura de `_alvo_desde`.
+    recebe_extra_primeiro: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -1342,6 +1345,9 @@ class ContextoPlano:
     #: por cadastro incompleto, fora de estabilização — a página de capa
     #: avisa cedo que o prazo mostrado é condicionado à dívida que falta.
     aviso_cadastro_incompleto: str = ""
+    #: `T-557`: mês da última parcela ("Maio/2033"), para o KPI da capa do PDF;
+    #: vazio em estabilização, ordem vazia e quando a simulação estoura o horizonte.
+    fim_do_plano: str = ""
     #: `RF-465` (`T-447`): plano provisório (ordem `PROVISORIA` ou modo
     #: estabilização). Decide o banner e as dúvidas, e é lido pela tela.
     provisorio: bool = False
@@ -2578,6 +2584,9 @@ def _montar_contexto_plano(
     regra_de_prioridade_ativa = any(
         _tem_sinal_de_prioridade(d) for d in snapshot.estado_inputs.dividas
     )
+    def _recebe_primeiro(divida_id: str) -> bool:
+        return primeiro_mes_alvo is not None and alvo_desde.get(divida_id) == primeiro_mes_alvo
+
     ordem = tuple(
         ContextoPosicao(
             posicao=posicao_do_snapshot.posicao,
@@ -2602,10 +2611,7 @@ def _montar_contexto_plano(
             # extra (não a primeira da lista — ver `alvo_desde` acima).
             explicacao=_explicacao_da_posicao(
                 textos.explicacao_da_posicao.get(snapshot.METODO_RECOMENDADO_PIQ.value, {}),
-                eh_primeira_a_receber_extra=(
-                    primeiro_mes_alvo is not None
-                    and alvo_desde.get(posicao_do_snapshot.DIVIDA_ID) == primeiro_mes_alvo
-                ),
+                eh_primeira_a_receber_extra=_recebe_primeiro(posicao_do_snapshot.DIVIDA_ID),
                 com_prioridade=(
                     regra_de_prioridade_ativa
                     and _tem_sinal_de_prioridade(dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID))
@@ -2638,6 +2644,7 @@ def _montar_contexto_plano(
             aviso_incomodo=_incomodo_da_divida(
                 dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID), indice, textos
             )[1],
+            recebe_extra_primeiro=_recebe_primeiro(posicao_do_snapshot.DIVIDA_ID),
         )
         for indice, posicao_do_snapshot in enumerate(snapshot.ORDEM_QUITACAO, start=1)
     )
@@ -2702,6 +2709,12 @@ def _montar_contexto_plano(
         acoes=_contexto_acoes(snapshot, textos, nomes),
         pendencias=_pendencias(snapshot, textos.rotulos_de_pendencia, nomes, vocabulario),
         prioridade_de_garantia_ativa=regra_de_prioridade_ativa,
+        fim_do_plano=(
+            rotulo_do_mes(cenario_recomendado.PRAZO_TOTAL)
+            if cenario.value not in ("ESTABILIZACAO", "ORDEM_VAZIA")
+            and not cenario_recomendado.ESTOUROU_HORIZONTE
+            else ""
+        ),
         # `T-551`: só na capa do plano normal, com cronograma que de fato
         # termina — estabilização e ordem vazia não têm prazo; com o
         # horizonte estourado, `PRAZO_TOTAL` é o TETO da simulação, não uma
