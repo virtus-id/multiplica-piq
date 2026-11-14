@@ -14356,11 +14356,11 @@ editavel}`; `vigente` de `ordem_vigente(historico[-1])`; `nome` de
 **Descrição.** `RF-550` não tem código: o cálculo de sempre já roda sem a
 lista. Esta tarefa prova isso nos três caminhos de reenvio.
 
-- [ ] Partindo de um caso cuja última versão é ajustada: reenvio depois de "Pedir correção", de "Quero editar minhas respostas" e plano novo depois da liberação → nova versão encadeada ao ajuste, sem `ORDEM_DO_REVISOR`, ordem do método, caso na fila
-- [ ] Nenhum texto de aviso sobre a ordem nas respostas do aluno
-- [ ] Gates: lint, build, test
+- [x] Partindo de um caso cuja última versão é ajustada: reenvio depois de "Pedir correção", de "Quero editar minhas respostas" e plano novo depois da liberação → nova versão encadeada ao ajuste, sem `ORDEM_DO_REVISOR`, ordem do método, caso na fila
+- [x] Nenhum texto de aviso sobre a ordem nas respostas do aluno
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-14)`; caminho `RF-118` (plano novo depois da liberação) desligado por `RF-409`: testado que o pedido é recusado e a ordem ajustada liberada fica — spec a corrigir
 
 ---
 

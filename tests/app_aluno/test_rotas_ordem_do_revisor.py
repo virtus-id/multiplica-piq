@@ -111,12 +111,11 @@ _D003: dict[str, object] = {
 }
 
 
-def respostas_com_tres_dividas(**mais_fichas: dict[str, object]) -> list[Resposta]:
-    """T02 (cartão rotativo e empréstimo pessoal) mais um segundo pessoal e,
-    se pedidas, outras fichas de dívida."""
-    fichas = {"D002": _T02_D002, "D003": _D003, **mais_fichas}
+def respostas_com_tres_dividas() -> list[Resposta]:
+    """T02 (cartão rotativo e empréstimo pessoal) mais um segundo pessoal."""
+    fichas = {"D002": _T02_D002, "D003": _D003}
     base = montar_respostas_caso(
-        valores_caso={**_T02_CASO, "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1 + len(fichas)},
+        valores_caso={**_T02_CASO, "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": len(DIVIDAS)},
         valores_divida=_T02_D001,
         valores_item_despesa={"VALOR_DESPESA": converter_para_dinheiro("3.500,00")},
         valores_despesa_nao_mensal={
