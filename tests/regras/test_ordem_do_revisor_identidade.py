@@ -1,4 +1,4 @@
-"""Sem a lista do revisor, a saída é a de antes — `RF-545`, `AC-554` (`T-565`).
+"""Sem a lista do revisor, a saída é a de antes — `RF-545`, `AC-554` (`T-565`, `T-577`).
 
 Teste de caracterização escrito ANTES de `RF-545` tocar o motor: os valores de
 `hash_inputs` e `SNAPSHOT_ID` abaixo foram lidos da execução de `calcular_plano`
@@ -87,3 +87,23 @@ def test_ac554_sem_a_lista_hash_e_snapshot_id_sao_os_de_antes(
     snapshot = calcular_plano(estado(), parametros)
     assert snapshot.hash_inputs == hash_inputs
     assert snapshot.SNAPSHOT_ID == snapshot_id
+    assert snapshot.ORDEM_DO_REVISOR is None
+
+
+@pytest.mark.parametrize(
+    ("estado", "hash_inputs", "snapshot_id"),
+    [pytest.param(estado, h, s, id=nome) for nome, estado, h, s in _CONGELADOS],
+)
+def test_ac554_lista_vazia_e_o_mesmo_que_sem_a_lista(
+    estado: Callable[[], EstadoFinanceiro], hash_inputs: str, snapshot_id: str
+) -> None:
+    """`T-577`: com `ordem_do_revisor=()`, o snapshot inteiro é igual ao da
+    execução sem o argumento, campo a campo, e os dois batem com o congelado."""
+    parametros = FonteParametrosArquivo().carregar("1.0.1")
+    sem = calcular_plano(estado(), parametros)
+    vazia = calcular_plano(estado(), parametros, ordem_do_revisor=())
+    assert vazia == sem
+    for snapshot in (sem, vazia):
+        assert snapshot.hash_inputs == hash_inputs
+        assert snapshot.SNAPSHOT_ID == snapshot_id
+        assert snapshot.ORDEM_DO_REVISOR is None

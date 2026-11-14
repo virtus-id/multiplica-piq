@@ -7915,12 +7915,12 @@ tolerância zero para ordem, prazo, método e status. Um teste por critério.
 com `ordem_do_revisor=()` produz snapshot igual campo a campo ao da execução sem
 o argumento, e os dois batem com o `hash_inputs`/`SNAPSHOT_ID` congelados.
 
-- [ ] Comparação do snapshot inteiro (não só ordem e prazo), tolerância zero
-- [ ] `ORDEM_DO_REVISOR is None` nas duas execuções
-- [ ] `GAB-A/B/C` e `GAB-01`..`GAB-05` existentes verdes sem edição; `test_motor_e_deterministico` verde
-- [ ] Gates: lint, build, test
+- [x] Comparação do snapshot inteiro (não só ordem e prazo), tolerância zero
+- [x] `ORDEM_DO_REVISOR is None` nas duas execuções
+- [x] `GAB-A/B/C` e `GAB-01`..`GAB-05` existentes verdes sem edição; `test_motor_e_deterministico` verde
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 
