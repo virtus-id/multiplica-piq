@@ -41,7 +41,7 @@
         {% endif %}
         {% endfor %}
         <div class="fato fato-forte">
-            <div class="fato-rotulo">{{ dt.get("termina_no", "Termina no") }}</div>
+            <div class="fato-rotulo">{{ dt.get("termina_no", "Termina em") }}</div>
             <div class="fato-valor">{% if posicao.mes_de_quitacao %}{{ posicao.mes_de_quitacao_rotulo or dt.get("termina_no_valor", "Mês {mes}").format(mes=posicao.mes_de_quitacao) }}{% elif posicao.fora_do_horizonte %}{{ posicao.fora_do_horizonte }}{% else %}{{ dt.get("nao_disponivel", "não disponível") }}{% endif %}</div>
         </div>
     </div>
