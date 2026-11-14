@@ -17,7 +17,7 @@
   "engine/metodos/avalanche.py": "885ae584adf76f8def30732f6e8b1eac55c85549e09e5fe9c2d2d64d8a181455",
   "engine/metodos/bola_de_neve.py": "4c2c938a0c1532c4fd6dedd28cac255da4d4e85219a026aa895a4deb96644142",
   "engine/metodos/hibrido.py": "4d0875f0d61c3baa1a9d9043d857a136dd03f11eedbfe7defeb752c972082a8f",
-  "engine/motor.py": "0c086d0ad9ae307c5e95652fa5542c300341bad547ea0e2372dba95ba370ecb4",
+  "engine/motor.py": "c6e71571ab9a979c278ed12c70e5c88110267c8660edb2385a081ec000e4bd47",
   "engine/ordem.py": "fda43a482ffeac8ef9d9b29f49737c590019db52592855c738e834aa065a40d6",
   "engine/parametros.py": "b346d222a9cf150588f0c13f6058b5e2625d47b8cfc461def1ec0b8880549ca5",
   "engine/percepcao.py": "2b6798f36d167392a9ae6a47cd6c867c63f21ffb339733c7171d0209b3bb23be",

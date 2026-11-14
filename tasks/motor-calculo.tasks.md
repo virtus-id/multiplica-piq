@@ -7799,11 +7799,11 @@ estabilização, lista não vazia é recusada; senão exige permutação exata d
 só por `DIVIDA_ID`: repetida, faltando, fora das elegíveis (inexistente ou
 bloqueada), ou estado em estabilização. Ainda não é chamada por `calcular_plano`.
 
-- [ ] Quatro causas distintas, cada uma com mensagem própria citando os `DIVIDA_ID`
-- [ ] Função pura, sem I/O; `calcular_plano` sem mudança de comportamento (`T-565` verde)
-- [ ] Rehash só de `engine/motor.py`; gates: lint, build, test
+- [x] Quatro causas distintas, cada uma com mensagem própria citando os `DIVIDA_ID`
+- [x] Função pura, sem I/O; `calcular_plano` sem mudança de comportamento (`T-565` verde)
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-14)`
 
 ---
 

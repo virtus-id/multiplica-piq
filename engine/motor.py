@@ -168,9 +168,52 @@ REGRAS: Final[tuple[str, ...]] = (
     "RF-70",
     "RF-71",
     "RF-76",
+    "RF-545",
     "§14.2.4",
     "§15",
 )
+
+# RF-545 (V-01, AC-562): motivo registrado no snapshot recalculado com a lista
+# do revisor. A aplicação usa a mesma constante para reconhecer o ajuste.
+MOTIVO_AJUSTE_DA_ORDEM: Final[str] = "ajuste da ordem pelo revisor"
+
+
+class ErroOrdemDoRevisor(ValueError):
+    """`RF-545` · `AC-557` · `EC-79` — lista do revisor recusada ANTES de
+    simular; nenhum snapshot. A mensagem nomeia a causa só com `DIVIDA_ID`:
+    repetida, faltando, fora das elegíveis (inexistente ou bloqueada por
+    gate), ou estado em estabilização."""
+
+
+def _validar_ordem_do_revisor(
+    lista: tuple[str, ...], elegiveis: frozenset[str], MODO_ESTABILIZACAO: bool
+) -> None:
+    """`RF-545` (validação) — a lista é a ordem de ataque e precisa ser uma
+    permutação exata do CONJUNTO `elegiveis` (as dívidas da ordem que o
+    motor publicaria sem ela, `RF-09`/`RF-512`); a ordem nunca é comparada.
+    Em `MODO_ESTABILIZACAO` não há ordem a ajustar: lista não vazia é
+    recusada (`EC-79`). Todas as causas encontradas entram na mensagem."""
+    if MODO_ESTABILIZACAO and lista:
+        raise ErroOrdemDoRevisor(
+            "estado em MODO_ESTABILIZACAO: não há ordem a ajustar, a lista "
+            f"{list(lista)} é recusada (EC-79)."
+        )
+    causas: list[str] = []
+    repetidas = sorted({divida_id for divida_id in lista if lista.count(divida_id) > 1})
+    if repetidas:
+        causas.append(f"repetida(s): {repetidas}")
+    fora = sorted(set(lista) - elegiveis)
+    if fora:
+        causas.append(f"fora das elegíveis (inexistente ou bloqueada por gate): {fora}")
+    faltando = sorted(elegiveis - set(lista))
+    if faltando:
+        causas.append(f"faltando: {faltando}")
+    if causas:
+        raise ErroOrdemDoRevisor(
+            "ORDEM_DO_REVISOR não é uma permutação das dívidas elegíveis — "
+            + "; ".join(causas)
+            + " (RF-545, AC-557)."
+        )
 
 
 def _inventario(estado: EstadoFinanceiro) -> dict[str, Divida]:
