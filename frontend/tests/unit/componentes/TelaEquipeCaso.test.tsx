@@ -540,3 +540,90 @@ describe("TelaEquipeCaso — o que mudou desde a versão anterior (T-348, RF-123
     ).toBeInTheDocument();
   });
 });
+
+describe("TelaEquipeCaso — ordem de quitação (T-600, RF-548, AC-570)", () => {
+  const VIGENTE = [
+    { DIVIDA_ID: "D001", nome: "Cheque especial — CAIXA" },
+    { DIVIDA_ID: "D002", nome: "Cartão de crédito — Nubank" },
+  ];
+  const COM_ORDEM = {
+    ...CASO,
+    ordem_do_revisor: { vigente: VIGENTE, ajustada: false, editavel: true },
+  } as CasoParaRevisao;
+  const AJUSTADO = {
+    ...COM_ORDEM,
+    fila: { ...CASO.fila, SNAPSHOT_ID: "S2", versao: 2 },
+    ordem_do_revisor: { vigente: [VIGENTE[1], VIGENTE[0]], ajustada: true, editavel: true },
+  } as CasoParaRevisao;
+  const RESULTADO = {
+    SNAPSHOT_ID: "S2",
+    versao: 2,
+    ordem_vigente: ["D002", "D001"],
+    ajustada: true,
+    antes: {
+      SNAPSHOT_ID: "S1",
+      prazo: { meses: 18, estourou_horizonte: false },
+      custo_total_de_juros: { valor: "R$ 1.234,56", motivo: null },
+    },
+    depois: {
+      SNAPSHOT_ID: "S2",
+      prazo: { meses: 20, estourou_horizonte: false },
+      custo_total_de_juros: { valor: "R$ 1.500,00", motivo: null },
+    },
+  };
+  const OPCOES = { classificacoes_erro: [], pendencias_homologacao: [] };
+
+  async function moverERecalcular() {
+    await userEvent.click(
+      await screen.findByRole("button", { name: `Subir ${VIGENTE[1].nome}` }),
+    );
+    await userEvent.type(screen.getByLabelText("Motivo interno"), "Negativada primeiro");
+    await userEvent.click(screen.getByRole("button", { name: "Recalcular nesta ordem" }));
+  }
+
+  it("com uma dívida só, a seção não aparece", async () => {
+    montar(OPCOES, {
+      ...CASO,
+      ordem_do_revisor: { vigente: [VIGENTE[0]], ajustada: false, editavel: false },
+    } as CasoParaRevisao);
+    await screen.findByRole("button", { name: "Liberar para o aluno" });
+    expect(screen.queryByRole("heading", { name: "Ordem de quitação" })).toBeNull();
+  });
+
+  it("depois do 200, relê o caso e a decisão, mostra a nova ordem e o antes/depois", async () => {
+    const caso = vi
+      .spyOn(api, "obterCasoParaRevisao")
+      .mockResolvedValueOnce(COM_ORDEM)
+      .mockResolvedValue(AJUSTADO);
+    const opcoes = vi.spyOn(api, "obterOpcoesDeDecisao").mockResolvedValue(OPCOES);
+    vi.spyOn(api, "ajustarOrdem").mockResolvedValue(RESULTADO);
+    render(<TelaEquipeCaso casoId="CASO-1" voltar={vi.fn()} />);
+
+    await moverERecalcular();
+
+    expect(await screen.findByText("Ajustada na conferência")).toBeInTheDocument();
+    expect(caso).toHaveBeenCalledTimes(2);
+    expect(opcoes).toHaveBeenCalledTimes(2);
+    const tabela = screen.getByRole("table", { name: "Antes e depois do recálculo" });
+    expect(tabela).toHaveTextContent("18 meses");
+    expect(tabela).toHaveTextContent("20 meses");
+    expect(tabela).toHaveTextContent("R$ 1.500,00");
+    expect(screen.getByRole("button", { name: "Voltar à ordem do método" })).toBeEnabled();
+  });
+
+  it.each([409, 422])("com %i, nada recarrega e a mensagem aparece", async (status) => {
+    const caso = vi.spyOn(api, "obterCasoParaRevisao").mockResolvedValue(COM_ORDEM);
+    vi.spyOn(api, "obterOpcoesDeDecisao").mockResolvedValue(OPCOES);
+    vi.spyOn(api, "ajustarOrdem").mockRejectedValue(
+      new api.ErroHttp(status, "Esta já é a ordem vigente. Nada a recalcular."),
+    );
+    render(<TelaEquipeCaso casoId="CASO-1" voltar={vi.fn()} />);
+
+    await moverERecalcular();
+
+    expect(await screen.findByText("Esta já é a ordem vigente. Nada a recalcular.")).toBeInTheDocument();
+    expect(caso).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("table", { name: "Antes e depois do recálculo" })).toBeNull();
+    expect(screen.getByLabelText("Motivo interno")).toHaveValue("Negativada primeiro");
+  });
+});

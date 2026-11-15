@@ -309,6 +309,9 @@ class TextosCanonicosPlano:
     #: dívida (`_fatos_da_divida`) — chave "calculado"/"estimado", mesmas de
     #: `app/http/serializacao_plano.py::_MARCA_AO_REVISOR`.
     marca_do_pagamento: Mapping[str, str] = field(default_factory=dict)
+    #: `RF-551` (Rodada 16): as variantes neutras para o plano cujo snapshot
+    #: traz `ORDEM_DO_REVISOR` — aplicadas por `_textos_da_ordem_do_revisor`.
+    ordem_do_revisor: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -479,6 +482,7 @@ def carregar_textos_canonicos(
         como_funciona_com_prioridade=como_funciona_com_prioridade,
         criterio_do_metodo_com_prioridade=_mapa("criterio_do_metodo_com_prioridade"),
         marca_do_pagamento=_mapa("marca_do_pagamento"),
+        ordem_do_revisor=_mapa("ordem_do_revisor"),
     )
 
 
@@ -2524,6 +2528,54 @@ def rotulo_do_motivo_de_recalculo(snapshot: SnapshotOrdem, textos: TextosCanonic
     return rotulo_de_codigo(textos.rotulos_de_codigos, chave)
 
 
+def _textos_da_ordem_do_revisor(textos: TextosCanonicosPlano) -> TextosCanonicosPlano:
+    """`RF-551` (Rodada 16) — com a ordem ajustada na conferência, as quatro
+    passagens que explicam a ordem pelo critério do método trocam pelas
+    variantes neutras de `ordem_do_revisor`, em todos os métodos: (1) a
+    explicação `primeira`/`primeira_com_prioridade`; (2) o passo 1 de
+    `como_funciona`/`como_funciona_com_prioridade`; (3) a resposta de "Por que
+    não começar pela maior dívida?" em `duvidas`/`duvidas_provisorio`; (4) o
+    aviso de incômodo. Chave ausente no YAML mantém o texto de sempre. Só
+    texto: nenhum campo do snapshot é lido aqui (`AC-42`)."""
+    neutros = textos.ordem_do_revisor
+    primeira = neutros.get("explicacao_primeira")
+    passo_1 = neutros.get("como_funciona_passo_1")
+    pergunta = neutros.get("pergunta_maior_divida")
+    resposta = neutros.get("resposta_maior_divida")
+    aviso = neutros.get("aviso_incomodo")
+
+    def _explicacao(mapa: Mapping[str, str]) -> Mapping[str, str]:
+        if not primeira:
+            return mapa
+        chaves = ("primeira", "primeira_com_prioridade")
+        return {**mapa, **{chave: primeira for chave in chaves if chave in mapa}}
+
+    def _passos(por_metodo: Mapping[str, tuple[str, ...]]) -> Mapping[str, tuple[str, ...]]:
+        if not passo_1:
+            return por_metodo
+        return {
+            metodo: (passo_1, *passos[1:]) if passos else passos
+            for metodo, passos in por_metodo.items()
+        }
+
+    def _duvidas(duvidas: tuple[tuple[str, str], ...]) -> tuple[tuple[str, str], ...]:
+        if not (pergunta and resposta):
+            return duvidas
+        return tuple((p, resposta if p == pergunta else r) for p, r in duvidas)
+
+    return replace(
+        textos,
+        explicacao_da_posicao={
+            metodo: _explicacao(mapa) for metodo, mapa in textos.explicacao_da_posicao.items()
+        },
+        como_funciona=_passos(textos.como_funciona),
+        como_funciona_com_prioridade=_passos(textos.como_funciona_com_prioridade),
+        duvidas=_duvidas(textos.duvidas),
+        duvidas_provisorio=_duvidas(textos.duvidas_provisorio),
+        incomodo={**textos.incomodo, "aviso": aviso} if aviso else textos.incomodo,
+    )
+
+
 def montar_contexto_plano(
     snapshot: SnapshotOrdem,
     textos: TextosCanonicosPlano,
@@ -2532,7 +2584,12 @@ def montar_contexto_plano(
     data_base: date | None = None,
 ) -> ContextoPlano:
     """`RF-445` — `data_base` é a data da liberação (ou de hoje, na prévia): o
-    Mês 1 do plano é o mês seguinte a ela, e todo mês sai como calendário."""
+    Mês 1 do plano é o mês seguinte a ela, e todo mês sai como calendário.
+
+    `RF-551`: snapshot com `ORDEM_DO_REVISOR` → textos neutros sobre a ordem
+    (tela, PDF liberado e prévia passam todos por aqui)."""
+    if snapshot.ORDEM_DO_REVISOR is not None:
+        textos = _textos_da_ordem_do_revisor(textos)
     token = _MES_BASE.set(data_base)
     try:
         return _montar_contexto_plano(snapshot, textos, vocabulario, nome_do_aluno)

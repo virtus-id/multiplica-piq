@@ -412,10 +412,12 @@ def test_ec77_falha_interna_responde_503(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_total_de_juros_e_cronograma_so_existem_na_rota_da_previa() -> None:
+    """Fronteira de palavra: `custo_total_de_juros` (homologação, `RF-96`,
+    `RF-546`) é outro item, não o total da calculadora."""
     donos = [
         arquivo.name
         for arquivo in (_RAIZ / "app" / "http").glob("*.py")
-        if re.search(r"total_de_juros|\bcronograma\(", arquivo.read_text(encoding="utf-8"))
+        if re.search(r"\btotal_de_juros|\bcronograma\(", arquivo.read_text(encoding="utf-8"))
     ]
     assert donos == ["rotas_calculadora.py"]
 

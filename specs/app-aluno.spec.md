@@ -459,6 +459,56 @@ com a redação canônica obrigatória.
 | `RF-127` | **O termo de consentimento aparece no próprio Início.** Quando a próxima etapa é o consentimento, o Início mostra o texto do termo (o mesmo de `RF-30`, sem redação nova) e o botão principal passa a ser **"Concordar e começar"**, que registra o consentimento. O aluno não é levado a outra tela. A guarda de `AC-39` não muda: nenhuma resposta é gravada antes do aceite | Pedido do produto (2026-10-22) · `RF-30`, `RF-58` | essencial |
 | `RF-128` | **"Suas despesas" mostra o total.** Abaixo da lista, "Total das despesas: R$ X": a soma do valor mensal das despesas cadastradas, calculada no servidor em `Decimal`. Atualiza ao adicionar, editar ou excluir (a lista é recarregada). Com despesa sem valor, avisa que a soma é só das informadas. Não se aplica às despesas não mensais | Pedido do produto (2026-10-31) · `RF-53` | importante |
 
+### Rodada 16 (2026-11-14) — ordem de quitação definida pelo revisor
+
+> **Decisão do responsável do produto, 2026-11-14.** O especialista (Marcelo,
+> papel revisor) validou o processo determinístico; agora, na conferência
+> (`AGUARDANDO_REVISAO`), ele pode mudar a ordem de quitação gerada para o
+> aluno antes de liberar. O motor recalcula o cronograma inteiro nessa ordem
+> (`motor-calculo` `RF-545`, mudança aditiva); a aplicação só pede o
+> recálculo, guarda o snapshot e lê os números (`RF-34`, `AC-42`). **Emenda
+> `RF-118`**: o revisor continua sem editar dados do aluno, mas passa a poder
+> ajustar **a ordem, e só ela**.
+>
+> **Numeração global** (último `RF-544`, `AC-553`, `EC-77`, `OQ-96`,
+> `US-411`; `RF-545`, `AC-554`–`AC-562`, `EC-78`–`EC-80` e `OQ-97`/`OQ-98`
+> são do motor): esta rodada usa `RF-546` a `RF-551`, `US-413` e `US-414`,
+> `AC-563` a `AC-575`, `EC-81` a `EC-84` e `OQ-99` a `OQ-101`.
+>
+> **Correção de 2026-11-14 (depois de `T-587`, `T-590`, `T-592`).** `RF-550`,
+> `AC-565`, `AC-572` e `AC-573` citavam o que `enxugamento-questionario`
+> (`RF-401`, `RF-409`, `RF-413`) já tinha tirado: o estado `ACOMPANHAMENTO` e
+> o plano novo depois da liberação. Foram reescritos pelos caminhos que
+> existem: todo estado ≠ `AGUARDANDO_REVISAO` recusa o ajuste; a v2 de
+> `AC-572` nasce quando o aluno retira o plano da conferência (`RF-115`); os
+> reenvios são só "Pedir correção" e "Quero editar minhas respostas", e o
+> pedido de plano novo depois de liberado é recusado (`409`).
+
+| ID | Requisito | Regras / seções / IDs de origem | Prioridade |
+| --- | --- | --- | --- |
+| `RF-546` | **Rota de ajuste da ordem na conferência.** `POST /api/revisao/caso/{id}/ordem`, só para revisor, recebe a **ordem** (lista de `DIVIDA_ID`) e o **motivo interno**. Lista não vazia exige motivo não vazio; **lista vazia = voltar à ordem do método**, que **não exige motivo** (`OQ-99`: a trilha registra autor e data). Com o caso em `AGUARDANDO_REVISAO`: (1) recalcula pelo motor (`RF-545`) com o **mesmo `estado_inputs` e a mesma `PARAMETROS_VERSION` do snapshot mais recente** da cadeia (`OQ-100`: só a ordem muda) — sem remontar o estado a partir das respostas — e com a lista (sem lista, na volta); (2) anexa o novo snapshot à cadeia, encadeado ao mais recente (append-only, `V-01`; nada é sobrescrito); (3) o caso **continua em `AGUARDANDO_REVISAO`** e na fila; (4) a resposta traz a ordem vigente e, do snapshot anterior e do novo, o **prazo** (meses até a última quitação, ou a indicação de que não quita no horizonte) e o **custo total de juros** (o item `custo_total_de_juros` da homologação, com o motivo quando não disponível), lidos dos snapshots, sem conta na aplicação. Recusas, sem anexar snapshot nem gravar evento: `401` sem sessão; `403` sessão sem papel de revisor; `404` caso inexistente ou sem snapshot; `409` caso fora de `AGUARDANDO_REVISAO`, verificado com a mesma trava de estado de `RF-31`/`RF-116`; `409` também quando **não há nada a recalcular** (`OQ-101`): a lista é igual à ordem vigente, ou é vazia e a ordem vigente já é a do método; `422` lista que não é permutação exata do **conjunto** de `DIVIDA_ID` elegíveis (as dívidas da ordem publicada no snapshot mais recente, em qualquer ordem), ou lista não vazia sem motivo. `GET /api/revisao/caso/{id}` continua servindo o snapshot mais recente e passa a dizer se a ordem vigente é a do método ou a ajustada. **A lista é a ordem de ataque** (a sequência em que as dívidas recebem o valor extra, decisão técnica de 2026-11-14), não a de quitação. **Ordem de ataque vigente**: a `ORDEM_DO_REVISOR` do snapshot mais recente, quando houver; senão, a `ORDEM_DE_ATAQUE` do cenário recomendado, quando houver (estouro do horizonte); senão, a sequência das dívidas da vez (`DIVIDA_ALVO` do mês a mês do cenário recomendado), seguida das que nunca recebem o extra, na ordem de quitação — só leitura do snapshot | Decisão do responsável do produto (2026-11-14) · `motor-calculo` `RF-545` · `RF-23`, `RF-31`, `RF-116`, `RF-118`, `V-01`, `AC-42` | essencial |
+| `RF-547` | **O ajuste fica na trilha.** Cada ajuste aceito por `RF-546` grava um evento na trilha do caso (`eventos_caso`, `RF-31`), **sem mudar o estado**, com: ordem anterior e ordem nova (listas de `DIVIDA_ID`; na volta, a ordem do método que resultou), motivo interno (vazio na volta, `OQ-99`), autor (o revisor da sessão), data e o `SNAPSHOT_ID` anterior e o novo. Recusa (`401`, `403`, `404`, `409`, `422`) não grava evento. O motivo interno, como a observação interna de `RF-113`, nunca chega ao aluno (nenhuma rota de aluno o devolve) e nunca vai para log | Decisão do responsável do produto (2026-11-14) · `RF-31`, `RF-113`, NFR de observabilidade | essencial |
+| `RF-548` | **Seção "Ordem de quitação" na conferência** (`TelaEquipeCaso`). Com o caso em `AGUARDANDO_REVISAO` e duas ou mais dívidas na ordem publicada, a tela do revisor mostra: as dívidas na **ordem de ataque vigente** (`RF-546`; a sequência em que recebem o valor extra), pelo nome legível (`RF-111`), com a indicação de que a ordem é a do método ou foi ajustada na conferência; botões **subir** e **descer** por dívida (subir desativado na primeira, descer na última); o campo **motivo interno**; **"Recalcular nesta ordem"**, ativo só com a lista na tela diferente da vigente e o motivo preenchido; e **"Voltar à ordem do método"**, só quando a ordem vigente é ajustada, sem exigir motivo (`OQ-99`). Mover uma dívida não recalcula: só o botão chama `RF-546`. Depois do recálculo, a seção mostra **prazo e custo antes e depois** (resposta de `RF-546`), e o plano do aluno na conferência (`RF-121`), a homologação e a prévia do PDF (`RF-124`) são recarregados, já na nova ordem. `409`/`422` mostram a mensagem da rota sem perder a lista em edição nem o motivo. Fora de `AGUARDANDO_REVISAO`, em estabilização (sem ordem) ou com uma dívida só, a seção não oferece edição | Decisão do responsável do produto (2026-11-14) · `RF-111`, `RF-121`, `RF-124`, `RF-546` | essencial |
+| `RF-549` | **Liberar, homologar e conferir com a ordem ajustada.** `liberar` não muda: libera o snapshot mais recente — o ajustado, quando houver —, e a tela e o PDF do aluno (`OQ-09`) seguem a ordem do revisor: dívida da vez, quando cada dívida termina, prazo, custo, prognóstico azul e verde, mural e mês a mês; "Se nada mudar" (vermelho) não muda. O item `ordem_final_de_ataque` da homologação (`RF-96`) e os demais itens continuam lidos do snapshot mais recente e refletem a ordem ajustada; as pendências de homologação (`RF-93`, `RF-97`) não mudam com o ajuste (os dados de entrada são os mesmos). "Pedir correção" (`RF-113`) também decide sobre o snapshot mais recente. Em **"O que mudou"** (`RF-123`), snapshot de ajuste de ordem **não conta como versão**: a comparação dos dados de entrada é feita entre os snapshots calculados a partir das respostas, pulando os de ajuste, para que o revisor continue vendo o que o aluno mudou. A justificativa técnica por posição (`JUSTIFICATIVA_POSICAO`, só do revisor, `AC-189`) traz a variante "definida pelo revisor" | Decisão do responsável do produto (2026-11-14) · `RF-23`, `RF-93`, `RF-96`, `RF-97`, `RF-113`, `RF-123`, `RF-126`, `OQ-09` | essencial |
+| `RF-550` | **Plano novo descarta a ordem do revisor.** A ordem ajustada vale para o snapshot em que foi aplicada e para os ajustes seguintes da mesma conferência. Todo cálculo que não vem de `RF-546` — reenvio depois de "Pedir correção" (`RF-113`) ou de "Quero editar minhas respostas" (`RF-115`), os dois únicos caminhos de reenvio — roda **sem** a lista: a ordem volta à do método para as respostas atuais e o plano passa de novo pela conferência (`OQ-04`). O ajuste anterior continua na cadeia de snapshots e na trilha; nada avisa o aluno. Plano novo depois da liberação não existe (`RF-409`/`RF-413` de `enxugamento-questionario`: o plano entregue é definitivo); o pedido é recusado (`409`) e a versão liberada, ajustada ou não, fica como está | Decisão do responsável do produto (2026-11-14) · `RF-113`, `RF-115`, `OQ-04` · `enxugamento-questionario` `RF-409`, `RF-413` | essencial |
+| `RF-551` | **Para o aluno, nada fala do ajuste.** Na tela do plano, no PDF liberado e na prévia, nenhum texto menciona o revisor, o especialista ou que a ordem foi alterada. Com `ORDEM_DO_REVISOR` no snapshot, os textos que explicam a posição pelo critério do método passam a vir de **variantes neutras** em `textos-canonicos.yaml` (sugestão, a validar com o especialista): (1) `explicacao_da_posicao` — nova variante para a dívida que recebe o extra primeiro, no lugar de `primeira` e `primeira_com_prioridade` ("é a que mais cobra juros", "é a menor", prioridade da `§16.4`); `primeira_da_lista` e `seguintes` já são neutras e ficam; (2) **passo 1 de "Como o seu plano funciona"** (de `como_funciona` e de `como_funciona_com_prioridade`); os passos 2 e 3 ficam; (3) a resposta de **"Por que não começar pela maior dívida?"**; (4) o **aviso da nota de incômodo** (`RF-125`, "A ordem segue o critério do método…"), que também atribui a ordem ao método. O carimbo/rodapé com "método X" continua. Sem `ORDEM_DO_REVISOR`, os textos são exatamente os de hoje | Decisão do responsável do produto (2026-11-14) · `RF-111`, `RF-125`, `RF-126`, `RF-542`, `T-549`, `T-564` | essencial |
+
+> **Redação sugerida para `RF-551`** (equipe técnica, a validar com o
+> especialista; vale só com `ORDEM_DO_REVISOR` no snapshot):
+>
+> 1. **Explicação da posição, dívida que recebe o extra primeiro:** "Esta é a
+>    dívida que o seu plano quita primeiro. Todo o valor extra vai para ela;
+>    quando ela acabar, a parcela que você pagava nela passa a ajudar a
+>    próxima."
+> 2. **"Como o seu plano funciona", passo 1:** "Todo o valor extra vai para a
+>    primeira dívida da lista do seu plano. As outras recebem só a parcela de
+>    sempre."
+> 3. **"Por que não começar pela maior dívida?":** "A ordem do seu plano foi
+>    montada olhando o conjunto das suas dívidas, e não só o tamanho de cada
+>    uma. Siga a lista: cada dívida recebe o valor extra na sua vez."
+> 4. **Aviso da nota de incômodo:** "Esta dívida está no plano e termina no
+>    mês indicado em \"Termina em\"."
+
 ## 3. User Stories
 
 ### `US-01` — Responder em várias sessões sem perder nada
@@ -746,6 +796,25 @@ Atende: `RF-118`, `RF-119`, `RF-120`
 > Como **revisor**, quero **ver o plano com o mesmo visual e a mesma redação que o aluno vai receber, com os dados e o que mudou ao alcance**, para **liberar ou devolver sabendo exatamente o que ele vai ler**.
 
 Atende: `RF-121`, `RF-122`, `RF-123`, `RF-124`
+
+### Rodada 16 (2026-11-14) — ordem definida pelo revisor
+
+### `US-413` — Ajustar a ordem antes de liberar
+
+> Como **revisor**, quero **mudar a ordem de quitação do plano na conferência,
+> com um motivo registrado, e ver na hora como ficam o prazo e o custo**, para
+> **liberar ao aluno a ordem que eu aprovo, com rastro de quem mudou, quando e
+> por quê**.
+
+Atende: `RF-546`, `RF-547`, `RF-548`, `RF-549`
+
+### `US-414` — Receber um plano que se explica sozinho
+
+> Como **aluno**, quero **que o meu plano explique a ordem das dívidas sem
+> contradizer a lista que recebi**, para **seguir o plano com confiança, sem
+> textos que digam uma coisa e um cronograma que faça outra**.
+
+Atende: `RF-549`, `RF-550`, `RF-551`
 
 ## 4. Acceptance Criteria
 
@@ -1094,6 +1163,26 @@ Atende: `RF-121`, `RF-122`, `RF-123`, `RF-124`
 | `AC-200` | `US-36` | Dado um plano com mês a mês no snapshot, então o PDF tem 10 capítulos (5 plano em números, 6 plano detalhado, 7 mês a mês em detalhe); cada bloco do mural é um link para o cartão do mesmo mês e plano; os meses aparecem como "Mês 01"…, sem data; sem valor extra, só o plano seguido; nenhum "O que fazer no Mês 1" nem checklist |
 | `AC-201` | `US-19` | Dado um caso cuja próxima etapa é o consentimento, quando o Início é aberto, então o texto do termo está na tela e o botão principal é "Concordar e começar"; ao concordar, o consentimento é registrado e o Início passa à etapa seguinte, sem tela intermediária |
 
+### Rodada 16 (2026-11-14) — ordem definida pelo revisor
+
+> **Rastreabilidade `RF` → `AC`.** `RF-546` → `AC-563`, `AC-564`, `AC-565`, `AC-566`, `AC-567` · `RF-547` → `AC-568` · `RF-548` → `AC-569`, `AC-570` · `RF-549` → `AC-571`, `AC-572` · `RF-550` → `AC-573` · `RF-551` → `AC-574`, `AC-575`.
+
+| ID | Story | Critério (verificável) |
+| --- | --- | --- |
+| `AC-563` | `US-413` | Dado um caso em `AGUARDANDO_REVISAO` com o snapshot v1, cuja ordem de ataque vigente é (`D001`, `D002`, `D003`), quando o revisor envia `POST /api/revisao/caso/{id}/ordem` com a ordem (`D003`, `D001`, `D002`) e o motivo "Negativada primeiro", então a rota responde `200`; nasce a v2, encadeada à v1, com `estado_inputs` e `PARAMETROS_VERSION` iguais aos da v1 (`OQ-100`) — mesmo que a versão vigente de parâmetros seja outra — e `ORDEM_DO_REVISOR` = (`D003`, `D001`, `D002`); a v1 continua gravada como estava; o caso segue em `AGUARDANDO_REVISAO` e na fila; e a resposta traz prazo e custo da v1 e da v2, iguais aos que cada snapshot publica |
+| `AC-564` | `US-413` | Dado o caso de `AC-563` com a v2 ajustada, quando o revisor envia a ordem vazia sem motivo (`OQ-99`), então nasce a v3 sem `ORDEM_DO_REVISOR`, com ordem publicada, prazo e custo iguais aos da v1, e o caso segue em `AGUARDANDO_REVISAO` |
+| `AC-565` | `US-413` | Dado um caso em qualquer estado diferente de `AGUARDANDO_REVISAO` (`COLETA_INICIAL`, `CALCULANDO`, `PLANO_LIBERADO`, por exemplo), quando o revisor envia uma ordem que seria válida, então a rota responde `409`, nenhum snapshot é anexado, nenhum evento é gravado e o estado não muda. Do mesmo modo (`OQ-101`), dado o caso de `AC-563` ainda na v1, quando o revisor envia a própria ordem vigente (`D001`, `D002`, `D003`) ou a lista vazia, e, dado o caso com a v2 ajustada, quando envia (`D003`, `D001`, `D002`), a rota responde `409` dizendo que não há nada a recalcular, sem anexar snapshot nem gravar evento |
+| `AC-566` | `US-413` | Dado o caso de `AC-563`, quando a ordem enviada repete uma dívida, omite uma, traz um `DIVIDA_ID` fora do conjunto de dívidas elegíveis (inexistente ou bloqueado por gate), ou é não vazia com motivo vazio, então a rota responde `422` dizendo a causa, nenhum snapshot é anexado e nenhum evento é gravado |
+| `AC-567` | `US-413` | Dado o caso de `AC-563`, quando a rota é chamada sem sessão, então responde `401`; com a sessão de um aluno (inclusive o dono do caso), `403`; para caso inexistente ou sem snapshot, `404` — em todos, nada é anexado nem gravado |
+| `AC-568` | `US-413` | Dado o ajuste aceito de `AC-563`, quando a trilha do caso é consultada, então há um evento do ajuste com ordem anterior (`D001`, `D002`, `D003`), ordem nova (`D003`, `D001`, `D002`), o motivo, o autor, a data e os `SNAPSHOT_ID` da v1 e da v2, e o estado do caso não mudou; nenhuma rota de aluno (plano, Início, PDF) devolve o motivo, e nenhuma linha de log o contém |
+| `AC-569` | `US-413` | Dado um caso em `AGUARDANDO_REVISAO` com três dívidas na ordem, quando o revisor abre a conferência, então a seção "Ordem de quitação" lista as dívidas pelo nome legível, na ordem vigente; "subir" está desativado na primeira e "descer" na última; mover uma dívida muda só a lista na tela, sem chamar a rota; "Recalcular nesta ordem" só fica ativo com a lista diferente da vigente e o motivo preenchido; "Voltar à ordem do método" só aparece com a ordem vigente ajustada; tudo é operável por teclado, com rótulos que nomeiam a dívida. Com o caso fora de `AGUARDANDO_REVISAO`, em estabilização ou com uma dívida só, a seção não oferece edição |
+| `AC-570` | `US-413` | Dado o revisor que recalcula na seção de `AC-569`, quando a resposta chega, então a seção mostra prazo e custo antes e depois, e o plano do aluno na conferência, a homologação e a prévia do PDF (`GET /revisao/caso/{id}/plano/pdf`) já trazem a nova ordem (a dívida da vez no Mês 01 é a primeira da lista); com `409` ou `422`, a mensagem da rota aparece e a lista em edição e o motivo são preservados |
+| `AC-571` | `US-413` | Dado o caso com a v2 ajustada e sem pendência de homologação, quando o revisor libera, então `snapshot_liberado_id` é a v2, `ordem_final_de_ataque` é a `ORDEM_QUITACAO` da v2, e a tela e o PDF do aluno mostram a ordem, a dívida da vez, os meses de quitação, prazo, custo, prognóstico azul e verde, mural e mês a mês da v2, com "Se nada mudar" igual ao da v1 |
+| `AC-572` | `US-413` | Dado um caso em `AGUARDANDO_REVISAO` com a v1 que o aluno retirou da conferência ("Quero editar minhas respostas", `RF-115`), em que mudou a taxa do cheque especial de 4% para 8% e reenviou (v2), e que o revisor ajustou em seguida (v3), quando o revisor abre a conferência, então "O que mudou" lista a taxa de 4% para 8%, como listaria na v2 — o ajuste não é tratado como versão anterior |
+| `AC-573` | `US-414` | Dado um caso em `AGUARDANDO_REVISAO` cuja versão mais recente tem a ordem ajustada pelo revisor, quando o aluno reenvia depois de "Pedir correção" (`RF-113`) — e, em outra execução, depois de "Quero editar minhas respostas" (`RF-115`) —, então a nova versão, encadeada à ajustada, não traz `ORDEM_DO_REVISOR`, a ordem publicada é a do método para as respostas atuais, e o caso volta à fila de conferência; o aluno não vê nenhum aviso sobre a ordem. Depois de liberado o plano ajustado, o pedido de plano novo é recusado (`409`, `RF-409` de `enxugamento-questionario`) e a versão liberada continua a ajustada |
+| `AC-574` | `US-414` | Dados dois snapshots do mesmo estado, um com `ORDEM_DO_REVISOR` e outro sem, quando o plano do aluno (tela, PDF liberado e prévia) é montado, então os únicos textos fixos de `textos-canonicos.yaml` que diferem entre os dois são as quatro variantes neutras de `RF-551`; no plano com `ORDEM_DO_REVISOR`, nenhum texto contém "revisor" nem "especialista", nenhum diz que a ordem foi alterada, nenhuma das quatro passagens contém "mais cobra juros", "a menor" ou a frase de prioridade da `§16.4`, e o rodapé continua dizendo o método |
+| `AC-575` | `US-414` | Dado um snapshot sem `ORDEM_DO_REVISOR` (inclusive os gravados antes desta rodada), quando o plano do aluno é montado, então a explicação da posição, "Como o seu plano funciona", a resposta de "Por que não começar pela maior dívida?" e o aviso de incômodo são exatamente os de antes de `RF-551` |
+
 ## 5. Non-Functional Requirements
 
 - **Performance:** cada transição de pergunta responde em p95 < 500 ms. A
@@ -1160,6 +1249,22 @@ Atende: `RF-121`, `RF-122`, `RF-123`, `RF-124`
 - **Observabilidade.** Bloqueio por inventário incompleto aparece na trilha do
   caso (`RF-31`) e no painel do operador (`RF-35`) como motivo nomeado — sem log
   de valor monetário.
+
+### Rodada 16 (2026-11-14) — ordem definida pelo revisor
+
+- **Performance.** `POST /api/revisao/caso/{id}/ordem` (recálculo +
+  persistência do snapshot) conclui em p95 < 10 s para um caso com até 20
+  dívidas, o mesmo limite do Bloco 6; enquanto isso a seção mostra estado de
+  progresso e os botões ficam desativados (sem envio duplo).
+- **Segurança.** O papel de revisor é verificado no servidor a cada
+  requisição; a rota nunca aceita sessão de aluno, nem a do dono do caso.
+- **Acessibilidade.** Subir/descer têm rótulo que nomeia a dívida; a nova
+  posição e o resultado do recálculo (ou o erro) são anunciados a leitor de
+  tela.
+- **Observabilidade.** Cada ajuste registra no log `SNAPSHOT_ID` anterior e
+  novo, `hash_inputs`, `ENGINE_VERSION` e `PARAMETROS_VERSION`, como todo
+  `calcular_plano`; o motivo interno fica só na trilha (`RF-547`), nunca no
+  log.
 
 ## 6. Edge Cases
 
@@ -1229,6 +1334,15 @@ Atende: `RF-121`, `RF-122`, `RF-123`, `RF-124`
 | `EC-44` | O aluno pede o plano novo, mas o inventário está incompleto ou a montagem recusa uma resposta (`RF-118`) | O caso fica em `COLETA_INICIAL` com o plano liberado intacto; o cálculo recusa como sempre (`400`/`422`, com as pendências) e o aluno corrige e envia de novo. Nada do plano atual se perde |
 | `EC-37` | O aluno troca o tipo de proposta de parcelada para à vista depois de responder `B7.07`–`B7.09` (`DE-07`) | As respostas do parcelamento deixam de ser exibidas, de contar no progresso e de chegar ao motor; nenhuma delas vira `DESCONHECIDO` por ter ficado inaplicável |
 | `EC-38` | Recurso extraordinário `CONFIRMADO` com valor "Não sei" ou janela "Ainda não sei" (`DE-02`) | Não entra na projeção (não há valor estimável nem mês previsto); o item continua cadastrado e visível ao revisor — nunca vira `0` nem ganha janela presumida |
+
+### Rodada 16 (2026-11-14) — ordem definida pelo revisor
+
+| ID | Situação | Comportamento esperado |
+| --- | --- | --- |
+| `EC-81` | O aluno retira o plano da conferência (`RF-115`) no mesmo instante em que o revisor pede o recálculo | Vale a trava de estado de `RF-31`/`RF-116`: se a retirada vence, a rota responde `409` e nada é anexado nem gravado. Se o snapshot de ajuste já tinha sido anexado, ele fica na cadeia sem efeito: o reenvio do aluno encadeia a ele e roda sem a lista (`RF-550`) |
+| `EC-82` | O motor falha no recálculo do ajuste (erro de invariante ou de parâmetros) | Nenhum snapshot é anexado e nenhum evento de ajuste é gravado; o caso continua em `AGUARDANDO_REVISAO` com o snapshot mais recente intacto; o revisor vê a mensagem de erro e o log registra a falha como em todo `calcular_plano` |
+| `EC-83` | O revisor tem a conferência aberta em duas abas, ajusta a ordem numa e libera pela outra | `liberar` libera o snapshot mais recente (o ajustado), mesmo que a outra aba ainda mostre o anterior — comportamento de `liberar` mantido (ver Risks) |
+| `EC-84` | Caso com uma só dívida na ordem publicada | A seção não oferece edição (`RF-548`); se a rota for chamada com a lista dessa única dívida, ela é igual à ordem de ataque vigente e a rota responde `409`, nada a recalcular (`OQ-101`). O motor, chamado diretamente, aceitaria a lista sem mudar os números (`motor-calculo` `EC-80`): a recusa é da rota |
 
 ## 7. Assumptions
 
@@ -1368,6 +1482,42 @@ Atende: `RF-121`, `RF-122`, `RF-123`, `RF-124`
   nos princípios escritos por ele nas observações: prudência, sem dupla
   contagem, não bloquear, o revisor homologa.
 
+### Rodada 16 (2026-11-14) — ordem definida pelo revisor
+
+- **Sem limite de recálculos na conferência.** Cada ajuste vira um snapshot
+  novo (append-only); com 1 a 3 alunos em série (`OQ-06`) o volume é
+  irrelevante.
+- **O ajuste não muda dado de entrada.** Por isso não muda as pendências de
+  homologação (`RF-93`, `RF-97`) nem a comparação de `respostas_atualizadas`
+  (`RF-120`), que compara respostas com `estado_inputs`.
+- **Revisor = conta com papel de revisor.** O autor do ajuste é a identidade
+  da sessão, como em liberar e reprovar.
+- **O universo da permutação é o conjunto das dívidas da ordem publicada no
+  snapshot mais recente** (as elegíveis depois dos gates), em qualquer ordem.
+  Como o recálculo usa o mesmo `estado_inputs`, as dívidas elegíveis são as
+  mesmas. A lista do revisor é a **ordem de ataque**, não a de quitação
+  (decisão técnica, 2026-11-14).
+- **Premissas aceitas pelo responsável do produto (2026-11-14),** junto com as
+  respostas de `OQ-99`, `OQ-100` e `OQ-101` e de `motor-calculo` `OQ-97`:
+  - snapshots de ajuste de ordem **não contam como "versão anterior"** em "O
+    que mudou" (`RF-549`, `AC-572`);
+  - o **aviso da nota de incômodo** entra nas variantes neutras (`RF-551`,
+    item 4);
+  - o **descarte** da ordem do revisor vale para **todo cálculo que não vem da
+    rota do revisor** (`RF-550`);
+  - **falha do motor no ajuste** não anexa nada e o caso segue em
+    `AGUARDANDO_REVISAO` (`EC-82`);
+  - **lista vazia = ausência** da entrada no motor; a validação é contra as
+    dívidas elegíveis depois dos gates, e em estabilização qualquer lista não
+    vazia é recusada (`motor-calculo` `RF-545`, `EC-79`);
+  - **prazo** = `PRAZO_TOTAL` do cenário recomendado do snapshot (ou "não quita
+    no horizonte" com `ESTOUROU_HORIZONTE`) e **custo** = item
+    `custo_total_de_juros` da homologação (`RF-96`) (`RF-546`);
+  - **"Recalcular nesta ordem"** só fica ativo com a lista diferente da vigente
+    e o motivo preenchido (`RF-548`);
+  - **sem estouro do horizonte**, `ORDEM_QUITACAO` continua a ordem de
+    quitação da simulação e pode diferir da lista (`motor-calculo` `EC-78`).
+
 ## 8. Risks
 
 | Risco | Impacto | Mitigação |
@@ -1406,6 +1556,16 @@ Atende: `RF-121`, `RF-122`, `RF-123`, `RF-124`
 | A sobra da `B3.C00` ou o líquido do desconto ser calculado "só para exibir" na aplicação | **alto** — dissolve a Lei nº 3; a mesma conta passa a existir em dois lugares | `OQ-53` e `OQ-55` (resolvidas) fixam que são agregação de entrada, feita **só** na montagem — um lugar, como `OQ-16`; `AC-42` continua exigindo rastrear a origem de cada número exibido |
 | Somar margens de vínculos diferentes por conveniência de exibição | **médio** — o aluno leria uma margem disponível que nenhuma folha tem | `RF-90` e `AC-138` proíbem o total em tela, relatório e estado |
 | Mudar registros da §11 (`DE-03`/`DE-06`/`DE-07`) sem nova versão da canônica | **médio** — registro e canônica divergem, e a próxima leitura da canônica "desfaz" a decisão | Canônica v1.0.3 (`OQ-52`, resolvida) registra as edições antes dos YAML |
+
+### Rodada 16 (2026-11-14) — ordem definida pelo revisor
+
+| Risco | Impacto | Mitigação |
+| --- | --- | --- |
+| `liberar` libera o snapshot mais recente, não o que o revisor está vendo (`EC-83`) | **médio** — o aluno recebe uma ordem que o revisor não conferiu naquela aba | Revisor único e volume baixo (`OQ-03`, `OQ-06`); a seção recarrega plano, homologação e prévia após cada recálculo (`RF-548`). Liberar pelo `SNAPSHOT_ID` exibido fica como melhoria futura, fora desta rodada |
+| O número de versão cresce a cada ajuste (um aluno que enviou duas vezes aparece na "versão 4") | **baixo** — confunde a leitura da fila e da conferência | "O que mudou" pula os ajustes (`RF-549`); o plano decide se a versão exibida conta só os envios do aluno |
+| O snapshot ajustado guarda a `comparacao` entre métodos feita na ordem do método, ao lado do cenário recomendado na ordem do revisor (`motor-calculo` `RF-545`) | **baixo** — quem audita pode cruzar números de ordens diferentes | `ORDEM_DO_REVISOR` no snapshot sinaliza o ajuste; o snapshot anterior da cadeia guarda o cenário na ordem do método |
+| O tempo "parado há" do painel (`RF-112`) pode zerar com o evento de ajuste, se for medido pelo último evento da trilha | **baixo** — o caso parece recém-movido sem ter mudado de etapa | O plano confere de onde vem o tempo parado antes de gravar o evento |
+| Variantes neutras de `RF-551` chegam ao aluno sem validação do especialista | **médio** — texto ao aluno é conteúdo de método | Marcadas "sugestão, a validar", como `T-549`/`T-564`; validar antes de liberar o primeiro plano ajustado |
 
 ## 9. Out of Scope
 
@@ -1508,7 +1668,22 @@ Atende: `RF-121`, `RF-122`, `RF-123`, `RF-124`
   Bloco 11 (`AC-30`). Editar uma resposta, por si só, não reabre o plano.
 - **O revisor editar o plano ou as respostas do aluno.** Hoje ele só aprova ou devolve com
   mensagem (`RF-113`). Edição manual pelo especialista é desejo registrado em 2026-10-05,
-  sem requisito ainda.
+  sem requisito ainda. **Exceção a partir da Rodada 16:** o revisor pode ajustar a
+  ordem de quitação (`RF-546` a `RF-551`), e só ela.
+
+### Rodada 16 (2026-11-14) — o que o ajuste da ordem não faz
+
+- **Trocar o método recomendado, mudar valores ou dados de entrada, tirar
+  dívida da ordem ou fixar só parte dela.** A lista é sempre uma permutação
+  completa da ordem publicada (`RF-546`).
+- **Ajustar a ordem fora da conferência** (depois da liberação, por exemplo).
+  O caminho é o aluno pedir plano novo (`RF-118`), que volta à conferência.
+- **Levar a ordem do revisor para um plano novo.** Ela é descartada
+  (`RF-550`).
+- **Avisar o aluno do ajuste** ou mostrar a ele qualquer sinal do revisor
+  (`RF-551`).
+- **Mudar fórmula, parâmetro ou a escolha do método** (`motor-calculo`
+  `RF-545`).
 
 ## 10. Open Questions
 
@@ -1626,3 +1801,15 @@ passaram a bloquear trabalho concreto.
 | `OQ-66` | Os cinco itens de `DE-08` existem como campo do snapshot? "Custo total de juros" e "valor mensal destinado" não têm nome fixado nesta spec | `RF-96`, `AC-147` | `resolvida` (2026-09-30) — decisão da equipe técnica com base em `DE-08`: correspondência a critério do plano, usando campos existentes do `SnapshotOrdem` (`RF-96`) |
 | `OQ-67` | Textos ao aluno que as decisões pedem e não redigem: orientação sobre seguro prestamista (apólice, cancelamento, restituição não garantida — `DE-03`), aviso de que em Férias/abono só o acréscimo conta (`DE-02`) e rótulo do cenário adicional (`DE-02`) | `RF-82`, `RF-98`, `AC-151`, `AC-152` (só a redação; o comportamento está fixado) | `resolvida` (2026-09-30) — decisão da equipe técnica: textos ao aluno são **decisão de produto** (responsável do produto), não do especialista; o plano propõe e o produto aprova (`RF-82`, `RF-98`) |
 | `OQ-68` | De onde vem o **nome** do aluno no Painel de usuários (`RF-112`)? | Hoje só o e-mail é gravado (cadastro e compra Hotmart). Opções: pedir no cadastro, ler do webhook da Hotmart (comprador), ou cadastrar no futuro painel de administração | `respondida` (2026-10-02) — **do comprador no webhook da Hotmart** (`data.buyer.name`), gravado na conta no provisionamento; ver `RF-112` e `T-332` |
+
+### Rodada 16 (2026-11-14) — ordem definida pelo revisor
+
+> Numeração global (`OQ-97` e `OQ-98` estão em `specs/motor-calculo.spec.md`).
+> Nenhuma bloqueia a rota nem o motor; cada uma fixa um detalhe que o plano
+> precisa saber antes das tarefas.
+
+| ID | Pergunta | O que bloqueia | Status |
+| --- | --- | --- | --- |
+| `OQ-99` | **"Voltar à ordem do método" exige motivo interno?** A decisão diz "motivo obrigatório ao alterar"; voltar também muda a ordem vigente | `RF-546` (validação da lista vazia), `RF-548` (estado do botão), `AC-564` | `respondida (2026-11-14, responsável do produto)` — **não**: voltar à ordem do método não exige motivo; a trilha registra autor e data (`RF-546`, `RF-547`, `RF-548`, `AC-564`) |
+| `OQ-100` | **Com que versão de parâmetros o ajuste recalcula:** a `PARAMETROS_VERSION` do snapshot mais recente ou a vigente? Se os parâmetros mudaram desde o envio do aluno, a vigente muda números além da ordem, e o "antes e depois" deixa de mostrar só o efeito da ordem | `RF-546`, `AC-563` | `respondida (2026-11-14, responsável do produto)` — a **do snapshot**: o recálculo usa a `PARAMETROS_VERSION` do snapshot mais recente; só a ordem muda (`RF-546`, `AC-563`) |
+| `OQ-101` | **O que a rota faz se receber exatamente a ordem já vigente** (ou a lista vazia com a ordem do método já vigente)? Anexa um snapshot igual em números, ou recusa como "nada a recalcular"? A tela já não oferece o botão nesse caso (`RF-548`) | `RF-546` | `respondida (2026-11-14, responsável do produto)` — **recusa**, sem novo snapshot nem evento; o botão já fica desativado na tela. Código **`409`** (definido no plano): a requisição é bem formada e a lista é válida, mas conflita com o estado atual do recurso — mesma família da recusa por estado do caso; `422` fica para lista ou motivo inválidos (`RF-546`, `AC-565`, `EC-84`) |

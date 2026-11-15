@@ -149,6 +149,9 @@ class SnapshotOrdem:
     # RF-77 (T-169): o que acontece se o aluno não fizer nada. `None` sem
     # dívida simulável — e para snapshot gravado antes desta rodada.
     prognostico: Prognostico | None = None
+    # RF-545 (T-566): a lista do revisor (ordem de ataque) quando o cálculo a
+    # recebeu. `None` sem ajuste — e para snapshot gravado antes de RF-545.
+    ORDEM_DO_REVISOR: tuple[str, ...] | None = None
 
 
 def _serializar_canonico(valor: object) -> object:
@@ -218,7 +221,11 @@ def _serializar_canonico(valor: object) -> object:
     )
 
 
-def _calcular_hash_inputs(estado: EstadoFinanceiro, parametros: Parametros) -> str:
+def _calcular_hash_inputs(
+    estado: EstadoFinanceiro,
+    parametros: Parametros,
+    ORDEM_DO_REVISOR: tuple[str, ...] | None = None,
+) -> str:
     """`sha256` canônico e determinístico sobre `estado` (a carteira de
     dívidas já está embutida em `EstadoFinanceiro.dividas`) e
     `PARAMETROS_VERSION` (a versão dos `P_*` efetivamente usados no
@@ -230,11 +237,16 @@ def _calcular_hash_inputs(estado: EstadoFinanceiro, parametros: Parametros) -> s
     (`_serializar_canonico`) garante ordem de chave estável independente da
     ordem de inserção do dict Python — condição de reprodutibilidade entre
     execuções e processos (mesma entrada -> mesmo hash, sempre).
+
+    `ORDEM_DO_REVISOR` (RF-545, AC-560) só entra no payload quando não é
+    `None`: sem ela, o JSON canônico é byte a byte o de antes (AC-554).
     """
-    payload = {
+    payload: dict[str, object] = {
         "estado_inputs": _serializar_canonico(estado),
         "PARAMETROS_VERSION": parametros.PARAMETROS_VERSION,
     }
+    if ORDEM_DO_REVISOR is not None:
+        payload["ORDEM_DO_REVISOR"] = list(ORDEM_DO_REVISOR)
     texto_canonico = json.dumps(payload, sort_keys=True, ensure_ascii=True)
     return hashlib.sha256(texto_canonico.encode("utf-8")).hexdigest()
 
@@ -254,6 +266,7 @@ def montar_SnapshotOrdem(
     anterior: SnapshotOrdem | None = None,
     projecao_extraordinarios: ProjecaoExtraordinarios = PROJECAO_VAZIA,
     prognostico: Prognostico | None = None,
+    ORDEM_DO_REVISOR: tuple[str, ...] | None = None,
 ) -> SnapshotOrdem:
     """`RF-10` · `V-01..V-03` · `AC-16` · `AC-18` — monta e carimba o
     `SnapshotOrdem` final a partir dos resultados JÁ CALCULADOS pelos
@@ -280,7 +293,7 @@ def montar_SnapshotOrdem(
     `publicar_ORDEM_QUITACAO`) — `None` quando a ordem está vazia (`EC-17`,
     nenhuma dívida elegível).
     """
-    hash_inputs = _calcular_hash_inputs(estado, parametros)
+    hash_inputs = _calcular_hash_inputs(estado, parametros, ORDEM_DO_REVISOR)
     versao = 1 if anterior is None else anterior.versao + 1
     snapshot_anterior_id = None if anterior is None else anterior.SNAPSHOT_ID
 
@@ -317,4 +330,5 @@ def montar_SnapshotOrdem(
         PARAMETROS_VERSION=parametros.PARAMETROS_VERSION,
         projecao_extraordinarios=projecao_extraordinarios,
         prognostico=prognostico,
+        ORDEM_DO_REVISOR=ORDEM_DO_REVISOR,
     )

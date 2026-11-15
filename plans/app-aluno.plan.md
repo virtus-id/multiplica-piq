@@ -3066,3 +3066,393 @@ Servidor: payload do revisor × do aluno nos campos comuns e `JUSTIFICATIVA_POSI
 - **`T-377`:** mural (cap. 6) e cartões de cada mês (cap. 7) a partir de `MESES_DO_PLANO`/`com_extra.MESES` (`ContextoPlanoDetalhado`, `ContextoMesDetalhado`; rótulo `Mês 01` por formatação, âncoras `mes-azul-01`); saem o mês a mês por caminho do cap. 5, `passo_atual`, `primeiro_passo.html` e `checklist.html`.
 - **`T-385`:** página de cada mês (cap. 7) a partir de `MesDoPlano.DIVIDAS` e dos totais (`ContextoPaginaDoMes`, macro `pagina_do_mes`, `@page` com numeração); tela com `<details>` que abre pelo link do mural; plano antigo cai no cartão simples.
 - **Motor:** `RF-77`/`RF-78` (slug `motor-calculo`, `T-169`/`T-170`/`T-173`–`T-176`, `T-380`, `T-384`).
+
+---
+
+# Rodada 16 (2026-11-14) — Ordem de quitação definida pelo revisor (`RF-546`–`RF-551`)
+
+| Campo | Valor |
+| --- | --- |
+| Slug | `ordem-do-revisor` (rodada do `app-aluno`) |
+| Spec | `specs/app-aluno.spec.md` Rodada 16 — `RF-546`–`RF-551`, `US-413`, `US-414`, `AC-563`–`AC-575`, `EC-81`–`EC-84`; `OQ-99`, `OQ-100`, `OQ-101` respondidas em 2026-11-14 |
+| Depende de | `plans/motor-calculo.plan.md` §`R13` (`RF-545`): `calcular_plano(..., ordem_do_revisor=)`, `SnapshotOrdem.ORDEM_DO_REVISOR`, `ErroOrdemDoRevisor`, `MOTIVO_AJUSTE_DA_ORDEM` |
+| Status | `rascunho` |
+
+Seções `R18.x` (o prefixo `R16` já é usado neste plano pelo `RF-125`).
+
+## R18.1. Architecture Overview
+
+```text
+TelaEquipeCaso ── OrdemDoRevisor (seção nova)
+   │  POST /api/revisao/caso/{id}/ordem {ordem, motivo}
+   ▼
+rotas_api_plano.ajustar_ordem
+   1 exigir_papel_revisor ............................. 401 / 403
+   2 caso + historico[-1] (snapshot mais recente) ...... 404
+   3 caso.estado == AGUARDANDO_REVISAO .................. 409
+   4 motivo (lista não vazia) · "nada a recalcular" .... 422 · 409 (OQ-101)
+   5 executor.calcular_ajuste_da_ordem ─► calcular_plano(estado_inputs do snapshot,
+       parâmetros na PARAMETROS_VERSION do snapshot, anterior=snapshot,
+       ordem_do_revisor=lista)  .......................... 422 (ErroOrdemDoRevisor) · 500 (EC-82)
+   6 relê o estado do caso ............................. 409 (EC-81)
+   7 executor.anexar_ajuste_da_ordem (append-only + log sem motivo)
+   8 trilha: evento "ajuste_da_ordem_pelo_revisor", sem estado_de/para
+   └► 200: ordem vigente + prazo e custo antes/depois
+TelaEquipeCaso recarrega GET /api/revisao/caso/{id} e a decisão (plano, homologação);
+a prévia do PDF já lê historico[-1].
+
+report/plano.montar_contexto_plano: snapshot com ORDEM_DO_REVISOR → textos neutros
+(uma troca de TextosCanonicosPlano; tela, PDF liberado e prévia herdam).
+```
+
+O que **não** muda: `liberar`/`reprovar` (`app/revisao/fila.py`, já decidem
+sobre `historico[-1]`), `rotas_calculo` (o reenvio do aluno chama
+`calcular_plano` sem a lista — `RF-550` sai de graça), `serializacao_plano.py`
+(o plano serializado já sai do `contexto`), `report/pdf.py`, a máquina de
+estados (nenhuma transição nova) e o banco (nenhuma migração).
+
+## R18.2. Tech Stack
+
+Nenhuma dependência nova. Corpo JSON da rota por `pydantic.BaseModel`, que já
+vem com o FastAPI e já é usado em `rotas_calculadora.py` (`RF-546`). No cliente,
+botões subir/descer em vez de arrastar-e-soltar: é o que `RF-548` pede, é
+operável por teclado sem biblioteca (`NFR` de acessibilidade) — nenhuma lib de
+drag-and-drop.
+
+## R18.3. Project Structure
+
+| Caminho | Responsabilidade | Novo? |
+| --- | --- | --- |
+| `app/revisao/ordem_do_revisor.py` | `ordem_vigente`, `e_ajuste_da_ordem`, `anterior_para_comparar`, `registrar_ajuste_na_trilha`, `TIPO_EVENTO_AJUSTE_DA_ORDEM` — leitura pura de snapshot, menos o registro na trilha. Um módulo porque `GET`, `POST` e "O que mudou" usam as mesmas regras | sim |
+| `app/motor/executor.py` | `calcular_ajuste_da_ordem` e `anexar_ajuste_da_ordem` (sem transição de estado, ao contrário de `executar_calculo`) | não |
+| `app/http/rotas_api_plano.py` | `POST /api/revisao/caso/{CASO_ID_REVISAO}/ordem`; `GET /api/revisao/caso/{id}` ganha `ordem_do_revisor` e passa a escolher o anterior de "O que mudou" por `anterior_para_comparar` | não |
+| `report/plano.py` | `TextosCanonicosPlano.ordem_do_revisor`; `_textos_da_ordem_do_revisor`; uma linha em `montar_contexto_plano` | não |
+| `report/templates/plano/textos-canonicos.yaml` | bloco `ordem_do_revisor` (as quatro variantes, "sugestão, a validar") e a âncora `&pergunta_maior_divida` | não |
+| `frontend/src/services/api.ts` | tipos `OrdemNaConferencia`, `ResultadoDoAjusteDaOrdem`; `CasoParaRevisao.ordem_do_revisor`; `ajustarOrdem` | não |
+| `frontend/src/componentes/OrdemDoRevisor.tsx` | a seção "Ordem de quitação" | sim |
+| `frontend/src/telas/TelaEquipeCaso.tsx` | usa a seção; guarda o último resultado e recarrega | não |
+| `tests/app_aluno/estatica/test_fronteira_import_engine.py` | allowlist + `engine.motor.ErroOrdemDoRevisor`, `engine.motor.MOTIVO_AJUSTE_DA_ORDEM` (com o comentário de justificativa, como os precedentes) | não |
+
+## R18.4. Data Model — contratos
+
+```python
+# app/revisao/ordem_do_revisor.py — RF-546..RF-549
+TIPO_EVENTO_AJUSTE_DA_ORDEM: Final[str] = "ajuste_da_ordem_pelo_revisor"
+
+def ordem_vigente(snapshot: SnapshotOrdem) -> tuple[tuple[str, ...], bool]:
+    """(ordem de ATAQUE vigente, ajustada) — decisão técnica 2026-11-14: o revisor
+    edita a sequência em que as dívidas recebem o valor extra, nunca a de quitação.
+    Só leitura do snapshot, sem aritmética, fora do engine e de report/plano.py (AC-42):
+      1. `ORDEM_DO_REVISOR`, quando houver (ajustada = True);
+      2. senão `cenarios[recomendado].ORDEM_DE_ATAQUE`, quando houver (estouro);
+      3. senão os `DIVIDA_ALVO` distintos de `prognostico.MESES_DO_PLANO`, na ordem
+         do primeiro mês em que aparecem, seguidos das dívidas da `ORDEM_QUITACAO`
+         que nunca foram alvo, na ordem de quitação;
+      4. snapshot sem `prognostico` (anterior a RF-77): os DIVIDA_ID de `ORDEM_QUITACAO`.
+    Os passos 2–4 ficam restritos ao conjunto de `ORDEM_QUITACAO` (as elegíveis).
+    É a lista que a tela mostra e edita e a base de OQ-101."""
+
+def e_ajuste_da_ordem(snapshot: SnapshotOrdem) -> bool:
+    """MOTIVO_RECALCULO == MOTIVO_AJUSTE_DA_ORDEM — vale para o ajuste e para a volta."""
+
+def anterior_para_comparar(historico: Sequence[SnapshotOrdem]) -> SnapshotOrdem | None:
+    """RF-549/AC-572: entre os snapshots que NÃO são ajuste, o penúltimo.
+    None com menos de dois (v1 → "O que mudou" = null, como hoje)."""
+
+def registrar_ajuste_na_trilha(
+    repositorio_eventos: RepositorioEventosCaso, *, caso_id: str, autor: str, motivo: str,
+    ordem_anterior: tuple[str, ...], ordem_nova: tuple[str, ...],
+    snapshot_anterior_id: str, snapshot_novo_id: str, agora: datetime,
+) -> None:
+    """RF-547/AC-568: EventoCaso(tipo_evento=TIPO_EVENTO_AJUSTE_DA_ORDEM,
+    estado_de=None, estado_para=None, ocorrido_em=agora,
+    detalhe=json.dumps({ordem_anterior, ordem_nova, motivo, autor,
+    snapshot_anterior_id, snapshot_novo_id}, sort_keys=True))."""
+
+# app/motor/executor.py — RF-546 · OQ-100 · EC-82
+def calcular_ajuste_da_ordem(
+    snapshot: SnapshotOrdem, ordem_do_revisor: tuple[str, ...],
+    fonte_parametros: FonteParametros, caso_id: str,
+) -> SnapshotOrdem:
+    """carregar(snapshot.PARAMETROS_VERSION) → calcular_plano(snapshot.estado_inputs,
+    parametros, anterior=snapshot, motivo=MOTIVO_AJUSTE_DA_ORDEM,
+    ordem_do_revisor=ordem_do_revisor). Não anexa, não transiciona. Propaga
+    ErroOrdemDoRevisor; ErroParametros/ErroInvariante são logados pela allowlist
+    de _registrar_evento e relançados."""
+
+def anexar_ajuste_da_ordem(
+    novo: SnapshotOrdem, repositorio_snapshots: RepositorioSnapshots, caso_id: str
+) -> None:
+    """anexar(novo) + _registrar_evento(SNAPSHOT_ID novo e anterior, hash_inputs,
+    ENGINE_VERSION, PARAMETROS_VERSION) — nunca o motivo (NFR de observabilidade)."""
+
+# app/http/rotas_api_plano.py — RF-546
+class PedidoDeAjusteDaOrdem(BaseModel):
+    ordem: list[str]          # [] = voltar à ordem do método
+    motivo: str = ""          # obrigatório só com ordem não vazia (OQ-99)
+
+@roteador.post("/api/revisao/caso/{CASO_ID_REVISAO}/ordem")
+def ajustar_ordem(
+    CASO_ID_REVISAO: str, pedido: PedidoDeAjusteDaOrdem,
+    conta_id_revisor: Annotated[str, Depends(exigir_papel_revisor)],
+    repositorio_casos: ...Depends(obter_repositorio_casos_da_fila),
+    repositorio_snapshots: ...Depends(obter_repositorio_snapshots_da_fila),
+    repositorio_eventos: ...Depends(rotas_revisao.obter_repositorio_eventos_da_decisao),
+    fonte_parametros: ...Depends(rotas_calculo.obter_fonte_parametros),
+) -> JSONResponse: ...
+# `def`, não `async def` (mesma nota de `processar_decisao`, T-187).
+```
+
+Resposta `200` (`AC-563`):
+
+```json
+{
+  "CASO_ID": "…", "SNAPSHOT_ID": "<novo>", "versao": 2,
+  "ordem_vigente": ["D003", "D001", "D002"], "ajustada": true,
+  "antes":  {"SNAPSHOT_ID": "…", "prazo": {"meses": 18, "estourou_horizonte": false},
+             "custo_total_de_juros": {"valor": "R$ 1.234,56", "motivo": null}},
+  "depois": {"SNAPSHOT_ID": "…", "prazo": {"meses": 20, "estourou_horizonte": false},
+             "custo_total_de_juros": {"valor": "não disponível", "motivo": "<rótulo>"}}
+}
+```
+
+`prazo` = `cenarios[METODO_RECOMENDADO_PIQ].PRAZO_TOTAL` e `ESTOUROU_HORIZONTE`
+(leitura); `custo_total_de_juros` = o item de mesmo nome de
+`serializar_registro(registrar_homologacao(snapshot, ()), nomes,
+textos.rotulos_de_codigos)` — a **mesma** montagem da homologação, nenhuma conta
+nova na rota (`AC-42`). Erros: `HTTPException(detail=<frase>)`, que o `pedir`
+do cliente já lê (`T-337`).
+
+`GET /api/revisao/caso/{id}` ganha (`RF-546`, `RF-548`):
+
+```json
+"ordem_do_revisor": {
+  "vigente": [{"DIVIDA_ID": "D003", "nome": "Cartão de crédito — Banco X"}, …],
+  "ajustada": true,
+  "editavel": true
+}
+```
+
+`editavel` = `AGUARDANDO_REVISAO` **e** fora de `MODO_ESTABILIZACAO` **e** duas
+ou mais dívidas (o servidor dá o veredito, como `editavel` de `R13.2`). `nome`
+vem de `contexto.ordem` (o mesmo nome do plano, `RF-111`); sem nome, o
+`DIVIDA_ID`.
+
+```python
+# report/plano.py — RF-551
+@dataclass(frozen=True, slots=True)
+class TextosCanonicosPlano:
+    ...
+    ordem_do_revisor: Mapping[str, str] = field(default_factory=dict)   # _mapa("ordem_do_revisor")
+
+def _textos_da_ordem_do_revisor(textos: TextosCanonicosPlano) -> TextosCanonicosPlano:
+    """dataclasses.replace com as quatro trocas de RF-551, para TODOS os métodos:
+    (1) explicacao_da_posicao[m]["primeira"] e ["primeira_com_prioridade"] → explicacao_primeira
+        (primeira_da_lista e seguintes ficam);
+    (2) passo 1 de como_funciona[m] e de como_funciona_com_prioridade[m] → como_funciona_passo_1;
+    (3) em duvidas e duvidas_provisorio, a resposta cuja pergunta == pergunta_maior_divida
+        → resposta_maior_divida;
+    (4) incomodo["aviso"] → aviso_incomodo.
+    Chave ausente no YAML: mantém o texto de sempre (nunca vazio). Só leitura."""
+
+# em montar_contexto_plano, primeira linha útil:
+#   if snapshot.ORDEM_DO_REVISOR is not None: textos = _textos_da_ordem_do_revisor(textos)
+```
+
+```yaml
+# textos-canonicos.yaml
+duvidas:
+  - &duvida_maior_divida
+    pergunta: &pergunta_maior_divida "Por que não começar pela maior dívida?"
+    resposta: …   # inalterada
+# RF-551 (Rodada 16): só com ORDEM_DO_REVISOR no snapshot. Sugestão, a validar
+# com o especialista (como T-549/T-564).
+ordem_do_revisor:
+  explicacao_primeira: >-      # redação sugerida 1 da spec
+  como_funciona_passo_1: >-    # redação sugerida 2
+  pergunta_maior_divida: *pergunta_maior_divida
+  resposta_maior_divida: >-    # redação sugerida 3
+  aviso_incomodo: >-           # redação sugerida 4
+```
+
+A pergunta é a mesma âncora YAML: renomear a pergunta não deixa a troca (3)
+apontando para um texto que não existe mais.
+
+```ts
+// frontend/src/services/api.ts
+export interface OrdemNaConferencia {
+  vigente: { DIVIDA_ID: string; nome: string }[]
+  ajustada: boolean
+  editavel: boolean
+}
+export interface PrazoECusto {
+  SNAPSHOT_ID: string
+  prazo: { meses: number; estourou_horizonte: boolean }
+  custo_total_de_juros: { valor: string; motivo: string | null }
+}
+export interface ResultadoDoAjusteDaOrdem {
+  SNAPSHOT_ID: string; versao: number; ordem_vigente: string[]; ajustada: boolean
+  antes: PrazoECusto; depois: PrazoECusto
+}
+// CasoParaRevisao ganha `ordem_do_revisor: OrdemNaConferencia`
+export function ajustarOrdem(casoId: string, ordem: string[], motivo: string): Promise<ResultadoDoAjusteDaOrdem>
+//   POST /api/revisao/caso/${casoId}/ordem, Content-Type: application/json
+
+// frontend/src/componentes/OrdemDoRevisor.tsx
+interface OrdemDoRevisorProps {
+  casoId: string
+  ordem: OrdemNaConferencia
+  ultimoAjuste: ResultadoDoAjusteDaOrdem | null
+  aoAjustar: (resultado: ResultadoDoAjusteDaOrdem) => void
+}
+```
+
+## R18.5. Data Flow
+
+**Ajuste (`AC-563`).** Validações 1–4 (`R18.1`) antes de tocar o motor; a
+permutação é validada **só no motor**, contra o **conjunto** das dívidas
+elegíveis, nunca contra a ordem publicada (`ErroOrdemDoRevisor` → `422` com a
+mensagem dele, que nomeia a causa por `DIVIDA_ID`) — uma regra, um lugar. A
+regra de `OQ-101` é da rota: `(lista, ajustada) = ordem_vigente(snapshot)`;
+`ordem` não vazia igual a `lista`, ou `ordem` vazia com `ajustada = False` →
+`409` "Esta já é a ordem vigente. Nada a recalcular." Depois do cálculo, o
+estado é relido; só então `anexar` e o evento. `ordem_nova` do evento é
+`ordem_vigente(novo)[0]` (na volta, a ordem do método que resultou).
+
+**Volta (`AC-564`).** `ordem = []`, motivo opcional; o motor roda sem a lista; o
+snapshot sai sem `ORDEM_DO_REVISOR`, com `MOTIVO_AJUSTE_DA_ORDEM` (passado pelo
+executor) — por isso conta como ajuste em "O que mudou".
+
+**Liberar (`AC-571`).** Sem mudança: `liberar` grava `historico[-1]` como
+`snapshot_liberado_id`; `ordem_final_de_ataque` já é lido de `ORDEM_QUITACAO`
+desse snapshot; a tela e o PDF do aluno leem o liberado.
+
+**"O que mudou" (`AC-572`).** `caso_para_revisao` troca
+`_snapshot_anterior(snapshot, …)` por `anterior_para_comparar(historico)` (o
+`historico` já está carregado; `_snapshot_anterior` fica sem uso e sai). O
+atual continua `historico[-1]`: num ajuste, seus `estado_inputs` são os do envio
+que ele ajustou.
+
+**Plano novo (`AC-573`).** Nada a fazer: `rotas_calculo` chama o executor de
+sempre, sem `ordem_do_revisor`; `snapshot_corrente` encadeia ao ajuste (v.n+1)
+e o motor publica a ordem do método. A ordem antiga fica na cadeia e na trilha.
+
+**Textos (`AC-574`, `AC-575`).** `montar_contexto_plano` troca `textos` quando
+há `ORDEM_DO_REVISOR`; todo o resto (explicação por posição, `como_funciona`,
+`duvidas`, aviso de incômodo) já sai do `contexto` para a tela
+(`serializar_plano` usa `contexto.duvidas`) e para o PDF (`report/pdf.py:188`,
+`:199`). O carimbo "método X" e `JUSTIFICATIVA_POSICAO` (só revisor) não passam
+por essa troca.
+
+## R18.6. External Interfaces
+
+| Rota | Contrato | Auth | Falha → |
+| --- | --- | --- | --- |
+| `POST /api/revisao/caso/{CASO_ID_REVISAO}/ordem` | corpo `{ordem: string[], motivo?: string}`; `200` de `R18.4` | `exigir_papel_revisor` (`401` sem sessão, `403` aluno, inclusive o dono) | `404` caso/snapshot; `409` fora da conferência, corrida (`EC-81`) ou nada a recalcular (`OQ-101`); `422` motivo vazio com lista não vazia, ou `ErroOrdemDoRevisor`; `500` falha do motor (`EC-82`) |
+| `GET /api/revisao/caso/{CASO_ID_REVISAO}` | + `ordem_do_revisor`; `mudancas` pula ajustes | idem | inalterado |
+
+O parâmetro de rota chama `CASO_ID_REVISAO` (a auditoria de isolamento casa pelo
+nome literal; rota de papel, não de dono — nota de `caso_para_revisao`).
+
+**Código de `OQ-101`: `409`.** A requisição é bem formada e a lista é válida;
+o que impede é o estado atual do recurso (a ordem já vigente). `422` fica para
+conteúdo inválido (lista ou motivo).
+
+## R18.7. State Management
+
+- **Servidor:** a ordem de ataque vigente vive só no snapshot mais recente
+  (`ORDEM_DO_REVISOR`, ou derivada por `ordem_vigente` a cada leitura). Nenhuma coluna nova em `casos`; o
+  estado do caso não muda (`AGUARDANDO_REVISAO`, continua na fila). A trilha
+  guarda o fato e o motivo; o evento tem `estado_de`/`estado_para` nulos, então
+  `lista_de_casos._ultima_entrada` (que procura `estado_para =
+  AGUARDANDO_REVISAO`) **não** zera o "parado há" (risco da spec, resolvido).
+- **Versão exibida:** continua `snapshot.versao`. Contar só os envios do aluno
+  exigiria percorrer a cadeia em toda listagem; com um revisor e 1–3 alunos não
+  compensa (decisão que a spec deixou ao plano).
+- **Cliente:** `OrdemDoRevisor` guarda a lista em edição, o motivo, `enviando`
+  e o erro local. `TelaEquipeCaso` guarda `ultimoAjuste` e chama `carregar()`
+  depois do `200` (a seção remonta com a nova vigente; o antes/depois vem do
+  estado da tela). Em `409`/`422`, nada recarrega: lista e motivo ficam
+  (`AC-570`).
+
+## R18.8. Error Handling Strategy
+
+| Situação | Detecção | Resposta ao revisor | Recuperação |
+| --- | --- | --- | --- |
+| Recalculando | `enviando` | botões desativados, "Recalculando…" anunciado (`aria-live`) | — |
+| Fora da conferência / corrida (`EC-81`) | estado lido antes e depois do cálculo | `409`; com `COLETA_INICIAL`, a frase de `MENSAGEM_FORA_DA_CONFERENCIA` | lista e motivo preservados |
+| Nada a recalcular (`OQ-101`) | `ordem_vigente` | `409` "Esta já é a ordem vigente…" (a tela já desativa o botão) | — |
+| Lista inválida | `ErroOrdemDoRevisor` | `422` com a causa | idem |
+| Motivo vazio | `pedido.motivo.strip()` | `422` "Escreva o motivo interno." | idem |
+| Motor falha (`EC-82`) | `ErroParametros`/`ErroInvariante` | `500` "Não foi possível recalcular. O plano não mudou." | nada anexado nem gravado; caso em `AGUARDANDO_REVISAO`; log pela allowlist |
+| Snapshot de ajuste anexado e a retirada vence logo depois (`EC-81`) | — | — | fica na cadeia sem efeito; o reenvio do aluno encadeia a ele e roda sem a lista |
+| Seção sem edição | `editavel = false` | lista só leitura, com "ordem do método"/"ajustada na conferência" | — |
+
+## R18.9. Testing Strategy
+
+- **Servidor** (`tests/app_aluno/test_rotas_ordem_do_revisor.py`, novo, com os
+  fakes de repositório de arquivo e `dependency_overrides`, no padrão de
+  `test_rotas_revisao_decisao.py`): `AC-563` (v2 encadeada, `estado_inputs` e
+  `PARAMETROS_VERSION` da v1 mesmo com a vigente diferente — fake de
+  `FonteParametros` que registra a versão pedida —, v1 intacta, estado e fila);
+  `AC-564`; `AC-565` (todo estado ≠ `AGUARDANDO_REVISAO` + os três casos de `OQ-101`); `AC-566`;
+  `AC-567`; `AC-568` (trilha por `listar_do_caso`, estado inalterado, `caplog`
+  sem o motivo, rotas de aluno sem o motivo); `EC-81` (fake de casos que muda o
+  estado entre a 1ª e a 2ª leitura); `EC-82` (fonte que levanta
+  `ErroParametros`; motor que levanta `ErroInvariante` via `monkeypatch`);
+  `EC-84`; `ordem_vigente` unitário nos quatro ramos, inclusive a carteira em
+  que uma dívida termina só com as parcelas (ordem de ataque ≠
+  `ORDEM_QUITACAO`; enviar a vigente → `409`).
+- **Conferência:** `AC-570` (depois do `POST`, `GET` do caso e a prévia — com
+  `gerar_pdf_de_previa` substituída — recebem a v2; dívida da vez no Mês 01 =
+  primeira da lista); `AC-571` (liberar a v2: `snapshot_liberado_id`,
+  `ordem_final_de_ataque`, plano do aluno com prognóstico azul/verde da v2 e
+  "Se nada mudar" igual ao da v1); `AC-572` (`anterior_para_comparar` unitário
+  e pela rota); `ordem_do_revisor.editavel` nos três casos sem edição.
+- **Descarte (`AC-573`):** os dois caminhos de reenvio (`RF-113`, `RF-115`)
+  partindo de um caso cuja última versão é ajustada: a nova versão sem
+  `ORDEM_DO_REVISOR`, ordem do método, caso na fila; liberado o ajustado, o
+  pedido de plano novo é recusado (`RF-409` de `enxugamento-questionario`).
+- **Relatório (`AC-574`, `AC-575`):** dois snapshots do mesmo estado (com e sem
+  a lista) → os únicos textos fixos que diferem no `ContextoPlano` são as quatro
+  variantes; nenhum contém "revisor"/"especialista"; rodapé com o método.
+  Snapshot sem o campo → textos idênticos aos de hoje (os testes atuais do
+  plano seguem verdes). `test_sem_aritmetica_sobre_snapshot` segue verde
+  (`_textos_da_ordem_do_revisor` não lê número).
+- **Frontend** (`frontend/tests/unit/componentes/OrdemDoRevisor.test.tsx`,
+  novo; `TelaEquipeCaso.test.tsx` estendido): `AC-569` (nomes, subir/descer
+  desativados nas pontas, mover não chama a API, estado do botão, "Voltar" só
+  com ajustada, rótulos "Subir {nome}"/"Descer {nome}", sem edição com
+  `editavel=false`); `AC-570` (antes/depois exibido, recarga chamada; `409`/`422`
+  mostram a mensagem e preservam lista e motivo); `api.test.ts` com
+  `ajustarOrdem`.
+- **Fora de teste automatizado:** a redação das quatro variantes (validação do
+  especialista); o p95 < 10 s, medido no ambiente de homologação com o caso
+  piloto.
+
+## R18.10. Risks & Trade-offs
+
+| Decisão | Alternativa descartada | Por quê | Risco assumido |
+| --- | --- | --- | --- |
+| Permutação validada só no motor | Validar também na rota | Uma regra num lugar (Lei nº 3); o motor já precisa validar | A mensagem de `422` cita `DIVIDA_ID`, não o nome — a tela não deixa montar lista inválida, então só chega por chamada direta |
+| Rota recalcula e anexa sem transição | Reusar `executar_calculo` | Ele transiciona `CALCULANDO → ERRO_DE_CALCULO` na falha; aqui o caso não sai da conferência (`EC-82`) | Duas funções pequenas no executor |
+| Ajuste reconhecido por `MOTIVO_RECALCULO` | Cruzar com a trilha | O snapshot se explica sozinho; sem leitura extra no `GET` | Depende de uma constante textual — exportada do motor (allowlist) e coberta por teste |
+| Evento sem `estado_de`/`estado_para` | Evento `AGUARDANDO_REVISAO → AGUARDANDO_REVISAO` | Não há transição; e a lista de casos mede "parado há" pelo `estado_para` | — |
+| `409` para `OQ-101` | `422` | Conflito com o estado atual, não conteúdo inválido | — |
+| Antes/depois guardado na tela | Endpoint de comparação | É a resposta do `POST`; nada a persistir | Some ao sair da tela — o histórico fica na cadeia |
+| **Ordem de ataque × quitação — resolvido (decisão técnica, 2026-11-14).** A tela mostra e edita a **ordem de ataque vigente** (`ordem_vigente`, derivada por leitura do snapshot); `OQ-101` compara com ela; o motor valida só o conjunto (`motor-calculo` `R13.10`) | Mostrar e comparar com a `ORDEM_QUITACAO` publicada | Sem estouro ela é a de quitação: mexer numa posição mandaria o extra primeiro para a dívida que terminaria sozinha | A derivação lê `MESES_DO_PLANO`: uma dívida que só recebe resíduo da cascata no mês em que outra quita, e quita nesse mesmo mês, não aparece como `DIVIDA_ALVO` e vai para o fim, na ordem de quitação. Coberto por teste de `EC-80` (enviar a vigente → `409`; no motor, mesmos números) |
+| `liberar` libera o mais recente (`EC-83`) | Liberar pelo `SNAPSHOT_ID` exibido | Fora desta rodada (spec) | Revisor único |
+| Textos neutros "sugestão, a validar" | Esperar o especialista | Não bloqueia; padrão `T-549`/`T-564` | Validar antes de liberar o primeiro plano ajustado |
+
+## R18.11. Traceability
+
+| Requisito | Coberto por |
+| --- | --- |
+| `RF-546` | `R18.1`, `R18.4` (`ajustar_ordem`, `calcular_ajuste_da_ordem`, `anexar_ajuste_da_ordem`, `ordem_vigente`), `R18.5`, `R18.6`, `R18.8` · `AC-563`–`AC-567`, `EC-81`, `EC-82`, `EC-84` · `OQ-99`, `OQ-100`, `OQ-101` |
+| `RF-547` | `R18.4` (`registrar_ajuste_na_trilha`, `anexar_ajuste_da_ordem` sem motivo no log), `R18.7` · `AC-568` |
+| `RF-548` | `R18.4` (`ordem_do_revisor` no `GET`, `OrdemDoRevisor.tsx`, `ajustarOrdem`), `R18.7`, `R18.8` · `AC-569`, `AC-570` |
+| `RF-549` | `R18.5` (liberar sem mudança, `anterior_para_comparar`) · `AC-571`, `AC-572`, `EC-83` |
+| `RF-550` | `R18.5` (nenhum código: o cálculo de sempre roda sem a lista) · `AC-573` |
+| `RF-551` | `R18.4` (`_textos_da_ordem_do_revisor`, bloco YAML), `R18.5` · `AC-574`, `AC-575` |
+
+Tarefas: em `tasks/app-aluno.tasks.md`, depois das do `motor-calculo` (`R13`).

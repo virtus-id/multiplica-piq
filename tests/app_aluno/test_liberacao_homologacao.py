@@ -10,7 +10,11 @@ respostas gravadas, nunca fabricadas.
 `T-266`: o contexto de `GET .../decisao` (fontes, divergências e
 pendências), pela mesma rota.
 
-REGRAS: `RF-92`, `RF-93`, `RF-97`, `AC-141`, `AC-142`, `AC-149`, `EC-40`
+`T-591`: liberar e homologar com a ordem ajustada pelo revisor (`RF-549`,
+`AC-571`, `EC-83`), no fluxo de `test_rotas_ordem_do_revisor.py`.
+
+REGRAS: `RF-92`, `RF-93`, `RF-97`, `AC-141`, `AC-142`, `AC-149`, `EC-40`,
+`RF-549`, `AC-571`, `EC-83`
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -47,6 +52,11 @@ from persistencia.app_aluno.arquivo import (
     RepositorioRespostasArquivo,
 )
 from persistencia.arquivo.repositorio_snapshots import RepositorioSnapshotsArquivo
+from tests.app_aluno.fixtures.caso_completo import CASO_ID
+from tests.app_aluno.test_rotas_ordem_do_revisor import (
+    Cenario,
+    cenario,  # noqa: F401 — fixture do fluxo de ajuste da ordem
+)
 from tests.app_aluno.test_rotas_revisao_decisao import (
     _calcular_snapshot,
     _criar_caso,
@@ -221,3 +231,92 @@ def test_t393_sem_o_custo_da_divida_o_calculo_bloqueia_e_a_liberacao_tambem(
     ambiente.responder("PERIODICIDADE_TAXA_DIVIDA", "MENSAL", ambiente.divida)
 
     assert ambiente.liberar_pela_rota(monkeypatch)[0] == 200
+
+
+# --------------------------------------------------------------------------
+# `T-591` (`RF-549`) — liberar e homologar com a ordem ajustada pelo revisor.
+# O fluxo pelas rotas reais de `test_rotas_ordem_do_revisor.py`.
+# --------------------------------------------------------------------------
+
+_LISTA = ["D003", "D001", "D002"]
+
+
+def _caminho(plano: dict[str, Any], cor: str) -> dict[str, Any]:
+    caminho: dict[str, Any] = next(
+        c for c in plano["prognostico"]["caminhos"] if c["cor"] == cor
+    )
+    return caminho
+
+
+def _homologacao(no_cenario: Cenario) -> dict[str, Any]:
+    corpo: dict[str, Any] = no_cenario.revisor.get(f"/revisao/caso/{CASO_ID}/decisao").json()
+    return corpo
+
+
+def test_ac571_liberar_a_v2_ajustada_entrega_ao_aluno_a_ordem_do_revisor(
+    cenario: Cenario,  # noqa: F811
+) -> None:
+    v1 = cenario.enviar()
+    plano_v1 = cenario.revisor.get(f"/api/revisao/caso/{CASO_ID}").json()["plano"]
+    nomes = {p["DIVIDA_ID"]: p["nome"] for p in plano_v1["ordem"]}
+    assert cenario.ajustar(_LISTA).status_code == 200
+    v2 = cenario.historico()[-1]
+    itens = _homologacao(cenario)["homologacao"]["itens"]
+    assert itens["ordem_final_de_ataque"]["valor"] == [
+        f"{i}º {nomes[p.DIVIDA_ID]}" for i, p in enumerate(v2.ORDEM_QUITACAO, start=1)
+    ]
+
+    assert cenario.decidir("decisao=LIBERAR").status_code == 200
+
+    assert cenario.caso().snapshot_liberado_id == v2.SNAPSHOT_ID
+    plano = cenario.aluno.get(f"/caso/{CASO_ID}/api/plano").json()["plano"]
+    cenario_v2 = v2.cenarios[v2.METODO_RECOMENDADO_PIQ]
+    assert [p["DIVIDA_ID"] for p in plano["ordem"]] == [p.DIVIDA_ID for p in v2.ORDEM_QUITACAO]
+    assert {nomes[p["DIVIDA_ID"]]: p["mes_de_quitacao"] for p in plano["ordem"]} == itens[
+        "mes_de_quitacao_por_divida"
+    ]["valor"]
+    assert plano["PRAZO_TOTAL_INT"] == cenario_v2.PRAZO_TOTAL
+    assert v2.prognostico is not None and v1.prognostico is not None
+    assert v2.prognostico.MESES_DO_PLANO[0].DIVIDA_ALVO == _LISTA[0]
+    assert _caminho(plano, "azul")["mes_fim"] == cenario_v2.PRAZO_TOTAL
+    assert (v2.prognostico.com_extra is None) == (v1.prognostico.com_extra is None)
+    # "Se nada mudar" é o da v1: o ajuste não muda o vermelho.
+    assert v2.prognostico.sem_acao == v1.prognostico.sem_acao
+    vermelho_v1, vermelho = _caminho(plano_v1, "vermelho"), _caminho(plano, "vermelho")
+    assert (vermelho["mes_fim"], vermelho["destaques"][0]) == (
+        vermelho_v1["mes_fim"],
+        vermelho_v1["destaques"][0],
+    )
+
+
+def test_rf549_pendencias_de_homologacao_nao_mudam_com_o_ajuste(
+    cenario: Cenario,  # noqa: F811
+) -> None:
+    """As pendências saem das respostas (`RF-93`, `RF-97`), que o ajuste não
+    toca; a homologação passa a recair sobre o snapshot ajustado."""
+    v1 = cenario.enviar()
+    antes = _homologacao(cenario)
+    assert antes["SNAPSHOT_ID"] == v1.SNAPSHOT_ID
+
+    assert cenario.ajustar(_LISTA).status_code == 200
+
+    depois = _homologacao(cenario)
+    assert depois["SNAPSHOT_ID"] == cenario.historico()[-1].SNAPSHOT_ID
+    assert depois["pendencias_homologacao"] == antes["pendencias_homologacao"]
+    assert depois["homologacao"]["homologavel"] == antes["homologacao"]["homologavel"]
+
+
+def test_ec83_liberar_depois_do_ajuste_libera_o_mais_recente(
+    cenario: Cenario,  # noqa: F811
+) -> None:
+    v1 = cenario.enviar()
+    # A outra aba ainda mostra a v1.
+    assert _homologacao(cenario)["SNAPSHOT_ID"] == v1.SNAPSHOT_ID
+    assert cenario.ajustar(_LISTA).status_code == 200
+
+    assert cenario.decidir("decisao=LIBERAR").status_code == 200
+
+    v2 = cenario.historico()[-1]
+    assert v2.ORDEM_DO_REVISOR == tuple(_LISTA)
+    assert cenario.caso().snapshot_liberado_id == v2.SNAPSHOT_ID
+    assert (cenario.revisoes.registros[-1].SNAPSHOT_ID) == v2.SNAPSHOT_ID

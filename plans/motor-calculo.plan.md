@@ -4737,3 +4737,230 @@ quantificação de `RF-74`), com proposta mínima e reversível.
 **Fora desta rodada.** Sem estouro do horizonte a ordem publicada continua sendo a de quitação da simulação, que pode diferir da de ataque quando uma dívida termina só com as próprias parcelas. Decisão de produto à parte. A mistura das escalas do benefício marginal (simulação contra fallback pela taxa) também fica para outra rodada.
 
 **Rastreabilidade.** `RF-512` → `AC-512`, `AC-513` · `EC-61` · tarefas `T-467`, `T-468`.
+
+---
+
+# Rodada 7 (2026-11-14) — Ordem de quitação definida pelo revisor (`RF-545`)
+
+| Campo | Valor |
+| --- | --- |
+| Slug | `ordem-do-revisor` (rodada do `motor-calculo`) |
+| Spec | `specs/motor-calculo.spec.md` Rodada 7 — `RF-545`, `US-412`, `AC-554`–`AC-562`, `EC-78`–`EC-80`; `OQ-97` respondida (o cenário adicional segue a lista), `OQ-98` aberta (não bloqueia) |
+| Lado da aplicação | `plans/app-aluno.plan.md` §`R18` (rota, trilha, tela, textos) |
+| Status | `rascunho` |
+
+## R13.1. Architecture Overview — a lista é só mais um `SelecionarAlvo`
+
+O ciclo mensal já tem um único ponto de variação entre métodos: o
+`SelecionarAlvo` (`engine/ciclo_mensal.py:285`). A ordem do revisor entra por
+ele e por nenhum outro lugar: **`engine/ciclo_mensal.py` não muda**, nenhuma
+fórmula muda, nenhum `P_*` nasce.
+
+```text
+calcular_plano(estado, parametros, anterior, evento, motivo, *, ordem_do_revisor=None)
+  passos 3–9  diagnóstico, gates, três cenários, comparação, método        ← intocados
+  passo 10    ordem do MÉTODO publicada (publicar_ORDEM_QUITACAO, como hoje)
+  ── só com lista NÃO vazia ─────────────────────────────────────────────────────────
+  10a  _validar_ordem_do_revisor(lista, CONJUNTO da ordem do método, MODO_ESTABILIZACAO) → ErroOrdemDoRevisor
+  10b  sel_publicado = _selecionar_pela_ordem_do_revisor(lista, dividas, sel do método COM §16.4)
+  10c  cenario_publicado = simular_cenario(…, sel_publicado, …, aportes_base_por_mes)
+  10d  ordem_publicada = publicar_ORDEM_QUITACAO(cenario_publicado, …, definida_pelo_revisor=True)
+  ───────────────────────────────────────────────────────────────────────────────────
+  10e  ORDEM_STATUS, aportes no horizonte, cenário adicional, prognóstico  ← do cenário/seletor publicado
+  11   snapshot: cenarios[recomendado] = publicado · ORDEM_DO_REVISOR · hash · motivo
+```
+
+Sem a lista (ausente **ou vazia** — `tuple(ordem_do_revisor or ()) or None`),
+o fluxo é literalmente o de hoje: o ramo 10a–10d não executa e todo argumento
+novo assume o valor padrão que reproduz a chamada atual (`AC-554`).
+
+## R13.2. Tech Stack
+
+Nenhuma dependência nova. Python/stdlib, como o resto do motor (`RF-545`:
+"nenhuma fórmula muda").
+
+## R13.3. Project Structure
+
+| Caminho | Mudança | Requisito |
+| --- | --- | --- |
+| `engine/motor.py` | parâmetro `ordem_do_revisor`; `ErroOrdemDoRevisor`; `MOTIVO_AJUSTE_DA_ORDEM`; `_validar_ordem_do_revisor`; `_selecionar_pela_ordem_do_revisor`; ramo 10a–10e | `RF-545` |
+| `engine/ordem.py` | `publicar_ORDEM_QUITACAO(..., definida_pelo_revisor=False)` e a justificativa variante | `RF-545` (5), `AC-562` |
+| `engine/prognostico.py` | `calcular_prognostico(..., horizonte_sem_acao=None)` | `RF-545` (4), `AC-559` |
+| `engine/snapshot.py` | campo `ORDEM_DO_REVISOR`; `_calcular_hash_inputs` e `montar_SnapshotOrdem` com o argumento | `RF-545` (6), `AC-560` |
+| `persistencia/arquivo/repositorio_snapshots.py` | `_desserializar_snapshot` lê `ORDEM_DO_REVISOR` com `.get` (anterior → `None`); a escrita já serializa o campo (`_serializar_canonico(s)`) | `AC-560` |
+| `persistencia/supabase/repositorio_snapshots.py` | `_dados_completos` grava a chave; `_bruto_para_formato_arquivo` a lê com `.get`. Sem migração (vive em `dados_completos`, como `prognostico`) | `AC-560` |
+| `tests/app_aluno/estatica/hashes_congelados.json` | regravado pelo procedimento de `RF-41` do `app-aluno`, só com os arquivos apontados pelo teste (`AC-44`) | — |
+| `engine/ciclo_mensal.py`, `engine/prioridade_ordem.py`, `engine/metodos/*`, `engine/comparacao.py`, `engine/status_metodo.py` | **não mudam** | `RF-545` (1) |
+
+## R13.4. Data Model — contratos
+
+```python
+# engine/motor.py — RF-545
+MOTIVO_AJUSTE_DA_ORDEM: Final[str] = "ajuste da ordem pelo revisor"   # V-01, AC-562
+
+class ErroOrdemDoRevisor(ValueError):
+    """AC-557 — lista recusada ANTES de simular; nenhum snapshot. A mensagem
+    nomeia a causa só com DIVIDA_ID: repetida, faltando, fora da ordem
+    publicada (inexistente ou bloqueada por gate), ou estado em estabilização."""
+
+def calcular_plano(
+    estado: EstadoFinanceiro,
+    parametros: Parametros,
+    anterior: SnapshotOrdem | None = None,
+    evento: EVENTO_RECALCULO | None = None,
+    motivo: str = "",
+    *,
+    ordem_do_revisor: Sequence[str] | None = None,   # () ≡ None (premissa aceita)
+) -> SnapshotOrdem: ...
+
+def _validar_ordem_do_revisor(
+    lista: tuple[str, ...], elegiveis: frozenset[str], MODO_ESTABILIZACAO: bool
+) -> None: ...
+# EC-79: MODO_ESTABILIZACAO e lista não vazia → recusa.
+# A lista é a ORDEM DE ATAQUE (decisão técnica, 2026-11-14). Validação =
+# permutação exata do CONJUNTO `elegiveis` = {p.DIVIDA_ID for p in ordem do
+# método publicada} (as elegíveis depois dos gates, RF-09/RF-512). A ORDEM da
+# publicada nunca é comparada: só o conjunto.
+
+def _selecionar_pela_ordem_do_revisor(
+    lista: tuple[str, ...], dividas: Mapping[str, Divida], sel_do_metodo: SelecionarAlvo
+) -> SelecionarAlvo: ...
+# (estado, delta) → a primeira de `lista` fora de `estado.quitadas`;
+# nenhuma → sel_do_metodo(estado, delta). `sel_do_metodo` é o MESMO seletor
+# com §16.4 que simulou o cenário do método (para o Híbrido, o
+# `aplicar_prioridade_ordem(resultado_hibrido.selecionar_alvo, ...)` que hoje
+# é construído inline em motor.py:497 — passa a ter nome, sem mudar valor).
+# A primeira não quitada é estável até quitar: dispensa o "alvo fixo" (O-02).
+
+# engine/ordem.py
+def publicar_ORDEM_QUITACAO(
+    cenario_recomendado: Cenario, metodo_recomendado: METODO,
+    dividas: Mapping[str, Divida], particao: ParticaoElegibilidade,
+    *, definida_pelo_revisor: bool = False,
+) -> ResultadoOrdemPublicada: ...
+# Com True, JUSTIFICATIVA_POSICAO (Q-05, nunca vazia, sem o critério O-01/O-04/H-05):
+#   "Posição {n}: {DIVIDA_ID} — ordem definida pelo revisor (ORDEM_DO_REVISOR,
+#    RF-545); o critério do método {METODO} não decidiu esta posição."
+# valores_de_apoio inalterados.
+
+# engine/prognostico.py
+def calcular_prognostico(..., horizonte_sem_acao: Meses | None = None) -> Prognostico | None: ...
+# None → max(1, cenario_recomendado.PRAZO_TOTAL), como hoje.
+
+# engine/snapshot.py
+@dataclass(frozen=True, slots=True)
+class SnapshotOrdem:
+    ...                                              # campos atuais, sem mudança
+    ORDEM_DO_REVISOR: tuple[str, ...] | None = None  # último campo; None = sem ajuste
+
+def _calcular_hash_inputs(
+    estado: EstadoFinanceiro, parametros: Parametros,
+    ORDEM_DO_REVISOR: tuple[str, ...] | None = None,
+) -> str: ...
+# A chave "ORDEM_DO_REVISOR" só entra no payload quando não é None — sem ela,
+# o JSON canônico é byte a byte o de hoje (AC-554).
+
+def montar_SnapshotOrdem(..., ORDEM_DO_REVISOR: tuple[str, ...] | None = None) -> SnapshotOrdem: ...
+```
+
+Persistência: `"ORDEM_DO_REVISOR": ["D003", "D001", "D002"]`, ou `null`/chave
+ausente. Snapshot antigo volta com `None` e o `SNAPSHOT_ID` gravado (o ID é lido,
+nunca recalculado na leitura — `AC-560`).
+
+## R13.5. Data Flow — de onde vem cada saída
+
+| Saída do snapshot | Sem lista | Com lista |
+| --- | --- | --- |
+| `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, `REVISAO_HUMANA_OBRIGATORIA`, `comparacao`, cenários não recomendados, `diagnostico`, `ORDEM_ACOES` | cenários dos métodos | **idem** (`AC-555`, `AC-559`) |
+| `cenarios[recomendado]` (lido por `report/`, homologação e colunas `PRAZO_TOTAL`/`CUSTO_FUTURO_TOTAL` do Supabase) | cenário do método | cenário publicado (`metodo`/`classificacao` copiados do cenário do método) |
+| `ORDEM_QUITACAO`, `DIVIDA_ALVO_ATUAL`, `PROXIMA_DIVIDA` | `publicar(cenário do método)` | `publicar(cenário publicado, definida_pelo_revisor=True)`. Com estouro, `ORDEM_DE_ATAQUE` sai de `simular_cenario` chamando `sel_publicado` a partir do estado inicial — é a própria lista (`AC-556`, `RF-512`); sem estouro, ordem de quitação da simulação (`EC-78`) |
+| `ORDEM_STATUS` | benefícios das dívidas do cenário do método | do cenário publicado ("tudo o que deriva do recomendado", item 3) |
+| aportes aplicados / `FORA_DO_HORIZONTE` | `PRAZO_TOTAL` do método | `PRAZO_TOTAL` publicado (`RF-70`) |
+| `projecao_extraordinarios.cenario_adicional` | `sel_por_metodo[metodo]` | `sel_publicado` (`OQ-97`, `AC-561`) |
+| `prognostico.MESES_DO_PLANO`, `PAGAMENTO_MENSAL_PLANO`, `com_extra` | cenário/seletor do método | cenário/seletor publicado (`AC-561`) |
+| `prognostico.sem_acao` | horizonte = `PRAZO_TOTAL` do método | **mesmo** horizonte: `horizonte_sem_acao = cenário do método.PRAZO_TOTAL` (`RF-545` item 4, `AC-559`) |
+| `hash_inputs` / `SNAPSHOT_ID` | estado + `PARAMETROS_VERSION` | + `ORDEM_DO_REVISOR` (`AC-560`) |
+| `MOTIVO_RECALCULO` | `motivo or gatilho.motivo` | `motivo or MOTIVO_AJUSTE_DA_ORDEM`; `EVENTO_RECALCULO` = o recebido (o ajuste passa `None`) (`AC-562`) |
+
+A escolha "evento ou motivo" que a spec deixou ao plano: **motivo**. Um
+`EVENTO_RECALCULO` novo mudaria um domínio fechado que `avaliar_gatilho_recalculo`
+audita (`R-05`); o motivo já é campo de primeira classe (`V-02`), e a aplicação
+usa a mesma constante para reconhecer snapshots de ajuste (`app-aluno` `R18.4`).
+
+## R13.6. External Interfaces
+
+Nenhuma. As portas (`FonteParametros`, `RepositorioSnapshots`) não mudam de
+assinatura.
+
+## R13.7. State Management
+
+O motor continua puro. A lista vive só no snapshot (`ORDEM_DO_REVISOR`). O motor
+não sabe quem é o revisor, nem guarda motivo interno (`RF-545`: "autor e motivo
+interno são da aplicação").
+
+## R13.8. Error Handling Strategy
+
+| Situação | Detecção | Saída | Recuperação |
+| --- | --- | --- | --- |
+| Lista repetida, incompleta, com sobra, com dívida bloqueada ou fora da ordem | `_validar_ordem_do_revisor`, logo depois do passo 10 | `ErroOrdemDoRevisor` (subclasse de `ValueError`); nenhum snapshot (`AC-557`) | chamador corrige a lista |
+| Lista não vazia em `MODO_ESTABILIZACAO` | idem | idem (`EC-79`) | — |
+| `ErroInvariante` na simulação publicada | `executar_mes`, como hoje | propaga sem captura | chamador (`app-aluno` `EC-82`) não anexa nada |
+
+## R13.9. Testing Strategy
+
+`tests/regras/test_ordem_do_revisor.py` (novo), com estados pequenos fabricados
+no padrão de `tests/regras/` — um teste por critério, comparando saídas
+observáveis do snapshot, tolerância zero para ordem, prazo, método e status:
+
+- `AC-554`: os testes de gabarito existentes (`GAB-A/B/C` e invariantes) ficam
+  como estão (sem a entrada) e ganham uma execução com `ordem_do_revisor=()`
+  que compara o snapshot inteiro, `hash_inputs` e `SNAPSHOT_ID` com o da chamada
+  sem a entrada.
+- `AC-555` (dívida da vez mês a mês por `MESES_DO_PLANO`), `AC-556` (estado com
+  estouro, reaproveitando a carteira dos testes de `T-467`/`T-468`), `AC-557`
+  (quatro listas inválidas + estabilização), `AC-558` (duas execuções), `AC-559`
+  (igualdade de `sem_acao`, `diagnostico`, `ORDEM_ACOES`, `comparacao`,
+  cenários não recomendados), `AC-560` (hash com/sem/duas listas; leitura de
+  linha `snapshots.jsonl` sem a chave), `AC-561` (`com_extra` e
+  `cenario_adicional` com `PROVAVEL`), `AC-562` (v2 encadeada, motivo, as
+  justificativas sem o texto de `_DESCRICAO_CRITERIO`).
+- `EC-78` (dívida da lista quitada só com as parcelas antes da vez: a
+  `ORDEM_QUITACAO` publicada difere da lista), `EC-80` (lista = ordem de
+  ataque que o método seguiu, lida do mês a mês, numa carteira em que uma
+  dívida termina sozinha → mesmos números; e o contraexemplo: lista =
+  `ORDEM_QUITACAO` publicada → números diferentes).
+- Round-trip de persistência (arquivo e `_dados_completos` do Supabase) com e
+  sem o campo.
+- Estáticos: `hashes_congelados.json` regravado; `test_motor_e_deterministico`
+  continua verde.
+
+## R13.10. Risks & Trade-offs
+
+| Decisão | Alternativa descartada | Por quê | Risco assumido |
+| --- | --- | --- | --- |
+| A lista é um `SelecionarAlvo` | Ramificar `executar_mes`/`simular_cenario` por "modo revisor" | O ciclo mensal já isola a escolha do alvo; zero mudança de fórmula, gabaritos intactos por construção | — |
+| Validar contra o **conjunto** das dívidas da ordem do método já publicada (passo 10) | Validar contra `particao.elegiveis` cru | É o universo da spec (elegíveis depois dos gates, o que o motor publicaria) e já está calculado | O motor simula o método antes de recusar; custo irrelevante |
+| `cenarios[recomendado]` = cenário publicado | Guardar o publicado num campo novo e deixar o do método | `report/`, homologação e as colunas do Supabase já leem `cenarios[recomendado]`: nenhum consumidor muda | A `comparacao` do snapshot ajustado foi feita na ordem do método (risco registrado na spec do `app-aluno`) |
+| Ajuste registrado como **motivo** | `EVENTO_RECALCULO` novo | Domínio fechado auditado por `R-05`; motivo já é `V-02` | A aplicação reconhece o ajuste por uma constante textual — exportada do motor, coberta por teste |
+| **1. Ordem de ataque × ordem de quitação — resolvido (decisão técnica, 2026-11-14).** A lista do revisor é a **ordem de ataque**; a validação é sobre o conjunto, nunca sobre a ordem publicada; `EC-80` foi reescrito (a ordem de ataque vigente não muda os números; pela rota, é recusada com `409`) | Lista = ordem de quitação publicada | Sem estouro, a publicada é a de quitação (`RF-09`, `EC-78`): usada como lista, mandaria o extra primeiro para a dívida que terminaria sozinha | Sem estouro, `ORDEM_QUITACAO` publicada continua a de quitação e pode diferir da lista (`EC-78`). A "ordem de ataque vigente" para a tela é derivada **fora do engine**, por leitura do snapshot (`app-aluno` `R18.4`) |
+| `sem_acao` com o horizonte do método | Horizonte do cenário publicado | `RF-545` item 4 e `AC-559`/`AC-571` exigem o vermelho igual | No plano ajustado, o vermelho e o azul podem ter horizontes diferentes; o capítulo "três caminhos" lê os prazos por dívida (`RF-541`), não o horizonte |
+| `OQ-98` aberta | — | A `T-466` não existe ainda | Quando existir, decidir se a cobertura das dívidas que crescem vem antes da lista |
+| **Achado fora de escopo — `OQ-102` (aberta)**: `sel_por_metodo[HIBRIDO]` (`motor.py:560`) guarda o seletor do Híbrido **sem** `aplicar_prioridade_ordem`, e é ele que alimenta o verde e o cenário adicional; o cenário do Híbrido usa o seletor **com** `§16.4` | Corrigir nesta feature | Mudaria a saída sem a lista (quebra `AC-554`) e não é pedido por `RF-545` | **Não corrigir agora**: `OQ-102` na spec e item no backlog do `motor-calculo`, fora desta feature. Com a lista, o fallback já usa o seletor com `§16.4` |
+
+## R13.11. Traceability
+
+| Requisito | Coberto por |
+| --- | --- |
+| `RF-545` (entrada, ausente/vazia) | `R13.1`, `R13.4` (`calcular_plano`, `_calcular_hash_inputs`) · `AC-554` |
+| `RF-545` (validação) | `R13.4` (`_validar_ordem_do_revisor`), `R13.8` · `AC-557`, `EC-79` |
+| `RF-545` (1) método inalterado | `R13.5` · `AC-555`, `AC-559` |
+| `RF-545` (2) dívida da vez pela lista | `R13.4` (`_selecionar_pela_ordem_do_revisor`) · `AC-555`, `EC-78` |
+| `RF-545` (3) derivados do cenário publicado | `R13.5` · `AC-556`, `AC-561` · `OQ-97` |
+| `RF-545` (4) "sem ação" inalterado | `R13.4` (`horizonte_sem_acao`), `R13.5` · `AC-559` |
+| `RF-545` (5) justificativa "definida pelo revisor" | `R13.4` (`publicar_ORDEM_QUITACAO`) · `AC-562` |
+| `RF-545` (6) `ORDEM_DO_REVISOR`, hash, encadeamento, snapshot antigo | `R13.3`, `R13.4`, `R13.5` · `AC-558`, `AC-560`, `AC-562`, `EC-80` |
+| `OQ-98` | aberta, sem item de plano (`R13.10`) |
+| `OQ-102` | aberta, fora do escopo de `RF-545` — backlog do `motor-calculo` (`R13.10`) |
+
+Tarefas: no backlog de `tasks/motor-calculo.tasks.md`, antes das do `app-aluno`
+(`R18`), que dependem do campo e do parâmetro.

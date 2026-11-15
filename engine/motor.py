@@ -101,7 +101,7 @@ REGRAS: RF-01, RF-10, RF-12, RF-27
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from decimal import localcontext
 from typing import Final
 
@@ -115,7 +115,7 @@ from engine.ataque_imediato import (
     derivar_RESERVA_RECOMENDADA,
 )
 from engine.beneficio_marginal import BeneficioMarginal, calcular_beneficio_marginal
-from engine.ciclo_mensal import Cenario, SelecionarAlvo, simular_cenario
+from engine.ciclo_mensal import Cenario, EstadoSimulacao, SelecionarAlvo, simular_cenario
 from engine.comparacao import comparar_cenarios
 from engine.diagnostico import Diagnostico, calcular_diagnostico
 from engine.estado import CERTEZA_RECURSO_EXTRAORDINARIO, Divida, EstadoFinanceiro
@@ -168,9 +168,72 @@ REGRAS: Final[tuple[str, ...]] = (
     "RF-70",
     "RF-71",
     "RF-76",
+    "RF-545",
     "§14.2.4",
     "§15",
 )
+
+# RF-545 (V-01, AC-562): motivo registrado no snapshot recalculado com a lista
+# do revisor. A aplicação usa a mesma constante para reconhecer o ajuste.
+MOTIVO_AJUSTE_DA_ORDEM: Final[str] = "ajuste da ordem pelo revisor"
+
+
+class ErroOrdemDoRevisor(ValueError):
+    """`RF-545` · `AC-557` · `EC-79` — lista do revisor recusada ANTES de
+    simular; nenhum snapshot. A mensagem nomeia a causa só com `DIVIDA_ID`:
+    repetida, faltando, fora das elegíveis (inexistente ou bloqueada por
+    gate), ou estado em estabilização."""
+
+
+def _validar_ordem_do_revisor(
+    lista: tuple[str, ...], elegiveis: frozenset[str], MODO_ESTABILIZACAO: bool
+) -> None:
+    """`RF-545` (validação) — a lista é a ordem de ataque e precisa ser uma
+    permutação exata do CONJUNTO `elegiveis` (as dívidas da ordem que o
+    motor publicaria sem ela, `RF-09`/`RF-512`); a ordem nunca é comparada.
+    Em `MODO_ESTABILIZACAO` não há ordem a ajustar: lista não vazia é
+    recusada (`EC-79`). Todas as causas encontradas entram na mensagem."""
+    if MODO_ESTABILIZACAO and lista:
+        raise ErroOrdemDoRevisor(
+            "estado em MODO_ESTABILIZACAO: não há ordem a ajustar, a lista "
+            f"{list(lista)} é recusada (EC-79)."
+        )
+    causas: list[str] = []
+    repetidas = sorted({divida_id for divida_id in lista if lista.count(divida_id) > 1})
+    if repetidas:
+        causas.append(f"repetida(s): {repetidas}")
+    fora = sorted(set(lista) - elegiveis)
+    if fora:
+        causas.append(f"fora das elegíveis (inexistente ou bloqueada por gate): {fora}")
+    faltando = sorted(elegiveis - set(lista))
+    if faltando:
+        causas.append(f"faltando: {faltando}")
+    if causas:
+        raise ErroOrdemDoRevisor(
+            "ORDEM_DO_REVISOR não é uma permutação das dívidas elegíveis — "
+            + "; ".join(causas)
+            + " (RF-545, AC-557)."
+        )
+
+
+def _selecionar_pela_ordem_do_revisor(
+    lista: tuple[str, ...], dividas: Mapping[str, Divida], sel_do_metodo: SelecionarAlvo
+) -> SelecionarAlvo:
+    """`RF-545` (2) · `AC-555` · `EC-78` — a dívida da vez é a primeira de
+    `lista` ainda não quitada; sem candidata, vale `sel_do_metodo` (o seletor
+    do método recomendado COM `§16.4`). A primeira não quitada é estável até
+    quitar, o que já dá o alvo fixo (`O-02`). Única peça nova da simulação:
+    `engine/ciclo_mensal.py` não muda."""
+
+    def selecionar_pela_ordem_do_revisor(
+        estado: EstadoSimulacao, delta: Dinheiro
+    ) -> Divida | None:
+        for divida_id in lista:
+            if divida_id not in estado.quitadas:
+                return dividas[divida_id]
+        return sel_do_metodo(estado, delta)
+
+    return selecionar_pela_ordem_do_revisor
 
 
 def _inventario(estado: EstadoFinanceiro) -> dict[str, Divida]:
@@ -390,6 +453,8 @@ def calcular_plano(
     anterior: SnapshotOrdem | None = None,
     evento: EVENTO_RECALCULO | None = None,
     motivo: str = "",
+    *,
+    ordem_do_revisor: Sequence[str] | None = None,
 ) -> SnapshotOrdem:
     """Ponto de entrada único do motor — §5 do plano, os 11 passos (ver
     docstring do módulo para o detalhamento passo a passo). Devolve o
@@ -403,7 +468,16 @@ def calcular_plano(
     ela não impede esta função de calcular — R-02/R-04 (não chamar sem
     evento e sem quitação) é responsabilidade do CHAMADOR, não desta função,
     que sempre calcula e devolve um snapshot quando invocada.
+
+    `ordem_do_revisor` (`RF-545`): lista de `DIVIDA_ID` na ordem de ataque
+    definida pelo revisor. Ausente ou vazia, a saída é a de sempre
+    (`AC-554`). Presente, os passos 3-9 não mudam; depois da ordem do método
+    (passo 10), a lista é validada (`ErroOrdemDoRevisor`, `AC-557`, nenhum
+    snapshot) e o cenário publicado do método recomendado é simulado com a
+    dívida da vez tirada dela (passos 10a-10d, plano `R13.1`).
     """
+    # RF-545: lista vazia é o mesmo que ausente (premissa aceita, AC-554).
+    lista = tuple(ordem_do_revisor or ()) or None
     # Fronteira de precisão (critério de aceite 1) — todo o cálculo, do
     # início ao fim, roda sob CONTEXTO_MOTOR, nunca herdado do ambiente.
     with localcontext(CONTEXTO_MOTOR):
@@ -474,6 +548,11 @@ def calcular_plano(
         sel_bola_de_neve = aplicar_prioridade_ordem(
             criar_selecionar_alvo_bola_de_neve(dividas, parametros), dividas, parametros
         )
+        # RF-545 (10b): seletor de cada método COM §16.4, fallback da lista.
+        sel_com_prioridade: dict[METODO, SelecionarAlvo] = {
+            METODO.AVALANCHE: sel_avalanche,
+            METODO.BOLA_DE_NEVE: sel_bola_de_neve,
+        }
         cenario_bola_de_neve = dataclasses.replace(
             simular_cenario(
                 estado, diagnostico_pre, dividas, sel_bola_de_neve, parametros, aportes_base_por_mes
@@ -489,14 +568,19 @@ def calcular_plano(
             resultado_hibrido.classificacao is CLASSIFICACAO_CENARIO.CALCULAVEL
             and resultado_hibrido.selecionar_alvo is not None
         ):
+            # RF-545 (T-572): o seletor do Híbrido com §16.4 ganha nome para
+            # servir de fallback da lista do revisor; valor igual ao de antes.
+            # sel_por_metodo[HIBRIDO] abaixo continua SEM §16.4 (OQ-102).
+            sel_hibrido = aplicar_prioridade_ordem(
+                resultado_hibrido.selecionar_alvo, dividas, parametros
+            )
+            sel_com_prioridade[METODO.HIBRIDO] = sel_hibrido
             cenario_hibrido = dataclasses.replace(
                 simular_cenario(
                     estado,
                     diagnostico_pre,
                     dividas,
-                    aplicar_prioridade_ordem(
-                        resultado_hibrido.selecionar_alvo, dividas, parametros
-                    ),
+                    sel_hibrido,
                     parametros,
                     aportes_base_por_mes,
                 ),
@@ -524,13 +608,55 @@ def calcular_plano(
 
         # Passo 10: ordem publicada (RF-09) sobre o cenário RECOMENDADO,
         # seguida da consolidação de ORDEM_STATUS (T-64, AC-33).
-        cenario_recomendado = cenarios_por_metodo[resultado_recomendacao.METODO_RECOMENDADO_PIQ]
+        metodo_recomendado = resultado_recomendacao.METODO_RECOMENDADO_PIQ
+        cenario_recomendado = cenarios_por_metodo[metodo_recomendado]
         ordem_publicada = publicar_ORDEM_QUITACAO(
-            cenario_recomendado, resultado_recomendacao.METODO_RECOMENDADO_PIQ, dividas, particao
+            cenario_recomendado, metodo_recomendado, dividas, particao
         )
+
+        # Passos 10a-10d (RF-545, plano R13.1): só com a lista do revisor.
+        # Sem ela, o cenário publicado é o do método e nada abaixo muda.
+        cenario_publicado = cenario_recomendado
+        sel_publicado: SelecionarAlvo | None = None
+        if lista is not None:
+            # 10a: permutação do CONJUNTO da ordem do método recém-publicada
+            # (elegíveis depois dos gates, RF-09/RF-512) — antes de simular.
+            _validar_ordem_do_revisor(
+                lista,
+                frozenset(posicao.DIVIDA_ID for posicao in ordem_publicada.ORDEM_QUITACAO),
+                diagnostico_pre.MODO_ESTABILIZACAO,
+            )
+            # 10b-10c: mesmas fórmulas e aportes, só a dívida da vez muda.
+            sel_publicado = _selecionar_pela_ordem_do_revisor(
+                lista, dividas, sel_com_prioridade[metodo_recomendado]
+            )
+            cenario_publicado = dataclasses.replace(
+                simular_cenario(
+                    estado,
+                    diagnostico_pre,
+                    dividas,
+                    sel_publicado,
+                    parametros,
+                    aportes_base_por_mes,
+                ),
+                metodo=cenario_recomendado.metodo,
+                classificacao=cenario_recomendado.classificacao,
+            )
+            # 10d: ordem publicada do cenário da lista, justificativa variante.
+            ordem_publicada = publicar_ORDEM_QUITACAO(
+                cenario_publicado,
+                metodo_recomendado,
+                dividas,
+                particao,
+                definida_pelo_revisor=True,
+            )
+
+        # 10e (RF-545 item 3, plano R13.5): ORDEM_STATUS, aportes no
+        # horizonte, cenário adicional e prognóstico derivam do cenário
+        # publicado — sem a lista, o próprio cenário do método.
         beneficios_marginais = _beneficios_marginais_da_ordem(
             dividas,
-            cenario_recomendado,
+            cenario_publicado,
             diagnostico_pre.CAPACIDADE_ATAQUE_CONSERVADORA,
             parametros,
         )
@@ -542,12 +668,12 @@ def calcular_plano(
         # RF-70/OQ-46/EC-56 (T-159, plano R9M.5 passo 4): aporte cujo mês a
         # projeção recomendada não alcança sai da base como FORA_DO_HORIZONTE.
         aportes_aplicados: tuple[AporteProjetado, ...] = tuple(
-            aporte for aporte in aportes_base if aporte.mes <= cenario_recomendado.PRAZO_TOTAL
+            aporte for aporte in aportes_base if aporte.mes <= cenario_publicado.PRAZO_TOTAL
         )
         fora_do_horizonte = tuple(
             ItemNaoProjetado(ITEM_ID=aporte.ITEM_ID, motivo=MOTIVO_NAO_PROJETADO.FORA_DO_HORIZONTE)
             for aporte in aportes_base
-            if aporte.mes > cenario_recomendado.PRAZO_TOTAL
+            if aporte.mes > cenario_publicado.PRAZO_TOTAL
         )
 
         # Passo 10b (RF-71, T-162): cenário adicional, depois da escolha do
@@ -558,7 +684,11 @@ def calcular_plano(
         }
         if resultado_hibrido.selecionar_alvo is not None:
             sel_por_metodo[METODO.HIBRIDO] = resultado_hibrido.selecionar_alvo
-        metodo_recomendado = resultado_recomendacao.METODO_RECOMENDADO_PIQ
+        # RF-545 (OQ-97, AC-561): com a lista, o adicional e o verde também
+        # tiram a dívida da vez dela.
+        sel_do_plano = (
+            sel_por_metodo[metodo_recomendado] if sel_publicado is None else sel_publicado
+        )
         projecao_extraordinarios = ProjecaoExtraordinarios(
             aportes_base=aportes_aplicados,
             nao_projetados=(*nao_projetados, *fora_do_horizonte),
@@ -567,7 +697,7 @@ def calcular_plano(
                 diagnostico_pre=diagnostico_pre,
                 dividas=dividas,
                 metodo=metodo_recomendado,
-                sel=sel_por_metodo[metodo_recomendado],
+                sel=sel_do_plano,
                 parametros=parametros,
             ),
         )
@@ -578,9 +708,9 @@ def calcular_plano(
             estado=estado,
             diagnostico_pre=diagnostico_pre,
             dividas=dividas,
-            cenario_recomendado=cenario_recomendado,
+            cenario_recomendado=cenario_publicado,
             parametros=parametros,
-            selecionar_alvo=sel_por_metodo[metodo_recomendado],
+            selecionar_alvo=sel_do_plano,
             aportes_do_verde=aportes_por_mes(
                 selecionar_aportes(
                     estado.recursos_extraordinarios,
@@ -588,6 +718,8 @@ def calcular_plano(
                     RESULTADO_MENSAL_ATUAL=diagnostico_pre.RESULTADO_MENSAL_ATUAL,
                 )[0]
             ),
+            # RF-545 item 4 (AC-559): o "sem ação" fica no horizonte do método.
+            horizonte_sem_acao=cenario_recomendado.PRAZO_TOTAL,
         )
 
         # Segunda passada de Diagnostico (RF-66/RF-68, OQ-44 decisão (2),
@@ -617,12 +749,18 @@ def calcular_plano(
         # snapshot final carimbado e encadeado (RF-10, V-01..V-03, AC-16).
         gatilho = avaliar_gatilho_recalculo(evento)
         motivo_final = motivo if motivo else gatilho.motivo
+        if lista is not None and not motivo:
+            # RF-545 (V-01, AC-562): o ajuste é registrado como motivo; o
+            # EVENTO_RECALCULO é o recebido (plano R13.5).
+            motivo_final = MOTIVO_AJUSTE_DA_ORDEM
 
         return montar_SnapshotOrdem(
             estado=estado,
             parametros=parametros,
             diagnostico=diagnostico,
-            cenarios=cenarios_por_metodo,
+            # RF-545: o recomendado é o cenário publicado (o próprio cenário
+            # do método sem a lista); os demais métodos não mudam.
+            cenarios={**cenarios_por_metodo, metodo_recomendado: cenario_publicado},
             comparacao=comparacao,
             resultado_metodo=resultado_recomendacao,
             ordem_status=resultado_status_ordem.ORDEM_STATUS,
@@ -632,4 +770,5 @@ def calcular_plano(
             anterior=anterior,
             projecao_extraordinarios=projecao_extraordinarios,
             prognostico=prognostico,
+            ORDEM_DO_REVISOR=lista,
         )

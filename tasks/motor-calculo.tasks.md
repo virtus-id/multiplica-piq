@@ -7651,3 +7651,318 @@ Pedido do especialista (2026-10-05): nota 9–10 vai ao 1º lugar; nota 5–7 pa
 **Status:** `[x] implementada (2026-11-02)`
 
 > `T-463` (SAC no ciclo mensal) implementada em 2026-11-02: `engine/amortizacao.py` (novo), `Divida.SISTEMA_AMORTIZACAO`, `ChaveTrajetoria.AMORTIZACAO_SAC`, pagamento do mês e fluxo liberado no `ciclo_mensal`, `prognostico` e leitura tolerante na persistência. Testes em `tests/regras/test_sac.py`. Respostas do produto: `OQ-69` (o extra reduz o prazo) e `OQ-70` (parcela como informada).
+
+---
+
+## Rodada 7 da spec — Ordem de quitação definida pelo revisor (2026-11-14, `RF-545`)
+
+> **Feature `ordem-do-revisor`, lado do motor.** Spec: `specs/motor-calculo.spec.md`
+> Rodada 7 (`RF-545`, `US-412`, `AC-554`–`AC-562`, `EC-78`–`EC-80`, `OQ-97`
+> respondida, `OQ-98` e `OQ-102` abertas, não bloqueiam). Plano:
+> `plans/motor-calculo.plan.md` `R13.1`–`R13.11`. As tarefas do lado da
+> aplicação (`R18`, `T-579` em diante) estão em `tasks/app-aluno.tasks.md` e
+> dependem destas.
+>
+> **Regras desta rodada.** (1) **Mudança aditiva**: sem `ordem_do_revisor` (ausente
+> ou `()`), a saída é a de hoje, campo a campo, inclusive `hash_inputs` e
+> `SNAPSHOT_ID` — `T-565` congela esses valores antes de qualquer mudança e tem
+> de continuar verde em todas as tarefas seguintes. (2) `engine/ciclo_mensal.py`,
+> `engine/prioridade_ordem.py`, `engine/metodos/*`, `engine/comparacao.py` e
+> `engine/status_metodo.py` **não mudam** (`git diff` vazio). (3) Nenhuma
+> fórmula nova, nenhum `P_*` novo. (4) Toda tarefa que altera arquivo de
+> `engine/` ou `persistencia/` regrava em `tests/app_aluno/estatica/hashes_congelados.json`
+> só o hash dos arquivos que ela alterou (procedimento de `RF-41` do
+> `app-aluno`, `AC-44`). (5) Gates do `sdd.config.md` §2 (lint, build, test)
+> verdes ao fim de cada tarefa.
+
+### `T-565` — Congelar `hash_inputs` e `SNAPSHOT_ID` dos gabaritos antes da mudança
+
+- **Tipo:** `Test` · **Dependências:** nenhuma · **Rastreia:** `RF-545` (entrada ausente), `AC-554` · plano `R13.1`, `R13.9`
+- **Arquivos:** `tests/regras/test_ordem_do_revisor_identidade.py` (novo)
+
+**Descrição.** Teste de caracterização escrito **antes** de tocar o motor: para
+`GAB-A`, `GAB-B`, `GAB-C` (três métodos e recomendação) e os cinco invariantes
+(`GAB-01`..`GAB-05`), roda `calcular_plano` como hoje e fixa em constantes o
+`hash_inputs` e o `SNAPSHOT_ID` obtidos. É a prova de "idênticos aos de antes de
+`RF-545`" que as tarefas seguintes não podem quebrar.
+
+- [x] Um caso parametrizado por gabarito/invariante, usando as fixtures existentes de `tests/gabaritos/` e `tests/invariantes/`
+- [x] Valores fixados lidos da execução atual (branch antes de `T-566`), não escritos à mão
+- [x] Os testes de gabarito e de invariante existentes não são editados
+- [x] Gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-566` — Acrescentar `SnapshotOrdem.ORDEM_DO_REVISOR` e a chave condicional em `hash_inputs`
+
+- **Tipo:** `Data` · **Dependências:** `T-565` · **Rastreia:** `RF-545` (6), `AC-554`, `AC-560` · plano `R13.3`, `R13.4`
+- **Arquivos:** `engine/snapshot.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** Campo `ORDEM_DO_REVISOR: tuple[str, ...] | None = None` como
+**último** campo do dataclass; `_calcular_hash_inputs(estado, parametros,
+ORDEM_DO_REVISOR=None)` só põe a chave `"ORDEM_DO_REVISOR"` no payload quando
+não é `None`; `montar_SnapshotOrdem(..., ORDEM_DO_REVISOR=None)` repassa o valor
+ao campo e ao hash.
+
+- [x] Sem o argumento, o JSON canônico do hash é byte a byte o de hoje (`T-565` verde)
+- [x] Com uma tupla, a chave entra no payload e o `hash_inputs` muda
+- [x] Nenhum chamador de `montar_SnapshotOrdem` muda nesta tarefa
+- [x] Rehash só de `engine/snapshot.py`; gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-567` — Gravar e ler `ORDEM_DO_REVISOR` nos dois repositórios de snapshot
+
+- **Tipo:** `Data` · **Dependências:** `T-566` · **Rastreia:** `RF-545` (6), `AC-560` · plano `R13.3`, `R13.4` (Persistência)
+- **Arquivos:** `persistencia/arquivo/repositorio_snapshots.py`, `persistencia/supabase/repositorio_snapshots.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** Arquivo: `_desserializar_snapshot` lê a chave com `.get` (ausente
+ou `null` → `None`; lista → `tuple`); a escrita já serializa o campo. Supabase:
+`_dados_completos` grava a chave; `_bruto_para_formato_arquivo` a lê com `.get`.
+Sem migração (vive em `dados_completos`, como `prognostico`). O `SNAPSHOT_ID` é
+lido, nunca recalculado na leitura.
+
+- [x] Formato gravado: `"ORDEM_DO_REVISOR": ["D003", "D001", "D002"]` ou `null`
+- [x] Linha antiga sem a chave volta com `ORDEM_DO_REVISOR is None` e o `SNAPSHOT_ID` gravado
+- [x] Nenhuma migração SQL nova
+- [x] Rehash só dos dois arquivos; gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-568` — Testar o round-trip de `ORDEM_DO_REVISOR` na persistência
+
+- **Tipo:** `Test` · **Dependências:** `T-567` · **Rastreia:** `AC-560` (leitura do snapshot antigo) · plano `R13.9`
+- **Arquivos:** `tests/regras/test_snapshot.py` (ou o teste de paridade arquivo × Supabase existente, `T-76`)
+
+- [x] Arquivo: snapshot com a lista → gravar → ler → mesma tupla, mesmo `SNAPSHOT_ID`
+- [x] Arquivo: linha de `snapshots.jsonl` gravada sem a chave → `None` e mesmo `SNAPSHOT_ID` (`AC-560`)
+- [x] Supabase: `_dados_completos` → `_bruto_para_formato_arquivo` com e sem o campo (sem banco real)
+- [x] Gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-569` — Variante "definida pelo revisor" da `JUSTIFICATIVA_POSICAO` em `publicar_ORDEM_QUITACAO`
+
+- **Tipo:** `Data` · **Dependências:** `T-565` · **Rastreia:** `RF-545` (5), `AC-562` · `O-01`, `O-04`, `H-05`, `Q-05` · plano `R13.4` (`engine/ordem.py`)
+- **Arquivos:** `engine/ordem.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `publicar_ORDEM_QUITACAO(..., *, definida_pelo_revisor: bool = False)`.
+Com `True`, cada `JUSTIFICATIVA_POSICAO` vira "Posição {n}: {DIVIDA_ID} — ordem
+definida pelo revisor (ORDEM_DO_REVISOR, RF-545); o critério do método {METODO}
+não decidiu esta posição." — nunca vazia, sem o texto de `_DESCRICAO_CRITERIO`;
+`valores_de_apoio` inalterados. Com `False`, nada muda.
+
+- [x] Nenhum chamador atual passa o argumento (saída idêntica; `T-565` verde)
+- [x] Com `True`, nenhuma justificativa contém o critério `O-01`/`O-04`/`H-05`
+- [x] Rehash só de `engine/ordem.py`; gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-570` — Aceitar `horizonte_sem_acao` em `calcular_prognostico`
+
+- **Tipo:** `Data` · **Dependências:** `T-565` · **Rastreia:** `RF-545` (4), `AC-559` · `RF-77` · plano `R13.4` (`engine/prognostico.py`), `R13.5`
+- **Arquivos:** `engine/prognostico.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** Parâmetro `horizonte_sem_acao: Meses | None = None`; `None` →
+`max(1, cenario_recomendado.PRAZO_TOTAL)`, como hoje. Serve para o caminho
+vermelho continuar com o horizonte do cenário **do método** quando o cenário
+publicado vier da lista (`T-574`).
+
+- [x] Sem o argumento, saída idêntica (`T-565` verde)
+- [x] Só o `sem_acao` usa o argumento; `MESES_DO_PLANO` e `com_extra` não
+- [x] Rehash só de `engine/prognostico.py`; gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-571` — Criar `ErroOrdemDoRevisor`, `MOTIVO_AJUSTE_DA_ORDEM` e `_validar_ordem_do_revisor`
+
+- **Tipo:** `Data` · **Dependências:** `T-565` · **Rastreia:** `RF-545` (validação), `AC-557`, `EC-79` · plano `R13.4`, `R13.8`
+- **Arquivos:** `engine/motor.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `MOTIVO_AJUSTE_DA_ORDEM: Final[str] = "ajuste da ordem pelo
+revisor"`; `class ErroOrdemDoRevisor(ValueError)`;
+`_validar_ordem_do_revisor(lista, elegiveis, MODO_ESTABILIZACAO)`: em
+estabilização, lista não vazia é recusada; senão exige permutação exata do
+**conjunto** `elegiveis` (a ordem nunca é comparada). A mensagem nomeia a causa
+só por `DIVIDA_ID`: repetida, faltando, fora das elegíveis (inexistente ou
+bloqueada), ou estado em estabilização. Ainda não é chamada por `calcular_plano`.
+
+- [x] Quatro causas distintas, cada uma com mensagem própria citando os `DIVIDA_ID`
+- [x] Função pura, sem I/O; `calcular_plano` sem mudança de comportamento (`T-565` verde)
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-572` — Criar `_selecionar_pela_ordem_do_revisor` e dar nome ao seletor do Híbrido com `§16.4`
+
+- **Tipo:** `Data` · **Dependências:** `T-571` · **Rastreia:** `RF-545` (2), `AC-555`, `EC-78` · `O-02` · plano `R13.1`, `R13.4`
+- **Arquivos:** `engine/motor.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `_selecionar_pela_ordem_do_revisor(lista, dividas, sel_do_metodo)
+-> SelecionarAlvo`: devolve a primeira dívida de `lista` fora de
+`estado.quitadas`; sem candidata, `sel_do_metodo(estado, delta)`. O
+`aplicar_prioridade_ordem(resultado_hibrido.selecionar_alvo, ...)` hoje construído
+inline (`motor.py:497`) passa a ter nome, **sem mudar valor**, para servir de
+`sel_do_metodo` do Híbrido. `sel_por_metodo[HIBRIDO]` (`motor.py:560`) **não**
+muda (`OQ-102`, `T-578`).
+
+- [x] O seletor é a única peça nova da simulação; `engine/ciclo_mensal.py` sem diff
+- [x] Seletor do Híbrido com `§16.4` nomeado, mesmo objeto/valor de antes (`T-565` verde)
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-573` — Ligar a lista ao passo 10 de `calcular_plano`: validação, cenário publicado, ordem e snapshot
+
+- **Tipo:** `Data` · **Dependências:** `T-566`, `T-569`, `T-571`, `T-572` · **Rastreia:** `RF-545` (entrada, validação, 1, 2, 5, 6), `AC-554`, `AC-555`, `AC-556`, `AC-557`, `AC-558`, `AC-560`, `AC-562`, `EC-78`, `EC-79` · `RF-09`, `RF-512`, `V-01` · plano `R13.1` (10a–10d, 11), `R13.4`, `R13.5`
+- **Arquivos:** `engine/motor.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `calcular_plano(..., *, ordem_do_revisor: Sequence[str] | None =
+None)`; `tuple(ordem_do_revisor or ()) or None` (`()` ≡ ausente). Só com lista:
+10a valida contra o conjunto da ordem do método já publicada; 10b
+`sel_publicado`; 10c `simular_cenario` com os mesmos `aportes_base_por_mes`; 10d
+`publicar_ORDEM_QUITACAO(cenario_publicado, ..., definida_pelo_revisor=True)`;
+11 `cenarios[recomendado]` = publicado (`metodo`/`classificacao` copiados),
+`ORDEM_DO_REVISOR` no snapshot e no hash, `MOTIVO_RECALCULO = motivo or
+MOTIVO_AJUSTE_DA_ORDEM`, `EVENTO_RECALCULO` = o recebido.
+
+- [x] Passos 3–9 intocados: `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, `comparacao` e cenários não recomendados vêm dos cenários **sem** a lista
+- [x] Lista inválida levanta `ErroOrdemDoRevisor` antes de simular o publicado; nenhum snapshot é montado
+- [x] Sem lista o ramo novo não executa (`T-565` verde)
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-574` — Derivar do cenário publicado `ORDEM_STATUS`, aportes, cenário adicional e prognóstico
+
+- **Tipo:** `Data` · **Dependências:** `T-570`, `T-573` · **Rastreia:** `RF-545` (3), (4), `AC-559`, `AC-561` · `OQ-97`, `RF-70`, `RF-71`, `RF-77`, `RF-78` · plano `R13.1` (10e), `R13.5`
+- **Arquivos:** `engine/motor.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** Com a lista, tudo o que hoje deriva do recomendado passa a
+derivar do publicado: `ORDEM_STATUS`; aportes dentro do horizonte e
+`FORA_DO_HORIZONTE` pelo `PRAZO_TOTAL` publicado; `cenario_adicional` com
+`sel_publicado` (`OQ-97`); `MESES_DO_PLANO`, `PAGAMENTO_MENSAL_PLANO` e
+`com_extra` com o cenário/seletor publicado; `sem_acao` com
+`horizonte_sem_acao = cenário do método.PRAZO_TOTAL`.
+
+- [x] `prognostico.sem_acao`, `diagnostico` e `ORDEM_ACOES` não dependem da lista
+- [x] Sem lista, os argumentos novos assumem o valor que reproduz a chamada de hoje (`T-565` verde)
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-575` — Testar seleção, validação, determinismo, hash e encadeamento com a lista
+
+- **Tipo:** `Test` · **Dependências:** `T-573` · **Rastreia:** `AC-555`, `AC-556`, `AC-557`, `AC-558`, `AC-560`, `AC-562`, `EC-78`, `EC-79` · plano `R13.9`
+- **Arquivos:** `tests/regras/test_ordem_do_revisor.py` (novo)
+
+**Descrição.** Estados pequenos fabricados no padrão de `tests/regras/`;
+tolerância zero para ordem, prazo, método e status. Um teste por critério.
+
+- [x] `AC-555`: dívida da vez mês a mês por `MESES_DO_PLANO` = primeira da lista não quitada; `ORDEM_QUITACAO` = ordem de quitação da simulação; `ORDEM_DO_REVISOR` = lista; método e status iguais aos sem lista
+- [x] `AC-556`: estado com estouro (carteira dos testes de `T-467`/`T-469`): `ORDEM_QUITACAO` e `ORDEM_DE_ATAQUE` = lista, alvo do mês 1 = `D`, `ORDEM_FORA_DO_HORIZONTE` = as da lista não quitadas
+- [x] `AC-557`: (a) repetida, (b) faltando, (c) inexistente, (d) bloqueada pelo Gate 1 → `ErroOrdemDoRevisor`; estado em `MODO_ESTABILIZACAO` com lista não vazia → idem (`EC-79`); com `()` aceito
+- [x] `AC-558`: duas execuções iguais → snapshots idênticos, inclusive `hash_inputs` e `SNAPSHOT_ID`
+- [x] `AC-560`: sem × com lista e lista × outra lista → `hash_inputs` e `SNAPSHOT_ID` diferem
+- [x] `AC-562`: anterior v1 → v2 aponta para v1, `MOTIVO_RECALCULO` = `MOTIVO_AJUSTE_DA_ORDEM`, justificativas não vazias, com "definida pelo revisor", sem o texto de `_DESCRICAO_CRITERIO`
+- [x] `EC-78`: dívida da lista quitada só com as parcelas antes da vez → alvo passa à próxima; `ORDEM_QUITACAO` difere da lista; `ORDEM_DO_REVISOR` = lista recebida
+- [x] Gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-576` — Testar os derivados do cenário publicado e a lista igual à ordem de ataque
+
+- **Tipo:** `Test` · **Dependências:** `T-574` · **Rastreia:** `AC-559`, `AC-561`, `EC-80` · `OQ-97` · plano `R13.9`
+- **Arquivos:** `tests/regras/test_ordem_do_revisor.py`
+
+- [x] `AC-559`: com e sem a lista, `prognostico.sem_acao`, `diagnostico`, `ORDEM_ACOES`, `comparacao` e cenários não recomendados idênticos
+- [x] `AC-561`: `CONTRIBUICAO_EXTRA_MENSAL` positiva → alvo de cada mês de `com_extra.MESES` = primeira da lista não quitada; `MESES_ANTECIPADOS`/`ECONOMIA_CUSTO` comparam com o plano na ordem da lista; com recurso `PROVAVEL` (e outro com `POSSIVEL`), alvo de cada mês do `cenario_adicional` idem
+- [x] `EC-80`: lista = ordem de ataque que o método seguiu (lida do mês a mês, numa carteira em que uma dívida termina sozinha) → mesmos números, mas `ORDEM_DO_REVISOR` presente, `hash_inputs` diferente e justificativa "definida pelo revisor"; contraexemplo: lista = `ORDEM_QUITACAO` publicada → números diferentes
+- [x] Gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-577` — Provar a identidade dos gabaritos com a lista vazia
+
+- **Tipo:** `Test` · **Dependências:** `T-574` · **Rastreia:** `AC-554` · plano `R13.9`
+- **Arquivos:** `tests/regras/test_ordem_do_revisor_identidade.py`
+
+**Descrição.** Estende `T-565`: para cada gabarito e invariante, a execução
+com `ordem_do_revisor=()` produz snapshot igual campo a campo ao da execução sem
+o argumento, e os dois batem com o `hash_inputs`/`SNAPSHOT_ID` congelados.
+
+- [x] Comparação do snapshot inteiro (não só ordem e prazo), tolerância zero
+- [x] `ORDEM_DO_REVISOR is None` nas duas execuções
+- [x] `GAB-A/B/C` e `GAB-01`..`GAB-05` existentes verdes sem edição; `test_motor_e_deterministico` verde
+- [x] Gates: lint, build, test
+
+**Status:** `[x] implementada (2026-11-14)`
+
+---
+
+### `T-578` — Usar o seletor do Híbrido com `§16.4` no verde e no cenário adicional (`OQ-102`) — **NÃO AGENDADA**
+
+> **Fora do escopo da feature `ordem-do-revisor`.** Achado técnico de
+> 2026-11-14 (`R13.10`). Não entra nesta rodada: corrigir muda a saída sem a
+> lista e quebraria `AC-554`. Só se faz depois de `OQ-102` respondida e com
+> requisito próprio na spec.
+
+- **Tipo:** `Data` · **Dependências:** `T-577` · **Rastreia:** `OQ-102` (aberta) · `RF-71`, `RF-78`, `§16.4` · plano `R13.10`
+- **Arquivos:** `engine/motor.py` (`sel_por_metodo[METODO.HIBRIDO]`, hoje sem `aplicar_prioridade_ordem`), `tests/regras/`, `tests/app_aluno/estatica/hashes_congelados.json`
+- **Bloqueada por:** resposta de `OQ-102` e nova versão da spec.
+
+- [ ] `sel_por_metodo[HIBRIDO]` passa a ser o seletor nomeado em `T-572` (com `§16.4`)
+- [ ] Teste: Híbrido recomendado com dívida priorizada pela `§16.4` → alvo do verde e do cenário adicional no mês 1 = alvo do plano
+- [ ] Gabaritos reavaliados; `T-565` atualizado só se a spec aprovar a mudança de saída; rehash
+
+**Status:** `[ ] não agendada — bloqueada por OQ-102`
+
+---
+
+### Cobertura de requisitos — Rodada 7 (`RF-545`)
+
+| Requisito / critério | Tarefas |
+| --- | --- |
+| `RF-545` (entrada ausente/vazia) | `T-565`, `T-566`, `T-573`, `T-577` |
+| `RF-545` (validação) | `T-571`, `T-573`, `T-575` |
+| `RF-545` (1) método inalterado | `T-573`, `T-575`, `T-576` |
+| `RF-545` (2) dívida da vez pela lista | `T-572`, `T-573`, `T-575` |
+| `RF-545` (3) derivados do publicado | `T-574`, `T-576` |
+| `RF-545` (4) "sem ação" inalterado | `T-570`, `T-574`, `T-576` |
+| `RF-545` (5) justificativa "definida pelo revisor" | `T-569`, `T-573`, `T-575` |
+| `RF-545` (6) campo, hash, encadeamento, snapshot antigo | `T-566`, `T-567`, `T-568`, `T-573`, `T-575` |
+| `AC-554` | `T-565`, `T-577` |
+| `AC-555`, `AC-556`, `AC-557`, `AC-558`, `AC-562` | `T-575` |
+| `AC-559`, `AC-561` | `T-576` |
+| `AC-560` | `T-568`, `T-575` |
+| `EC-78`, `EC-79` | `T-575` |
+| `EC-80` | `T-576` (motor); `T-587` (recusa `409` pela rota, `app-aluno`) |
+| `OQ-97` (respondida) | `T-574`, `T-576` |
+| `OQ-98` (aberta) | sem tarefa — não bloqueia; decidir quando a `T-466` for feita |
+| `OQ-102` (aberta) | `T-578`, não agendada, fora do escopo |
+
+**Requisitos sem tarefa:** nenhum.

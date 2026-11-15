@@ -792,7 +792,7 @@ duvidas:
       curso. Uma dívida nova não faz parte deste plano, por isso o melhor é
       evitá-la enquanto você segue as etapas.
   - &duvida_maior_divida
-    pergunta: "Por que não começar pela maior dívida?"
+    pergunta: &pergunta_maior_divida "Por que não começar pela maior dívida?"
     resposta: >-
       A ordem segue o método do seu plano, explicado em "Como o seu plano
       funciona". Cada método escolhe a dívida da vez por um critério, como
@@ -1001,6 +1001,32 @@ incomodo:
     A ordem segue o critério do método do seu plano, explicado em "Como o seu
     plano funciona". Esta dívida está no plano e termina no mês indicado em
     "Termina em".
+
+# `RF-551` (Rodada 16): só no plano cujo snapshot traz `ORDEM_DO_REVISOR` (a
+# ordem foi ajustada na conferência). Trocam os textos que atribuem a ordem ao
+# critério do método, sem mencionar o ajuste. Sugestão, a validar com o
+# especialista (como `T-549`/`T-564`).
+ordem_do_revisor:
+  # No lugar de `explicacao_da_posicao.{METODO}.primeira` e
+  # `primeira_com_prioridade`.
+  explicacao_primeira: >-
+    Esta é a dívida que o seu plano quita primeiro. Todo o valor extra vai
+    para ela; quando ela acabar, a parcela que você pagava nela passa a
+    ajudar a próxima.
+  # Passo 1 de `como_funciona` e de `como_funciona_com_prioridade`.
+  como_funciona_passo_1: >-
+    Todo o valor extra vai para a primeira dívida da lista do seu plano. As
+    outras recebem só a parcela de sempre.
+  # A resposta da dúvida cuja pergunta é esta, em `duvidas` e
+  # `duvidas_provisorio`.
+  pergunta_maior_divida: *pergunta_maior_divida
+  resposta_maior_divida: >-
+    A ordem do seu plano foi montada olhando o conjunto das suas dívidas, e
+    não só o tamanho de cada uma. Siga a lista: cada dívida recebe o valor
+    extra na sua vez.
+  # No lugar de `incomodo.aviso`.
+  aviso_incomodo: >-
+    Esta dívida está no plano e termina no mês indicado em "Termina em".
 
 # `RF-412` — avisos do que o aluno declarou. `garantia` e `fichas_faltando`
 # são redação proposta, a aprovar (o aviso de atraso saiu em `RF-511`). Todo

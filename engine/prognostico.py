@@ -40,7 +40,7 @@ from engine.parametros import Parametros
 from engine.precisao import CONTEXTO_MOTOR, dinheiro
 from engine.tipos import DESCONHECIDO, Dinheiro, Meses
 
-REGRAS: Final[tuple[str, ...]] = ("RF-77", "RF-78")
+REGRAS: Final[tuple[str, ...]] = ("RF-77", "RF-78", "RF-545")
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,11 +157,17 @@ def calcular_prognostico(
     parametros: Parametros,
     selecionar_alvo: SelecionarAlvo | None = None,
     aportes_do_verde: Mapping[Meses, Dinheiro] | None = None,
+    horizonte_sem_acao: Meses | None = None,
 ) -> Prognostico | None:
     """`RF-77` — `None` sem dívida simulável (`AC-134`). `RF-78` — com
     `estado.CONTRIBUICAO_EXTRA_MENSAL` > 0 e o seletor do método recomendado,
     simula também o verde: mesmo método, ataque somado do valor extra e
-    `aportes_do_verde` (recursos extraordinários, de qualquer certeza)."""
+    `aportes_do_verde` (recursos extraordinários, de qualquer certeza).
+
+    `horizonte_sem_acao` (`RF-545` item 4, `AC-559`): prazo que limita só o
+    "sem ação"; `None` usa o `PRAZO_TOTAL` de `cenario_recomendado`. Com a
+    lista do revisor, o chamador passa o prazo do cenário do MÉTODO, e o
+    vermelho não muda."""
     if not dividas:
         return None
 
@@ -170,7 +176,9 @@ def calcular_prognostico(
 
     # Mesmo horizonte do plano recomendado (já limitado por
     # `P_HORIZONTE_MAXIMO_SIMULACAO`); no mínimo 1 mês.
-    horizonte: Meses = max(1, cenario_recomendado.PRAZO_TOTAL)
+    if horizonte_sem_acao is None:
+        horizonte_sem_acao = cenario_recomendado.PRAZO_TOTAL
+    horizonte: Meses = max(1, horizonte_sem_acao)
 
     saldo_inicial = _soma(
         divida.SALDO_DEVEDOR_ATUAL
