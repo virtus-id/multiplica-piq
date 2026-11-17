@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`74/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (5): `T-539` (backlog, sem spec) e `T-686` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
+`75/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (4): `T-539` (backlog, sem spec) e `T-687` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1559,17 +1559,17 @@ Sai o bloco `role="status"` inteiro (valores repetidos, mensagem de estado, "Cal
 Estado `divergenciaAberta`; `continuar()` (`PD-22`), `confirmar(recalcular)` e `voltar()` (`PD-21`) de R2.4; `<DivergenciaDaDivida>` renderizado só enquanto aberto (`PD-20`), com o `corpo` e a prévia atuais, `gravando` e `erroAoSalvar`. Fluxo dos passos 3, 6 e 7 de R2.5.
 
 **Critérios de aceite**
-- [ ] Condição de habilitação do "Continuar" (`podeConfirmar`) inalterada (`EC-103`)
-- [ ] Prévia `INCOMPATIVEL` ⇒ abre o popup e **nada é enviado**; qualquer outro estado sem erro ⇒ `confirmarCalculadora` com `{ ...corpo, recalcular: null }`, sem popup
-- [ ] `confirmar(recalcular)` envia `{ ...corpo, recalcular }`; sucesso ⇒ desmonta o popup (sem passar por `close`) e chama `aoConfirmar` da página
-- [ ] Falha ao salvar com popup aberto ⇒ popup continua aberto e o erro aparece só dentro dele; com popup fechado, só abaixo dos campos (nunca nos dois)
-- [ ] `voltar()` ⇒ desmonta, limpa `erroAoSalvar`, foco em `#calculadora-SALDO`; campos intactos; nenhum código de reset da opção do popup
-- [ ] Nenhuma lógica própria para escolha já gravada (`EC-101` cai em `CALCULADO`, `PD-23`)
-- [ ] `typecheck` sem erro
+- [x] Condição de habilitação do "Continuar" (`podeConfirmar`) inalterada (`EC-103`)
+- [x] Prévia `INCOMPATIVEL` ⇒ abre o popup e **nada é enviado**; qualquer outro estado sem erro ⇒ `confirmarCalculadora` com `{ ...corpo, recalcular: null }`, sem popup
+- [x] `confirmar(recalcular)` envia `{ ...corpo, recalcular }`; sucesso ⇒ desmonta o popup (sem passar por `close`) e chama `aoConfirmar` da página
+- [x] Falha ao salvar com popup aberto ⇒ popup continua aberto e o erro aparece só dentro dele; com popup fechado, só abaixo dos campos (nunca nos dois)
+- [x] `voltar()` ⇒ desmonta, limpa `erroAoSalvar`, foco em `#calculadora-SALDO`; campos intactos; nenhum código de reset da opção do popup
+- [x] Nenhuma lógica própria para escolha já gravada (`EC-101` cai em `CALCULADO`, `PD-23`)
+- [x] `typecheck` sem erro
 
 **Verificação:** `npm --prefix frontend run typecheck` (testes em `T-687`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)` — `typecheck` sem erro; testes em `T-687`
 
 ---
 

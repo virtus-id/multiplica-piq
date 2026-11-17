@@ -17,6 +17,9 @@
  * como painel. Abaixo dos campos ficam só a linha de erro (`RF-518`,
  * `RF-519`, falha de rede) e, abaixo de cada campo, a linha marcada do valor
  * que o servidor calculou ou estimou (`RF-568`) — nunca dentro do campo.
+ * "Continuar" decide pela prévia que já está na tela (`RF-565`, `PD-22`):
+ * `INCOMPATIVEL` abre o popup da divergência sem salvar; qualquer outro estado
+ * sem erro salva direto (`T-686`).
  *
  * Os textos de cada campo (enunciados, "ao mês"/"ao ano", Price/SAC) vêm das
  * perguntas individuais do registro, lidas ao abrir — o mesmo caminho que traz
@@ -46,7 +49,7 @@ import type {
   TipoResposta,
 } from "../tipos";
 import Botao from "./Botao";
-import { textoDoValor } from "./DivergenciaDaDivida";
+import DivergenciaDaDivida, { textoDoValor } from "./DivergenciaDaDivida";
 import Explicacao from "./Explicacao";
 
 /** Espera depois da última edição antes de pedir a prévia. */
@@ -244,6 +247,8 @@ export default function CalculadoraDaDivida({
   } | null>(null);
   const [gravando, setGravando] = useState(false);
   const [erroAoSalvar, setErroAoSalvar] = useState<string | null>(null);
+  /** Montado só enquanto aberto: fechar descarta a opção marcada (`PD-20`). */
+  const [divergenciaAberta, setDivergenciaAberta] = useState(false);
 
   const itemId = pergunta.item_id ?? undefined;
   const sistemaPadrao = pergunta.sistema ?? "PRICE";
@@ -321,12 +326,19 @@ export default function CalculadoraDaDivida({
     mudanca();
   }
 
-  async function confirmar() {
+  /** `recalcular` = a escolha do popup; `null` = salvar os quatro como digitados. */
+  async function confirmar(recalcular: CampoDaDivida | null) {
     if (pergunta.item_id === null) return;
     setGravando(true);
     setErroAoSalvar(null);
     try {
-      aoConfirmar(await confirmarCalculadora(casoId, pergunta.item_id, corpo));
+      const confirmacao = await confirmarCalculadora(casoId, pergunta.item_id, {
+        ...corpo,
+        recalcular,
+      });
+      // Desmontar o `<dialog>` aberto não dispara `close` (`PD-21`).
+      setDivergenciaAberta(false);
+      aoConfirmar(confirmacao);
     } catch (erro) {
       setErroAoSalvar(
         erro instanceof Error && erro.message
@@ -336,6 +348,13 @@ export default function CalculadoraDaDivida({
     } finally {
       setGravando(false);
     }
+  }
+
+  /** `PD-21`: o `close` do popup (Esc, "Voltar e corrigir", navegador) — nada é salvo. */
+  function voltar() {
+    setDivergenciaAberta(false);
+    setErroAoSalvar(null);
+    document.getElementById("calculadora-SALDO")?.focus();
   }
 
   if (erroDeCarga) {
@@ -360,6 +379,12 @@ export default function CalculadoraDaDivida({
   const idDoErro = "calculadora-erro";
   const podeConfirmar =
     previa !== null && previa.estado !== "ERRO" && !gravando;
+
+  /** `PD-22`: decide pela prévia na tela, sem nova chamada. */
+  function continuar() {
+    if (previa?.estado === "INCOMPATIVEL") setDivergenciaAberta(true);
+    else void confirmar(null);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -496,17 +521,30 @@ export default function CalculadoraDaDivida({
         </p>
       )}
 
-      {erroAoSalvar && (
+      {/* `EC-105`: com o popup aberto, o erro ao salvar aparece só dentro dele. */}
+      {erroAoSalvar && !divergenciaAberta && (
         <p role="alert" className="aviso-erro">
           {erroAoSalvar}
         </p>
       )}
 
       <div>
-        <Botao onClick={() => void confirmar()} disabled={!podeConfirmar}>
+        <Botao onClick={continuar} disabled={!podeConfirmar}>
           {gravando ? "Salvando…" : rotuloConfirmar}
         </Botao>
       </div>
+
+      {divergenciaAberta && previa && (
+        <DivergenciaDaDivida
+          casoId={casoId}
+          corpo={corpo}
+          previa={previa}
+          gravando={gravando}
+          erroAoSalvar={erroAoSalvar}
+          aoConfirmar={(recalcular) => void confirmar(recalcular)}
+          aoVoltar={voltar}
+        />
+      )}
     </div>
   );
 }
