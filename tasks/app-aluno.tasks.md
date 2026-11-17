@@ -15344,7 +15344,7 @@ registros`, nova linha na cadeia histórica: "`T-649` (`RF-557`): `-1`,
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_remocao_sem_efeito.py tests/app_aluno/test_contagem_de_coleta.py`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `test_remocao_sem_efeito.py`/`test_contagem_de_coleta.py`: 1 failed, 181 passed — a falha (`test_perguntas_removidas_nao_existem_e_as_mantidas_continuam`, `B3.C02`/`B3.C02A`) já é a mesma pré-existente registrada em `T-640` (sem relação com `B5.00`); `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 
