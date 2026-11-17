@@ -134,6 +134,7 @@ from engine.snapshot import SnapshotOrdem
 from engine.tipos import (
     DESCONHECIDO,
     MOTIVO_ESTABILIZACAO,
+    MOTIVO_POSICAO,
     ORDEM_STATUS,
     Desconhecido,
     DinheiroTalvez,
@@ -1243,6 +1244,12 @@ class ContextoPosicao:
     #: `T-556`: esta dívida é a primeira a receber o valor extra — o PDF a
     #: destaca com um anel verde. Só leitura de `_alvo_desde`.
     recebe_extra_primeiro: bool = False
+    #: `RF-555` — a frase do `MOTIVO_POSICAO` desta posição; vazia fora de
+    #: estabilização ou com snapshot sem o campo.
+    motivo_da_posicao: str = ""
+    #: `RF-556` — quando a dívida termina só com as parcelas; vazia fora de
+    #: estabilização ou com snapshot sem `QUITACOES_SO_PARCELAS`.
+    previsao_so_parcelas: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -2149,6 +2156,38 @@ def _fato_recebe_extra(
         dt.get("recebe_extra_rotulo", "Recebe o valor extra"),
         dt.get("nao_recebe_extra", "Não recebe: termina só com a parcela de sempre"),
     )
+
+
+def _quitacoes_so_parcelas(snapshot: SnapshotOrdem) -> Mapping[str, int] | None:
+    """`RF-556` — {DIVIDA_ID: mês} lido de `prognostico.sem_acao.
+    QUITACOES_SO_PARCELAS`. `None` fora de estabilização, sem prognóstico ou
+    com o campo `None` (snapshot anterior: a seção fica como era, `AC-590`).
+    Leitura pura."""
+    if not snapshot.diagnostico.MODO_ESTABILIZACAO or snapshot.prognostico is None:
+        return None
+    so_parcelas = snapshot.prognostico.sem_acao.QUITACOES_SO_PARCELAS
+    return None if so_parcelas is None else dict(so_parcelas)
+
+
+def _frase_do_motivo(motivo: MOTIVO_POSICAO | None, textos: TextosCanonicosPlano) -> str:
+    """`RF-555` — a frase do `MOTIVO_POSICAO` que o motor publicou; `""` sem
+    ele. Sem frase cadastrada aparece o CÓDIGO, visível (`EC-92`), nunca uma
+    frase genérica. Não lê a `Divida` (`AC-588`, `AC-590`)."""
+    if motivo is None:
+        return ""
+    return textos.estabilizacao.get(f"motivo_{motivo.value}", motivo.value)
+
+
+def _previsao_so_parcelas(
+    divida_id: str, so_parcelas: Mapping[str, int], textos: TextosCanonicosPlano
+) -> str:
+    """`RF-556` — "Termina em {mês}…" com o mesmo `rotulo_do_mes` dos demais
+    "Termina em" do plano (`AC-589`); fora da lista, a frase sem mês. Sem conta."""
+    if divida_id in so_parcelas:
+        return textos.estabilizacao.get("previsao_termina", "").format(
+            mês=rotulo_do_mes(so_parcelas[divida_id])
+        )
+    return textos.estabilizacao.get("previsao_nao_termina", "")
 
 
 def _alvo_desde(snapshot: SnapshotOrdem) -> Mapping[str, int]:

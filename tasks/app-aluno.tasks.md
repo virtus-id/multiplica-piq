@@ -14633,11 +14633,11 @@ v)`, `""` com `None` (`EC-92`: o código, nunca frase genérica);
 `_previsao_so_parcelas(id, so_parcelas, textos)` → `previsao_termina` com
 `rotulo_do_mes(m)` ou `previsao_nao_termina`. Ainda não chamadas.
 
-- [ ] Nenhuma das três recebe `Divida` nem faz aritmética; `rotulo_do_mes` é o mesmo do "Termina em" do plano normal
-- [ ] `test_sem_aritmetica_sobre_snapshot` e `test_fronteira_import_engine` verdes (`engine.tipos` já liberado)
-- [ ] Saída do plano inalterada (testes atuais verdes); gates: lint, build, test
+- [x] Nenhuma das três recebe `Divida` nem faz aritmética; `rotulo_do_mes` é o mesmo do "Termina em" do plano normal
+- [x] `test_sem_aritmetica_sobre_snapshot` e `test_fronteira_import_engine` verdes (`engine.tipos` já liberado)
+- [x] Saída do plano inalterada (testes atuais verdes); gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; `test_sem_aritmetica_sobre_snapshot` e `test_fronteira_import_engine` falham na `main` por `app/http/rotas_api_plano.py:181` e `report/consistencia.py:16`; nenhuma violação nova em `report/plano.py`
 
 ---
 
