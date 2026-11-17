@@ -49,6 +49,7 @@ from collection.opcoes_do_motor import OrigemOpcoes
 from collection.registro import (
     NIVEL_COMPROVACAO,
     EscopoRepeticao,
+    Explicacao,
     NivelCondicional,
     Obrigatoriedade,
     OpcaoRegistro,
@@ -246,6 +247,7 @@ def _converter_registro(caminho: Path, pergunta: dict[str, Any]) -> RegistroPerg
             mensagem_faixa=(pergunta.get("faixa") or {}).get("mensagem"),
             apoio=pergunta.get("apoio"),
             apresentacao=pergunta.get("apresentacao"),
+            explicacao=_converter_explicacao(pergunta.get("explicacao")),
             escopo_pai=(
                 EscopoRepeticao(pergunta["escopo_pai"]) if "escopo_pai" in pergunta else None
             ),
@@ -271,6 +273,13 @@ def _exigir_forma_do_calculo_divida(registro: RegistroPergunta) -> None:
         raise ValueError(f"CALCULO_DIVIDA exige VARIAVEL_GRAVADA {_VARIAVEL_DA_CONFERENCIA}")
     if registro.opcoes:
         raise ValueError("CALCULO_DIVIDA não declara opcoes")
+
+
+def _converter_explicacao(bruta: dict[str, Any] | None) -> Explicacao | None:
+    """RF-562 — `None` passa; dict com os dois textos converte para `Explicacao`."""
+    if bruta is None:
+        return None
+    return Explicacao(o_que_e=bruta["o_que_e"], onde_encontrar=bruta["onde_encontrar"])
 
 
 def _converter_opcao(bruta: dict[str, Any]) -> OpcaoRegistro:

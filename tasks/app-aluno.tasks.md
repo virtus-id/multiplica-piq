@@ -15727,12 +15727,13 @@ bruta["onde_encontrar"])`. Chamada em `_converter_registro` como
 
 **Critérios de aceite**
 
-- [ ] Registro sem `explicacao` no YAML carrega com `explicacao is None`
-- [ ] Registro com `explicacao: {o_que_e: ..., onde_encontrar: ...}`
+- [x] Registro sem `explicacao` no YAML carrega com `explicacao is None`
+- [x] Registro com `explicacao: {o_que_e: ..., onde_encontrar: ...}`
       carrega os dois valores sem perda
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — verificação completa (lint/build/test) ainda
+pendente, a rodar ao final da Entrega C/D.
 
 ---
 
