@@ -15750,13 +15750,14 @@ a maioria das perguntas não tem ⓘ.
 
 **Critérios de aceite**
 
-- [ ] Registro com `explicacao: {o_que_e: "x", onde_encontrar: "y"}` valida
-- [ ] Registro com `explicacao: {o_que_e: "x"}` (sem `onde_encontrar`) é
+- [x] Registro com `explicacao: {o_que_e: "x", onde_encontrar: "y"}` valida
+- [x] Registro com `explicacao: {o_que_e: "x"}` (sem `onde_encontrar`) é
       recusado pelo esquema
-- [ ] Registro sem `explicacao` continua validando
+- [x] Registro sem `explicacao` continua validando
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — verificação completa (lint/build/test) ainda
+pendente, a rodar ao final da Entrega C/D.
 
 ---
 

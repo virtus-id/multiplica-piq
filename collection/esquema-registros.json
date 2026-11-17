@@ -99,6 +99,15 @@
             "maximo": { "type": ["number", "string"] },
             "mensagem": { "type": "string", "minLength": 1 }
           }
+        },
+        "explicacao": {
+          "type": "object",
+          "required": ["o_que_e", "onde_encontrar"],
+          "additionalProperties": false,
+          "properties": {
+            "o_que_e": { "type": "string", "minLength": 1 },
+            "onde_encontrar": { "type": "string", "minLength": 1 }
+          }
         }
       }
     },
