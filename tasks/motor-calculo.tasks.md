@@ -8275,11 +8275,11 @@ em snapshot anterior.
 `[]` → `()`; ausente/`null` → `None`). A escrita já serializa os campos. O
 Supabase reaproveita esse leitor (`dados_completos`), sem diff e sem migração.
 
-- [ ] `SNAPSHOT_ID` lido, nunca recalculado
-- [ ] `persistencia/supabase/repositorio_snapshots.py` sem diff; nenhuma migração SQL
-- [ ] Rehash só do arquivo alterado; gates: lint, build, test
+- [x] `SNAPSHOT_ID` lido, nunca recalculado
+- [x] `persistencia/supabase/repositorio_snapshots.py` sem diff; nenhuma migração SQL
+- [x] Rehash só do arquivo alterado; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 
