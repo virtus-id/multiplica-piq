@@ -8346,15 +8346,15 @@ motor → publicação é provado por `T-616`.
 - **Tipo:** `Test` · **Dependências:** `T-613`, `T-614` · **Rastreia:** `EC-85`, `EC-86`, `EC-88`, `EC-89`, `EC-91` · `RF-552`, `RF-553`, `RF-554` · plano `R14.8`, `R14.10` (Leitura 1)
 - **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py`
 
-- [ ] `EC-85`: parte das elegíveis sem benefício comparável → laço para, sequência parcial, nada inventado; sequência vazia → vale a ordem de quitação (`RF-09`); ordem com duas ou mais cuja última posição não tem `Y` → motivo do critério do método
-- [ ] `EC-85` × `(a)` (**Leitura 1**): sequência com uma posição porque as demais não são comparáveis → `UNICA_DIVIDA`
-- [ ] `EC-86`: uma só elegível → `ORDEM_DE_ATAQUE` = ela, `UNICA_DIVIDA`
-- [ ] `EC-88`: `PISO_CAPACIDADE` ≤ 0 → nenhum delta positivo inventado; comportamento de `EC-85`
-- [ ] `EC-89`: estabilização por dívida que cresce com capacidade > 0 → ordem como hoje (com estouro, `ORDEM_DE_ATAQUE` + motivo); `QUITACOES_SO_PARCELAS` presente; com capacidade zero, piso e item 2 de `RF-552`
-- [ ] `EC-91`: Híbrido em estabilização → `D*` igual à de antes; posições seguintes ranqueadas com o piso
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] `EC-85`: parte das elegíveis sem benefício comparável → laço para, sequência parcial, nada inventado; sequência vazia → vale a ordem de quitação (`RF-09`); ordem com duas ou mais cuja última posição não tem `Y` → motivo do critério do método
+- [x] `EC-85` × `(a)` (**Leitura 1**): sequência com uma posição porque as demais não são comparáveis → `UNICA_DIVIDA`
+- [x] `EC-86`: uma só elegível → `ORDEM_DE_ATAQUE` = ela, `UNICA_DIVIDA`
+- [x] `EC-88`: `PISO_CAPACIDADE` ≤ 0 → nenhum delta positivo inventado; comportamento de `EC-85`
+- [x] `EC-89`: estabilização por dívida que cresce com capacidade > 0 → ordem como hoje (com estouro, `ORDEM_DE_ATAQUE` + motivo); `QUITACOES_SO_PARCELAS` presente; com capacidade zero, piso e item 2 de `RF-552`
+- [x] `EC-91`: Híbrido em estabilização → `D*` igual à de antes; posições seguintes ranqueadas com o piso
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — `EC-88`: com os parâmetros `1.0.1` o piso absoluto é positivo e `calcular_plano` não chega a piso ≤ 0; o caso troca `PISO_CAPACIDADE` no `Diagnostico` e roda `simular_cenario`.
 
 ---
 

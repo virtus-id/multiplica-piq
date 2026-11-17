@@ -29,7 +29,7 @@ from engine.diagnostico import Diagnostico, calcular_diagnostico
 from engine.estado import Divida, EstadoFinanceiro
 from engine.metodos.avalanche import beneficio_de_ranqueamento, criar_selecionar_alvo_avalanche
 from engine.metodos.bola_de_neve import criar_selecionar_alvo_bola_de_neve
-from engine.metodos.hibrido import criar_selecionar_alvo_hibrido
+from engine.metodos.hibrido import criar_selecionar_alvo_hibrido, escolher_D_ESTRELA
 from engine.motor import calcular_plano
 from engine.ordem import derivar_MOTIVO_POSICAO
 from engine.parametros import Parametros
@@ -45,6 +45,7 @@ from engine.tipos import (
 )
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from tests.fixtures.carregar import carregar_gab_c
+from tests.regras.test_ordem_com_todas_as_dividas import _caso_teste3
 from tests.regras.test_ordem_em_estabilizacao_identidade import _CONGELADOS, digest_do_snapshot
 from tests.regras.test_prioridade_ordem import _carteira, _com, _duas_primeiras
 
@@ -527,4 +528,132 @@ def test_ac583d_hibrido_d_estrela_e_depois_o_motivo_da_avalanche() -> None:
 def test_ac583e_uma_so_divida_e_unica_divida() -> None:
     assert _pelo_caminho_de_regras(METODO.AVALANCHE, _carteira(X={})) == [
         ("X", MOTIVO_POSICAO.UNICA_DIVIDA)
+    ]
+
+
+# --- T-619: EC-85, EC-86, EC-88, EC-89, EC-91 --------------------------------
+
+
+def _quita_no_primeiro_mes(saldo: str) -> dict[str, object]:
+    """A parcela (100) cobre o saldo: não há delta aplicável, nem com o piso."""
+    return _sem_simulacao(saldo, "0.02", "100")
+
+
+def test_ec85_parte_sem_beneficio_comparavel_fica_de_fora() -> None:
+    carteira = _carteira(
+        A=_sem_simulacao("1000", "0.09", "100"),
+        B=_sem_simulacao("1000", "0.06", "100"),
+        Z=_quita_no_primeiro_mes("50"),
+    )
+    piso = calcular_diagnostico(_estado_rodrigo(), _parametros()).PISO_CAPACIDADE
+    assert beneficio_de_ranqueamento(carteira["Z"], piso, _parametros()) is None
+    # o laço para sem inventar; a última posição não tem segunda colocada, mas Z
+    # segue em R: o motivo é o critério do método
+    assert _pelo_caminho_de_regras(METODO.AVALANCHE, carteira) == [
+        ("A", MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL),
+        ("B", MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL),
+    ]
+
+
+def test_ec85_leitura_1_uma_posicao_porque_as_demais_nao_comparam_e_unica_divida() -> None:
+    carteira = _carteira(A=_sem_simulacao("1000", "0.09", "100"), Z=_quita_no_primeiro_mes("50"))
+    assert _pelo_caminho_de_regras(METODO.AVALANCHE, carteira) == [
+        ("A", MOTIVO_POSICAO.UNICA_DIVIDA)
+    ]
+
+
+def test_ec85_sequencia_vazia_publica_a_ordem_de_quitacao_sem_motivo() -> None:
+    """Resultado −115, Avalanche recomendada; as duas parcelas cobrem o saldo."""
+    estado = _variacao("16600", ("D001", "50", "0.02", "100"), ("D002", "80", "0.02", "100"))
+    snapshot = calcular_plano(estado, _parametros())
+    assert snapshot.diagnostico.MODO_ESTABILIZACAO
+    assert snapshot.METODO_RECOMENDADO_PIQ is METODO.AVALANCHE
+    cenario = snapshot.cenarios[snapshot.METODO_RECOMENDADO_PIQ]
+    assert cenario.ORDEM_DE_ATAQUE == ()
+    assert cenario.ORDEM_QUITACAO
+    assert tuple(p.DIVIDA_ID for p in snapshot.ORDEM_QUITACAO) == cenario.ORDEM_QUITACAO
+    assert all(p.MOTIVO_POSICAO is None for p in snapshot.ORDEM_QUITACAO)
+
+
+def test_ec86_uma_so_divida_elegivel() -> None:
+    estado = _estado_rodrigo()
+    snapshot = calcular_plano(replace(estado, dividas=estado.dividas[:1]), _parametros())
+    assert snapshot.diagnostico.MODO_ESTABILIZACAO
+    assert snapshot.cenarios[snapshot.METODO_RECOMENDADO_PIQ].ORDEM_DE_ATAQUE == ("D001",)
+    assert [(p.DIVIDA_ID, p.MOTIVO_POSICAO) for p in snapshot.ORDEM_QUITACAO] == [
+        ("D001", MOTIVO_POSICAO.UNICA_DIVIDA)
+    ]
+
+
+def test_ec88_piso_nao_positivo_nao_inventa_delta() -> None:
+    """Com os parâmetros `1.0.1` o piso absoluto é positivo; o caso é montado
+    trocando `PISO_CAPACIDADE` no diagnóstico."""
+    assert delta_de_ranqueamento_da_ordem(dinheiro("-10"), dinheiro("0")) == dinheiro("0")
+    assert delta_de_ranqueamento_da_ordem(dinheiro("0"), dinheiro("-5")) == dinheiro("-5")
+    estado, parametros = _estado_rodrigo(), _parametros()
+    diagnostico = replace(calcular_diagnostico(estado, parametros), PISO_CAPACIDADE=dinheiro("0"))
+    dividas = _inventario(estado)
+    sel = aplicar_prioridade_ordem(
+        criar_selecionar_alvo_avalanche(dividas, parametros), dividas, parametros
+    )
+    # sem delta positivo nenhuma das duas é comparável: EC-85, nada inventado
+    assert simular_cenario(estado, diagnostico, dividas, sel, parametros).ORDEM_DE_ATAQUE == ()
+
+
+def test_ec89_estabilizacao_por_divida_que_cresce() -> None:
+    parametros = _parametros()
+    snapshot = calcular_plano(_caso_teste3(), parametros)
+    assert snapshot.diagnostico.MODO_ESTABILIZACAO
+    assert snapshot.diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA > 0
+    # capacidade positiva: a ordem de hoje (digest de T-603), agora com motivo
+    assert digest_do_snapshot(snapshot) == dict((n, d) for n, _, d in _CONGELADOS)["teste3-AC-512"]
+    assert [(p.DIVIDA_ID, p.MOTIVO_POSICAO) for p in snapshot.ORDEM_QUITACAO] == [
+        ("D004", MOTIVO_POSICAO.GARANTIA_ESSENCIAL),
+        ("D003", MOTIVO_POSICAO.NEGATIVADA),
+        ("D002", MOTIVO_POSICAO.PESO_GARANTIA),
+        ("D001", MOTIVO_POSICAO.ULTIMA_RESTANTE),
+    ]
+    assert snapshot.prognostico is not None
+    assert snapshot.prognostico.sem_acao.QUITACOES_SO_PARCELAS is not None
+
+    # capacidade zero: o piso ranqueia
+    zero = replace(_caso_teste3(), CAPACIDADE_ATAQUE_DECLARADA=dinheiro("0"))
+    snapshot_zero = calcular_plano(zero, parametros)
+    diagnostico = snapshot_zero.diagnostico
+    assert diagnostico.MODO_ESTABILIZACAO
+    assert diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA == 0
+    assert snapshot_zero.METODO_RECOMENDADO_PIQ is METODO.AVALANCHE
+    dividas = _inventario(zero)
+    sel = aplicar_prioridade_ordem(
+        criar_selecionar_alvo_avalanche(dividas, parametros), dividas, parametros
+    )
+    cenario = snapshot_zero.cenarios[METODO.AVALANCHE]
+    assert cenario.ORDEM_DE_ATAQUE == _ordem_pelo_seletor(sel, dividas, diagnostico.PISO_CAPACIDADE)
+    assert len(cenario.ORDEM_DE_ATAQUE) == 4
+    assert all(p.MOTIVO_POSICAO is not None for p in snapshot_zero.ORDEM_QUITACAO)
+
+
+def test_ec91_hibrido_em_estabilizacao_d_estrela_de_antes_e_o_resto_com_o_piso() -> None:
+    estado, parametros = _estado_hibrido(), _parametros()
+    snapshot = calcular_plano(estado, parametros)
+    assert snapshot.diagnostico.MODO_ESTABILIZACAO
+    assert snapshot.METODO_RECOMENDADO_PIQ is METODO.HIBRIDO
+
+    dividas = _inventario(estado)
+    diagnostico = calcular_diagnostico(estado, parametros)
+    d_estrela, _ = escolher_D_ESTRELA(estado, dividas, diagnostico, parametros)
+    assert d_estrela == "A"
+    # a escolha de D* não lê o piso (OQ-104)
+    outro_piso = replace(diagnostico, PISO_CAPACIDADE=dinheiro("1"))
+    assert escolher_D_ESTRELA(estado, dividas, outro_piso, parametros)[0] == d_estrela
+
+    hibrido = criar_selecionar_alvo_hibrido(estado, dividas, diagnostico, parametros)
+    assert hibrido.D_ESTRELA == d_estrela and hibrido.selecionar_alvo is not None
+    sel = aplicar_prioridade_ordem(hibrido.selecionar_alvo, dividas, parametros)
+    cenario = snapshot.cenarios[METODO.HIBRIDO]
+    assert cenario.ORDEM_DE_ATAQUE == _ordem_pelo_seletor(sel, dividas, diagnostico.PISO_CAPACIDADE)
+    assert [(p.DIVIDA_ID, p.MOTIVO_POSICAO) for p in snapshot.ORDEM_QUITACAO] == [
+        ("A", MOTIVO_POSICAO.CRITERIO_HIBRIDO),
+        ("B", MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL),
+        ("S", MOTIVO_POSICAO.ULTIMA_RESTANTE),
     ]
