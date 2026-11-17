@@ -1,29 +1,27 @@
-"""Pendências de inventário — `RF-86`, `RF-87`, `RF-88` (`T-246`, `DE-04`).
+"""Pendências de inventário — `RF-86`, `RF-88` (`T-246`, `DE-04`);
+`SEM_DIVIDAS` reescrita por `RF-559` (`T-647`, Rodada 18).
 
 `plans/app-aluno.plan.md` §R9.5. Função PURA: recebe os registros, as
 respostas e os itens ativos por escopo, e devolve o que impede o cálculo
 final. Nunca grava nada — as pendências são derivadas a cada leitura
 (`R9.7`), para que não exista segunda fonte que envelheça.
 
-- **Dívidas** (`RF-87`): com `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` numérica,
-  cadastradas abaixo (`DIVIDAS_FALTANDO`) ou acima (`DIVIDAS_ACIMA`, `EC-33`)
-  do declarado bloqueiam. Declarada "não sei": a completude é a confirmação
-  "esta foi a última" em alguma ficha de dívida (`AC-153`, `EC-32`).
+- **Dívidas** (`RF-559`): nenhuma ficha de `DIVIDA_ID` com ao menos uma
+  resposta bloqueia (`SEM_DIVIDAS`); a correção é cadastrar uma, nunca
+  corrigir uma quantidade — não existe mais quantidade declarada para
+  comparar (`T-389`, `T-649`: `B5.00`/`B5.00A` saíram do questionário).
 - **Itens declarados** (`RF-88`): só a resposta `SIM` exige ao menos um item
   (`EC-34` — "não sei" não exige).
-- **Quais dívidas faltam** (`T-324`): a pendência de dívidas faltando leva
-  os tipos marcados na declaração de tipos sem nenhuma ficha daquele tipo
-  e as fichas já cadastradas. A declaração dá só o total, nunca quantas
-  por tipo — então não há contagem por tipo, só "tipos sem ficha".
 - **Consignado sem vínculo** (`T-282`, `DE-04`, `AC-139`): dívida em que
   `B5.A02V` se aplica, sem nenhum vínculo cadastrado para apontar.
 
 "Cadastrado" = item ATIVO com ao menos uma resposta: ficha criada e vazia
 não conta. `ID_PARA_CORRIGIR` é resolvido pela `VARIAVEL_GRAVADA` no
 registro — nenhum `ID` de pergunta aqui, nenhum texto (`AC-37`): a redação
-vive em `textos/inventario.yaml`.
+vive em `textos/inventario.yaml`. `None` em `SEM_DIVIDAS`: não há mais
+pergunta a corrigir (`RF-559`).
 
-REGRAS: `RF-86`, `RF-87`, `RF-88`, `AC-37`
+REGRAS: `RF-86`, `RF-88`, `RF-559`, `AC-37`
 """
 
 from __future__ import annotations
@@ -45,16 +43,11 @@ from collection.respostas import RespostasCaso
 from persistencia.app_aluno.eventos import EventoCaso, RepositorioEventosCaso
 from persistencia.app_aluno.itens import ItemRepetido
 
-REGRAS: Final[tuple[str, ...]] = ("RF-86", "RF-87", "RF-88", "AC-37")
+REGRAS: Final[tuple[str, ...]] = ("RF-86", "RF-88", "RF-559", "AC-37")
 
 CAMINHO_TEXTOS: Final[Path] = Path(__file__).parent / "textos" / "inventario.yaml"
 
-_QUANTIDADE_DECLARADA: Final[str] = "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL"
-_FIM_DO_CADASTRO: Final[str] = "SYS (loop)"
-_ESTA_FOI_A_ULTIMA: Final[str] = "NAO_ESTA_FOI_A_ULTIMA"
 _SIM: Final[str] = "SIM"
-# T-324: o tipo/credor de cada ficha.
-_TIPO_DA_FICHA: Final[str] = "TIPO_DIVIDA"
 _CREDOR: Final[str] = "CREDOR"
 _CREDOR_OUTRO: Final[str] = "CREDOR_OUTRO"
 _OUTRA_INSTITUICAO: Final[str] = "OUTRA"
@@ -65,9 +58,9 @@ TIPO_EVENTO_CALCULO_BLOQUEADO: Final[str] = "calculo_bloqueado_inventario"
 
 
 class TIPO_PENDENCIA_INVENTARIO(Enum):
-    DIVIDAS_FALTANDO = "DIVIDAS_FALTANDO"
-    DIVIDAS_ACIMA = "DIVIDAS_ACIMA"
-    DIVIDAS_SEM_CONFIRMACAO = "DIVIDAS_SEM_CONFIRMACAO"
+    # `DIVIDAS_FALTANDO`/`DIVIDAS_ACIMA`/`DIVIDAS_SEM_CONFIRMACAO`: saíram
+    # com a quantidade declarada (`RF-559`, `T-647`) — não há mais o que
+    # comparar.
     SEM_DIVIDAS = "SEM_DIVIDAS"
     RENDA_EXTRA_SEM_ITEM = "RENDA_EXTRA_SEM_ITEM"
     NAO_MENSAL_SEM_ITEM = "NAO_MENSAL_SEM_ITEM"
@@ -91,37 +84,18 @@ _DECLARACOES_DE_ITEM: Final[
 
 
 @dataclass(frozen=True, slots=True)
-class FichaDeDivida:
-    """T-324 — uma ficha de dívida cadastrada, como o aluno a reconhece:
-    credor e rótulo do tipo, `None` enquanto não respondidos."""
-
-    item_id: str
-    credor: str | None
-    tipo: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class DetalheDasDividas:
-    """T-324 — o que acompanha `DIVIDAS_FALTANDO`: as fichas cadastradas e a
-    ficha criada e ainda vazia (a reabrir antes de criar outra), se houver.
-    `T-389`: `B5.00A` (tipos declarados) saiu; não há mais tipo sem ficha."""
-
-    fichas: tuple[FichaDeDivida, ...]
-    ficha_vazia: str | None
-
-
-@dataclass(frozen=True, slots=True)
 class PendenciaInventario:
     """Uma pendência que bloqueia o cálculo. `ID_PARA_CORRIGIR` é a pergunta
-    da declaração (a ação direta de `AC-154`); `escopo`, quando a correção
-    também pode ser cadastrar item, é o escopo das fichas a abrir."""
+    da declaração (a ação direta de `AC-154`); `None` quando não há mais
+    pergunta a corrigir — a correção é cadastrar uma ficha (`RF-559`,
+    `SEM_DIVIDAS`). `escopo`, quando a correção também pode ser cadastrar
+    item, é o escopo das fichas a abrir."""
 
     tipo: TIPO_PENDENCIA_INVENTARIO
     declaradas: int | None
     cadastradas: int | None
-    ID_PARA_CORRIGIR: str
+    ID_PARA_CORRIGIR: str | None
     escopo: EscopoRepeticao | None
-    dividas: DetalheDasDividas | None = None
 
 
 def pendencias_de_inventario(
@@ -129,7 +103,7 @@ def pendencias_de_inventario(
     respostas: RespostasCaso,
     itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]],
 ) -> tuple[PendenciaInventario, ...]:
-    """RF-86..RF-88 — as pendências de inventário do caso, na ordem:
+    """RF-86, RF-88, RF-559 — as pendências de inventário do caso, na ordem:
     dívidas primeiro, depois os itens declarados."""
     com_resposta = {r.item_id for r in respostas.respostas if r.item_id}
 
@@ -137,59 +111,19 @@ def pendencias_de_inventario(
         return tuple(i for i in itens_por_escopo.get(escopo, ()) if i in com_resposta)
 
     pendencias: list[PendenciaInventario] = []
-    dividas = cadastrados(EscopoRepeticao.DIVIDA_ID)
-    declaradas = respostas.valor(_QUANTIDADE_DECLARADA)
-    id_declaradas = _id_da_variavel(registros, _QUANTIDADE_DECLARADA)
-    if id_declaradas is not None and isinstance(declaradas, int) and declaradas != len(dividas):
-        faltando = declaradas > len(dividas)
-        pendencias.append(
-            PendenciaInventario(
-                tipo=TIPO_PENDENCIA_INVENTARIO.DIVIDAS_FALTANDO
-                if faltando
-                else TIPO_PENDENCIA_INVENTARIO.DIVIDAS_ACIMA,
-                declaradas=declaradas,
-                cadastradas=len(dividas),
-                ID_PARA_CORRIGIR=id_declaradas,
-                escopo=EscopoRepeticao.DIVIDA_ID if faltando else None,
-                dividas=_detalhe_das_dividas(
-                    registros,
-                    respostas,
-                    dividas,
-                    itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID, ()),
-                )
-                if faltando
-                else None,
-            )
-        )
-    if id_declaradas is not None and declaradas == 0 and not dividas:
-        # `T-414`: "Nenhuma dívida" — não há o que ordenar nem quitar, então
-        # não existe plano; o caso não segue para o cálculo.
+    # `RF-559` (`T-647`, Rodada 18): nenhuma ficha de `DIVIDA_ID` com
+    # resposta — nunca uma comparação com quantidade declarada, que não
+    # existe mais no questionário (`T-649`).
+    if not cadastrados(EscopoRepeticao.DIVIDA_ID):
         pendencias.append(
             PendenciaInventario(
                 tipo=TIPO_PENDENCIA_INVENTARIO.SEM_DIVIDAS,
-                declaradas=0,
+                declaradas=None,
                 cadastradas=0,
-                ID_PARA_CORRIGIR=id_declaradas,
-                escopo=None,
+                ID_PARA_CORRIGIR=None,
+                escopo=EscopoRepeticao.DIVIDA_ID,
             )
         )
-    if id_declaradas is not None and declaradas is not None and not isinstance(declaradas, int):
-        # Declarada "não sei" (AC-153): só a confirmação "esta foi a última"
-        # numa ficha de dívida encerra a contagem.
-        confirmada = any(
-            respostas.valor_no_item(item_id, _FIM_DO_CADASTRO) == _ESTA_FOI_A_ULTIMA
-            for item_id in dividas
-        )
-        if not confirmada:
-            pendencias.append(
-                PendenciaInventario(
-                    tipo=TIPO_PENDENCIA_INVENTARIO.DIVIDAS_SEM_CONFIRMACAO,
-                    declaradas=None,
-                    cadastradas=len(dividas),
-                    ID_PARA_CORRIGIR=id_declaradas,
-                    escopo=EscopoRepeticao.DIVIDA_ID,
-                )
-            )
 
     for tipo, variavel, escopo in _DECLARACOES_DE_ITEM:
         id_declaracao = _id_da_variavel(registros, variavel)
@@ -208,31 +142,6 @@ def pendencias_de_inventario(
                 )
             )
     return tuple(pendencias)
-
-
-def _detalhe_das_dividas(
-    registros: tuple[RegistroPergunta, ...],
-    respostas: RespostasCaso,
-    cadastradas: tuple[str, ...],
-    todas: tuple[str, ...],
-) -> DetalheDasDividas:
-    """T-324 — as fichas cadastradas, com o tipo pelo rótulo das opções do
-    registro; código sem opção (ou o "não tenho certeza") não aparece."""
-    rotulos_da_ficha = _rotulos(registros, _TIPO_DA_FICHA)
-    fichas = []
-    for item_id in cadastradas:
-        tipo = respostas.valor_no_item(item_id, _TIPO_DA_FICHA)
-        fichas.append(
-            FichaDeDivida(
-                item_id=item_id,
-                credor=credor_da_ficha(respostas, item_id),
-                tipo=rotulos_da_ficha.get(tipo) if isinstance(tipo, str) else None,
-            )
-        )
-    return DetalheDasDividas(
-        fichas=tuple(fichas),
-        ficha_vazia=next((i for i in todas if i not in cadastradas), None),
-    )
 
 
 def credor_da_ficha(respostas: RespostasCaso, item_id: str) -> str | None:
@@ -262,19 +171,6 @@ def rotulos_das_dividas(itens: Iterable[ItemRepetido], respostas: RespostasCaso)
         vistos[credor] += 1
         rotulos[item_id] = credor if total[credor] == 1 else f"{credor} · {vistos[credor]}"
     return rotulos
-
-
-def _rotulos(registros: tuple[RegistroPergunta, ...], variavel: str) -> dict[str, str]:
-    """`valor_interno → rótulo` das opções da pergunta que grava `variavel`,
-    na ordem do registro. A opção "não sei" não é tipo e fica de fora."""
-    registro = next((r for r in registros if r.VARIAVEL_GRAVADA == variavel), None)
-    if registro is None:
-        return {}
-    return {
-        o.valor_interno: o.rotulo
-        for o in registro.opcoes
-        if o.valor_interno is not None and not o.admite_nao_sei
-    }
 
 
 class ErroInventarioIncompleto(Exception):
@@ -315,24 +211,10 @@ def exigir_inventario_completo(
 
 
 def mensagem_da_pendencia(pendencia: PendenciaInventario) -> str:
-    """A mensagem ao aluno, de `textos/inventario.yaml` — `RF-87` literal
-    para dívidas faltando (`AC-133`); as demais, redação aprovada pelo
-    produto (`T-289`)."""
-    textos = _textos()
-    chave = pendencia.tipo.value
-    if pendencia.tipo is TIPO_PENDENCIA_INVENTARIO.DIVIDAS_FALTANDO:
-        assert pendencia.declaradas is not None and pendencia.cadastradas is not None
-        faltam = pendencia.declaradas - pendencia.cadastradas
-        if pendencia.declaradas == 1:
-            chave = "DIVIDAS_FALTANDO_UMA_DE_UMA"
-        elif faltam == 1:
-            chave = "DIVIDAS_FALTANDO_UMA"
-        return textos[chave].format(
-            declaradas=pendencia.declaradas, cadastradas=pendencia.cadastradas, faltam=faltam
-        )
-    return textos[chave].format(
-        declaradas=pendencia.declaradas, cadastradas=pendencia.cadastradas, faltam=None
-    )
+    """A mensagem ao aluno, de `textos/inventario.yaml` — redação aprovada
+    pelo produto (`T-289`); `SEM_DIVIDAS` é sugestão, a validar (`RF-559`,
+    `T-647`). Nenhuma das três chaves restantes interpola valor."""
+    return _textos()[pendencia.tipo.value]
 
 
 @cache

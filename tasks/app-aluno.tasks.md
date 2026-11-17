@@ -15223,7 +15223,7 @@ chave `"dividas"`.
 - [ ] `mypy --strict` sem erro novo
 - [ ] Gates: lint, build (teste ainda não ajustado, ver `T-648`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `ruff check .`: as mesmas 16; `mypy`: 18 erros em 7 arquivos — os 11/5 da baseline mais 7 novos, todos esperados e adiados para `T-648` (`test_inventario.py`: 6 erros de `DIVIDAS_FALTANDO`/`DIVIDAS_ACIMA`/`DIVIDAS_SEM_CONFIRMACAO` não existirem mais no enum; `test_rotas_inventario.py:162`: já visto em `T-645`); `test_rotas_inventario.py`/`test_inventario.py`: 12 failed, 3 passed (idem, adiado)
 
 ---
 
