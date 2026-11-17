@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`69/71 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendente (1): `T-539` (backlog, sem spec). `T-527`/`T-528` revertidas em 2026-11-06.
+`69/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (10): `T-539` (backlog, sem spec) e `T-681` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1408,6 +1408,254 @@ Decidido (2026-11-10, opção recomendada): a parcela estimada é o devido e o p
 
 ---
 
+# FASE 4 — Conferência silenciosa e popup de divergência (`RF-564` a `RF-568`) — Rodada 2, 2026-11-17
+
+> Fonte: spec, bloco "Rodada 2 (2026-11-17) — Fase 4" (`RF-564` a `RF-568`, `AC-603` a `AC-616`, `EC-100` a `EC-105`, `OQ-105` a `OQ-107`); plano, seção "Rodada 2 — Fase 4" (`R2.0` a `R2.11`, `PD-18` a `PD-25`). Numeração conferida em `tasks/`: último `T-680` (`tasks/app-aluno.tasks.md`); esta fase usa `T-681` a `T-689`.
+>
+> **Só frontend e `docs/`.** Servidor, motor, gravação, `tipos.ts`, `api.ts`, `TelaPergunta.tsx` e `index.css` **não mudam** (R2.3). Nenhuma dependência nova (R2.2).
+>
+> **Verificação desta fase (`VFRONT-R2`)** — o usuário pediu para não rodar a suíte completa: `npm --prefix frontend run typecheck` mais **só** os testes dos arquivos tocados — `npm --prefix frontend run test -- tests/unit/componentes/<arquivo>.test.tsx` e `npm --prefix frontend run test:e2e -- tests/e2e/calculadora-da-divida.spec.ts`. A verificação completa é `T-689`, a cargo do usuário. Os comandos Python de `sdd.config.md` §2 não se aplicam (nenhum arquivo de backend muda).
+>
+> Os textos novos são **sugestão, a validar com o especialista**; nos componentes ficam em `TEXTOS` (`PD-25`) e devem ser idênticos, caractere por caractere, aos de `T-681`.
+
+## Entrega 9 — Textos para o especialista
+
+### `T-681` — Registrar os textos do popup e da linha marcada para o Marcelo
+- **Tipo:** `Docs`
+- **Dependências:** nenhuma
+- **Rastreia:** `RF-566`, `RF-567`, `RF-568`, `OQ-105`, `OQ-107`
+- **Arquivos:** `docs/perguntas-marcelo-calculo-de-divida.md`
+
+**Descrição**
+Seção nova no fim do arquivo, "Textos novos para conferir (2026-11-17) — popup da divergência", separada da seção do ícone ⓘ do mesmo dia. Leva a tabela da redação sugerida (spec §2) e as duas perguntas de produto em linguagem simples, com o exemplo saldo R$ 10.000,00 / 2% ao mês / 24 meses / parcela R$ 400,00.
+
+**Critérios de aceite**
+- [ ] Tabela com: título ("Os valores desta dívida não batem"), frase do valor teórico ("Com esse saldo, taxa e prazo, a parcela seria R$ 528,72. Você informou R$ 400,00."), as cinco opções, o formato do valor recalculado (os quatro exemplos da spec), os dois botões e as linhas "Calculado: R$ 528,72", "Calculado: 2,00% a.m.", "Calculado: 24 meses" e "Estimada: R$ 528,72 (hipótese de 24 meses)" — texto idêntico ao da spec §2
+- [ ] Pergunta do `OQ-105`: qual opção vem marcada ao abrir ("Manter", hipótese adotada) e por que "Manter" não é lembrado ao reabrir; cita a alternativa (nada marcado, "Confirmar" indisponível até escolher)
+- [ ] Pergunta do `OQ-107`: a explicação longa da hipótese de 24 meses sai da tela e fica só "(hipótese de 24 meses)" — basta?
+- [ ] `OQ-106` **não** aparece (decisão da equipe/usuário, spec §10)
+- [ ] Marca "Sugestão, a validar com o especialista (Marcelo)"
+- [ ] Nenhum termo técnico (nome de componente, estado do servidor, `<dialog>`, "prévia")
+
+**Verificação:** leitura; `grep -c "Os valores desta dívida não batem" docs/perguntas-marcelo-calculo-de-divida.md` ≥ 1
+
+**Status:** `[ ] pendente`
+
+---
+
+## Entrega 10 — Popup da divergência (`DivergenciaDaDivida`)
+
+### `T-682` — Criar o popup `DivergenciaDaDivida.tsx` (estrutura, "Manter" e saídas)
+- **Tipo:** `UI`
+- **Dependências:** nenhuma
+- **Rastreia:** `RF-566`, `AC-608`, `AC-609`, `AC-610`, `AC-611`, `EC-100`, `EC-105`, `OQ-105`
+- **Arquivos:** `frontend/src/componentes/DivergenciaDaDivida.tsx` (novo)
+
+**Descrição**
+Componente com as props de R2.4 (`casoId`, `corpo`, `previa`, `gravando`, `erroAoSalvar`, `aoConfirmar`, `aoVoltar`) e o auxiliar exportado `textoDoValor`. `<dialog aria-labelledby="divergencia-titulo">` aberto por `showModal()` num `useEffect` de montagem com guarda `if (!dialog.open)` (`PD-19`, `PD-20`); estrutura e textos da tabela "Popup — estrutura e textos" de R2.4. Nesta tarefa o recálculo ainda não pede nada ao servidor (`T-683`).
+
+**Critérios de aceite**
+- [ ] `<dialog>` nativo, sem biblioteca, polyfill nem fallback (R2.2, R2.10 risco 6); nenhuma classe de `display` no `<dialog>` — `.cartao` (com `max-h` e `overflow-y-auto`) num `div` interno
+- [ ] Título `<h2 id="divergencia-titulo">`; frase em `p.aviso-atencao` com `previa.teorico.texto` e `previa.valores.PARCELA.texto` como vieram
+- [ ] `fieldset` com legenda `sr-only` "Qual informação recalcular?"; "Manter os valores que informei" marcada ao montar; abrir não chama o servidor
+- [ ] Junto de "Manter", "Saldo: {s} · Taxa: {t} ({rotulo})" e o `aviso` em `.nota`, **só** se `hipotese_conservadora` vier
+- [ ] Um radio "Recalcular o saldo" / "a parcela" / "a taxa" / "o prazo" por item de `previa.alternativas`, na ordem recebida
+- [ ] "Confirmar e continuar" (`Botao`, "Salvando…" enquanto `gravando`) chama `aoConfirmar(escolha)`, com `null` para "Manter"
+- [ ] "Voltar e corrigir" (`Botao variante="secundario"`) só chama `dialog.close()`; o único caminho para `aoVoltar` é o `onClose` do `<dialog>` (`PD-21`)
+- [ ] `erroAoSalvar` aparece **dentro** do `<dialog>`, em `p.aviso-erro role="alert"`
+- [ ] `textoDoValor("PRAZO", "24") === "24 meses"`; nos demais campos devolve o texto inalterado; nenhuma operação aritmética sobre valores (Lei nº 3)
+- [ ] `typecheck` sem erro
+
+**Verificação:** `npm --prefix frontend run typecheck` (testes em `T-684`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-683` — Pedir e mostrar o recálculo dentro do popup
+- **Tipo:** `UI`
+- **Dependências:** `T-682`
+- **Rastreia:** `RF-567`, `AC-612`, `AC-613`, `EC-102`
+- **Arquivos:** `frontend/src/componentes/DivergenciaDaDivida.tsx`
+
+**Descrição**
+Estado `recalculo` (R2.4). Marcar "Recalcular o X" dispara `preverCalculadora(casoId, { ...corpo, recalcular: X }, sinal)`; trocar de opção aborta o pedido anterior. O resultado só vale se `recalculo.campo === escolha` (mesma técnica do `resultado.corpo === corpo`). Fluxo do passo 5 de R2.5 e linhas de recálculo de R2.8.
+
+**Critérios de aceite**
+- [ ] Marcar "Manter" não chama `preverCalculadora`
+- [ ] `CALCULADO` ⇒ "{Saldo recalculado | Parcela recalculada | Taxa recalculada | Prazo recalculado}: {textoDoValor} ({rotulo})" abaixo das opções, num `role="status"` local do popup; valor e marca vindos do servidor
+- [ ] `ERRO` ⇒ `previa.mensagem` (frase do `RF-519`) exatamente como veio, em `p.aviso-erro role="alert"`, sem valor; falha de rede ⇒ "Não foi possível calcular."
+- [ ] Trocar de opção apaga, no mesmo render, o valor ou a frase da anterior; resposta atrasada da opção anterior nunca aparece
+- [ ] "Confirmar e continuar" desabilitado com opção de recálculo marcada enquanto a resposta não chegou, em `ERRO` ou em falha de rede; habilitado com "Manter" ou com `CALCULADO` da opção marcada (e fora de `gravando`)
+- [ ] `typecheck` sem erro
+
+**Verificação:** `npm --prefix frontend run typecheck` (testes em `T-684`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-684` — Testar `DivergenciaDaDivida` (vitest)
+- **Tipo:** `Test`
+- **Dependências:** `T-683`
+- **Rastreia:** `RF-566`, `RF-567`, `AC-608`, `AC-609`, `AC-611`, `AC-612`, `AC-613`, `EC-100`, `EC-102`, `EC-105`
+- **Arquivos:** `frontend/tests/unit/componentes/DivergenciaDaDivida.test.tsx` (novo)
+
+**Descrição**
+Docblock `// @vitest-environment happy-dom`; API simulada com `vi.spyOn(api, …)`; prévia `INCOMPATIVEL` do exemplo do `AC-534`. Tabela "Unitários — `DivergenciaDaDivida.test.tsx`" de R2.9; cada teste cita o `AC`/`EC` no nome.
+
+**Critérios de aceite**
+- [ ] `AC-608`: `getByRole("dialog", { name: "Os valores desta dívida não batem" })`; frase com `R$ 528,72` e `R$ 400,00`; radios na ordem Manter, saldo, parcela, taxa, prazo, com "Manter" marcada; saldo, taxa, rótulo `hipótese` e aviso da hipótese conservadora; sem `hipotese_conservadora`, o bloco não existe; os dois botões
+- [ ] `AC-609`: "Confirmar e continuar" com "Manter" ⇒ `aoConfirmar(null)`; `preverCalculadora` nunca chamado
+- [ ] `AC-612`: "Recalcular a parcela" ⇒ `preverCalculadora` com `{ ...corpo, recalcular: "PARCELA" }` ⇒ "Parcela recalculada: R$ 528,72 (calculado)" ⇒ confirmar ⇒ `aoConfirmar("PARCELA")`
+- [ ] `AC-613`, `EC-102`: "Recalcular a taxa" com `ERRO` ⇒ frase exata do `RF-519` em `role="alert"`, confirmar desabilitado; depois "Recalcular a parcela" ⇒ frase some, valor aparece, confirmar habilitado
+- [ ] `RF-567`: confirmar desabilitado com a resposta pendente e depois de falha de rede; trocar de opção aborta o sinal anterior e a resposta atrasada não aparece
+- [ ] `AC-611`, `EC-100`: "Voltar e corrigir" ⇒ `aoVoltar` chamado, `aoConfirmar` não; `fireEvent(dialog, new Event("close"))` ⇒ `aoVoltar` (o happy-dom não implementa a tecla Esc; o Esc real fica no e2e, `T-688`)
+- [ ] `EC-105`: com `erroAoSalvar`, `role="alert"` com a mensagem **dentro** do `dialog`
+- [ ] Lei nº 3: o mesmo regex do teste da página aplicado a `src/componentes/DivergenciaDaDivida.tsx`
+- [ ] Arquivo todo verde
+
+**Verificação:** `npm --prefix frontend run test -- tests/unit/componentes/DivergenciaDaDivida.test.tsx`
+
+**Status:** `[ ] pendente`
+
+---
+
+## Entrega 11 — Tela do cálculo (`CalculadoraDaDivida`)
+
+### `T-685` — Tirar o painel e a escolha da página e mostrar a linha marcada abaixo do campo
+- **Tipo:** `UI`
+- **Dependências:** `T-682` (importa `textoDoValor`)
+- **Rastreia:** `RF-564`, `RF-568`, `RF-529` (revogação parcial), `AC-603`, `AC-604`, `AC-605`, `AC-614`, `AC-615`, `AC-616`, `OQ-106`, `OQ-107`
+- **Arquivos:** `frontend/src/componentes/CalculadoraDaDivida.tsx`
+
+**Descrição**
+Sai o bloco `role="status"` inteiro (valores repetidos, mensagem de estado, "Calculando…", estimada longa, hipótese conservadora, valor teórico, resumo) e o `fieldset` "Qual informação recalcular?"; saem os estados `recalcular` e `opcoesDeRecalculo` (o `corpo` leva `recalcular: null` fixo). Entra `linhaDoCampo` com a regra da linha marcada de R2.4 (`PD-24`). `TEXTOS` perde e ganha as chaves listadas em R2.3.
+
+**Critérios de aceite**
+- [ ] Nenhum `role="status"` na página; nenhum "Calculando…" abaixo dos campos (`TEXTOS.calculando` fica só no carregamento inicial das perguntas, `OQ-106`); sem "Resumo do cálculo" nem total de juros (`RF-529`)
+- [ ] Sem `fieldset` de recálculo na página; o corpo da prévia sempre com `recalcular: null`
+- [ ] Linha "Calculado: {textoDoValor}" só com `estado === "CALCULADO"` e `campo_calculado === campo`; "Estimada: {parcela_estimada.texto} (hipótese de 24 meses)" só abaixo da parcela; nenhuma linha em qualquer outro caso (inclusive `ERRO`, `CONFERIDO`, `INCOMPATIVEL`, prévia ausente)
+- [ ] O texto longo `parcela_estimada.hipotese` não é exibido (`OQ-107`)
+- [ ] A linha é derivada da prévia do `corpo` atual: some no mesmo render de qualquer edição, troca de Price/SAC ou de periodicidade, e não volta em `ERRO` (`AC-616`)
+- [ ] O `<input>` do campo nunca recebe o valor calculado; "Não sei" continua marcado
+- [ ] `<p id="calculadora-<CAMPO>-linha" className="nota m-0">` depois do "Não sei"; o id entra no `aria-describedby` do input, junto do id do erro quando houver
+- [ ] Linha de erro `role="alert"` (`RF-518`, `RF-519`, falha de rede) e erro ao salvar inalterados
+- [ ] `typecheck` sem erro (os testes de painel e radios de `CalculadoraDaDivida.test.tsx` ficam vermelhos até `T-687`; esperado)
+
+**Verificação:** `npm --prefix frontend run typecheck`
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-686` — Fazer o "Continuar" abrir o popup na divergência e salvar pela escolha
+- **Tipo:** `UI`
+- **Dependências:** `T-683`, `T-685`
+- **Rastreia:** `RF-565`, `RF-566`, `AC-603`, `AC-606`, `AC-607`, `AC-609`, `AC-611`, `AC-612`, `EC-100`, `EC-101`, `EC-103`, `EC-104`, `EC-105`
+- **Arquivos:** `frontend/src/componentes/CalculadoraDaDivida.tsx`
+
+**Descrição**
+Estado `divergenciaAberta`; `continuar()` (`PD-22`), `confirmar(recalcular)` e `voltar()` (`PD-21`) de R2.4; `<DivergenciaDaDivida>` renderizado só enquanto aberto (`PD-20`), com o `corpo` e a prévia atuais, `gravando` e `erroAoSalvar`. Fluxo dos passos 3, 6 e 7 de R2.5.
+
+**Critérios de aceite**
+- [ ] Condição de habilitação do "Continuar" (`podeConfirmar`) inalterada (`EC-103`)
+- [ ] Prévia `INCOMPATIVEL` ⇒ abre o popup e **nada é enviado**; qualquer outro estado sem erro ⇒ `confirmarCalculadora` com `{ ...corpo, recalcular: null }`, sem popup
+- [ ] `confirmar(recalcular)` envia `{ ...corpo, recalcular }`; sucesso ⇒ desmonta o popup (sem passar por `close`) e chama `aoConfirmar` da página
+- [ ] Falha ao salvar com popup aberto ⇒ popup continua aberto e o erro aparece só dentro dele; com popup fechado, só abaixo dos campos (nunca nos dois)
+- [ ] `voltar()` ⇒ desmonta, limpa `erroAoSalvar`, foco em `#calculadora-SALDO`; campos intactos; nenhum código de reset da opção do popup
+- [ ] Nenhuma lógica própria para escolha já gravada (`EC-101` cai em `CALCULADO`, `PD-23`)
+- [ ] `typecheck` sem erro
+
+**Verificação:** `npm --prefix frontend run typecheck` (testes em `T-687`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-687` — Reescrever `CalculadoraDaDivida.test.tsx` contra a linha marcada e o popup
+- **Tipo:** `Test`
+- **Dependências:** `T-686`
+- **Rastreia:** `RF-564`, `RF-565`, `RF-566`, `RF-568`, `AC-529`, `AC-603`, `AC-604`, `AC-605`, `AC-606`, `AC-607`, `AC-609`, `AC-611`, `AC-612`, `AC-614`, `AC-615`, `AC-616`, `EC-100`, `EC-101`, `EC-103`, `EC-104`, `EC-105`
+- **Arquivos:** `frontend/tests/unit/componentes/CalculadoraDaDivida.test.tsx`
+
+**Descrição**
+Tabela "Unitários — `CalculadoraDaDivida.test.tsx`" de R2.9: testes novos, mantidos, reescritos e removidos. Cada teste cita o `AC`/`EC` no nome.
+
+**Critérios de aceite**
+- [ ] `AC-603`: prévia `CONFERIDO` com `valores`, `resumo` e `mensagem` ⇒ nenhum desses textos, nenhum "Resumo do cálculo", nenhuma marca, nenhum `role="status"`; "Continuar" ⇒ `recalcular: null`, sem `dialog`
+- [ ] `AC-604`, `AC-606`: prévia `INCOMPATIVEL` ⇒ nada de "Valores incompatíveis", "Qual informação recalcular?", radios nem hipótese conservadora, sem `dialog`; "Continuar" ⇒ `dialog` com o nome do título e `confirmarCalculadora` **não** chamado
+- [ ] `AC-605`: frase do `RF-519` e "O saldo devedor precisa ser maior que zero." em `role="alert"`, "Continuar" desabilitado
+- [ ] `AC-607`: `CALCULADO`, `PENDENTE` e `SEM_CALCULO` ⇒ salva direto com `recalcular: null`, sem `dialog`
+- [ ] `AC-609`: "Manter" + "Confirmar e continuar" ⇒ corpo com os quatro digitados e `recalcular: null`; `aoConfirmar` chamado; `dialog` some
+- [ ] `AC-611`, `EC-100`, `EC-104`: "Voltar e corrigir" ⇒ nada gravado, campos intactos, foco em `#calculadora-SALDO`; novo "Continuar" reabre com "Manter" marcada; editar a parcela para um valor `CONFERIDO` ⇒ "Continuar" salva sem popup
+- [ ] `AC-612`, `EC-101`: recalcular a parcela no popup ⇒ `recalcular: "PARCELA"`; ficha reaberta com `B5.C02` em "não sei" e prévia `CALCULADO`/`PARCELA` ⇒ campo vazio, "Não sei" marcado, "Calculado: R$ 528,72", "Continuar" salva sem popup
+- [ ] `AC-614`: "Calculado: R$ 528,72", "Calculado: 2,00% a.m." e "Calculado: 24 meses" abaixo do campo certo; input vazio; linha no `aria-describedby`
+- [ ] `AC-615`: "Estimada: R$ 528,72 (hipótese de 24 meses)" abaixo da parcela; texto longo de `hipotese` ausente; nenhuma linha no prazo (substitui os dois testes `T-531` com `data-testid="parcela-estimada"`)
+- [ ] `AC-616`, `AC-529`: "Calculado: 24 meses" some na hora da edição (parcela, SAC, "ao ano") e não volta com `ERRO`
+- [ ] `EC-103`: "Continuar" desabilitado antes da prévia e depois de falha de rede
+- [ ] `EC-105`: `confirmarCalculadora` rejeita com o popup aberto ⇒ `dialog` continua, `role="alert"` dentro dele, `aoConfirmar` não chamado
+- [ ] Mantidos verdes: carga do gravado, "não sei" vai `null`, falha de rede, 422 no caminho direto, Lei nº 3 (regex no fonte), `RF-562`; "descarta resposta fora de ordem" reescrito para a linha "Calculado: …"
+- [ ] Removidos: "incompatibilidade em texto e escolha por teclado" e os dois `AC-553` (a regra está em `T-684`)
+- [ ] Os dois arquivos de componente todos verdes
+
+**Verificação:** `npm --prefix frontend run test -- tests/unit/componentes/CalculadoraDaDivida.test.tsx tests/unit/componentes/DivergenciaDaDivida.test.tsx`
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-688` — Reescrever o e2e `calculadora-da-divida.spec.ts` para a linha marcada e o popup
+- **Tipo:** `Test`
+- **Dependências:** `T-686`
+- **Rastreia:** `RF-564`, `RF-565`, `RF-566`, `RF-567`, `RF-568`, `AC-604`, `AC-606`, `AC-608`, `AC-609`, `AC-610`, `AC-611`, `AC-612`, `AC-614`, `AC-616`, `EC-100`
+- **Arquivos:** `frontend/tests/e2e/calculadora-da-divida.spec.ts`
+
+**Descrição**
+Sai o auxiliar `resultado()` (`getByRole("status")`); o mock da prévia passa a devolver a taxa como o servidor (`"2,00% a.m."`). Tabela "E2E" de R2.9, projetos `desktop` e `mobile-360`. É o único lugar com prova do comportamento modal real (`AC-610`, Esc).
+
+**Critérios de aceite**
+- [ ] `RF-526`, `AC-614` (reescrito): três dados + "Não sei" na taxa ⇒ "Calculado: 2,00% a.m." abaixo da taxa; nenhum `role="status"` com conteúdo; "Continuar" segue sem popup
+- [ ] `AC-604`, `AC-606`, `AC-608`, `AC-612` (substitui `AC-536`): nada abaixo dos campos e sem `dialog`; "Continuar" ⇒ `dialog` visível e `confirmacoes` vazio; "Recalcular a parcela" escolhida **só por teclado** ⇒ "Parcela recalculada: R$ 528,72 (calculado)", última prévia com `recalcular: "PARCELA"`; "Confirmar e continuar" ⇒ próxima pergunta, `confirmacoes[0].recalcular === "PARCELA"`
+- [ ] No `mobile-360`: largura do `dialog` ≤ 360 e "Confirmar e continuar" alcançável (`scrollIntoViewIfNeeded` + `toBeInViewport`)
+- [ ] `AC-609`: "Manter" ⇒ `confirmacoes[0]` com `recalcular: null` e `parcela: "400,00"`
+- [ ] `AC-610`: `dialog.matches(":modal")` verdadeiro; foco dentro do `dialog`; uma volta de Tab e de Shift+Tab nunca põe o foco num `#calculadora-*`
+- [ ] `AC-611`, `EC-100`: Esc ⇒ `dialog` fechado, `confirmacoes` vazio, parcela `400,00`, foco no saldo; "Continuar" reabre com "Manter" marcada; o mesmo com "Voltar e corrigir"
+- [ ] `AC-616` (substitui `AC-529`): "Calculado: 24 meses" ⇒ parcela `200,00` ⇒ linha some, alerta aparece, "Continuar" desabilitado, nada gravado
+- [ ] `RF-562`/`RF-563` mantido
+- [ ] Arquivo todo verde nos dois projetos
+
+**Verificação:** `npm --prefix frontend run test:e2e -- tests/e2e/calculadora-da-divida.spec.ts`
+
+**Status:** `[ ] pendente`
+
+---
+
+## Entrega 12 — Fechamento
+
+### `T-689` — Verificar a Fase 4 ponta a ponta (a cargo do usuário)
+- **Tipo:** `Test`
+- **Dependências:** `T-681`, `T-684`, `T-687`, `T-688`
+- **Rastreia:** `RF-564`, `RF-565`, `RF-566`, `RF-567`, `RF-568`, `AC-610`
+- **Arquivos:** nenhum (só os `Status` deste backlog e o `Progresso`)
+
+**Descrição**
+O usuário pediu para não rodar a suíte completa nesta rodada; esta tarefa fica **a cargo do usuário** e não é executada pelo agente de código. Cobre a regressão completa e o que não tem teste automatizado (R2.9, "Fora de teste automatizado").
+
+**Critérios de aceite**
+- [ ] `npm --prefix frontend run typecheck` e `npm --prefix frontend run test` completos: mesmas falhas preexistentes, nenhuma nova (inclui `TelaPerguntaCalculadora.test.tsx`, que exercita a calculadora dentro da `TelaPergunta`)
+- [ ] `npm --prefix frontend run test:e2e` completo, sem falha nova
+- [ ] `git diff --name-only main` não lista nada em `app/`, `engine/`, `tests/` (backend), `frontend/src/tipos.ts`, `frontend/src/services/api.ts`, `frontend/src/telas/TelaPergunta.tsx` nem `frontend/src/index.css`
+- [ ] Manual no deploy: ficha de financiamento imobiliário cuja parcela real não bate com o Price ⇒ nada abaixo dos campos, popup só no "Continuar", as duas saídas ("Manter" e "Recalcular a parcela") avançam, Esc volta sem salvar
+- [ ] Leitor de tela: o popup anuncia o título; a linha "Calculado: …" é lida com o campo
+- [ ] Status de `T-681` a `T-689` e `Progresso` atualizados
+
+**Verificação:** a cargo do usuário
+
+**Status:** `[ ] pendente — a cargo do usuário`
+
+---
+
 ## Cobertura de requisitos
 
 | Requisito | Tarefas |
@@ -1439,6 +1687,13 @@ Decidido (2026-11-10, opção recomendada): a parcela estimada é o devido e o p
 | `RF-538` | `T-534`, `T-536`, `T-538` |
 | `RF-539` | `T-535`, `T-536`, `T-537`, `T-538` |
 | `RF-540` | `T-523`, `T-535`, `T-538` |
+| `RF-564` | `T-685`, `T-687`, `T-688`, `T-689` |
+| `RF-565` | `T-686`, `T-687`, `T-688`, `T-689` |
+| `RF-566` | `T-681`, `T-682`, `T-684`, `T-686`, `T-687`, `T-688`, `T-689` |
+| `RF-567` | `T-681`, `T-683`, `T-684`, `T-688`, `T-689` |
+| `RF-568` | `T-681`, `T-685`, `T-687`, `T-688`, `T-689` |
+
+Fase 4 — critérios e casos de borda: `AC-603` (`T-685`, `T-686`, `T-687`) · `AC-604` (`T-685`, `T-687`, `T-688`) · `AC-605` (`T-685`, `T-687`) · `AC-606` (`T-686`, `T-687`, `T-688`) · `AC-607` (`T-686`, `T-687`) · `AC-608` (`T-682`, `T-684`, `T-688`) · `AC-609` (`T-682`, `T-684`, `T-686`, `T-687`, `T-688`) · `AC-610` (`T-682`, `T-688`, `T-689`) · `AC-611` (`T-682`, `T-684`, `T-686`, `T-687`, `T-688`) · `AC-612` (`T-683`, `T-684`, `T-686`, `T-687`, `T-688`) · `AC-613` (`T-683`, `T-684`) · `AC-614` (`T-685`, `T-687`, `T-688`) · `AC-615` (`T-685`, `T-687`) · `AC-616` (`T-685`, `T-687`, `T-688`) · `EC-100` (`T-682`, `T-684`, `T-686`, `T-687`, `T-688`) · `EC-101` (`T-686`, `T-687`) · `EC-102` (`T-683`, `T-684`) · `EC-103` (`T-686`, `T-687`) · `EC-104` (`T-686`, `T-687`) · `EC-105` (`T-682`, `T-684`, `T-686`, `T-687`) · `OQ-105` (`T-681`, `T-682`) · `OQ-106` (`T-685`) · `OQ-107` (`T-681`, `T-685`). `AC-610` só tem prova automática no e2e (`T-688`; plano R2.10, risco 1).
 
 Requisitos sem tarefa: nenhum. Tarefas auxiliares sem `RF` próprio rastreiam para o `RF` que habilitam (`T-495` para `RF-513`/`RF-523`; `T-505` para NFR de observabilidade).
 
