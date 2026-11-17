@@ -14611,11 +14611,11 @@ quatro variantes (validação do especialista, `T-601`) e o p95 (`T-602`).
 parcelas em dia."), `previsao_nao_termina` ("Só com as parcelas de hoje, ela
 não termina."), marcadas "sugestão, a validar com o especialista".
 
-- [ ] As 14 frases idênticas, caractere por caractere, às da seção de 2026-11-16 de `docs/perguntas-marcelo-calculo-de-divida.md` (copiadas por script)
-- [ ] Nenhuma frase contém "sobra"; nenhum texto existente do YAML muda (testes atuais do plano verdes)
-- [ ] `test_textos_ao_aluno` verde; gates: lint, build, test
+- [x] As 14 frases idênticas, caractere por caractere, às da seção de 2026-11-16 de `docs/perguntas-marcelo-calculo-de-divida.md` (copiadas por script)
+- [x] Nenhuma frase contém "sobra"; nenhum texto existente do YAML muda (testes atuais do plano verdes)
+- [x] `test_textos_ao_aluno` verde; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; as 14 frases foram copiadas do documento por script, com o marcador `{mês}` como está lá
 
 ---
 
