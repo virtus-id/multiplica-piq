@@ -14709,13 +14709,13 @@ revisor (`para_revisor=True`). Nenhuma rota muda.
 **Descrição.** Snapshot de `calcular_plano(_estado_rodrigo(), ...)` (fixture de
 `tests/regras/test_ordem_em_estabilizacao.py`, importada como `_estado_gab04`).
 
-- [ ] `ContextoPlano`, `serializar_plano` (aluno e `para_revisor=True`) e HTML de `renderizar_html_do_plano` com duas linhas: financiamento imobiliário, depois consignado, pelo nome
-- [ ] Frases de `MAIOR_BENEFICIO_MARGINAL` e `ULTIMA_RESTANTE`; "Termina em {rotulo_do_mes(mês de D001)}…" e "Termina em {rotulo_do_mes(24)}…"
-- [ ] Nenhuma linha com a frase de `PREFERENCIA_QUITACAO`, a de `DESEMPATE_PESO_EMOCIONAL`, "Recebe o valor extra" ou "Não será quitada com os valores de hoje"
-- [ ] Mês divergente do do motor (`T-616`) → parar e reportar
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] `ContextoPlano`, `serializar_plano` (aluno e `para_revisor=True`) e HTML de `renderizar_html_do_plano` com duas linhas: financiamento imobiliário, depois consignado, pelo nome
+- [x] Frases de `MAIOR_BENEFICIO_MARGINAL` e `ULTIMA_RESTANTE`; "Termina em {rotulo_do_mes(mês de D001)}…" e "Termina em {rotulo_do_mes(24)}…"
+- [x] Nenhuma linha com a frase de `PREFERENCIA_QUITACAO`, a de `DESEMPATE_PESO_EMOCIONAL`, "Recebe o valor extra" ou "Não será quitada com os valores de hoje"
+- [x] Mês divergente do do motor (`T-616`) → parar e reportar
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; `TIPO_DIVIDA` (`FIN_IMOBILIARIO`/`CONSIGNADO`) definido no próprio teste, sem mexer na fixture (simulação idêntica); D001 no mês 118, o mesmo do motor (`T-616`)
 
 ---
 
