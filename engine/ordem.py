@@ -111,7 +111,11 @@ from engine.beneficio_marginal import BeneficioMarginal, determinar_ordem_status
 from engine.ciclo_mensal import Cenario
 from engine.estado import Divida
 from engine.gates import AcaoRequerida, ParticaoElegibilidade
-from engine.tipos import DESCONHECIDO, METODO, ORDEM_STATUS, Dinheiro
+from engine.metodos.avalanche import beneficio_de_ranqueamento
+from engine.metodos.bola_de_neve import chave_bola_de_neve
+from engine.parametros import Parametros
+from engine.prioridade_ordem import _chave_grupo
+from engine.tipos import DESCONHECIDO, METODO, MOTIVO_POSICAO, ORDEM_STATUS, Dinheiro
 from engine.valor_quitacao import compor_VALOR_RELEVANTE_PARA_QUITACAO
 
 REGRAS: Final[tuple[str, ...]] = (
@@ -127,6 +131,8 @@ REGRAS: Final[tuple[str, ...]] = (
     "AC-18",
     "AC-33",
     "RF-545",
+    "RF-553",
+    "§16.4",
 )
 
 _DESCRICAO_CRITERIO: Final[Mapping[METODO, str]] = {
@@ -171,6 +177,9 @@ class PosicaoOrdem:
     DIVIDA_ID: str
     JUSTIFICATIVA_POSICAO: str
     valores_de_apoio: Mapping[str, Dinheiro | Decimal]
+    # RF-553: o nível que decidiu a posição. `None` quando a ordem publicada não
+    # vem da `ORDEM_DE_ATAQUE` do método — e em snapshot anterior a RF-553.
+    MOTIVO_POSICAO: MOTIVO_POSICAO | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -261,6 +270,7 @@ def publicar_ORDEM_QUITACAO(
     particao: ParticaoElegibilidade,
     *,
     definida_pelo_revisor: bool = False,
+    motivos: tuple[MOTIVO_POSICAO, ...] | None = None,
 ) -> ResultadoOrdemPublicada:
     """`RF-09` · `Q-01..Q-05` — publica `ORDEM_QUITACAO` a partir da
     sequência JÁ PROJETADA de `cenario_recomendado.ORDEM_QUITACAO`
@@ -283,6 +293,10 @@ def publicar_ORDEM_QUITACAO(
 
     `definida_pelo_revisor` (`RF-545`): o cenário veio da lista do revisor;
     só a `JUSTIFICATIVA_POSICAO` muda, `valores_de_apoio` não.
+
+    `motivos` (`RF-553`): só envelopa — `motivos[i]` vai para a posição *i*
+    da sequência publicada; tamanho diferente do da sequência é bug do motor
+    (`ErroOrdemInconsistente`), nunca publicado em silêncio.
     """
     ids_bloqueados = {resultado.DIVIDA_ID for resultado in particao.bloqueadas}
 
@@ -290,6 +304,11 @@ def publicar_ORDEM_QUITACAO(
     # RF-512: com o horizonte estourado vale a ordem de ataque do método; sem
     # estouro, a ordem em que a simulação quitou as dívidas.
     sequencia = cenario_recomendado.ORDEM_DE_ATAQUE or cenario_recomendado.ORDEM_QUITACAO
+    if motivos is not None and len(motivos) != len(sequencia):
+        raise ErroOrdemInconsistente(
+            f"{len(motivos)} MOTIVO_POSICAO para {len(sequencia)} posições da ordem "
+            f"publicada {list(sequencia)} — cada posição tem exatamente um (RF-553)."
+        )
     for indice, divida_id in enumerate(sequencia, start=1):
         if divida_id in ids_bloqueados:
             # Critério de aceite 4: nunca publicar uma dívida bloqueada por
@@ -311,6 +330,7 @@ def publicar_ORDEM_QUITACAO(
                     indice, divida_id, metodo_recomendado, definida_pelo_revisor
                 ),
                 valores_de_apoio=_valores_de_apoio(divida, metodo_recomendado),
+                MOTIVO_POSICAO=None if motivos is None else motivos[indice - 1],
             )
         )
 
@@ -318,6 +338,134 @@ def publicar_ORDEM_QUITACAO(
         ORDEM_QUITACAO=tuple(posicoes),
         ORDEM_ACOES=particao.ORDEM_ACOES,
     )
+
+
+# RF-553 (c): o componente de `_chave_grupo` (§16.4 passos 1 a 3) que separou X de Y.
+_MOTIVO_DO_GRUPO: Final[tuple[MOTIVO_POSICAO, ...]] = (
+    MOTIVO_POSICAO.GARANTIA_ESSENCIAL,
+    MOTIVO_POSICAO.NEGATIVADA,
+    MOTIVO_POSICAO.PESO_GARANTIA,
+)
+# RF-553 (e)-(g) na Bola de Neve: índice de `chave_bola_de_neve` que separou X de Y.
+_MOTIVO_DA_CHAVE_BOLA_DE_NEVE: Final[Mapping[int, MOTIVO_POSICAO]] = {
+    0: MOTIVO_POSICAO.MENOR_VALOR_RELEVANTE,  # O-04
+    3: MOTIVO_POSICAO.DESEMPATE_PESO_EMOCIONAL,  # §16.4 passo 4, O-05
+}
+
+
+def _primeiro_diferente(a: tuple[object, ...], b: tuple[object, ...]) -> int:
+    return next(i for i, (va, vb) in enumerate(zip(a, b, strict=True)) if va != vb)
+
+
+def _criterio_do_metodo(
+    x: Divida,
+    y: Divida | None,
+    metodo: METODO,
+    delta: Dinheiro,
+    p: Parametros,
+    D_ESTRELA: str | None,
+) -> tuple[bool, MOTIVO_POSICAO]:
+    """`RF-553` (e)-(g): o método sozinho põe `x` antes de `y`? E o nível que
+    separou os dois. Lido das mesmas funções com que os seletores ordenam
+    (`beneficio_de_ranqueamento`, `chave_bola_de_neve`, a `D*` forçada) —
+    nenhuma regra copiada. `y` ausente (fim da sequência com outras dívidas
+    não comparáveis, `EC-85`): o critério do método.
+    """
+    if metodo is METODO.HIBRIDO:
+        if x.DIVIDA_ID == D_ESTRELA:
+            return True, MOTIVO_POSICAO.CRITERIO_HIBRIDO  # H-05
+        if y is not None and y.DIVIDA_ID == D_ESTRELA:
+            return False, MOTIVO_POSICAO.CRITERIO_HIBRIDO
+        metodo = METODO.AVALANCHE  # H-07: depois de D*, a Avalanche
+
+    if metodo is METODO.BOLA_DE_NEVE:
+        chave_x = chave_bola_de_neve(x.DIVIDA_ID, x)
+        if chave_x is None:
+            raise ErroOrdemInconsistente(
+                f"{x.DIVIDA_ID}: escolhida pela Bola de Neve sem VALOR_RELEVANTE_PARA_"
+                "QUITACAO — sem critério, MOTIVO_POSICAO não é inventado (RF-553)."
+            )
+        chave_y = None if y is None else chave_bola_de_neve(y.DIVIDA_ID, y)
+        if chave_y is None:
+            return True, MOTIVO_POSICAO.MENOR_VALOR_RELEVANTE
+        nivel = _primeiro_diferente(chave_x, chave_y)
+        return chave_x < chave_y, _MOTIVO_DA_CHAVE_BOLA_DE_NEVE.get(
+            nivel, MOTIVO_POSICAO.DESEMPATE
+        )
+
+    # O-01: chave (-benefício, DIVIDA_ID).
+    beneficio_x = beneficio_de_ranqueamento(x, delta, p)
+    if beneficio_x is None or beneficio_x.BENEFICIO_MARGINAL_AMORTIZACAO is DESCONHECIDO:
+        raise ErroOrdemInconsistente(
+            f"{x.DIVIDA_ID}: escolhida pela Avalanche sem benefício marginal "
+            "comparável — MOTIVO_POSICAO não é inventado (RF-553, RF-16)."
+        )
+    criterio = (
+        MOTIVO_POSICAO.MAIOR_TAXA  # fallback do §11.1 (taxa ou CET)
+        if beneficio_x.origem != "SIMULACAO"
+        else MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL
+    )
+    beneficio_y = None if y is None else beneficio_de_ranqueamento(y, delta, p)
+    if (
+        y is None
+        or beneficio_y is None
+        or beneficio_y.BENEFICIO_MARGINAL_AMORTIZACAO is DESCONHECIDO
+    ):
+        return True, criterio
+    valor_x = beneficio_x.BENEFICIO_MARGINAL_AMORTIZACAO
+    valor_y = beneficio_y.BENEFICIO_MARGINAL_AMORTIZACAO
+    if valor_x != valor_y:
+        return valor_x > valor_y, criterio
+    return x.DIVIDA_ID < y.DIVIDA_ID, MOTIVO_POSICAO.DESEMPATE
+
+
+def derivar_MOTIVO_POSICAO(
+    sequencia: tuple[str, ...],
+    dividas: Mapping[str, Divida],
+    metodo: METODO,
+    delta: Dinheiro,
+    p: Parametros,
+    D_ESTRELA: str | None = None,
+) -> tuple[MOTIVO_POSICAO, ...]:
+    """`RF-553` — o motivo de cada posição da `ORDEM_DE_ATAQUE` (`sequencia`).
+
+    `dividas` é o inventário que `simular_cenario` recebeu e `delta` o mesmo
+    do laço da ordem (`delta_de_ranqueamento_da_ordem`). No laço o estado é
+    sempre o inicial com as anteriores quitadas e o delta é constante, então
+    a segunda colocada `Y` da posição *k* (o seletor em `R` sem `X`) é a
+    escolha da posição *k+1* — sai da própria sequência, sem chamar o
+    seletor de novo. Para cada posição, o primeiro que se aplica:
+
+    (a) a ordem tem uma só dívida → `UNICA_DIVIDA` (também quando as demais
+        elegíveis não são comparáveis, Leitura 1 de `R14.10`);
+    (b) `R` só tem `X` → `ULTIMA_RESTANTE`;
+    (c) grupo `§16.4` (passos 1-3) de `X` maior que o de `Y` → o primeiro
+        componente diferente;
+    (d) mesmo grupo e o método sozinho poria `Y` antes → `PREFERENCIA_QUITACAO`
+        (`§16.4` passo 5);
+    (e)-(g) o nível do critério do método (`_criterio_do_metodo`).
+    """
+    motivos: list[MOTIVO_POSICAO] = []
+    for k, divida_id in enumerate(sequencia):
+        x = dividas[divida_id]
+        y = dividas[sequencia[k + 1]] if k + 1 < len(sequencia) else None
+        if len(sequencia) == 1:
+            motivos.append(MOTIVO_POSICAO.UNICA_DIVIDA)
+            continue
+        if set(dividas) - set(sequencia[:k]) == {divida_id}:
+            motivos.append(MOTIVO_POSICAO.ULTIMA_RESTANTE)
+            continue
+        if y is not None and _chave_grupo(x) > _chave_grupo(y):
+            nivel = _primeiro_diferente(_chave_grupo(x), _chave_grupo(y))
+            motivos.append(_MOTIVO_DO_GRUPO[nivel])
+            continue
+        x_vence, motivo_do_metodo = _criterio_do_metodo(x, y, metodo, delta, p, D_ESTRELA)
+        mesmo_grupo = y is not None and _chave_grupo(x) == _chave_grupo(y)
+        if mesmo_grupo and not x_vence:
+            motivos.append(MOTIVO_POSICAO.PREFERENCIA_QUITACAO)
+        else:
+            motivos.append(motivo_do_metodo)
+    return tuple(motivos)
 
 
 @dataclass(frozen=True, slots=True)

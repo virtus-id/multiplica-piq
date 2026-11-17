@@ -305,6 +305,9 @@ def serializar_plano(
                 "mes_de_quitacao_rotulo": posicao.mes_de_quitacao_rotulo,
                 # `RF-481`: quem não quita no horizonte; vazio nas demais.
                 "fora_do_horizonte": posicao.fora_do_horizonte,
+                # `RF-555`/`RF-556`: só no plano deficitário; vazios nos demais.
+                "motivo_da_posicao": posicao.motivo_da_posicao,
+                "previsao_so_parcelas": posicao.previsao_so_parcelas,
                 # Revisão de design: os números fixos de toda dívida
                 # (deve hoje, parcela, juros), lidos e formatados.
                 "fatos": [{"rotulo": rotulo, "valor": valor} for rotulo, valor in posicao.fatos],

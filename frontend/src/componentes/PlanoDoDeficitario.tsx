@@ -158,6 +158,13 @@ export default function PlanoDoDeficitario({ plano }: PlanoDoDeficitarioProps) {
                 <p className="m-0 font-bold">
                   {posicao.indice}. {posicao.nome}
                 </p>
+                {/* RF-555/RF-556: nome → motivo → previsão, como no PDF. */}
+                {posicao.motivo_da_posicao && (
+                  <p className="m-0 text-sm">{posicao.motivo_da_posicao}</p>
+                )}
+                {posicao.previsao_so_parcelas && (
+                  <p className="m-0 text-sm">{posicao.previsao_so_parcelas}</p>
+                )}
                 {posicao.fora_do_horizonte && (
                   <p className="text-muted m-0 text-sm">
                     {posicao.fora_do_horizonte}

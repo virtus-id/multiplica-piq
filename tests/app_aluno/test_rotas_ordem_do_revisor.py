@@ -98,6 +98,7 @@ from tests.regras.test_ordem_do_revisor import (
     _estado_com_divida_bloqueada,
     _estado_ec80,
 )
+from tests.regras.test_ordem_em_estabilizacao import _estado_rodrigo
 
 _CHAVE_TESTE = "chave-de-teste-para-assinatura-de-sessao-nao-usar-em-producao"
 CONTA_ALUNO = "CONTA-ALUNO-ORDEM"
@@ -767,6 +768,25 @@ def test_ac569_sem_edicao_em_estabilizacao_e_com_uma_divida(
     cenario.instalar(calcular_plano(estado(), FonteParametrosArquivo().carregar("1.0.1")))
 
     assert _ordem_na_conferencia(cenario)["editavel"] is False
+
+
+def test_ac587_caso_do_rodrigo_mostra_as_duas_dividas_so_leitura(cenario: Cenario) -> None:
+    """`AC-587` (`T-632`): com o motor completo em estabilização (`RF-552`),
+    a seção aparece com as duas dívidas na ordem do método, sem edição; a rota
+    recusa a vigente (`OQ-101`) e a outra permutação, sem anexar snapshot."""
+    v1 = cenario.instalar(
+        calcular_plano(_estado_rodrigo(), FonteParametrosArquivo().carregar("1.0.1"))
+    )
+    assert v1.diagnostico.MODO_ESTABILIZACAO
+
+    ordem = _ordem_na_conferencia(cenario)
+
+    assert [p["DIVIDA_ID"] for p in ordem["vigente"]] == ["D001", "D002"]
+    assert (ordem["ajustada"], ordem["editavel"]) == (False, False)
+    vigente = cenario.ajustar(["D001", "D002"])
+    assert (vigente.status_code, vigente.json()["detail"]) == (409, _NADA_A_RECALCULAR)
+    assert cenario.ajustar(["D002", "D001"]).status_code == 422
+    _nada_mudou(cenario, (v1,), ESTADO_CASO.AGUARDANDO_REVISAO)
 
 
 def test_ac570_conferencia_homologacao_e_previa_recebem_a_v2(

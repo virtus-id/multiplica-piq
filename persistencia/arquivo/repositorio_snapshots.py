@@ -105,6 +105,7 @@ from engine.tipos import (
     EVENTO_RECALCULO,
     METODO,
     MOTIVO_ESTABILIZACAO,
+    MOTIVO_POSICAO,
     NIVEL_CONTROLE,
     NIVEL_RISCO,
     ORDEM_STATUS,
@@ -651,6 +652,10 @@ def _posicao_ordem(bruto: dict[str, Any]) -> PosicaoOrdem:
         DIVIDA_ID=bruto["DIVIDA_ID"],
         JUSTIFICATIVA_POSICAO=bruto["JUSTIFICATIVA_POSICAO"],
         valores_de_apoio=valores_de_apoio,
+        # RF-553 (AC-584): snapshot anterior não tem a chave (ou tem null).
+        MOTIVO_POSICAO=(
+            None if bruto.get("MOTIVO_POSICAO") is None else MOTIVO_POSICAO(bruto["MOTIVO_POSICAO"])
+        ),
     )
 
 
@@ -810,6 +815,13 @@ def _prognostico(bruto: dict[str, Any] | None) -> Prognostico | None:
             MESES_PRIMEIRA_VITORIA=sem_acao.get("MESES_PRIMEIRA_VITORIA"),
             # T-175: snapshot anterior não tem o campo.
             QUITACOES=tuple((d, m) for d, m in sem_acao.get("QUITACOES", [])),
+            # RF-554 (AC-584): snapshot anterior não tem o campo; [] é "nenhuma
+            # termina", distinto de ausente.
+            QUITACOES_SO_PARCELAS=(
+                None
+                if sem_acao.get("QUITACOES_SO_PARCELAS") is None
+                else tuple((d, m) for d, m in sem_acao["QUITACOES_SO_PARCELAS"])
+            ),
         )
     )
 

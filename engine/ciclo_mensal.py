@@ -763,6 +763,17 @@ def _horizonte_em_meses(p: Parametros, nome: str) -> int:
     return int(anos) * 12
 
 
+def delta_de_ranqueamento_da_ordem(capacidade: Dinheiro, PISO_CAPACIDADE: Dinheiro) -> Dinheiro:
+    """`RF-552` (1) · `RF-512` · `§11.1` — delta de teste com que a
+    `ORDEM_DE_ATAQUE` é ranqueada: a capacidade, quando positiva (como antes);
+    senão o `PISO_CAPACIDADE` do diagnóstico, como está (`EC-88`: piso ≤ 0
+    segue sem delta positivo, nada inventado). Só o ranqueamento da ordem
+    publicada usa este delta; o laço mensal não (`RF-552` item 3). Usada pelo
+    laço da ordem e pelo motivo da posição (`engine/motor.py`) — um lugar só.
+    """
+    return capacidade if capacidade > dinheiro(0) else PISO_CAPACIDADE
+
+
 def simular_cenario(
     e: EstadoFinanceiro,  # noqa: ARG001 — parte do contrato do plano; sem uso nesta tarefa
     dg: Diagnostico,
@@ -926,11 +937,15 @@ def simular_cenario(
     # prioridades da §16.4) escolhendo o alvo a partir do estado inicial, uma
     # dívida por vez. A ordem de término da simulação não serve: uma dívida
     # pequena pode terminar antes só com as próprias parcelas.
+    # RF-552 (2): em MODO_ESTABILIZACAO com capacidade ≤ 0 ela é montada sempre;
+    # (1) com capacidade ≤ 0 o delta de teste é o PISO_CAPACIDADE (§11.1).
     ordem_de_ataque: list[str] = []
-    if estourou_horizonte:
+    capacidade_inicial = estado_inicial.CAPACIDADE_ATAQUE_M
+    if estourou_horizonte or (dg.MODO_ESTABILIZACAO and capacidade_inicial <= dinheiro(0)):
+        delta = delta_de_ranqueamento_da_ordem(capacidade_inicial, dg.PISO_CAPACIDADE)
         restante = estado_inicial
         while restante.quitadas != todas_dividas:
-            escolhida = sel(restante, restante.CAPACIDADE_ATAQUE_M)
+            escolhida = sel(restante, delta)
             if escolhida is None:
                 break  # RF-16: sem como comparar, a dívida fica de fora
             ordem_de_ataque.append(escolhida.DIVIDA_ID)

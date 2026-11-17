@@ -134,6 +134,7 @@ from engine.snapshot import SnapshotOrdem
 from engine.tipos import (
     DESCONHECIDO,
     MOTIVO_ESTABILIZACAO,
+    MOTIVO_POSICAO,
     ORDEM_STATUS,
     Desconhecido,
     DinheiroTalvez,
@@ -1243,6 +1244,12 @@ class ContextoPosicao:
     #: `T-556`: esta dívida é a primeira a receber o valor extra — o PDF a
     #: destaca com um anel verde. Só leitura de `_alvo_desde`.
     recebe_extra_primeiro: bool = False
+    #: `RF-555` — a frase do `MOTIVO_POSICAO` desta posição; vazia fora de
+    #: estabilização ou com snapshot sem o campo.
+    motivo_da_posicao: str = ""
+    #: `RF-556` — quando a dívida termina só com as parcelas; vazia fora de
+    #: estabilização ou com snapshot sem `QUITACOES_SO_PARCELAS`.
+    previsao_so_parcelas: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -2151,6 +2158,41 @@ def _fato_recebe_extra(
     )
 
 
+def _quitacoes_so_parcelas(snapshot: SnapshotOrdem) -> Mapping[str, int] | None:
+    """`RF-556` — {DIVIDA_ID: mês} lido de `prognostico.sem_acao.
+    QUITACOES_SO_PARCELAS`. `None` fora da estabilização por déficit (`EC-93`,
+    `AC-591`), sem prognóstico ou com o campo `None` (snapshot anterior: a
+    seção fica como era, `AC-590`). Leitura pura."""
+    if (
+        snapshot.diagnostico.MOTIVO_ESTABILIZACAO is not MOTIVO_ESTABILIZACAO.DEFICIT
+        or snapshot.prognostico is None
+    ):
+        return None
+    so_parcelas = snapshot.prognostico.sem_acao.QUITACOES_SO_PARCELAS
+    return None if so_parcelas is None else dict(so_parcelas)
+
+
+def _frase_do_motivo(motivo: MOTIVO_POSICAO | None, textos: TextosCanonicosPlano) -> str:
+    """`RF-555` — a frase do `MOTIVO_POSICAO` que o motor publicou; `""` sem
+    ele. Sem frase cadastrada aparece o CÓDIGO, visível (`EC-92`), nunca uma
+    frase genérica. Não lê a `Divida` (`AC-588`, `AC-590`)."""
+    if motivo is None:
+        return ""
+    return textos.estabilizacao.get(f"motivo_{motivo.value}", motivo.value)
+
+
+def _previsao_so_parcelas(
+    divida_id: str, so_parcelas: Mapping[str, int], textos: TextosCanonicosPlano
+) -> str:
+    """`RF-556` — "Termina em {mês}…" com o mesmo `rotulo_do_mes` dos demais
+    "Termina em" do plano (`AC-589`); fora da lista, a frase sem mês. Sem conta."""
+    if divida_id in so_parcelas:
+        return textos.estabilizacao.get("previsao_termina", "").format(
+            mês=rotulo_do_mes(so_parcelas[divida_id])
+        )
+    return textos.estabilizacao.get("previsao_nao_termina", "")
+
+
 def _alvo_desde(snapshot: SnapshotOrdem) -> Mapping[str, int]:
     """`T-548` (devolução do especialista, 2026-11-13) — o primeiro mês em
     que cada dívida é `MesDoPlano.DIVIDA_ALVO` no cronograma do plano
@@ -2650,6 +2692,14 @@ def _montar_contexto_plano(
     def _recebe_primeiro(divida_id: str) -> bool:
         return primeiro_mes_alvo is not None and alvo_desde.get(divida_id) == primeiro_mes_alvo
 
+    # `RF-555`/`RF-556`: só na estabilização por déficit (emenda de
+    # 2026-11-16) — na por dívida que cresce o valor extra existe de fato e os
+    # itens antigos continuam verdadeiros (`EC-93`). Com `QUITACOES_SO_PARCELAS`,
+    # a previsão substitui "Não será quitada…" e "Recebe o valor extra", que vêm
+    # da simulação em déficit e a contradizem; sem o campo, como era (`AC-590`).
+    deficit = snapshot.diagnostico.MOTIVO_ESTABILIZACAO is MOTIVO_ESTABILIZACAO.DEFICIT
+    so_parcelas = _quitacoes_so_parcelas(snapshot)
+
     ordem = tuple(
         ContextoPosicao(
             posicao=posicao_do_snapshot.posicao,
@@ -2689,15 +2739,24 @@ def _montar_contexto_plano(
             ),
             fora_do_horizonte=(
                 textos.textos_das_dividas.get("fora_do_horizonte", "")
-                if posicao_do_snapshot.DIVIDA_ID in cenario_recomendado.ORDEM_FORA_DO_HORIZONTE
+                if so_parcelas is None
+                and posicao_do_snapshot.DIVIDA_ID in cenario_recomendado.ORDEM_FORA_DO_HORIZONTE
                 else ""
             ),
-            fatos=_fatos_com_recebe_extra(
-                dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID),
-                textos,
-                _marca_do_pagamento(posicao_do_snapshot.DIVIDA_ID, vocabulario),
-                posicao_do_snapshot.DIVIDA_ID,
-                alvo_desde,
+            fatos=(
+                _fatos_da_divida(
+                    dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID),
+                    textos,
+                    _marca_do_pagamento(posicao_do_snapshot.DIVIDA_ID, vocabulario),
+                )
+                if so_parcelas is not None
+                else _fatos_com_recebe_extra(
+                    dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID),
+                    textos,
+                    _marca_do_pagamento(posicao_do_snapshot.DIVIDA_ID, vocabulario),
+                    posicao_do_snapshot.DIVIDA_ID,
+                    alvo_desde,
+                )
             ),
             avisos=_avisos_da_divida(
                 posicao_do_snapshot.DIVIDA_ID, vocabulario or VocabularioDoCaso(), textos
@@ -2709,6 +2768,14 @@ def _montar_contexto_plano(
                 dividas_por_id.get(posicao_do_snapshot.DIVIDA_ID), indice, textos
             )[1],
             recebe_extra_primeiro=_recebe_primeiro(posicao_do_snapshot.DIVIDA_ID),
+            motivo_da_posicao=(
+                _frase_do_motivo(posicao_do_snapshot.MOTIVO_POSICAO, textos) if deficit else ""
+            ),
+            previsao_so_parcelas=(
+                _previsao_so_parcelas(posicao_do_snapshot.DIVIDA_ID, so_parcelas, textos)
+                if so_parcelas is not None
+                else ""
+            ),
         )
         for indice, posicao_do_snapshot in enumerate(snapshot.ORDEM_QUITACAO, start=1)
     )

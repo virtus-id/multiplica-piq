@@ -361,6 +361,13 @@ export interface PosicaoDaOrdem {
   /** `RF-481`: texto de quem não quita no horizonte; vazio nas demais. */
   fora_do_horizonte?: string
   /**
+   * `RF-555`/`RF-556` — só no plano deficitário: por que a dívida está nesta
+   * posição e quando termina só com as parcelas. Texto pronto do servidor;
+   * vazios (ou ausentes, payload antigo) fora dele.
+   */
+  motivo_da_posicao?: string
+  previsao_so_parcelas?: string
+  /**
    * Fonte de comprovação dos dados desta dívida — `RF-92`, `T-267`. O
    * rótulo do nível vem pronto do servidor (`textos-canonicos.yaml`);
    * `null` quando a dívida não tem ficha ativa.

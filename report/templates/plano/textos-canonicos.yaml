@@ -878,6 +878,25 @@ estabilizacao:
   aviso_1: "A ordem de quitação é uma simulação provisória. Não antecipe pagamentos com base nela."
   aviso_2: "Continue pagando em dia as parcelas contratuais e as despesas essenciais, como moradia, alimentação e saúde."
   aviso_3: "Este plano mostra só a ordem de quitação. O cronograma, com prazos, só aparece quando o seu mês fechar com resultado igual ou maior que zero."
+  # `RF-555`/`RF-556` (T-623): na seção 3, cada dívida traz a frase do
+  # `MOTIVO_POSICAO` que decidiu a posição (uma chave por valor do domínio)
+  # e a previsão só com as parcelas (`QUITACOES_SO_PARCELAS`). Redação de
+  # docs/perguntas-marcelo-calculo-de-divida.md (2026-11-16). Sugestão, a
+  # validar com o especialista.
+  motivo_MAIOR_BENEFICIO_MARGINAL: "É a que mais economiza juros a cada real extra que você colocar nela."
+  motivo_MAIOR_TAXA: "É a que cobra a maior taxa de juros entre as que restam."
+  motivo_MENOR_VALOR_RELEVANTE: "É a menor entre as que restam: termina mais cedo e libera a parcela dela para as próximas."
+  motivo_CRITERIO_HIBRIDO: "É a que você consegue quitar mais rápido sem aumentar de forma relevante o custo total."
+  motivo_GARANTIA_ESSENCIAL: "Tem como garantia um bem que você marcou como essencial, e o plano protege esse bem primeiro."
+  motivo_NEGATIVADA: "Está negativada, e o plano coloca as dívidas negativadas na frente das demais."
+  motivo_PESO_GARANTIA: "Tem um bem dado como garantia, e o plano coloca essas dívidas antes das que têm garantia menor ou nenhuma."
+  motivo_PREFERENCIA_QUITACAO: "Você marcou que quer quitá-la entre as primeiras, e o custo dela é parecido com o da outra opção."
+  motivo_DESEMPATE_PESO_EMOCIONAL: "Empatou com outra dívida pelo critério do plano, e você disse que esta pesa mais para você."
+  motivo_DESEMPATE: "Empatou com outra dívida pelo critério do plano e ficou à frente pela regra de desempate."
+  motivo_ULTIMA_RESTANTE: "É a última da lista: entra quando as anteriores forem quitadas."
+  motivo_UNICA_DIVIDA: "É a única dívida deste plano."
+  previsao_termina: "Termina em {mês}, se você mantiver as parcelas em dia."
+  previsao_nao_termina: "Só com as parcelas de hoje, ela não termina."
 
 # `RF-480` (T-462) — o mês fecha em zero ou mais, mas a parcela de alguma dívida
 # não cobre os juros e o valor livre não estanca o crescimento. Mesmo caminho do
