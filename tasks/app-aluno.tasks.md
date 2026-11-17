@@ -15904,17 +15904,18 @@ bloqueia o campo ao lado). Ícone decorativo: reusa `<Icone nome="duvida"
 
 **Critérios de aceite**
 
-- [ ] Hover abre o balão; `mouseleave` fecha
-- [ ] `Tab` foca e abre; `Escape` fecha e devolve o foco ao botão
-- [ ] Toque/clique no botão abre; toque/clique fora do balão fecha
-- [ ] `aria-label`, `aria-expanded` e `aria-describedby` corretos nos dois
+- [x] Hover abre o balão; `mouseleave` fecha
+- [x] `Tab` foca e abre; `Escape` fecha e devolve o foco ao botão
+- [x] Toque/clique no botão abre; toque/clique fora do balão fecha
+- [x] `aria-label`, `aria-expanded` e `aria-describedby` corretos nos dois
       estados
-- [ ] Nenhum `<title>` dentro do `<svg>` do ícone (reusa `Icone.tsx` sem
+- [x] Nenhum `<title>` dentro do `<svg>` do ícone (reusa `Icone.tsx` sem
       alteração)
 - [ ] `npm run build` verde
 - [ ] Gates: lint, build (teste em `T-674`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — verificada pelo teste novo de `T-674`
+(7 passed); `npm run build`/lint completos ainda pendentes.
 
 ---
 
