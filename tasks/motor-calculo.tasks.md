@@ -8144,11 +8144,11 @@ hoje, achatada; `None` com valor relevante `DESCONHECIDO` (vai para
 preenchido por `criar_selecionar_alvo_hibrido` com a dívida que o seletor força.
 Nenhuma mudança na escolha da `D*` (`OQ-104`).
 
-- [ ] `D_ESTRELA` = a dívida que o seletor devolve no mês 1 quando o Híbrido é `CALCULAVEL`; `None` nos demais casos
-- [ ] `tests/regras/test_hibrido.py`, gabaritos, `T-603` e `T-604` verdes sem edição
-- [ ] Rehash só de `engine/metodos/hibrido.py`; gates: lint, build, test
+- [x] `D_ESTRELA` = a dívida que o seletor devolve no mês 1 quando o Híbrido é `CALCULAVEL`; `None` nos demais casos
+- [x] `tests/regras/test_hibrido.py`, gabaritos, `T-603` e `T-604` verdes sem edição
+- [x] Rehash só de `engine/metodos/hibrido.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 

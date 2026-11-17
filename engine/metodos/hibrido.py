@@ -483,6 +483,9 @@ class ResultadoHibrido:
 
     classificacao: CLASSIFICACAO_CENARIO
     selecionar_alvo: SelecionarAlvo | None
+    # RF-553 (e) `CRITERIO_HIBRIDO`: a dívida que o seletor força (`H-05`);
+    # `None` quando o Híbrido é NAO_APLICAVEL.
+    D_ESTRELA: str | None = None
 
 
 def criar_selecionar_alvo_hibrido(
@@ -523,4 +526,6 @@ def criar_selecionar_alvo_hibrido(
     # H-05/H-06/H-07: D* primeiro, Avalanche event-driven depois — mesma
     # função auxiliar da Etapa 2, agora com D* como alvo forçado.
     sel = criar_selecionar_alvo_forcar_depois_avalanche(d_estrela, dividas, p)
-    return ResultadoHibrido(classificacao=CLASSIFICACAO_CENARIO.CALCULAVEL, selecionar_alvo=sel)
+    return ResultadoHibrido(
+        classificacao=CLASSIFICACAO_CENARIO.CALCULAVEL, selecionar_alvo=sel, D_ESTRELA=d_estrela
+    )
