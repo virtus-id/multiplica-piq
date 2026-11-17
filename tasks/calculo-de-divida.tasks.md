@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`76/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (3): `T-539` (backlog, sem spec), `T-688` e `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
+`77/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (2): `T-539` (backlog, sem spec) e `T-689` (a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1615,19 +1615,19 @@ Tabela "Unitários — `CalculadoraDaDivida.test.tsx`" de R2.9: testes novos, ma
 Sai o auxiliar `resultado()` (`getByRole("status")`); o mock da prévia passa a devolver a taxa como o servidor (`"2,00% a.m."`). Tabela "E2E" de R2.9, projetos `desktop` e `mobile-360`. É o único lugar com prova do comportamento modal real (`AC-610`, Esc).
 
 **Critérios de aceite**
-- [ ] `RF-526`, `AC-614` (reescrito): três dados + "Não sei" na taxa ⇒ "Calculado: 2,00% a.m." abaixo da taxa; nenhum `role="status"` com conteúdo; "Continuar" segue sem popup
-- [ ] `AC-604`, `AC-606`, `AC-608`, `AC-612` (substitui `AC-536`): nada abaixo dos campos e sem `dialog`; "Continuar" ⇒ `dialog` visível e `confirmacoes` vazio; "Recalcular a parcela" escolhida **só por teclado** ⇒ "Parcela recalculada: R$ 528,72 (calculado)", última prévia com `recalcular: "PARCELA"`; "Confirmar e continuar" ⇒ próxima pergunta, `confirmacoes[0].recalcular === "PARCELA"`
-- [ ] No `mobile-360`: largura do `dialog` ≤ 360 e "Confirmar e continuar" alcançável (`scrollIntoViewIfNeeded` + `toBeInViewport`)
-- [ ] `AC-609`: "Manter" ⇒ `confirmacoes[0]` com `recalcular: null` e `parcela: "400,00"`
-- [ ] `AC-610`: `dialog.matches(":modal")` verdadeiro; foco dentro do `dialog`; uma volta de Tab e de Shift+Tab nunca põe o foco num `#calculadora-*`
-- [ ] `AC-611`, `EC-100`: Esc ⇒ `dialog` fechado, `confirmacoes` vazio, parcela `400,00`, foco no saldo; "Continuar" reabre com "Manter" marcada; o mesmo com "Voltar e corrigir"
-- [ ] `AC-616` (substitui `AC-529`): "Calculado: 24 meses" ⇒ parcela `200,00` ⇒ linha some, alerta aparece, "Continuar" desabilitado, nada gravado
-- [ ] `RF-562`/`RF-563` mantido
-- [ ] Arquivo todo verde nos dois projetos
+- [x] `RF-526`, `AC-614` (reescrito): três dados + "Não sei" na taxa ⇒ "Calculado: 2,00% a.m." abaixo da taxa; nenhum `role="status"` com conteúdo; "Continuar" segue sem popup
+- [x] `AC-604`, `AC-606`, `AC-608`, `AC-612` (substitui `AC-536`): nada abaixo dos campos e sem `dialog`; "Continuar" ⇒ `dialog` visível e `confirmacoes` vazio; "Recalcular a parcela" escolhida **só por teclado** ⇒ "Parcela recalculada: R$ 528,72 (calculado)", última prévia com `recalcular: "PARCELA"`; "Confirmar e continuar" ⇒ próxima pergunta, `confirmacoes[0].recalcular === "PARCELA"`
+- [x] No `mobile-360`: largura do `dialog` ≤ 360 e "Confirmar e continuar" alcançável (`scrollIntoViewIfNeeded` + `toBeInViewport`)
+- [x] `AC-609`: "Manter" ⇒ `confirmacoes[0]` com `recalcular: null` e `parcela: "400,00"`
+- [x] `AC-610`: `dialog.matches(":modal")` verdadeiro; foco dentro do `dialog`; uma volta de Tab e de Shift+Tab nunca põe o foco num `#calculadora-*`
+- [x] `AC-611`, `EC-100`: Esc ⇒ `dialog` fechado, `confirmacoes` vazio, parcela `400,00`, foco no saldo; "Continuar" reabre com "Manter" marcada; o mesmo com "Voltar e corrigir"
+- [x] `AC-616` (substitui `AC-529`): "Calculado: 24 meses" ⇒ parcela `200,00` ⇒ linha some, alerta aparece, "Continuar" desabilitado, nada gravado
+- [x] `RF-562`/`RF-563` mantido
+- [x] Arquivo todo verde nos dois projetos
 
 **Verificação:** `npm --prefix frontend run test:e2e -- tests/e2e/calculadora-da-divida.spec.ts`
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)` — `calculadora-da-divida.spec.ts`: 16 testes (8 × `desktop`/`mobile-360`), 16 verdes. O e2e revelou que o Chrome trata o `div.cartao` que rola como focável e o `showModal()` o focava em vez de "Manter" (R2.5 passo 4): `DivergenciaDaDivida.tsx` passou a focar "Manter" depois do `showModal()`; os dois unitários seguem verdes (40)
 
 ---
 

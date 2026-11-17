@@ -88,6 +88,7 @@ export default function DivergenciaDaDivida({
   aoVoltar,
 }: DivergenciaDaDividaProps) {
   const dialogo = useRef<HTMLDialogElement>(null);
+  const radioManter = useRef<HTMLInputElement>(null);
   /** `null` = "Manter" (`OQ-105`). */
   const [escolha, setEscolha] = useState<CampoDaDivida | null>(null);
   const [recalculo, setRecalculo] = useState<{
@@ -97,10 +98,12 @@ export default function DivergenciaDaDivida({
   } | null>(null);
 
   // A guarda cobre o efeito rodando duas vezes (StrictMode): `showModal()` num
-  // diálogo já aberto lança.
+  // diálogo já aberto lança. O foco vai a "Manter" à mão: o Chrome trata o
+  // `div` que rola como focável e o `showModal()` o escolheria antes.
   useEffect(() => {
     const dialog = dialogo.current;
     if (dialog && !dialog.open) dialog.showModal();
+    radioManter.current?.focus();
   }, []);
 
   // "Manter" não chama o servidor.
@@ -165,6 +168,7 @@ export default function DivergenciaDaDivida({
           <legend className="sr-only">{TEXTOS.escolhaDoRecalculo}</legend>
           <label className="opt">
             <input
+              ref={radioManter}
               type="radio"
               name="divergencia-recalcular"
               className="h-[26px] w-[26px] accent-accent"
