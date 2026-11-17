@@ -111,7 +111,7 @@ from engine.beneficio_marginal import BeneficioMarginal, determinar_ordem_status
 from engine.ciclo_mensal import Cenario
 from engine.estado import Divida
 from engine.gates import AcaoRequerida, ParticaoElegibilidade
-from engine.tipos import DESCONHECIDO, METODO, ORDEM_STATUS, Dinheiro
+from engine.tipos import DESCONHECIDO, METODO, MOTIVO_POSICAO, ORDEM_STATUS, Dinheiro
 from engine.valor_quitacao import compor_VALOR_RELEVANTE_PARA_QUITACAO
 
 REGRAS: Final[tuple[str, ...]] = (
@@ -171,6 +171,9 @@ class PosicaoOrdem:
     DIVIDA_ID: str
     JUSTIFICATIVA_POSICAO: str
     valores_de_apoio: Mapping[str, Dinheiro | Decimal]
+    # RF-553: o nível que decidiu a posição. `None` quando a ordem publicada não
+    # vem da `ORDEM_DE_ATAQUE` do método — e em snapshot anterior a RF-553.
+    MOTIVO_POSICAO: MOTIVO_POSICAO | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -261,6 +264,7 @@ def publicar_ORDEM_QUITACAO(
     particao: ParticaoElegibilidade,
     *,
     definida_pelo_revisor: bool = False,
+    motivos: tuple[MOTIVO_POSICAO, ...] | None = None,
 ) -> ResultadoOrdemPublicada:
     """`RF-09` · `Q-01..Q-05` — publica `ORDEM_QUITACAO` a partir da
     sequência JÁ PROJETADA de `cenario_recomendado.ORDEM_QUITACAO`
@@ -283,6 +287,10 @@ def publicar_ORDEM_QUITACAO(
 
     `definida_pelo_revisor` (`RF-545`): o cenário veio da lista do revisor;
     só a `JUSTIFICATIVA_POSICAO` muda, `valores_de_apoio` não.
+
+    `motivos` (`RF-553`): só envelopa — `motivos[i]` vai para a posição *i*
+    da sequência publicada; tamanho diferente do da sequência é bug do motor
+    (`ErroOrdemInconsistente`), nunca publicado em silêncio.
     """
     ids_bloqueados = {resultado.DIVIDA_ID for resultado in particao.bloqueadas}
 
@@ -290,6 +298,11 @@ def publicar_ORDEM_QUITACAO(
     # RF-512: com o horizonte estourado vale a ordem de ataque do método; sem
     # estouro, a ordem em que a simulação quitou as dívidas.
     sequencia = cenario_recomendado.ORDEM_DE_ATAQUE or cenario_recomendado.ORDEM_QUITACAO
+    if motivos is not None and len(motivos) != len(sequencia):
+        raise ErroOrdemInconsistente(
+            f"{len(motivos)} MOTIVO_POSICAO para {len(sequencia)} posições da ordem "
+            f"publicada {list(sequencia)} — cada posição tem exatamente um (RF-553)."
+        )
     for indice, divida_id in enumerate(sequencia, start=1):
         if divida_id in ids_bloqueados:
             # Critério de aceite 4: nunca publicar uma dívida bloqueada por
@@ -311,6 +324,7 @@ def publicar_ORDEM_QUITACAO(
                     indice, divida_id, metodo_recomendado, definida_pelo_revisor
                 ),
                 valores_de_apoio=_valores_de_apoio(divida, metodo_recomendado),
+                MOTIVO_POSICAO=None if motivos is None else motivos[indice - 1],
             )
         )
 

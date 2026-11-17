@@ -18,7 +18,7 @@
   "engine/metodos/bola_de_neve.py": "94971a7da905482cac1fa8a7d23ff2d27700456ac464fd97e388cf5bfbd8ae6f",
   "engine/metodos/hibrido.py": "9bde097af25cfcdf22739a071b62f8e7922c2dc4cb41d85fe686bcdb31ec73cf",
   "engine/motor.py": "d8f50dbb6c6e39b197153c3007e47f386d3cd08e83402af0de68a69f9c817032",
-  "engine/ordem.py": "fda43a482ffeac8ef9d9b29f49737c590019db52592855c738e834aa065a40d6",
+  "engine/ordem.py": "60f2bbabccbe56f1d89f523fe308670686e221a36ca4e0947c3b4c214ea1a93b",
   "engine/parametros.py": "b346d222a9cf150588f0c13f6058b5e2625d47b8cfc461def1ec0b8880549ca5",
   "engine/percepcao.py": "2b6798f36d167392a9ae6a47cd6c867c63f21ffb339733c7171d0209b3bb23be",
   "engine/portas.py": "414243deab02a03e1985aa43816ebb05741650989011254a52e4f6869f8e003d",

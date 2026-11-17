@@ -8185,12 +8185,12 @@ capacidade > 0 → capacidade; senão → `PISO_CAPACIDADE` como está (`EC-88`:
 sequência publicada; `len(motivos)` ≠ tamanho da sequência →
 `ErroOrdemInconsistente`.
 
-- [ ] Sem o argumento, saída idêntica (`T-603`, `T-604` verdes)
-- [ ] Tamanho divergente levanta `ErroOrdemInconsistente` (nada publicado em silêncio)
-- [ ] `JUSTIFICATIVA_POSICAO` e `valores_de_apoio` não mudam
-- [ ] Rehash só de `engine/ordem.py`; gates: lint, build, test
+- [x] Sem o argumento, saída idêntica (`T-603`, `T-604` verdes)
+- [x] Tamanho divergente levanta `ErroOrdemInconsistente` (nada publicado em silêncio)
+- [x] `JUSTIFICATIVA_POSICAO` e `valores_de_apoio` não mudam
+- [x] Rehash só de `engine/ordem.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 
