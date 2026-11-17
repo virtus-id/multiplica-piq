@@ -8165,12 +8165,12 @@ capacidade > 0 → capacidade; senão → `PISO_CAPACIDADE` como está (`EC-88`:
 `escolhida = sel(restante, delta)` com o delta acima, constante no laço;
 `ORDEM_FORA_DO_HORIZONTE` como hoje.
 
-- [ ] `executar_mes` e o resto do módulo sem diff; nenhum `P_*` lido a mais
-- [ ] `T-603` verde sem edição (inclusive `GAB-A`, cujas chaves de ordem estão fora do digest) e `T-604` verde (simulação, método, `ORDEM_STATUS` e `D*` iguais)
-- [ ] `test_motor_e_deterministico` e a pureza de `engine/` verdes
-- [ ] Rehash só de `engine/ciclo_mensal.py`; gates: lint, build, test
+- [x] `executar_mes` e o resto do módulo sem diff; nenhum `P_*` lido a mais
+- [x] `T-603` verde sem edição (inclusive `GAB-A`, cujas chaves de ordem estão fora do digest) e `T-604` verde (simulação, método, `ORDEM_STATUS` e `D*` iguais)
+- [x] `test_motor_e_deterministico` e a pureza de `engine/` verdes
+- [x] Rehash só de `engine/ciclo_mensal.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — Rodrigo: `ORDEM_DE_ATAQUE` = (`D001`, `D002`). `GAB-04`: a `ORDEM_DE_ATAQUE` do cenário Avalanche (não recomendado) passa de (`D001`) a (`D002`, `D001`) — fora do digest de `T-603` por decisão registrada lá; a ordem publicada (Bola de Neve) não muda.
 
 ---
 
