@@ -70,6 +70,10 @@ from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from persistencia.supabase.repositorio_snapshots import ErroSnapshotNaoEncontrado
 from tests.app_aluno.e2e.test_mecanismo_isolamento import rotas_sem_isolamento_por_caso
 from tests.app_aluno.fixtures.caso_completo import DATA_REFERENCIA, caso_completo
+from tests.app_aluno.test_coleta_fichas_de_divida import (
+    _respostas_da_ficha_exceto_a_ultima,
+    _respostas_quase_completas,
+)
 
 _CHAVE_TESTE: Final[str] = (
     "chave-de-teste-para-assinatura-de-sessao-nao-usar-em-producao"
@@ -944,56 +948,57 @@ def test_t300_mensagem_pos_coleta_reflete_o_estado(
     assert "coleta" not in payload["mensagem"].lower()
 
 
-# ---------------------------------------------------------------------------
-# `T-301` — com fichas de dívida faltando, o Início abre a lista, não `B5.FIM02`.
-# ---------------------------------------------------------------------------
-
-
-def _inicio_com_declaracao_de_dividas(
-    monkeypatch: pytest.MonkeyPatch, itens: tuple[ItemRepetido, ...] = ()
-) -> dict[str, Any]:
-    reais = {r.ID: r for r in _colecao_real().registros}
-    trecho = ColecaoDeRegistros(
+def _resposta_inicio(variavel: str, valor: object, item_id: str | None = None) -> Resposta:
+    return Resposta(
+        CASO_ID=_CASO_ID,
+        ID_PERGUNTA=variavel,
+        item_id=item_id,
+        valor=valor,  # type: ignore[arg-type]
         QUESTIONARIO_VERSION="1.0.0",
-        registros=tuple(reais[i] for i in ("B5.00", "B5.A01", "B5.FIM02")),
+        respondida_em=datetime(2026, 1, 1, tzinfo=UTC),
     )
-    respostas = tuple(
-        Resposta(
-            CASO_ID=_CASO_ID,
-            ID_PERGUNTA=variavel,
-            item_id=None,
-            valor=valor,
-            QUESTIONARIO_VERSION="1.0.0",
-            respondida_em=datetime(2026, 1, 1, tzinfo=UTC),
-        )
-        for variavel, valor in (
-            ("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 2),
-        )
-    )
-    cliente = _montar_cliente(
-        monkeypatch,
-        casos=(_caso(ESTADO_CASO.COLETA_INICIAL),),
-        respostas=respostas,
-        itens=itens,
-    )
-    cliente.app.dependency_overrides[obter_colecao_de_registros_do_inicio] = (  # type: ignore[attr-defined]
-        lambda: trecho
-    )
-    payload: dict[str, Any] = cliente.get(f"/caso/{_CASO_ID}/inicio").json()
-    return payload
 
 
-def test_t301_sem_fichas_o_destino_e_a_lista_de_dividas(
+def _no_caso_id(respostas: tuple[Resposta, ...]) -> tuple[Resposta, ...]:
+    """`_respostas_quase_completas`/`_respostas_da_ficha_exceto_a_ultima`
+    (`tests/app_aluno/test_coleta_fichas_de_divida.py`) usam o `CASO_ID` da
+    fixture `caso_completo()` — `_RepositorioRespostasDublê.listar_do_caso`
+    filtra por `CASO_ID`, então precisam vir para o deste arquivo."""
+    return tuple(dataclasses.replace(r, CASO_ID=_CASO_ID) for r in respostas)
+
+
+# ---------------------------------------------------------------------------
+# `T-653` (`RF-557`, `RF-558`) — sem `B5.00` (saiu em `T-649`), o Início
+# aponta `B5.A01` de um item novo com zero fichas, e a lista (nunca
+# `B5.FIM02` isolada) com a única ficha já fechada. Substitui os testes de
+# `T-301`, que dependiam de `posterior_a_declaracao_de_dividas`/
+# `faltam_fichas_de_divida` (removidos de `rotas_coleta.py` em `T-649`) e
+# postavam `B5.00` como pré-condição — `T-646`, acima, já cobre o mecanismo
+# isoladamente numa coleção reduzida; este arquivo cobre sobre a coleção
+# real completa.
+# ---------------------------------------------------------------------------
+
+
+def test_t653_sem_ficha_o_destino_e_a_pergunta_b5_a01_de_um_item_novo(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`DE-04`/`RF-87`: "Faltam 2 fichas" — antes o destino era `B5.FIM02`."""
-    etapa = _inicio_com_declaracao_de_dividas(monkeypatch)["proxima_etapa"]
+    respostas = (
+        *_no_caso_id(_respostas_quase_completas()),
+        _resposta_inicio("DESEJA_PLANO_ACELERADO", "NAO"),
+    )
+    cliente = _montar_cliente(
+        monkeypatch, casos=(_caso(ESTADO_CASO.COLETA_INICIAL),), respostas=respostas
+    )
 
-    assert etapa["ID_PERGUNTA"] != "B5.FIM02"
-    assert etapa["abrir_fichas"] == ["DIVIDA_ID"]
+    etapa = cliente.get(f"/caso/{_CASO_ID}/inicio").json()["proxima_etapa"]
+
+    assert etapa["destino"] == "pergunta"
+    assert etapa["ID_PERGUNTA"] == "B5.A01"
+    assert etapa["item_id"] == "D001"
+    assert etapa["abrir_fichas"] == []
 
 
-def test_t301_ficha_aberta_em_branco_segue_para_a_pergunta_da_ficha(
+def test_t653_ficha_fechada_aponta_a_lista_nunca_fim02(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     item = ItemRepetido(
@@ -1003,11 +1008,24 @@ def test_t301_ficha_aberta_em_branco_segue_para_a_pergunta_da_ficha(
         removido_em=None,
         criado_em=datetime(2026, 1, 1, tzinfo=UTC),
     )
-    etapa = _inicio_com_declaracao_de_dividas(monkeypatch, (item,))["proxima_etapa"]
+    respostas = (
+        *_no_caso_id(_respostas_quase_completas()),
+        _resposta_inicio("DESEJA_PLANO_ACELERADO", "NAO"),
+        *_no_caso_id(_respostas_da_ficha_exceto_a_ultima("D001")),
+        _resposta_inicio("PREFERENCIA_QUITACAO", "NAO", "D001"),
+    )
+    cliente = _montar_cliente(
+        monkeypatch,
+        casos=(_caso(ESTADO_CASO.COLETA_INICIAL),),
+        respostas=respostas,
+        itens=(item,),
+    )
 
-    assert etapa["destino"] == "pergunta"
-    assert etapa["item_id"] == "D001"
-    assert etapa["abrir_fichas"] == []
+    etapa = cliente.get(f"/caso/{_CASO_ID}/inicio").json()["proxima_etapa"]
+
+    assert etapa["destino"] == "inventario"
+    assert etapa["ID_PERGUNTA"] != "B5.FIM02"
+    assert etapa["abrir_fichas"] == ["DIVIDA_ID"]
 
 
 # ---------------------------------------------------------------------------

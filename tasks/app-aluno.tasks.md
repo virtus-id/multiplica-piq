@@ -15399,7 +15399,7 @@ coleção real.
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_inicio.py`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `_inicio_com_declaracao_de_dividas` e os dois testes de `T-301` removidos; dois novos (`test_t653_sem_ficha_...`/`test_t653_ficha_fechada_...`) reusam `_respostas_quase_completas`/`_respostas_da_ficha_exceto_a_ultima` de `tests/app_aluno/test_coleta_fichas_de_divida.py` (import entre arquivos de teste, mesmo padrão de `test_rotas_inventario.py` importando deste arquivo), remapeando `CASO_ID` (`_no_caso_id`) porque os dublês filtram por ele. `test_rotas_inicio.py`: 37 passed, 2 failed — as mesmas `test_t293_coleta_completa_nao_diz_em_andamento`/`test_t293_ficha_em_branco_marca_fichas_abertas` já reportadas em `T-648` (consequência de `T-647`, não desta tarefa); `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 
