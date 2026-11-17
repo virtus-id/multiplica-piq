@@ -14804,11 +14804,11 @@ antigo).
 - **Tipo:** `Test` · **Dependências:** `T-633` · **Rastreia:** `RF-555`, `RF-556` · plano `R19.9` (Frontend)
 - **Arquivos:** `frontend/tests/unit/componentes/PlanoDoDeficitario.test.tsx`
 
-- [ ] Com os dois campos: aparecem na ordem nome, motivo, previsão
-- [ ] Sem eles (ausentes ou `""`): nada novo renderizado; testes atuais verdes sem edição
-- [ ] Verificação: `npm run test` em `frontend/` verde
+- [x] Com os dois campos: aparecem na ordem nome, motivo, previsão
+- [x] Sem eles (ausentes ou `""`): nada novo renderizado; testes atuais verdes sem edição
+- [x] Verificação: `npm run test` em `frontend/` verde
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; `npm run test`: 9 failed | 352 passed — as 9 da `main` (`TelaEquipeCaso` ×7, `TelaPergunta` ×1, `TelaPlano` ×1), nenhuma nova
 
 ---
 

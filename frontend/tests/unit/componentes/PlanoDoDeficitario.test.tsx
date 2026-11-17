@@ -216,6 +216,56 @@ describe("PlanoDoAluno — aluno deficitário", () => {
     ).toHaveLength(1);
   });
 
+  it("mostra, depois do nome, o motivo e a previsão de cada dívida (RF-555, RF-556)", () => {
+    const motivo =
+      "É a que mais economiza juros a cada real extra que você colocar nela.";
+    const previsao = "Termina em Mês 118, se você mantiver as parcelas em dia.";
+    render(
+      <PlanoDoAluno
+        plano={plano({
+          ordem: [
+            {
+              ...posicao(1, "Financiamento imobiliário"),
+              motivo_da_posicao: motivo,
+              previsao_so_parcelas: previsao,
+            },
+          ],
+        })}
+      />,
+    );
+
+    const secao = screen.getByRole("region", {
+      name: "A ordem de quitação, por enquanto provisória",
+    });
+    const item = within(secao).getByRole("listitem");
+    const texto = item.textContent ?? "";
+    expect(texto.indexOf("1. Financiamento imobiliário")).toBe(0);
+    expect(texto.indexOf(motivo)).toBeGreaterThan(0);
+    expect(texto.indexOf(previsao)).toBeGreaterThan(texto.indexOf(motivo));
+  });
+
+  it("sem motivo nem previsão (ausentes ou vazios), nada novo aparece", () => {
+    const vazios = {
+      ...posicao(2, "Consignado"),
+      motivo_da_posicao: "",
+      previsao_so_parcelas: "",
+    };
+    render(
+      <PlanoDoAluno
+        plano={plano({ ordem: [posicao(1, "Cartão"), vazios] })}
+      />,
+    );
+
+    const itens = within(
+      screen.getByRole("region", {
+        name: "A ordem de quitação, por enquanto provisória",
+      }),
+    ).getAllByRole("listitem");
+    expect(itens.map((item) => item.querySelectorAll("p").length)).toEqual([
+      2, 2,
+    ]);
+  });
+
   it("plano normal não mostra nada do deficitário", () => {
     render(
       <PlanoDoAluno
