@@ -8396,13 +8396,13 @@ atual.
 - **Tipo:** `Test` · **Dependências:** `T-616`, `T-617`, `T-618`, `T-619`, `T-620`, `T-621` · **Rastreia:** `AC-577`, `RF-552` (3), (4) · plano `R14.9` (Não regressão, Estáticos)
 - **Arquivos:** nenhum de código; `tasks/motor-calculo.tasks.md` (status)
 
-- [ ] `T-603` e `T-604` verdes com os valores congelados originais (sem edição desde a criação: `git log -p` dos dois arquivos)
-- [ ] `test_avalanche.py`, `test_bola_de_neve.py`, `test_hibrido.py`, `test_prioridade_ordem.py`, gabaritos, `AC-05` e `test_ordem_do_revisor_identidade.py` sem edição e verdes
-- [ ] `git diff main --stat` vazio em `engine/prioridade_ordem.py`, `engine/snapshot.py`, `engine/comparacao.py`, `engine/status_metodo.py`, `engine/beneficio_marginal.py`, `persistencia/supabase/repositorio_snapshots.py`
-- [ ] `hashes_congelados.json` mudou só nas nove entradas de `R14.3`; `test_motor_e_deterministico` e pureza de `engine/` verdes
-- [ ] Gates do `sdd.config.md` §2 (lint, build, test) verdes, saída real anotada
+- [x] `T-603` e `T-604` verdes com os valores congelados originais (sem edição desde a criação: `git log -p` dos dois arquivos)
+- [x] `test_avalanche.py`, `test_bola_de_neve.py`, `test_hibrido.py`, `test_prioridade_ordem.py`, gabaritos, `AC-05` e `test_ordem_do_revisor_identidade.py` sem edição e verdes
+- [x] `git diff main --stat` vazio em `engine/prioridade_ordem.py`, `engine/snapshot.py`, `engine/comparacao.py`, `engine/status_metodo.py`, `engine/beneficio_marginal.py`, `persistencia/supabase/repositorio_snapshots.py`
+- [x] `hashes_congelados.json` mudou só nas nove entradas de `R14.3`; `test_motor_e_deterministico` e pureza de `engine/` verdes
+- [x] Gates do `sdd.config.md` §2 (lint, build, test) verdes, saída real anotada
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — suíte completa: 25 failed, 2793 passed, 81 skipped (777,97 s) — as 25 falhas são exatamente as da `main` antes da rodada (todas em `tests/app_aluno/`, nenhuma nova); `ruff check .`: as mesmas 16 da `main`; `mypy` (comando da §2): as mesmas 11 em 5 arquivos da `main`; nenhuma em arquivo tocado pela rodada. `git diff main` vazio nos seis arquivos protegidos; `hashes_congelados.json` mudou só nas nove entradas de `R14.3`; valores de `T-603`/`T-604` sem edição desde a criação.
 
 ---
 
