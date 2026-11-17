@@ -60,7 +60,9 @@ from app.http.mensagens_de_estado import (
 )
 from app.http.rotas_calculo import snapshot_corrente
 from app.http.rotas_coleta import (
+    ID_FIM_DE_CADASTRO,
     _itens_por_escopo,
+    criar_primeira_ficha_de_divida,
     faltam_fichas_de_divida,
     posterior_a_declaracao_de_dividas,
 )
@@ -215,6 +217,7 @@ def _proxima_etapa(
     colecao: ColecaoDeRegistros,
     respostas: RespostasCaso,
     itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]],
+    repositorio_itens: RepositorioItens,
 ) -> ProximaEtapa:
     """A única próxima etapa, por fase — a transcrição dos cinco ramos de
     `renderInicio` (protótipo, linha ~917).
@@ -262,6 +265,27 @@ def _proxima_etapa(
                     destino=DESTINO_DA_ETAPA.INVENTARIO,
                     abrir_fichas=(EscopoRepeticao.DIVIDA_ID,),
                 )
+            # `T-645` (RF-557, RF-558): o mecanismo novo — a própria pendência
+            # é `B5.FIM02`. Checado DEPOIS do ramo antigo (acima, `T-301`):
+            # enquanto `B5.00` existir no questionário, ele intercepta
+            # primeiro qualquer caso com quantidade declarada e fichas
+            # faltando (`R20.10`) — este ramo só é alcançado quando o antigo
+            # não se aplica (ex.: coleção sem `B5.00`, nos testes de `T-646`).
+            if pendencia.ID == ID_FIM_DE_CADASTRO:
+                if itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID):
+                    return ProximaEtapa(
+                        destino=DESTINO_DA_ETAPA.INVENTARIO,
+                        abrir_fichas=(EscopoRepeticao.DIVIDA_ID,),
+                    )
+                primeira = criar_primeira_ficha_de_divida(
+                    caso.CASO_ID, colecao, respostas, repositorio_itens
+                )
+                if primeira is not None:
+                    return ProximaEtapa(
+                        destino=DESTINO_DA_ETAPA.PERGUNTA,
+                        ID_PERGUNTA=primeira.ID,
+                        item_id=primeira.item_id,
+                    )
             return ProximaEtapa(
                 destino=DESTINO_DA_ETAPA.PERGUNTA,
                 ID_PERGUNTA=pendencia.ID,
@@ -404,7 +428,7 @@ def inicio_do_caso(
     # `plano`, nunca `acompanhamento` nem "ataque a decidir".
     fase = fase_do_estado(caso.estado)
     contagem = contar_coleta(colecao.registros, respostas, itens_por_escopo)
-    etapa = _proxima_etapa(caso, fase, colecao, respostas, itens_por_escopo)
+    etapa = _proxima_etapa(caso, fase, colecao, respostas, itens_por_escopo, repositorio_itens)
 
     # O valor em destaque existe SÓ na fase `plano`, e sempre como string
     # separada do rótulo — `AC-88`. Nas outras fases é `null`: não há decisão

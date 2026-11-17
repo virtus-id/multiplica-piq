@@ -15154,7 +15154,7 @@ presente** — sai só em `T-649`. O chamador de `_proxima_etapa` (a rota `GET
       antes de `B5.FIM02` chegar com zero fichas)
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; o ramo novo é checado DEPOIS do ramo antigo (`posterior_a_declaracao_de_dividas`/`faltam_fichas_de_divida`), para que `test_t301_sem_fichas_o_destino_e_a_lista_de_dividas` (que depende do ramo antigo interceptar primeiro) continue verde; `test_rotas_inicio.py`: 37 passed; `test_rotas_inventario.py`: 1 failed (`test_t251_inicio_troca_montar_o_plano_pela_pendencia` — `TypeError: _proxima_etapa() missing 1 required positional argument: 'repositorio_itens'`, chamada direta à função; ajuste é o próprio escopo de `T-648`, já previsto na descrição desta tarefa), 5 passed; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 
