@@ -14973,3 +14973,36 @@ outro ajuste no arquivo.
 **Status:** `[x] concluída (2026-11-17)`; `test_premissas_da_divida.py`: 60 passed
 
 ---
+
+### `T-640` — Provar que um caso antigo com `B5.C02C` respondida calcula igual (`AC-599`, `EC-96`)
+
+- **Tipo:** `Test` · **Dependências:** `T-637`, `T-638` · **Rastreia:** `AC-599`, `EC-96` · `RF-561` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_remocao_sem_efeito.py`, `tests/app_aluno/test_registro_calculo_divida.py`
+
+**Descrição.** `test_remocao_sem_efeito.py` já prova, para as perguntas
+retiradas de rodadas anteriores (`_REMOVIDAS`, 150 entradas hoje), que
+respondê-las não muda `EstadoFinanceiro` nem `SnapshotOrdem` — mecanismo
+genérico, parametrizado. Acrescenta
+`("B5.C02C", "PAGAMENTO_MINIMO_DIVIDA", "DIVIDA_ID", Decimal("123.45"))` à
+tupla: ganha, sem código novo, a cobertura dos dois testes parametrizados do
+arquivo. `test_registro_calculo_divida.py` perde
+`test_ac545_c02c_pergunta_o_minimo_ao_lado_do_habitual_em_toda_divida`
+(`AC-545` superado pela Rodada 18 — nota já registrada em
+`specs/calculo-de-divida.spec.md`).
+
+**Critérios de aceite**
+
+- [ ] `_REMOVIDAS` em `test_remocao_sem_efeito.py` passa a ter 151
+      entradas; as duas asserções de contagem do arquivo (`len(_REMOVIDAS)
+      == 151` e a de IDs únicos) atualizadas
+- [ ] `test_estado_e_snapshot_identicos_com_todas_as_respostas_removidas` e
+      `test_estado_identico_com_a_resposta_de_cada_pergunta_removida` cobrem
+      `B5.C02C` sem nenhum código extra
+- [ ] `test_ac545_c02c_pergunta_o_minimo_ao_lado_do_habitual_em_toda_divida`
+      removido de `test_registro_calculo_divida.py`
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_remocao_sem_efeito.py tests/app_aluno/test_registro_calculo_divida.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[x] concluída (2026-11-17)`; `test_remocao_sem_efeito.py` `test_registro_calculo_divida.py`: 1 failed, 178 passed — a falha (`test_perguntas_removidas_nao_existem_e_as_mantidas_continuam`, `B3.C02`/`B3.C02A`) já existe na `main`, sem relação com `B5.C02C`; também ajustado `test_versao_unica_1_5_0` → `_1_6_0` no mesmo arquivo (consequência direta do bump de `T-637`, não listada na AC)
+
+---

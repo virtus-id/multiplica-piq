@@ -38,7 +38,7 @@ _CONTA = "CONTA-CALC-1"
 _CASO = "CASO-CALC-1"
 _DIVIDA = "D001"
 _AGORA = datetime(2026, 11, 4, tzinfo=UTC)
-_VERSAO = "1.5.0"
+_VERSAO = "1.6.0"
 
 
 class _Respostas:
@@ -133,8 +133,8 @@ def _resposta(variavel: str, valor: object) -> Resposta:
 # ------------------------------------------------------------ T-491 / T-492
 
 
-def test_versao_unica_1_5_0() -> None:
-    assert _colecao().QUESTIONARIO_VERSION == "1.5.0"
+def test_versao_unica_1_6_0() -> None:
+    assert _colecao().QUESTIONARIO_VERSION == "1.6.0"
 
 
 def test_calc01_e_c02b_na_ficha_da_divida_na_ordem_do_plano() -> None:
@@ -286,21 +286,6 @@ def test_ac537_nao_sei_no_saldo_nao_bloqueia_o_avanco_e_vira_pendencia_de_envio(
 
 
 # ------------------------------------------------------------------- T-525
-
-
-def test_ac545_c02c_pergunta_o_minimo_ao_lado_do_habitual_em_toda_divida() -> None:
-    """`RF-533`, `AC-545`: `B5.C02C` em toda dívida, `OPT` (caso antigo não trava)."""
-    ids = [r.ID for r in _colecao().registros]
-    assert ids.index("B5.C02C") == ids.index("B5.C02B") + 1
-    minimo = _registro("B5.C02C")
-    assert minimo.tipo is TipoResposta.MOEDA
-    assert minimo.escopo_repeticao is EscopoRepeticao.DIVIDA_ID
-    assert minimo.obrigatoriedade == frozenset({Obrigatoriedade.OPT, Obrigatoriedade.REP})
-    assert minimo.VARIAVEL_GRAVADA == "PAGAMENTO_MINIMO_DIVIDA"
-    assert minimo.condicao_exibicao is None
-    assert minimo.admite_nao_sei is True
-    # o habitual segue sendo a parcela de `B5.C02` (`OQ-85`)
-    assert _registro("B5.C02").escopo_repeticao is EscopoRepeticao.DIVIDA_ID
 
 
 def test_ac545_nenhum_arquivo_do_questionario_fica_na_versao_anterior() -> None:

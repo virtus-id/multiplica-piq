@@ -235,6 +235,9 @@ _REMOVIDAS: tuple[tuple[str, str, str | None, ValorResposta], ...] = (
     # `T-427`: a confirmação da ficha e o "tem mais dívida?" não mudam nada.
     ("B5.CHECK", "SYS (salvar/editar)", "DIVIDA_ID", "SIM_SALVAR_DIVIDA"),
     ("B5.FIM01", "SYS (loop)", "DIVIDA_ID", "NAO_ESTA_FOI_A_ULTIMA"),
+    # `T-637` (`RF-561`): o pagamento mínimo nunca foi lido por motor, relatório,
+    # inventário ou tela (`AC-599`, `EC-96`).
+    ("B5.C02C", "PAGAMENTO_MINIMO_DIVIDA", "DIVIDA_ID", Decimal("123.45")),
 )
 
 # `T-404`: `B3.05BF` grava a mesma variável de `B3.05B` (que continua); sai sem
@@ -247,8 +250,8 @@ _MANTIDAS_QUE_OUTRAS_USAM: tuple[str, ...] = ()
 def test_perguntas_removidas_nao_existem_e_as_mantidas_continuam() -> None:
     ids = {r.ID for r in carregar_registros().registros}
 
-    assert len(_REMOVIDAS) == 150
-    assert len({ID for ID, *_ in _REMOVIDAS}) == 150
+    assert len(_REMOVIDAS) == 151
+    assert len({ID for ID, *_ in _REMOVIDAS}) == 151
     assert {ID for ID, *_ in _REMOVIDAS} & ids == set()
     assert set(_REMOVIDA_COM_VARIAVEL_DE_OUTRA) & ids == set()
     assert set(_MANTIDAS_QUE_OUTRAS_USAM) <= ids
