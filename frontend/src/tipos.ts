@@ -152,6 +152,10 @@ export interface RespostaPergunta {
   avanco_permitido?: boolean
   total_pendencias?: number
   CASO_ID?: string
+  /** `T-657` (`RF-558`) — presente só quando a próxima pendência seria
+   *  `B5.FIM02`: a lista de fichas a abrir no lugar da pergunta isolada
+   *  (desvio defensivo de `GET /pergunta` sem `ID`, `AC-594`). */
+  abrir_fichas?: string[]
 }
 
 export interface Ficha {

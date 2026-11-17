@@ -15501,11 +15501,7 @@ para o desvio defensivo de `T-644`).
 - [ ] `npm run build` em `frontend/` verde (erros de tipo nos consumidores
       corrigidos nas tarefas seguintes, `T-658`–`T-660`)
 
-**Status:** `[ ] pendente`
-
----
-
-### `T-658` — `AlertaInventario.tsx`: remover o bloco "fichas já cadastradas"
+**Status:** `[x] concluída (2026-11-17)`; `npm run build`/`npm run lint`: erros restantes, todos em `AlertaInventario.tsx`/seu teste (`dividas`), adiados para `T-658`, como previsto. **Achado fora do escopo literal, corrigido aqui** (mecânico, não listado em nenhum `Arquivos` de `T-658`–`T-660`): `frontend/src/telas/TelaCalculando.tsx` também lia `PendenciaDoCalculo.ID` como `string` não nulo (`onAbrirPergunta(p.ID, p.item_id)`) — com `SEM_DIVIDAS` (`ID` agora nulo) aparecendo na lista de pendências do `400` do `/calculo`, o botão "Responder" não tem mais pergunta para abrir; ajustado para só aparecer quando `ID` não é nulo. `npm run lint:oxlint`: mesmos avisos pré-existentes, nenhum novo.
 
 - **Tipo:** `UI` · **Dependências:** `T-657` · **Rastreia:** `RF-559` · plano `R20.3`
 - **Arquivos:** `frontend/src/componentes/AlertaInventario.tsx`

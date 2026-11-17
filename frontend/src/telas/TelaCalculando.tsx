@@ -124,19 +124,27 @@ export default function TelaCalculando({
           <p>{recusa.mensagem}</p>
           {recusa.pendencias.length > 0 && (
             <ul>
-              {recusa.pendencias.map((p) => (
-                <li key={`${p.ID}:${p.item_id ?? ''}`}>
-                  {p.enunciado}{' '}
-                  <button
-                    type="button"
-                    className="font-bold text-accent"
-                    aria-label={`Responder: ${p.enunciado}`}
-                    onClick={() => onAbrirPergunta(p.ID, p.item_id)}
-                  >
-                    Responder
-                  </button>
-                </li>
-              ))}
+              {recusa.pendencias.map((p) => {
+                const idPergunta = p.ID
+                return (
+                  <li key={`${idPergunta ?? 'sem-id'}:${p.item_id ?? ''}`}>
+                    {p.enunciado}{' '}
+                    {/* `T-657`: `SEM_DIVIDAS` não tem mais pergunta a corrigir
+                        (`ID` nulo) — nada a abrir aqui; "Cadastrar as fichas"
+                        já está no alerta permanente (`AlertaInventario.tsx`). */}
+                    {idPergunta && (
+                      <button
+                        type="button"
+                        className="font-bold text-accent"
+                        aria-label={`Responder: ${p.enunciado}`}
+                        onClick={() => onAbrirPergunta(idPergunta, p.item_id)}
+                      >
+                        Responder
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>
