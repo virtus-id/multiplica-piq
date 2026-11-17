@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`71/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (8): `T-539` (backlog, sem spec) e `T-683` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
+`72/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (7): `T-539` (backlog, sem spec) e `T-684` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1482,16 +1482,16 @@ Componente com as props de R2.4 (`casoId`, `corpo`, `previa`, `gravando`, `erroA
 Estado `recalculo` (R2.4). Marcar "Recalcular o X" dispara `preverCalculadora(casoId, { ...corpo, recalcular: X }, sinal)`; trocar de opção aborta o pedido anterior. O resultado só vale se `recalculo.campo === escolha` (mesma técnica do `resultado.corpo === corpo`). Fluxo do passo 5 de R2.5 e linhas de recálculo de R2.8.
 
 **Critérios de aceite**
-- [ ] Marcar "Manter" não chama `preverCalculadora`
-- [ ] `CALCULADO` ⇒ "{Saldo recalculado | Parcela recalculada | Taxa recalculada | Prazo recalculado}: {textoDoValor} ({rotulo})" abaixo das opções, num `role="status"` local do popup; valor e marca vindos do servidor
-- [ ] `ERRO` ⇒ `previa.mensagem` (frase do `RF-519`) exatamente como veio, em `p.aviso-erro role="alert"`, sem valor; falha de rede ⇒ "Não foi possível calcular."
-- [ ] Trocar de opção apaga, no mesmo render, o valor ou a frase da anterior; resposta atrasada da opção anterior nunca aparece
-- [ ] "Confirmar e continuar" desabilitado com opção de recálculo marcada enquanto a resposta não chegou, em `ERRO` ou em falha de rede; habilitado com "Manter" ou com `CALCULADO` da opção marcada (e fora de `gravando`)
-- [ ] `typecheck` sem erro
+- [x] Marcar "Manter" não chama `preverCalculadora`
+- [x] `CALCULADO` ⇒ "{Saldo recalculado | Parcela recalculada | Taxa recalculada | Prazo recalculado}: {textoDoValor} ({rotulo})" abaixo das opções, num `role="status"` local do popup; valor e marca vindos do servidor
+- [x] `ERRO` ⇒ `previa.mensagem` (frase do `RF-519`) exatamente como veio, em `p.aviso-erro role="alert"`, sem valor; falha de rede ⇒ "Não foi possível calcular."
+- [x] Trocar de opção apaga, no mesmo render, o valor ou a frase da anterior; resposta atrasada da opção anterior nunca aparece
+- [x] "Confirmar e continuar" desabilitado com opção de recálculo marcada enquanto a resposta não chegou, em `ERRO` ou em falha de rede; habilitado com "Manter" ou com `CALCULADO` da opção marcada (e fora de `gravando`)
+- [x] `typecheck` sem erro
 
 **Verificação:** `npm --prefix frontend run typecheck` (testes em `T-684`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)` — `typecheck` sem erro
 
 ---
 
