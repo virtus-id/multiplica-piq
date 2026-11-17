@@ -5,7 +5,7 @@
 | Slug   | `calculo-de-divida` |
 | Spec   | [`specs/calculo-de-divida.spec.md`](../specs/calculo-de-divida.spec.md) (e [`discovery`](../specs/calculo-de-divida.discovery.md)) |
 | Status | `rascunho` |
-| Escopo | Fase 1 detalhada (`RF-514` a `RF-531`); Fases 2 e 3 em nível de arquitetura (`RF-532` a `RF-540`) |
+| Escopo | Fase 1 detalhada (`RF-514` a `RF-531`); Fases 2 e 3 em nível de arquitetura (`RF-532` a `RF-540`); Fase 4 (Rodada 2, 2026-11-17, `RF-564` a `RF-568`) na seção "Rodada 2", ao fim do arquivo |
 
 > Numeração global: este plano abre `PD-01` a `PD-16` (decisões técnicas) e propõe `OQ-89` a `OQ-93` (seção 0.3), a continuar a da spec (último `OQ-88`). `engine/` não muda em nenhuma fase (`RF-531`, `AC-44`); a estratégia inteira existe para isso.
 
@@ -603,3 +603,300 @@ Teste: `tests/app_aluno/test_spike_pagamentos_da_divida.py` (10 testes, `engine/
 - `T-532`: textos **provisórios** marcados `[PROVISORIO T-532]`; a tarefa segue pendente de aprovação do produto.
 
 **Riscos que a hipótese deixa em aberto.** A marca `hipótese` da prioritária e o teto de capacidade não entram no snapshot (mesma limitação de `OQ-90`): o relatório os infere das respostas e do estado. A alvo é confirmada no motor sem o teto; se o teto trocar a alvo, a passagem não repete. O empate em `H-04` nível 3 segue como risco da seção 1.2.
+
+---
+
+# Rodada 2 — Fase 4: conferência silenciosa e popup de divergência (2026-11-17)
+
+| Campo | Valor |
+| ----- | ----- |
+| Slug  | `calculo-de-divida` |
+| Spec  | [`specs/calculo-de-divida.spec.md`](../specs/calculo-de-divida.spec.md), bloco "Rodada 2 (2026-11-17) — Fase 4": `RF-564` a `RF-568`, `US-420`, `AC-603` a `AC-616`, `EC-100` a `EC-105`, `OQ-105` a `OQ-107`; notas de revogação em `RF-529`, `AC-521`, `AC-529`, `AC-534`, `AC-536`, `AC-540`, `AC-553` |
+| Origem | Decisões do usuário de 2026-11-17; briefing aprovado `~/.claude/plans/quais-s-o-as-tabelas-functional-sedgewick.md` |
+| Status | `rascunho` |
+| Data | 2026-11-17 |
+
+> **Escopo desta seção.** Só o front da tela do cálculo (`B5.CALC01`). As
+> seções 0 a 11 acima **não são alteradas** e continuam valendo para servidor,
+> motor, gravação e cenário conservador; onde esta rodada substitui uma linha
+> delas (8: "resultado em `role="status"`", "valor teórico, escolha navegável";
+> 9.3: "lê a prévia por `role="status"`"), a substituição é dita aqui.
+> **Backend, motor, regra de compatibilidade, gravação e testes de backend
+> não mudam** (spec §9 da Rodada 2). Os IDs `PD-18` a `PD-25` continuam a
+> numeração deste plano.
+
+## R2.0. Decisões
+
+| # | Decisão | Por quê (requisito) |
+| - | ------- | ------------------- |
+| PD-18 | **Nada de contrato novo no servidor.** O front usa as duas rotas existentes como estão: a prévia da página vai sempre com `recalcular: null`; a prévia do popup vai com `recalcular: <campo>`; a confirmação vai com `recalcular` = escolha do popup ou `null`. A resposta da prévia já traz `estado`, `campo_calculado`, `valores[campo].{texto,rotulo,marca}`, `teorico`, `alternativas`, `hipotese_conservadora`, `parcela_estimada` e `mensagem` (frase do `RF-519` em `ERRO`) — tudo o que as linhas e o popup exibem (verificado em `app/http/rotas_calculadora.py::_avaliar`) | `RF-564` a `RF-568`; spec §7 (servidor já devolve tudo); NFR Lei nº 3 |
+| PD-19 | **Popup = `<dialog>` nativo aberto por `showModal()`**, sem biblioteca. O navegador dá foco preso, fundo inerte (`inert` implícito da camada superior), Esc fechando e o evento `close`. Nome acessível por `aria-labelledby` no título | `RF-566`, `AC-610`, `AC-611`; NFR Acessibilidade |
+| PD-20 | **O popup só existe montado enquanto está aberto** (renderização condicional em `CalculadoraDaDivida`; `showModal()` num `useEffect` de montagem, com guarda `if (!dialog.open)`). Fechar = desmontar. Com isso a opção marcada, o resultado do recálculo e o erro morrem ao fechar, e o próximo "Continuar" reabre com "Manter" marcada **sem código de reset** | `RF-566` ("descartam a opção marcada"), `AC-611`, `EC-100`, `EC-104`, `OQ-105` |
+| PD-21 | **Um único caminho de "fechar sem salvar": o evento `close` do `<dialog>`.** Esc (fecho nativo), "Voltar e corrigir" (`dialog.close()`) e qualquer outro fecho do navegador disparam `close` → `aoVoltar()` no pai, que desmonta o popup e põe o foco no campo do saldo (`#calculadora-SALDO`). Fechar com sucesso **não** passa por aqui: o pai desmonta o `<dialog>` aberto (remover um diálogo aberto do DOM não dispara `close`) | `RF-566`, `EC-100`, `AC-611` |
+| PD-22 | **"Continuar" decide pela prévia que já está na tela**, sem nova chamada: `INCOMPATIVEL` ⇒ abre o popup; qualquer outro estado sem erro ⇒ `confirmar(null)` como hoje. A condição de habilitação (`podeConfirmar`: prévia do `corpo` atual presente, não `ERRO`, não gravando) **não muda** | `RF-565`, `AC-603`, `AC-606`, `AC-607`, `EC-103`, `OQ-106`; NFR Performance ("abrir o popup não depende de nova chamada") |
+| PD-23 | **Escolha gravada (`EC-101`) não pede lógica no front.** O servidor grava o campo escolhido como `NAO_SEI` (`_gravacao`), então a ficha reaberta carrega esse campo vazio e com "Não sei" marcado, a prévia volta `CALCULADO` e o PD-22 salva direto. Coberto no backend por `test_ac536_recalcular_grava_nao_sei_no_campo_e_a_escolha_com_impressao` (intocado); no front, o teste simula a ficha reaberta | `RF-565`, `EC-101`, `AC-612` |
+| PD-24 | **Linha marcada (`RF-568`) é derivada da prévia do `corpo` atual**, no mesmo `resultado.corpo === corpo` que hoje apaga o painel: editar valor, sistema ou periodicidade troca o `corpo` e a linha some no mesmo render; erro não tem `valores`, então não volta | `RF-568`, `AC-616`, `AC-529`, `EC-71` |
+| PD-25 | **Textos novos em `TEXTOS` dos dois componentes**, como os rótulos atuais (provisórios), e registrados em `docs/perguntas-marcelo-calculo-de-divida.md` como "sugestão, a validar". O front só **junta rótulo e valor**: o único acréscimo a um valor do servidor é o sufixo " meses" no prazo (o servidor devolve `"24"`), sem conta | `RF-566`, `RF-567`, `RF-568`; spec §7 (textos a validar); NFR Lei nº 3 |
+
+## R2.1. Architecture Overview
+
+```text
+ CalculadoraDaDivida.tsx (página)                              servidor (inalterado)
+┌──────────────────────────────────────────┐  POST .../previa (recalcular: null)  ┌───────────────────────┐
+│ 4 campos + "Não sei" + Price/SAC         │ ───── debounce 400 ms, abort ──────▶ │ rotas_calculadora.py  │
+│  └ linha marcada por campo (RF-568)      │ ◀──── RespostaDaPrevia ───────────── │  _avaliar (sem gravar)│
+│ linha de erro role="alert" (RF-518/519)  │                                       │                       │
+│ erro ao salvar (popup fechado)           │                                       │                       │
+│ [Continuar] ── INCOMPATIVEL? ──┐         │                                       │                       │
+│      │ não: confirmar(null)    │ sim     │  POST .../confirmar (recalcular)      │                       │
+│      ▼                         ▼         │ ────────────────────────────────────▶ │  _gravacao            │
+│                 ┌─────────────────────┐  │                                       │                       │
+│                 │ DivergenciaDaDivida │  │  POST .../previa (recalcular: CAMPO)  │                       │
+│                 │ <dialog> showModal  │ ─┼─────────────── abort na troca ──────▶ │                       │
+│                 │ Manter | Recalcular │ ◀┼─────────────────────────────────────  │                       │
+│                 │ [Confirmar] [Voltar]│  │                                       └───────────────────────┘
+│                 └─────────────────────┘  │
+└──────────────────────────────────────────┘
+```
+
+- **Página** (`CalculadoraDaDivida`): dona dos campos, da prévia em segundo plano, da gravação (`confirmar`) e de `divergenciaAberta`. Deixa de desenhar o resultado (`RF-564`).
+- **Popup** (`DivergenciaDaDivida`, novo): recebe a prévia `INCOMPATIVEL` e o `corpo` que a gerou; dono só da opção marcada e da prévia do recálculo. Não grava: devolve a escolha ao pai por `aoConfirmar(recalcular)`.
+- Dependência num sentido só: `CalculadoraDaDivida` importa `DivergenciaDaDivida` (e o auxiliar `textoDoValor`); o popup não importa a página.
+
+## R2.2. Tech Stack
+
+Nenhuma dependência nova; a stack da seção 2 é mantida.
+
+| Escolha | Uso | Justificativa (e alternativa descartada) |
+| ------- | --- | --------------------------------------- |
+| `<dialog>` + `HTMLDialogElement.showModal()` (plataforma) | O popup | `RF-566`, `AC-610`: modal de verdade sem código de foco. Descartados `react-modal`/Radix/Headless UI (dependência nova para o que o navegador já faz) e `div role="dialog"` com foco preso à mão (reimplementa `inert`, Esc e retorno de foco, e erra). Suporte: Chrome 37+, Firefox 98+, Safari/iOS 15.4+. **Teto conhecido:** o alvo padrão do Vite 6 (`build.target: 'modules'`) ainda inclui Safari 14, que não tem `<dialog>`; nele o popup não abre (R2.10, risco 6) |
+| React 19 `onClose` em `<dialog>` | Fecho sem salvar | `EC-100`: `close` é evento não delegado que o React liga direto no elemento; um único manipulador cobre Esc, botão e navegador (PD-21) |
+| `Botao` (`frontend/src/componentes/Botao.tsx`) | "Confirmar e continuar" (`primario`) e "Voltar e corrigir" (`secundario`) | Componente existente; alvos de toque de 56px do protótipo |
+| `.cartao`, `.aviso-atencao`, `.aviso-erro`, `.nota`, `.opt` (`frontend/src/index.css`) | Caixa do popup, frase da divergência, frase do `RF-519`/erro ao salvar, linha marcada, opções | Classes existentes; "novo visual" está fora do escopo (spec §9). `.cartao` vai num `div` **dentro** do `<dialog>`, nunca no próprio `<dialog>`: `display: flex` nele sobrescreveria o `display: none` do diálogo fechado |
+| `vitest` + Testing Library em `happy-dom` (já em uso) | Unitários dos dois componentes | **Verificado em `node_modules/happy-dom` 20.x:** `HTMLDialogElement.showModal()` existe (põe o atributo `open`) e `close()` remove `open` e dispara `close`. **Não** implementa Esc, foco preso nem fundo inerte. Conclusão: **sem fallback no componente** (`showModal` existe nos dois ambientes); o que o `happy-dom` não simula vai para o E2E (R2.9) |
+| Playwright (já em uso; projetos `desktop` e `mobile-360`, ambos Chromium) | `AC-610`, Esc de `AC-611`, largura no celular | Único ambiente com o comportamento modal real |
+
+> `jsdom` também está instalado e **não** implementa `showModal`. Não é usado
+> nos testes de componente (docblock `happy-dom`); se um dia for, o remendo vai
+> em `tests/setup.ts`, nunca no componente.
+
+## R2.3. Project Structure
+
+| Caminho | Mudança | Novo? |
+| ------- | ------- | ----- |
+| `frontend/src/componentes/CalculadoraDaDivida.tsx` | Sai o bloco `role="status"` inteiro (valores repetidos, mensagem de estado, "Calculando…", estimada longa, hipótese conservadora, valor teórico, resumo) e o `fieldset` "Qual informação recalcular?"; saem os estados `recalcular` e `opcoesDeRecalculo` (o `corpo` da página leva `recalcular: null` fixo). Entram: a linha marcada por campo, `divergenciaAberta`, `continuar()`, `voltar()`, `confirmar(recalcular)`. `TEXTOS` perde `valorTeorico`, `incompativel`, `resumo`, `prazo`, `primeiraParcela`, `ultimoPagamento`, `totalDeJuros`, `parcelaEstimada`, `manterOriginais` e `escolhaDoRecalculo` (os dois últimos vão para o popup); ganha `calculado`, `estimada`, `hipoteseDe24Meses`. `TEXTOS.calculando` fica só no carregamento inicial das perguntas (não é "abaixo dos campos") | não |
+| `frontend/src/componentes/DivergenciaDaDivida.tsx` | O popup (R2.4) e o auxiliar `textoDoValor` | **sim** |
+| `docs/perguntas-marcelo-calculo-de-divida.md` | Seção nova "Textos novos para conferir (2026-11-17) — popup da divergência": tabela dos textos (R2.4), `OQ-105` e `OQ-107` em linguagem simples com o exemplo R$ 10.000 / 2% / 24 / R$ 400,00; marca "Sugestão, a validar com o especialista (Marcelo)". `OQ-106` **não** vai (decisão da equipe/usuário, spec §10) | não |
+| `frontend/tests/unit/componentes/CalculadoraDaDivida.test.tsx` | Reescrita dos testes que olham o painel e os radios (R2.9) | não |
+| `frontend/tests/unit/componentes/DivergenciaDaDivida.test.tsx` | Unitários do popup | **sim** |
+| `frontend/tests/e2e/calculadora-da-divida.spec.ts` | Sai o auxiliar `resultado()` (`getByRole("status")`); `AC-536` e `AC-529` reescritos contra o popup e a linha; testes novos de modal | não |
+| `frontend/src/tipos.ts`, `frontend/src/services/api.ts`, `frontend/src/telas/TelaPergunta.tsx`, `frontend/src/index.css` | **Nenhuma mudança** (`RespostaDaPrevia.resumo` continua no tipo: o servidor ainda o devolve; o front só deixa de ler) | não |
+| `app/`, `engine/`, `tests/` (backend) | **Nenhuma mudança** | — |
+
+## R2.4. Data Model
+
+Nenhum tipo novo em `tipos.ts`; os contratos reusados são `CorpoDaCalculadora`, `RespostaDaPrevia`, `ValorCalculado`, `CampoDaDivida` (seção 4.5).
+
+```ts
+// frontend/src/componentes/DivergenciaDaDivida.tsx
+export interface DivergenciaDaDividaProps {
+  casoId: string
+  /** Os quatro valores como digitados, com `recalcular: null` (o corpo que gerou `previa`). */
+  corpo: CorpoDaCalculadora
+  /** A prévia INCOMPATIVEL que abriu o popup: `teorico`, `valores.PARCELA`, `alternativas`,
+   *  `hipotese_conservadora`. Abrir não chama o servidor (NFR Performance). */
+  previa: RespostaDaPrevia
+  gravando: boolean
+  /** EC-105: falha ao salvar aparece aqui dentro, com o popup aberto. */
+  erroAoSalvar: string | null
+  /** "Confirmar e continuar": `null` = "Manter os valores que informei". */
+  aoConfirmar: (recalcular: CampoDaDivida | null) => void
+  /** Evento `close` do <dialog>: Esc, "Voltar e corrigir" ou o navegador (PD-21). */
+  aoVoltar: () => void
+}
+export default function DivergenciaDaDivida(props: DivergenciaDaDividaProps)
+
+/** Valor do servidor pronto para a frase: o prazo ganha " meses"; o resto vai como veio. */
+export function textoDoValor(campo: CampoDaDivida, texto: string): string
+
+// estado interno do popup
+escolha: CampoDaDivida | null                       // null = Manter (OQ-105), valor inicial
+recalculo: { campo: CampoDaDivida; previa?: RespostaDaPrevia; falha?: string } | null
+// vale só se recalculo.campo === escolha (mesma técnica do `resultado.corpo === corpo`)
+```
+
+```ts
+// frontend/src/componentes/CalculadoraDaDivida.tsx (o que muda)
+const [divergenciaAberta, setDivergenciaAberta] = useState(false)
+function continuar(): void            // PD-22
+function confirmar(recalcular: CampoDaDivida | null): Promise<void>
+                                      // envia { ...corpo, recalcular }; sucesso: fecha o popup e chama aoConfirmar
+function voltar(): void               // PD-21: fecha, limpa erroAoSalvar, foco em #calculadora-SALDO
+function linhaDoCampo(campo: CampoDaDivida, previa: RespostaDaPrevia | null): string | null   // RF-568
+```
+
+**Regra da linha marcada (`RF-568`)**, avaliada sobre a prévia do `corpo` atual:
+
+| Condição | Linha abaixo do campo |
+| -------- | --------------------- |
+| `estado === "CALCULADO"` e `campo_calculado === campo` | `"Calculado: " + textoDoValor(campo, valores[campo].texto)` |
+| `campo === "PARCELA"` e `parcela_estimada` presente | `"Estimada: " + parcela_estimada.texto + " (hipótese de 24 meses)"` (`parcela_estimada.hipotese`, o texto longo, não é exibido: `OQ-107`) |
+| qualquer outra (inclusive `ERRO`, `CONFERIDO`, `INCOMPATIVEL`, prévia ausente) | nenhuma |
+
+A linha é um `<p id="calculadora-<CAMPO>-linha" className="nota m-0">` depois do "Não sei" do campo, e o `<input>` a inclui no `aria-describedby` (junto do id do erro quando houver), para o leitor de tela lê-la com o campo. Texto, não cor.
+
+**Popup — estrutura e textos (sugestão, a validar):**
+
+| Parte | Conteúdo | Fonte do valor |
+| ----- | -------- | -------------- |
+| `<dialog aria-labelledby="divergencia-titulo">` > `div.cartao` (rola por dentro: `max-h` na altura da tela, `overflow-y-auto`) | — | — |
+| Título `<h2 id="divergencia-titulo">` | "Os valores desta dívida não batem" | — |
+| Frase (`p.aviso-atencao`) | "Com esse saldo, taxa e prazo, a parcela seria {T}. Você informou {P}." | `T` = `previa.teorico.texto`; `P` = `previa.valores.PARCELA.texto` (o digitado, formatado pelo servidor; `RF-520`) |
+| `fieldset` (legenda `sr-only` "Qual informação recalcular?", texto já existente) | radio "Manter os valores que informei" (marcado ao abrir) e, logo abaixo dele, "Saldo: {s} · Taxa: {t} ({rotulo})" + `aviso` em `.nota`, só se `hipotese_conservadora` vier | `hipotese_conservadora.{saldo,taxa,rotulo,aviso}` (`RF-538`, `RF-539`) |
+| | radios "Recalcular o saldo" · "Recalcular a parcela" · "Recalcular a taxa" · "Recalcular o prazo", um por item de `previa.alternativas`, na ordem que o servidor devolve (`SALDO, PARCELA, TAXA, PRAZO`) | `alternativas` (`RF-525`) |
+| Resultado do recálculo (abaixo das opções) | "{Saldo recalculado / Parcela recalculada / Taxa recalculada / Prazo recalculado}: {v} ({rotulo})" — em `role="status"` local do popup | `valores[escolha].texto` via `textoDoValor`, `valores[escolha].rotulo` (`RF-567`, `RF-528`) |
+| Erro do recálculo | frase do `RF-519` (`previa.mensagem` com `estado: ERRO`) ou falha de rede ("Não foi possível calcular."), `p.aviso-erro role="alert"` | servidor (`RF-519`, `EC-102`) |
+| Erro ao salvar | `erroAoSalvar`, `p.aviso-erro role="alert"` | prop (`EC-105`) |
+| Botões | `Botao` "Confirmar e continuar" (texto "Salvando…" enquanto `gravando`) · `Botao variante="secundario"` "Voltar e corrigir" | — |
+
+## R2.5. Data Flow
+
+1. **Digitação → prévia (inalterado na mecânica).** Cada edição troca o `corpo` (com `recalcular: null`); a prévia do `corpo` anterior deixa de valer no mesmo render (linha some, `AC-616`); 400 ms depois sai `preverCalculadora`, com `AbortController` e descarte de resposta velha (`RF-564`).
+2. **Prévia chega → só duas coisas aparecem** abaixo dos campos: a linha de erro (`ERRO` ou falha de rede, `AC-605`) e a linha marcada do campo (`CALCULADO` / estimada, `AC-614`, `AC-615`). `CONFERIDO`, `INCOMPATIVEL`, `PENDENTE`, `SEM_CALCULO` sem estimada: nada (`AC-603`, `AC-604`).
+3. **"Continuar"** (habilitado só com prévia do `corpo` atual e sem `ERRO`, `EC-103`):
+   - estado ≠ `INCOMPATIVEL` ⇒ `confirmar(null)` ⇒ `confirmarCalculadora(casoId, item_id, { ...corpo, recalcular: null })` (`AC-603`, `AC-607`, `EC-101`);
+   - estado = `INCOMPATIVEL` ⇒ `setDivergenciaAberta(true)`; **nada é enviado** (`AC-606`).
+4. **Popup monta** ⇒ `showModal()`; foco no primeiro controle (radio "Manter"); fundo inerte (`AC-610`).
+5. **Marcar "Recalcular o X"** ⇒ `escolha = X` ⇒ efeito do popup chama `preverCalculadora(casoId, { ...corpo, recalcular: X }, sinal)`; trocar de novo aborta a anterior e o resultado de `X` deixa de valer (`RF-567`: "trocar de opção apaga"). Resposta `CALCULADO` ⇒ linha "X recalculado: v (calculado)" (`AC-612`); `ERRO` ⇒ frase do `RF-519` (`AC-613`, `EC-102`). Marcar "Manter" não chama o servidor.
+6. **"Confirmar e continuar"** ⇒ `aoConfirmar(escolha)` ⇒ pai `confirmar(escolha)` ⇒ `confirmarCalculadora(..., { ...corpo, recalcular: escolha })`:
+   - sucesso ⇒ `setDivergenciaAberta(false)` (desmonta o `<dialog>` aberto, sem `close`) ⇒ `aoConfirmar(confirmacao)` da página ⇒ `TelaPergunta` segue (`AC-609`, `AC-612`);
+   - falha ⇒ `erroAoSalvar` preenchido, popup continua aberto e mostra o erro dentro dele (`EC-105`).
+7. **Esc / "Voltar e corrigir" / fecho do navegador** ⇒ evento `close` ⇒ `aoVoltar()` ⇒ desmonta, limpa `erroAoSalvar`, foco em `#calculadora-SALDO`; campos intactos, nada enviado (`AC-611`, `EC-100`). O próximo "Continuar" com os mesmos valores remonta o popup do zero ("Manter" marcada).
+8. **Ficha reaberta com escolha gravada** (`EC-101`): o campo escolhido chega como `NAO_SEI` das perguntas individuais (`carregarInicial`, inalterado) ⇒ prévia `CALCULADO` ⇒ linha "Calculado: …" ⇒ passo 3, primeiro ramo. Mudou um valor (`EC-104`): o servidor já invalida a escolha pela impressão (seção 4.2); o front só reavalia a prévia nova.
+
+## R2.6. External Interfaces
+
+Nenhuma nova. As duas rotas da seção 6 (`POST /caso/{CASO_ID}/calculadora/previa` e `POST /caso/{CASO_ID}/divida/{item_id}/calculadora/confirmar`) e as chamadas `preverCalculadora`/`confirmarCalculadora` de `frontend/src/services/api.ts` são usadas como estão. Diferença de uso, não de contrato: a prévia passa a ser chamada também de dentro do popup, uma vez por opção marcada (custo de uma prévia, já dentro da meta de 500 ms no p95).
+
+## R2.7. State Management
+
+| Estado | Dono | Ciclo de vida |
+| ------ | ---- | ------------- |
+| Campos, "Não sei", sistema, periodicidade | `CalculadoraDaDivida` | Como hoje |
+| Resultado da prévia da página (`resultado`, amarrado ao `corpo`) | `CalculadoraDaDivida` | Como hoje; agora alimenta só a linha de erro, a linha marcada e a decisão do "Continuar" |
+| `divergenciaAberta` | `CalculadoraDaDivida` | `true` no "Continuar" com `INCOMPATIVEL`; `false` no `close` ou no sucesso da gravação |
+| `gravando`, `erroAoSalvar` | `CalculadoraDaDivida` (passados ao popup) | Um só lugar para os dois caminhos de gravação; o erro aparece **dentro** do popup se ele está aberto, abaixo dos campos se não (nunca nos dois) |
+| `escolha`, `recalculo` | `DivergenciaDaDivida` | Nascem com o popup, morrem com ele (PD-20). Nunca persistidos; a gravação da escolha é a de hoje (`INFORMACAO_A_RECALCULAR`, seção 4.2) |
+| `recalcular` e `opcoesDeRecalculo` da página | — | **Removidos** |
+
+## R2.8. Error Handling Strategy
+
+Substitui, para a tela do cálculo, as linhas `loading` e "Quatro valores incompatíveis" da seção 8 e a frase "resultado em `role="status"`" da nota de acessibilidade dela.
+
+| Situação | Onde aparece | Resposta | Recuperação |
+| -------- | ------------ | -------- | ----------- |
+| `loading` da prévia da página | — | **Sem indicador** (`OQ-106`); "Continuar" desabilitado | chega a prévia (`EC-103`) |
+| Entrada inválida / frase do `RF-519` / falha de rede da prévia | linha `role="alert"` abaixo dos campos (inalterada) | mensagem do servidor ou "Não foi possível calcular."; `aria-invalid` no campo; "Continuar" desabilitado; linha marcada ausente | corrigir; nova prévia (`AC-605`, `AC-616`, `EC-103`) |
+| Valores incompatíveis | nada na página; popup só no "Continuar" | popup modal (`RF-565`, `RF-566`) | "Manter" sempre confirmável; Esc/"Voltar" sempre fecham (risco "popup preso", spec §8) |
+| `loading` do recálculo no popup | — | "Confirmar e continuar" desabilitado para essa opção | chega a resposta |
+| Recálculo sem solução (`ERRO`) | popup, `role="alert"` | frase exata do `RF-519`, sem valor; confirmar desabilitado com essa opção; demais opções livres | outra opção (`AC-613`, `EC-102`) |
+| Falha de rede do recálculo | popup, `role="alert"` | "Não foi possível calcular."; confirmar desabilitado com essa opção | marcar outra opção e voltar a ela (nova chamada) |
+| Falha ao salvar com o popup aberto (`422`, `503`, rede) | popup, `role="alert"` | mensagem do servidor ou "Não foi possível salvar."; popup **continua aberto** com a opção marcada | "Confirmar" de novo (idempotente, seção 5.2) ou "Voltar e corrigir" (`EC-105`) |
+| Falha ao salvar sem popup | abaixo dos campos (inalterado) | idem | idem |
+| Esc durante a gravação | — | popup fecha; se a gravação der certo a ficha avança, se falhar o erro aparece abaixo dos campos | idem |
+
+## R2.9. Testing Strategy
+
+Só os arquivos tocados; backend intocado (`tests/app_aluno/test_rotas_calculadora.py` continua cobrindo gravação, escolha com impressão e `INCOMPATIVEL` sem escolha). Todo teste cita o `AC`/`EC`.
+
+**Unitários — `CalculadoraDaDivida.test.tsx` (happy-dom, API simulada):**
+
+| AC / EC | Teste |
+| ------- | ----- |
+| `AC-603` | prévia `CONFERIDO` com `valores`, `resumo` e `mensagem` "Os quatro valores são compatíveis entre si." ⇒ nenhum desses textos, nenhum "Resumo do cálculo", nenhuma marca, nenhum `role="status"` na página; "Continuar" ⇒ `confirmarCalculadora` com `recalcular: null`, sem `dialog` |
+| `AC-604`, `AC-606` | prévia `INCOMPATIVEL` ⇒ nada de "Valores incompatíveis", "Qual informação recalcular?", radios de recálculo, `hipotese_conservadora`, nem `dialog`; "Continuar" ⇒ `dialog` com o nome do título e `confirmarCalculadora` **não** chamado |
+| `AC-605` | `ERRO` com a frase do `RF-519` e `ERRO` de entrada ("O saldo devedor precisa ser maior que zero.") ⇒ `role="alert"` e "Continuar" desabilitado (estende o teste "erro de campo") |
+| `AC-607` | tabela `CALCULADO` / `PENDENTE` / `SEM_CALCULO` ⇒ "Continuar" salva direto, `recalcular: null`, sem `dialog` |
+| `AC-609` | integração: abre o popup, "Confirmar e continuar" com "Manter" ⇒ corpo com os quatro digitados e `recalcular: null`; `aoConfirmar` chamado; `dialog` some |
+| `AC-611`, `EC-100`, `EC-104` | "Voltar e corrigir" ⇒ nada gravado, campos intactos, foco em `#calculadora-SALDO`; novo "Continuar" reabre com "Manter" marcada; editar a parcela para um valor que a prévia devolve `CONFERIDO` ⇒ "Continuar" salva sem popup |
+| `AC-612`, `EC-101` | (a) recalcular parcela no popup ⇒ `confirmarCalculadora` com `recalcular: "PARCELA"`; (b) ficha reaberta com `B5.C02` `respondida_como_nao_sei` e prévia `CALCULADO`/`PARCELA` ⇒ campo vazio, "Não sei" marcado, "Calculado: R$ 528,72", "Continuar" salva sem popup |
+| `AC-614` | `CALCULADO` em `PARCELA`, `TAXA` (`"2,00% a.m."`) e `PRAZO` (`"24"`) ⇒ "Calculado: R$ 528,72", "Calculado: 2,00% a.m.", "Calculado: 24 meses" abaixo do campo certo; input vazio; linha no `aria-describedby` do input |
+| `AC-615` | `PENDENTE` com `parcela_estimada` ⇒ "Estimada: R$ 528,72 (hipótese de 24 meses)" abaixo da parcela; o texto longo de `hipotese` **não** aparece; nenhuma linha no prazo (substitui os dois testes `T-531` com `data-testid="parcela-estimada"`) |
+| `AC-616`, `AC-529` | reescreve o teste `AC-529`: "Calculado: 24 meses" some na hora da edição (parcela, SAC, "ao ano") e não volta com o `ERRO` |
+| `EC-103` | "Continuar" desabilitado enquanto a prévia não chegou e depois de falha de rede |
+| `EC-105` | `confirmarCalculadora` rejeita com o popup aberto ⇒ `dialog` continua, `role="alert"` com a mensagem **dentro** dele, `aoConfirmar` não chamado |
+| (mantidos) | carga do gravado, "não sei" vai `null`, falha de rede, 422 no caminho direto, Lei nº 3 (regex no fonte), `RF-562` |
+| (reescrito) | "descarta resposta fora de ordem": passa a observar a linha "Calculado: …" em vez do valor no painel |
+| (removidos) | "incompatibilidade em texto e escolha por teclado" e os dois `AC-553`: a regra passa para `DivergenciaDaDivida.test.tsx` |
+
+**Unitários — `DivergenciaDaDivida.test.tsx` (novo, happy-dom):**
+
+| AC / EC | Teste |
+| ------- | ----- |
+| `AC-608` | `getByRole("dialog", { name: "Os valores desta dívida não batem" })`; a frase com `R$ 528,72` e `R$ 400,00` vindos da prévia; radios na ordem Manter, saldo, parcela, taxa, prazo; "Manter" marcada; saldo, taxa, rótulo `hipótese` e aviso da `hipotese_conservadora`; sem `hipotese_conservadora`, o bloco não existe; os dois botões |
+| `AC-609` | "Confirmar e continuar" com "Manter" ⇒ `aoConfirmar(null)`; `preverCalculadora` nunca chamado |
+| `AC-612` | marcar "Recalcular a parcela" ⇒ `preverCalculadora` com `{ ...corpo, recalcular: "PARCELA" }` ⇒ "Parcela recalculada: R$ 528,72 (calculado)" ⇒ confirmar ⇒ `aoConfirmar("PARCELA")` |
+| `AC-613`, `EC-102` | "Recalcular a taxa" ⇒ `ERRO` ⇒ frase exata do `RF-519` em `role="alert"`, confirmar desabilitado; depois "Recalcular a parcela" ⇒ frase some, valor aparece, confirmar habilitado |
+| `RF-567` | enquanto a prévia do recálculo está pendente e depois de falha de rede ⇒ confirmar desabilitado; trocar de opção aborta o sinal anterior e a resposta atrasada não aparece |
+| `AC-611`, `EC-100` | "Voltar e corrigir" ⇒ `aoVoltar` chamado, `aoConfirmar` não; `fireEvent(dialog, new Event("close"))` (o que o navegador faz no Esc; o happy-dom não implementa a tecla) ⇒ `aoVoltar` |
+| `EC-105` | `erroAoSalvar` ⇒ `role="alert"` dentro do `dialog` |
+| NFR Lei nº 3 | o mesmo regex do teste da página aplicado a `src/componentes/DivergenciaDaDivida.tsx` |
+
+**E2E — `calculadora-da-divida.spec.ts` (Chromium, `desktop` e `mobile-360`):**
+
+| AC / EC | Teste |
+| ------- | ----- |
+| `RF-526`, `AC-614` | (reescrito) três dados + "Não sei" na taxa ⇒ "Calculado: 2,00% a.m." abaixo da taxa (o mock passa a devolver `"2,00% a.m."`, como o servidor); nenhum `role="status"` com conteúdo; "Continuar" segue sem popup |
+| `AC-604`, `AC-606`, `AC-608`, `AC-612` (substitui `AC-536`) | quatro valores incompatíveis ⇒ nada abaixo dos campos, sem `dialog`; "Continuar" ⇒ `dialog` visível e `confirmacoes` vazio; "Recalcular a parcela" escolhida **só por teclado** ⇒ "Parcela recalculada: R$ 528,72 (calculado)", última prévia com `recalcular: "PARCELA"`; "Confirmar e continuar" ⇒ próxima pergunta, `confirmacoes[0].recalcular === "PARCELA"`. No `mobile-360`: largura do `dialog` ≤ 360 e "Confirmar e continuar" alcançável (`scrollIntoViewIfNeeded` + `toBeInViewport`) |
+| `AC-609` | "Manter" ⇒ `confirmacoes[0]` com `recalcular: null` e `parcela: "400,00"` |
+| `AC-610` | `dialog.matches(":modal")` verdadeiro; foco dentro do `dialog`; uma volta de Tab e de Shift+Tab nunca põe o foco num `#calculadora-*` |
+| `AC-611`, `EC-100` | Esc ⇒ `dialog` fechado, `confirmacoes` vazio, parcela `400,00`, foco no saldo; "Continuar" reabre com "Manter" marcada; o mesmo com "Voltar e corrigir" |
+| `AC-616` (substitui `AC-529`) | "Calculado: 24 meses" ⇒ trocar a parcela para `200,00` ⇒ linha some, alerta aparece, "Continuar" desabilitado, nada gravado |
+| (mantido) | `RF-562`/`RF-563` |
+
+**Verificação desta rodada:** o usuário pediu para não rodar a suíte completa. Rodar só `vitest` dos dois arquivos de componente e o Playwright de `calculadora-da-divida.spec.ts`. `lint`/`build`/`test` da seção 2 do `sdd.config.md` são de Python e não são afetados (nenhum arquivo de backend muda).
+
+**Fora de teste automatizado:** leitura real por leitor de tela (popup e linha marcada); conferência manual no deploy com uma ficha de financiamento imobiliário cuja parcela real não bate com o Price (popup só no "Continuar"; as duas saídas funcionam).
+
+**Ordem de implementação (dependências, não tarefas):** (1) `DivergenciaDaDivida.tsx` + seu teste (não depende da página); (2) página: remover painel e radios, linha marcada, `continuar`/`voltar`/`confirmar(recalcular)`, montar o popup; (3) reescrever `CalculadoraDaDivida.test.tsx`; (4) reescrever o E2E; (5) `docs/perguntas-marcelo-calculo-de-divida.md`.
+
+## R2.10. Risks & Trade-offs
+
+| Decisão | Alternativa descartada | Por quê | Risco assumido |
+| ------- | ---------------------- | ------- | -------------- |
+| `<dialog>` nativo (PD-19) | Biblioteca de modal; `div role="dialog"` com foco preso à mão | O navegador já resolve foco, inércia e Esc; zero dependência | O `happy-dom` não simula Esc, foco preso nem inércia: `AC-610` e o Esc de `AC-611` só têm prova no E2E. Mitigação: o unitário cobre o contrato (evento `close` ⇒ `aoVoltar`) |
+| Popup montado só enquanto aberto (PD-20) | Popup sempre montado, abrindo e fechando por `open` | Estado descartado de graça (`AC-611`, `EC-100`) | Entre `close` e a desmontagem há um render com o `<dialog>` fechado: nenhuma classe de `display` vai no `<dialog>` (o `.cartao` fica num `div` interno) |
+| Erro ao salvar dentro do popup (`EC-105`) | Fechar e mostrar abaixo dos campos | O fundo está inerte; o aluno não veria o erro | Nenhum relevante |
+| Opções = `previa.alternativas` | Lista fixa no front | `RF-566`: "uma por alternativa devolvida pelo servidor" | Nenhum (o servidor sempre devolve as quatro em `INCOMPATIVEL`) |
+| "(hipótese de 24 meses)" e o sufixo " meses" escritos em `TEXTOS` | Campo novo na resposta da prévia com o rótulo curto | Backend fora do escopo (spec §9) | O "24" do texto e `PRAZO_BASE_ESTIMATIVA_MESES` (servidor) podem divergir se a constante mudar. Hoje ela é fixada pela spec (`RF-532`); se virar parâmetro, o rótulo curto passa a vir do servidor |
+| Linha marcada também em campo **em branco** sem "Não sei" | Só com "Não sei" marcado | O servidor trata branco e "não sei" igual (`null`); a linha mostra o valor que o campo recebeu | Diverge da letra do `RF-568` ("campo marcado 'Não sei'") em um caso de borda; o valor continua fora do input (`AC-545`) |
+| Sem indicador de "calculando" (`OQ-106`) | Spinner ou "Calculando…" | Decisão adotada; "nada sobra abaixo dos campos" | Com rede lenta o "Continuar" fica desabilitado sem explicação |
+
+**Riscos novos desta rodada:**
+
+1. **Cobertura de modal só no E2E** (acima). Se o E2E não rodar no CI desta entrega, `AC-610` fica sem prova automática.
+2. **Duplo "Continuar" depois de gravação com aviso** (pré-existente, `TelaPergunta.confirmacaoComAviso`): se "Manter" gravar com aviso (ex.: `PARCELA_MAIOR_QUE_O_SALDO`), a tela fica e mostra o "Continuar" da casca; o "Continuar" da calculadora, com os mesmos valores, reabre o popup. Não piora o comportamento atual (antes regravava); fica registrado, não é corrigido aqui (escopo).
+3. **Esc durante a gravação** fecha o popup sem cancelar o pedido: se a gravação der certo, a ficha avança mesmo com o aluno tendo "voltado". Aceito: o dado gravado é exatamente o que ele confirmou.
+4. **Textos sem aprovação** (`OQ-105`, `OQ-107` e toda a redação do popup): sobem como sugestão; mudança de redação é troca de constante em `TEXTOS`.
+5. **Revogação do total de juros** (`RF-529`, `AC-521`): o servidor continua devolvendo `resumo` (backend intocado); ele só deixa de ser lido. Remover do contrato é tarefa futura, se alguém pedir.
+6. **Navegador sem `<dialog>`** (Safari/iOS anterior a 15.4, ainda dentro do alvo padrão do Vite 6): `showModal` não existe, o efeito falha e a ficha com divergência não avança. Decisão: **sem fallback** (público residual em 2026; o `happy-dom` dos testes tem `showModal`). Saída, se aparecer caso real: guarda de duas linhas no popup (sem `showModal`, pôr o atributo `open`; sem `close`, "Voltar" chama `aoVoltar` direto), aceitando popup não modal nesses aparelhos.
+
+## R2.11. Traceability
+
+| Requisito | Coberto por (seção desta rodada) |
+| --------- | -------------------------------- |
+| `RF-564` | PD-18, PD-24; R2.3 (o que sai da página); R2.5 passos 1–2; R2.8; R2.9 (`AC-603`, `AC-604`, `AC-605`) |
+| `RF-565` | PD-22, PD-23; R2.4 (`continuar`); R2.5 passos 3 e 8; R2.9 (`AC-603`, `AC-606`, `AC-607`, `AC-612`, `EC-101`, `EC-103`) |
+| `RF-566` | PD-19, PD-20, PD-21; R2.2; R2.4 (props, estrutura e textos); R2.5 passos 4, 6, 7; R2.7; R2.9 (`AC-608`, `AC-609`, `AC-610`, `AC-611`, `EC-100`, `EC-104`, `EC-105`) |
+| `RF-567` | PD-18; R2.4 (estado `recalculo`); R2.5 passo 5; R2.8; R2.9 (`AC-612`, `AC-613`, `EC-102`) |
+| `RF-568` | PD-24, PD-25; R2.4 (regra da linha); R2.5 passos 2 e 8; R2.9 (`AC-612`, `AC-614`, `AC-615`, `AC-616`) |
+| `RF-529` (revogação parcial) | R2.3 (sai o resumo); R2.10 risco 5 |
+| `AC-521`, `AC-529`, `AC-534`, `AC-536`, `AC-540`, `AC-553` (notas) | R2.9: `AC-529` → `AC-616`; `AC-534`/`AC-536` → `AC-606`, `AC-608`, `AC-609`, `AC-612`, `AC-613`; `AC-540` → `AC-612`, `AC-614`, `AC-615`; `AC-553` → `AC-608` (`DivergenciaDaDivida.test.tsx`); `AC-521` sem teste de front (o total de juros sai) |
+| `OQ-105` | PD-20 (Manter marcada, não lembrada); R2.3 (vai ao Marcelo) |
+| `OQ-106` | PD-22; R2.8 (sem indicador); não vai ao Marcelo |
+| `OQ-107` | R2.4 (linha curta, texto longo não exibido); R2.3 (vai ao Marcelo) |
+| NFR Rodada 2 (Lei nº 3, acessibilidade, performance, responsividade, LGPD) | PD-18, PD-25; R2.2; R2.4 (`aria-describedby`, `aria-labelledby`); R2.9 (regex Lei nº 3, `:modal`, Tab, largura 360); nada novo gravado nem logado |
+
+**Buracos sinalizados.** Nenhum requisito sem seção. Pontos de atenção: (1) `AC-610` só tem prova no E2E (R2.10, risco 1); (2) a linha marcada aparece também em campo em branco sem "Não sei" marcado (R2.10), leitura mais larga que a letra do `RF-568` — se o produto quiser só com "Não sei", é uma condição a mais em `linhaDoCampo`.
+
+> Itens cortados por não servirem a nenhum `RF`: biblioteca de modal, polyfill de `showModal`, indicador de carregamento, mudança em `tipos.ts`/`api.ts`, remoção de `resumo` do contrato do servidor.

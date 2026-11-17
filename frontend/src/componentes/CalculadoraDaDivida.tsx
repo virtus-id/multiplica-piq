@@ -13,6 +13,14 @@
  * A prévia espera ~400 ms depois da última edição, cancela a anterior
  * (`AbortController`) e descarta resposta fora de ordem.
  *
+ * **Conferência silenciosa** (`RF-564`; `T-685`): a prévia não é desenhada
+ * como painel. Abaixo dos campos ficam só a linha de erro (`RF-518`,
+ * `RF-519`, falha de rede) e, abaixo de cada campo, a linha marcada do valor
+ * que o servidor calculou ou estimou (`RF-568`) — nunca dentro do campo.
+ * "Continuar" decide pela prévia que já está na tela (`RF-565`, `PD-22`):
+ * `INCOMPATIVEL` abre o popup da divergência sem salvar; qualquer outro estado
+ * sem erro salva direto (`T-686`).
+ *
  * Os textos de cada campo (enunciados, "ao mês"/"ao ano", Price/SAC) vêm das
  * perguntas individuais do registro, lidas ao abrir — o mesmo caminho que traz
  * o que o aluno já gravou. Os rótulos de `TEXTOS` abaixo são provisórios.
@@ -41,6 +49,7 @@ import type {
   TipoResposta,
 } from "../tipos";
 import Botao from "./Botao";
+import DivergenciaDaDivida, { textoDoValor } from "./DivergenciaDaDivida";
 import Explicacao from "./Explicacao";
 
 /** Espera depois da última edição antes de pedir a prévia. */
@@ -53,17 +62,10 @@ const TEXTOS = {
   falhaAoCarregar: "Não foi possível carregar a pergunta.",
   falhaAoSalvar: "Não foi possível salvar.",
   falhaDeRede: "Não foi possível calcular.",
-  escolhaDoRecalculo: "Qual informação recalcular?",
-  manterOriginais: "Manter os valores que informei",
-  valorTeorico: "Valor teórico",
-  incompativel: "Valores incompatíveis",
-  resumo: "Resumo do cálculo",
-  prazo: "Prazo (meses)",
-  primeiraParcela: "Primeira parcela",
-  ultimoPagamento: "Último pagamento",
-  totalDeJuros: "Total de juros",
   calculando: "Calculando…",
-  parcelaEstimada: "Parcela estimada ",
+  calculado: "Calculado:",
+  estimada: "Estimada:",
+  hipoteseDe24Meses: "(hipótese de 24 meses)",
 } as const;
 
 const NOMES: Readonly<Record<CampoDaDivida, string>> = {
@@ -194,6 +196,24 @@ async function carregarInicial(
   };
 }
 
+/**
+ * `RF-568`: a linha marcada abaixo do campo, derivada da prévia do `corpo`
+ * atual (`PD-24`) — editou, a prévia deixa de valer e a linha some no mesmo
+ * render. O texto longo da hipótese de 24 meses não é exibido (`OQ-107`).
+ */
+function linhaDoCampo(
+  campo: CampoDaDivida,
+  previa: RespostaDaPrevia | null,
+): string | null {
+  if (!previa || previa.estado === "ERRO") return null;
+  const valor = previa.valores[campo];
+  if (previa.estado === "CALCULADO" && previa.campo_calculado === campo && valor)
+    return `${TEXTOS.calculado} ${textoDoValor(campo, valor.texto)}`;
+  if (campo === "PARCELA" && previa.parcela_estimada)
+    return `${TEXTOS.estimada} ${previa.parcela_estimada.texto} ${TEXTOS.hipoteseDe24Meses}`;
+  return null;
+}
+
 interface CalculadoraDaDividaProps {
   casoId: string;
   /** A pergunta composta (`CALCULO_DIVIDA`); `item_id` é a dívida. */
@@ -219,11 +239,6 @@ export default function CalculadoraDaDivida({
   );
   const [periodicidade, setPeriodicidade] =
     useState<PeriodicidadeDaTaxa>("MENSAL");
-  const [recalcular, setRecalcular] = useState<CampoDaDivida | null>(null);
-  /** As opções de recálculo ficam enquanto o aluno não edita um valor. */
-  const [opcoesDeRecalculo, setOpcoesDeRecalculo] = useState<CampoDaDivida[]>(
-    [],
-  );
   /** O resultado vale só para o `corpo` que o pediu: editou, deixa de valer na hora (`AC-529`). */
   const [resultado, setResultado] = useState<{
     corpo: CorpoDaCalculadora;
@@ -232,6 +247,8 @@ export default function CalculadoraDaDivida({
   } | null>(null);
   const [gravando, setGravando] = useState(false);
   const [erroAoSalvar, setErroAoSalvar] = useState<string | null>(null);
+  /** Montado só enquanto aberto: fechar descarta a opção marcada (`PD-20`). */
+  const [divergenciaAberta, setDivergenciaAberta] = useState(false);
 
   const itemId = pergunta.item_id ?? undefined;
   const sistemaPadrao = pergunta.sistema ?? "PRICE";
@@ -252,7 +269,8 @@ export default function CalculadoraDaDivida({
   }, [casoId, itemId, sistemaPadrao]);
 
   // `null` = desconhecido: "não sei" ou em branco. O campo "a calcular" nunca
-  // leva o valor que o servidor calculou (risco 9).
+  // leva o valor que o servidor calculou (risco 9). A prévia da página nunca
+  // pede recálculo: a escolha é feita no popup da divergência.
   const corpo: CorpoDaCalculadora = useMemo(() => {
     const valor = (campo: CampoDaDivida) =>
       campos[campo].naoSei || campos[campo].texto === ""
@@ -265,9 +283,9 @@ export default function CalculadoraDaDivida({
       parcela: valor("PARCELA"),
       taxa: valor("TAXA"),
       prazo: valor("PRAZO"),
-      recalcular,
+      recalcular: null,
     };
-  }, [campos, sistema, periodicidade, recalcular]);
+  }, [campos, sistema, periodicidade]);
 
   useEffect(() => {
     if (!inicial) return;
@@ -277,8 +295,6 @@ export default function CalculadoraDaDivida({
         .then((previa) => {
           if (controle.signal.aborted) return;
           setResultado({ corpo, previa });
-          if (previa.alternativas.length > 0)
-            setOpcoesDeRecalculo(previa.alternativas);
         })
         .catch((erro: unknown) => {
           if (controle.signal.aborted) return;
@@ -300,27 +316,29 @@ export default function CalculadoraDaDivida({
     aoEditar?.();
   }
 
-  /** Mudou um valor: a escolha de recálculo anterior deixa de valer (`EC-70`). */
   function mudarCampo(campo: CampoDaDivida, novo: EstadoDoCampo) {
     editou();
-    setRecalcular(null);
-    setOpcoesDeRecalculo([]);
     setCampos((atual) => ({ ...atual, [campo]: novo }));
   }
 
   function mudarPremissa(mudanca: () => void) {
     editou();
-    setRecalcular(null);
-    setOpcoesDeRecalculo([]);
     mudanca();
   }
 
-  async function confirmar() {
+  /** `recalcular` = a escolha do popup; `null` = salvar os quatro como digitados. */
+  async function confirmar(recalcular: CampoDaDivida | null) {
     if (pergunta.item_id === null) return;
     setGravando(true);
     setErroAoSalvar(null);
     try {
-      aoConfirmar(await confirmarCalculadora(casoId, pergunta.item_id, corpo));
+      const confirmacao = await confirmarCalculadora(casoId, pergunta.item_id, {
+        ...corpo,
+        recalcular,
+      });
+      // Desmontar o `<dialog>` aberto não dispara `close` (`PD-21`).
+      setDivergenciaAberta(false);
+      aoConfirmar(confirmacao);
     } catch (erro) {
       setErroAoSalvar(
         erro instanceof Error && erro.message
@@ -330,6 +348,13 @@ export default function CalculadoraDaDivida({
     } finally {
       setGravando(false);
     }
+  }
+
+  /** `PD-21`: o `close` do popup (Esc, "Voltar e corrigir", navegador) — nada é salvo. */
+  function voltar() {
+    setDivergenciaAberta(false);
+    setErroAoSalvar(null);
+    document.getElementById("calculadora-SALDO")?.focus();
   }
 
   if (erroDeCarga) {
@@ -344,7 +369,6 @@ export default function CalculadoraDaDivida({
   const atual = resultado?.corpo === corpo ? resultado : null;
   const previa = atual?.previa ?? null;
   const falha = atual?.falha ?? null;
-  const calculando = atual === null;
   const erros = previa?.estado === "ERRO" ? previa.erros : [];
   const mensagemDeErro =
     previa?.estado === "ERRO"
@@ -353,10 +377,14 @@ export default function CalculadoraDaDivida({
         : previa.mensagem
       : falha;
   const idDoErro = "calculadora-erro";
-  const incompativel = previa?.estado === "INCOMPATIVEL";
-  const valores = previa?.valores ?? {};
   const podeConfirmar =
     previa !== null && previa.estado !== "ERRO" && !gravando;
+
+  /** `PD-22`: decide pela prévia na tela, sem nova chamada. */
+  function continuar() {
+    if (previa?.estado === "INCOMPATIVEL") setDivergenciaAberta(true);
+    else void confirmar(null);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -364,6 +392,11 @@ export default function CalculadoraDaDivida({
         const { texto, naoSei } = campos[campo];
         const id = `calculadora-${campo}`;
         const invalido = erros.some((e) => e.campo === campo);
+        const linha = linhaDoCampo(campo, previa);
+        const idDaLinha = `${id}-linha`;
+        const descricao = [invalido && idDoErro, linha && idDaLinha]
+          .filter(Boolean)
+          .join(" ");
         const rotulo =
           campo === "TAXA"
             ? (inicial.enunciadoDaPeriodicidade ?? NOMES.TAXA)
@@ -375,7 +408,7 @@ export default function CalculadoraDaDivida({
             className={campo === "PRAZO" ? "campo-texto" : undefined}
             value={texto}
             aria-invalid={invalido || undefined}
-            aria-describedby={invalido ? idDoErro : undefined}
+            aria-describedby={descricao || undefined}
             onChange={(e) =>
               mudarCampo(campo, {
                 texto: aplicarMascara(MASCARA[campo], e.target.value),
@@ -455,6 +488,11 @@ export default function CalculadoraDaDivida({
               <span>{TEXTOS.naoSei}</span>
               <span className="sr-only"> — {NOMES[campo]}</span>
             </label>
+            {linha && (
+              <p id={idDaLinha} className="nota m-0">
+                {linha}
+              </p>
+            )}
           </div>
         );
       })}
@@ -483,158 +521,30 @@ export default function CalculadoraDaDivida({
         </p>
       )}
 
-      <div role="status" aria-busy={calculando} className="flex flex-col gap-3">
-        {calculando && <p className="nota m-0">{TEXTOS.calculando}</p>}
-        {previa && previa.estado !== "ERRO" && (
-          <>
-            {previa.mensagem && (
-              <p className={incompativel ? "aviso-atencao" : "nota m-0"}>
-                {incompativel && <strong>{TEXTOS.incompativel}. </strong>}
-                {previa.mensagem}
-              </p>
-            )}
-            {CAMPOS.map((campo) => {
-              const valor = valores[campo];
-              return (
-                valor && (
-                  <p
-                    key={campo}
-                    className="m-0 flex flex-wrap items-center gap-2"
-                  >
-                    <span>{NOMES[campo]}:</span>
-                    <strong className="tabular-nums">{valor.texto}</strong>
-                    <span
-                      className={
-                        valor.marca === "INFORMADO"
-                          ? "chip chip-mudo"
-                          : "chip chip-ok"
-                      }
-                    >
-                      {valor.rotulo}
-                    </span>
-                  </p>
-                )
-              );
-            })}
-            {previa.parcela_estimada && (
-              // `RF-533`: a estimada fica FORA dos campos digitados, em linha própria e marcada.
-              <p
-                className="m-0 flex flex-wrap items-center gap-2"
-                data-testid="parcela-estimada"
-              >
-                <span>{TEXTOS.parcelaEstimada}:</span>
-                <strong className="tabular-nums">
-                  {previa.parcela_estimada.texto}
-                </strong>
-                <span className="chip chip-mudo">
-                  {previa.parcela_estimada.rotulo}
-                </span>
-                <span className="nota">{previa.parcela_estimada.hipotese}</span>
-              </p>
-            )}
-            {previa.hipotese_conservadora && (
-              // `RF-538`/`RF-539`: só saldo e taxa da hipótese; parcela e prazo dela não aparecem.
-              <div
-                className="m-0 flex flex-col gap-1"
-                data-testid="hipotese-conservadora"
-              >
-                <p className="m-0 flex flex-wrap items-center gap-2">
-                  <span>{NOMES.SALDO}:</span>
-                  <strong className="tabular-nums">
-                    {previa.hipotese_conservadora.saldo}
-                  </strong>
-                  <span>{NOMES.TAXA}:</span>
-                  <strong className="tabular-nums">
-                    {previa.hipotese_conservadora.taxa}
-                  </strong>
-                  <span className="chip chip-mudo">
-                    {previa.hipotese_conservadora.rotulo}
-                  </span>
-                </p>
-                <span className="nota">
-                  {previa.hipotese_conservadora.aviso}
-                </span>
-              </div>
-            )}
-            {previa.teorico && (
-              <p className="m-0">
-                {TEXTOS.valorTeorico} — {NOMES[previa.teorico.campo]}:{" "}
-                <strong className="tabular-nums">{previa.teorico.texto}</strong>
-              </p>
-            )}
-            {previa.resumo && (
-              <dl
-                className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1"
-                aria-label={TEXTOS.resumo}
-              >
-                <dt>{TEXTOS.prazo}</dt>
-                <dd className="m-0 tabular-nums">{previa.resumo.prazo}</dd>
-                <dt>{TEXTOS.primeiraParcela}</dt>
-                <dd className="m-0 tabular-nums">
-                  {previa.resumo.primeira_parcela}
-                </dd>
-                <dt>{TEXTOS.ultimoPagamento}</dt>
-                <dd className="m-0 tabular-nums">
-                  {previa.resumo.ultimo_pagamento}
-                </dd>
-                <dt>{TEXTOS.totalDeJuros}</dt>
-                <dd className="m-0 tabular-nums">
-                  {previa.resumo.total_de_juros}
-                </dd>
-              </dl>
-            )}
-          </>
-        )}
-      </div>
-
-      {opcoesDeRecalculo.length > 0 && (
-        // `RF-525`: a escolha é do aluno; sem ela, os originais e o sinal permanecem.
-        <fieldset className="flex flex-col gap-2 border-0 p-0">
-          <legend className="mb-2 font-serif text-[1.15rem] font-semibold">
-            {TEXTOS.escolhaDoRecalculo}
-          </legend>
-          {opcoesDeRecalculo.map((campo) => (
-            <label key={campo} className="opt">
-              <input
-                type="radio"
-                name="calculadora-recalcular"
-                className="h-[26px] w-[26px] accent-accent"
-                checked={recalcular === campo}
-                onChange={() => {
-                  editou();
-                  setRecalcular(campo);
-                }}
-              />
-              <span>{NOMES[campo]}</span>
-            </label>
-          ))}
-          <label className="opt">
-            <input
-              type="radio"
-              name="calculadora-recalcular"
-              className="h-[26px] w-[26px] accent-accent"
-              checked={recalcular === null}
-              onChange={() => {
-                editou();
-                setRecalcular(null);
-              }}
-            />
-            <span>{TEXTOS.manterOriginais}</span>
-          </label>
-        </fieldset>
-      )}
-
-      {erroAoSalvar && (
+      {/* `EC-105`: com o popup aberto, o erro ao salvar aparece só dentro dele. */}
+      {erroAoSalvar && !divergenciaAberta && (
         <p role="alert" className="aviso-erro">
           {erroAoSalvar}
         </p>
       )}
 
       <div>
-        <Botao onClick={() => void confirmar()} disabled={!podeConfirmar}>
+        <Botao onClick={continuar} disabled={!podeConfirmar}>
           {gravando ? "Salvando…" : rotuloConfirmar}
         </Botao>
       </div>
+
+      {divergenciaAberta && previa && (
+        <DivergenciaDaDivida
+          casoId={casoId}
+          corpo={corpo}
+          previa={previa}
+          gravando={gravando}
+          erroAoSalvar={erroAoSalvar}
+          aoConfirmar={(recalcular) => void confirmar(recalcular)}
+          aoVoltar={voltar}
+        />
+      )}
     </div>
   );
 }

@@ -190,3 +190,56 @@ gerente ou à ouvidoria."
 Sugestão, a validar com o especialista (Marcelo) — a frase sobre o CET em
 particular, que não vem literalmente do curso, que só cita "custo efetivo
 total".
+
+---
+
+# Textos novos para conferir (2026-11-17) — popup da divergência
+
+A tela "Vamos conferir os números desta dívida" deixa de mostrar, abaixo dos
+campos, o quadro que repetia os valores digitados e o resumo do cálculo. A
+conta continua sendo conferida enquanto o aluno digita, mas só aparece algo
+quando ele precisa decidir: se os quatro valores não batem, uma janela abre
+ao clicar "Continuar". E o campo marcado "Não sei" que o sistema calculou
+ganha uma linha curta logo abaixo dele.
+
+Exemplo usado nos textos: saldo R$ 10.000,00, taxa 2% ao mês, 24 meses que
+faltam e parcela R$ 400,00 — com esse saldo, taxa e prazo, a parcela seria
+R$ 528,72.
+
+| Onde | Texto |
+| --- | --- |
+| Título da janela | "Os valores desta dívida não batem" |
+| Frase do valor que a parcela teria | "Com esse saldo, taxa e prazo, a parcela seria R$ 528,72. Você informou R$ 400,00." |
+| Opções (o aluno marca uma) | "Manter os valores que informei" · "Recalcular o saldo" · "Recalcular a parcela" · "Recalcular a taxa" · "Recalcular o prazo" |
+| Valor recalculado, ao marcar uma opção | "Saldo recalculado: R$ 7.565,57 (calculado)" · "Parcela recalculada: R$ 528,72 (calculado)" · "Taxa recalculada: 2,00% a.m. (calculado)" · "Prazo recalculado: 36 meses (calculado)" — os números são só ilustração do formato |
+| Botões | "Confirmar e continuar" · "Voltar e corrigir" |
+| Linha abaixo do campo "Não sei" | "Calculado: R$ 528,72" · "Calculado: 2,00% a.m." · "Calculado: 24 meses" · "Estimada: R$ 528,72 (hipótese de 24 meses)" |
+
+Junto da opção "Manter os valores que informei" continuam aparecendo o saldo
+e a taxa que o plano usa nesse caso e o aviso de que só eles contam para o
+plano — os mesmos textos de hoje, sem mudança. A frase "Nas condições
+informadas, essa parcela não reduz o saldo devedor. Revise os dados ou simule
+outra condição." também é a de hoje: aparece na janela quando a opção marcada
+não tem solução (no exemplo, "Recalcular a taxa", porque 24 parcelas de
+R$ 400,00 somam R$ 9.600,00, menos que o saldo).
+
+**1.** Quando a janela abre, qual opção deve vir marcada?
+Hoje deixamos "Manter os valores que informei" já marcada: é o que acontece
+quando o aluno não escolhe nada, e o plano segue pelo saldo e pela taxa, com
+a marca de hipótese. No exemplo, o aluno que só clicar "Confirmar e
+continuar" fica com a parcela de R$ 400,00 como informou. Essa escolha não é
+guardada: se ele reabrir a ficha com os mesmos valores e clicar "Continuar",
+a janela abre de novo, lembrando que os valores não batem. A alternativa é
+abrir com nada marcado e só liberar "Confirmar e continuar" depois que o
+aluno escolher — mais seguro contra quem confirma sem ler, um clique a mais
+para todos. Qual prefere?
+
+**2.** Na parcela estimada para cartão e cheque especial (quando o aluno não
+sabe a parcela nem o prazo), a tela mostrava a explicação longa "Sem prazo
+nem pagamento informados, estimamos a parcela em 24 meses. Este valor é uma
+hipótese, não o valor do seu contrato.". Agora fica só a linha "Estimada:
+R$ 528,72 (hipótese de 24 meses)" abaixo do campo da parcela. Basta, ou o
+aviso de que o valor não é do contrato precisa continuar na tela?
+
+Sugestão, a validar com o especialista (Marcelo). Se algum texto não estiver
+bom, basta mandar a redação que prefere.
