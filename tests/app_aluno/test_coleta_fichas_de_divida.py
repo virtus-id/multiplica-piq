@@ -12,6 +12,9 @@ Aplicação real, registros REAIS, repositórios em memória por
   `B5.F01` = garantia "Sim") e em branco no item é recusado com
   `400` que lista o que falta; nada é gravado. (`T-389`: era `B5.D02`;
   `T-391`: era `B5.D05S`.)
+- `T-643` (`RF-557`, `RF-558`): o mecanismo novo (`B5.FIM02` cria a ficha 1),
+  isolado numa coleção REDUZIDA sem `B5.00` (`_trecho`) — a produção que
+  remove `B5.00` de fato só chega em `T-649`.
 """
 
 from __future__ import annotations
@@ -181,3 +184,41 @@ def test_t291_com_ficha_ja_criada_nao_reabre_a_lista(monkeypatch: pytest.MonkeyP
 
     assert gravada.status_code == 200, gravada.text
     assert "DIVIDA_ID" not in gravada.json()["abrir_fichas"]
+
+
+def test_t643_fim_do_bloco_4_sem_b5_00_abre_direto_em_b5_a01(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`T-643` (`RF-557`, `AC-592`): coleção sem `B5.00` — fechar a última
+    pergunta do Bloco 4, com zero fichas, já entrega `B5.A01` de um item
+    novo; `DIVIDA_ID` nunca aparece em `abrir_fichas` (a ficha já nasceu)."""
+    colecao = _trecho("B4.02", "B5.A01", "B5.FIM02")
+    cliente, _ = _cliente(monkeypatch, (), colecao=colecao)
+
+    gravada = cliente.post(
+        f"/caso/{_CASO}/resposta", data={"ID_PERGUNTA": "B4.02", "valor": "NAO"}
+    )
+
+    assert gravada.status_code == 200, gravada.text
+    assert gravada.json()["proxima"]["pergunta"]["ID"] == "B5.A01"
+    assert gravada.json()["proxima"]["pergunta"]["item_id"] == "D001"
+    assert "DIVIDA_ID" not in gravada.json()["abrir_fichas"]
+
+
+def test_t643_fechar_a_unica_ficha_reabre_a_lista_sem_servir_fim02(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`T-643` (`RF-558`, `AC-594`): uma ficha já criada e fechada (sem
+    nenhuma resposta nova de quantidade) devolve a lista (`abrir_fichas`),
+    nunca `B5.FIM02` isolada."""
+    colecao = _trecho("B4.02", "B5.A01", "B5.FIM02")
+    cliente, _ = _cliente(monkeypatch, (), ("D001",), colecao=colecao)
+
+    gravada = cliente.post(
+        f"/caso/{_CASO}/resposta",
+        data={"ID_PERGUNTA": "B5.A01", "item_id": "D001", "valor": "Itaú"},
+    )
+
+    assert gravada.status_code == 200, gravada.text
+    assert gravada.json()["abrir_fichas"] == ["DIVIDA_ID"]
+    assert gravada.json()["proxima"]["pergunta"]["ID"] != "B5.FIM02"

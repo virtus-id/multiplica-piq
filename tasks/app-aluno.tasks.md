@@ -15097,7 +15097,7 @@ registro de `DIVIDA_ID` é `B5.A01` e o único `NENHUM`-escopo restante é
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_coleta_fichas_de_divida.py`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `test_coleta_fichas_de_divida.py`: 4 passed (os dois de `T-643` mais os dois de `B5.00` já existentes); `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 
