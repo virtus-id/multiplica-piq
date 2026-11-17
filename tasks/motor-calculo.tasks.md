@@ -8363,13 +8363,13 @@ motor → publicação é provado por `T-616`.
 - **Tipo:** `Test` · **Dependências:** `T-613`, `T-615` · **Rastreia:** `AC-584` · `RF-553`, `RF-554`, `V-01` · plano `R14.9`
 - **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py`
 
-- [ ] Fora de estabilização sem estouro → toda posição com `MOTIVO_POSICAO is None`; estado de `AC-556` com a lista do revisor → idem
-- [ ] Duas execuções do mesmo estado → motivos e `QUITACOES_SO_PARCELAS` iguais
-- [ ] Linha de `snapshots.jsonl` sem as duas chaves (e o `_dados_completos` do Supabase sem elas, sem banco real) → `None` e o mesmo `SNAPSHOT_ID`
-- [ ] Round-trip com os campos preenchidos, inclusive `QUITACOES_SO_PARCELAS = ()` distinto de `None`
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] Fora de estabilização sem estouro → toda posição com `MOTIVO_POSICAO is None`; estado de `AC-556` com a lista do revisor → idem
+- [x] Duas execuções do mesmo estado → motivos e `QUITACOES_SO_PARCELAS` iguais
+- [x] Linha de `snapshots.jsonl` sem as duas chaves (e o `_dados_completos` do Supabase sem elas, sem banco real) → `None` e o mesmo `SNAPSHOT_ID`
+- [x] Round-trip com os campos preenchidos, inclusive `QUITACOES_SO_PARCELAS = ()` distinto de `None`
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 

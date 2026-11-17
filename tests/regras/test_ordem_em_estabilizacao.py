@@ -15,6 +15,8 @@ import json
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from decimal import Decimal
+from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -27,11 +29,12 @@ from engine.ciclo_mensal import (
 )
 from engine.diagnostico import Diagnostico, calcular_diagnostico
 from engine.estado import Divida, EstadoFinanceiro
+from engine.gates import particionar_elegibilidade
 from engine.metodos.avalanche import beneficio_de_ranqueamento, criar_selecionar_alvo_avalanche
 from engine.metodos.bola_de_neve import criar_selecionar_alvo_bola_de_neve
 from engine.metodos.hibrido import criar_selecionar_alvo_hibrido, escolher_D_ESTRELA
 from engine.motor import calcular_plano
-from engine.ordem import derivar_MOTIVO_POSICAO
+from engine.ordem import ErroOrdemInconsistente, derivar_MOTIVO_POSICAO, publicar_ORDEM_QUITACAO
 from engine.parametros import Parametros
 from engine.precisao import dinheiro
 from engine.prioridade_ordem import aplicar_prioridade_ordem
@@ -44,10 +47,20 @@ from engine.tipos import (
     SimNaoTalvez,
 )
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
+from persistencia.arquivo.repositorio_snapshots import (
+    RepositorioSnapshotsArquivo,
+    _desserializar_snapshot,
+)
+from persistencia.supabase.repositorio_snapshots import _bruto_para_formato_arquivo
 from tests.fixtures.carregar import carregar_gab_c
 from tests.regras.test_ordem_com_todas_as_dividas import _caso_teste3
-from tests.regras.test_ordem_em_estabilizacao_identidade import _CONGELADOS, digest_do_snapshot
+from tests.regras.test_ordem_em_estabilizacao_identidade import (
+    _CONGELADOS,
+    _estado_ac556,
+    digest_do_snapshot,
+)
 from tests.regras.test_prioridade_ordem import _carteira, _com, _duas_primeiras
+from tests.regras.test_repositorio_snapshots import _linha_postgres
 
 
 def _parametros() -> Parametros:
@@ -657,3 +670,113 @@ def test_ec91_hibrido_em_estabilizacao_d_estrela_de_antes_e_o_resto_com_o_piso()
         ("B", MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL),
         ("S", MOTIVO_POSICAO.ULTIMA_RESTANTE),
     ]
+
+
+# --- T-620: AC-584 ------------------------------------------------------------
+
+
+def test_ac584_sem_ordem_de_ataque_ou_com_a_lista_nao_ha_motivo() -> None:
+    parametros = _parametros()
+    # fora de estabilização, sem estouro (GAB-C): a ordem de quitação, sem motivo
+    gab_c = calcular_plano(carregar_gab_c(), parametros)
+    assert not gab_c.diagnostico.MODO_ESTABILIZACAO
+    assert not gab_c.cenarios[gab_c.METODO_RECOMENDADO_PIQ].ESTOUROU_HORIZONTE
+    assert gab_c.ORDEM_QUITACAO
+    assert all(p.MOTIVO_POSICAO is None for p in gab_c.ORDEM_QUITACAO)
+    # AC-556: sem a lista, a ordem de ataque com motivo; com a lista, sem motivo
+    sem_lista = calcular_plano(_estado_ac556(), parametros)
+    assert all(p.MOTIVO_POSICAO is not None for p in sem_lista.ORDEM_QUITACAO)
+    com_lista = calcular_plano(
+        _estado_ac556(), parametros, ordem_do_revisor=("D004", "D003", "D002", "D001")
+    )
+    assert com_lista.ORDEM_QUITACAO
+    assert all(p.MOTIVO_POSICAO is None for p in com_lista.ORDEM_QUITACAO)
+
+
+def test_ac584_duas_execucoes_mesmos_motivos_e_mesma_previsao() -> None:
+    primeiro = calcular_plano(_estado_rodrigo(), _parametros())
+    segundo = calcular_plano(_estado_rodrigo(), _parametros())
+    assert primeiro.prognostico is not None and segundo.prognostico is not None
+    assert [p.MOTIVO_POSICAO for p in primeiro.ORDEM_QUITACAO] == [
+        p.MOTIVO_POSICAO for p in segundo.ORDEM_QUITACAO
+    ]
+    assert (
+        primeiro.prognostico.sem_acao.QUITACOES_SO_PARCELAS
+        == segundo.prognostico.sem_acao.QUITACOES_SO_PARCELAS
+    )
+    assert primeiro == segundo
+
+
+def test_t611_motivos_de_tamanho_diferente_da_ordem_e_erro() -> None:
+    estado, parametros = _estado_rodrigo(), _parametros()
+    snapshot = calcular_plano(estado, parametros)
+    with pytest.raises(ErroOrdemInconsistente, match="MOTIVO_POSICAO"):
+        publicar_ORDEM_QUITACAO(
+            snapshot.cenarios[METODO.AVALANCHE],
+            METODO.AVALANCHE,
+            _inventario(estado),
+            particionar_elegibilidade(estado.dividas),
+            motivos=(MOTIVO_POSICAO.UNICA_DIVIDA,),
+        )
+
+
+def _sem_os_campos_novos(bruto: dict[str, Any]) -> dict[str, Any]:
+    """O dicionário gravado, como um snapshot anterior a RF-553/RF-554."""
+    for posicao in bruto["ORDEM_QUITACAO"]:
+        del posicao["MOTIVO_POSICAO"]
+    del bruto["prognostico"]["sem_acao"]["QUITACOES_SO_PARCELAS"]
+    return bruto
+
+
+def test_ac584_snapshot_anterior_volta_sem_os_campos_e_com_o_mesmo_id(tmp_path: Path) -> None:
+    original = calcular_plano(_estado_rodrigo(), _parametros())
+    caminho = tmp_path / "snapshots.jsonl"
+    RepositorioSnapshotsArquivo(caminho).anexar(original)
+    bruto = _sem_os_campos_novos(json.loads(caminho.read_text(encoding="utf-8")))
+    caminho.write_text(json.dumps(bruto) + "\n", encoding="utf-8")
+
+    lido = RepositorioSnapshotsArquivo(caminho).obter(original.SNAPSHOT_ID)
+
+    assert lido.SNAPSHOT_ID == original.SNAPSHOT_ID
+    assert all(p.MOTIVO_POSICAO is None for p in lido.ORDEM_QUITACAO)
+    assert lido.prognostico is not None
+    assert lido.prognostico.sem_acao.QUITACOES_SO_PARCELAS is None
+
+    # caminho Supabase: dados_completos sem as duas chaves, sem banco real
+    linha = _linha_postgres(original)
+    linha["dados_completos"] = _sem_os_campos_novos(linha["dados_completos"])
+    antigo = _desserializar_snapshot(_bruto_para_formato_arquivo(linha))
+    assert antigo.SNAPSHOT_ID == original.SNAPSHOT_ID
+    assert all(p.MOTIVO_POSICAO is None for p in antigo.ORDEM_QUITACAO)
+    assert antigo.prognostico is not None
+    assert antigo.prognostico.sem_acao.QUITACOES_SO_PARCELAS is None
+
+
+@pytest.mark.parametrize("so_parcelas", [None, (), (("D002", 24), ("D001", 118))])
+def test_ac584_ida_e_volta_com_os_campos(
+    tmp_path: Path, so_parcelas: tuple[tuple[str, int], ...] | None
+) -> None:
+    snapshot = calcular_plano(_estado_rodrigo(), _parametros())
+    assert snapshot.prognostico is not None
+    original = replace(
+        snapshot,
+        prognostico=replace(
+            snapshot.prognostico,
+            sem_acao=replace(snapshot.prognostico.sem_acao, QUITACOES_SO_PARCELAS=so_parcelas),
+        ),
+    )
+    caminho = tmp_path / "snapshots.jsonl"
+    RepositorioSnapshotsArquivo(caminho).anexar(original)
+
+    lido = RepositorioSnapshotsArquivo(caminho).obter(original.SNAPSHOT_ID)
+    pelo_supabase = _desserializar_snapshot(_bruto_para_formato_arquivo(_linha_postgres(original)))
+
+    for reconstruido in (lido, pelo_supabase):
+        assert reconstruido == original
+        assert reconstruido.prognostico is not None
+        # () (nenhuma termina) não vira None (snapshot anterior), nem o contrário
+        assert reconstruido.prognostico.sem_acao.QUITACOES_SO_PARCELAS == so_parcelas
+        assert [p.MOTIVO_POSICAO for p in reconstruido.ORDEM_QUITACAO] == [
+            MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL,
+            MOTIVO_POSICAO.ULTIMA_RESTANTE,
+        ]
