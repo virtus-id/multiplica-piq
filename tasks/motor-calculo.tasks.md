@@ -8049,12 +8049,12 @@ de `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, `ORDEM_STATUS`, `diagnostico`,
 `PRAZO_TOTAL`, `CUSTO_FUTURO_TOTAL`, `meses` de cada cenário e `MESES_DO_PLANO`,
 lido **antes** da mudança.
 
-- [ ] Cabeçalho: `MODO_ESTABILIZACAO`; `RESULTADO_MENSAL_ATUAL` e `CAPACIDADE_ATAQUE_CONSERVADORA` = −10.356,84; `PISO_CAPACIDADE` = 13.701,27 × 3% exato (411,04 na exibição); Avalanche recomendada; horizonte estourado — tolerância zero
-- [ ] Se a fixture não reproduzir o cabeçalho, **parar e reportar** com a saída real; não ajustar a fixture fora dos valores da spec
-- [ ] Digest lido da execução antes de `T-606`–`T-615`, não escrito à mão
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] Cabeçalho: `MODO_ESTABILIZACAO`; `RESULTADO_MENSAL_ATUAL` e `CAPACIDADE_ATAQUE_CONSERVADORA` = −10.356,84; `PISO_CAPACIDADE` = 13.701,27 × 3% exato (411,04 na exibição); Avalanche recomendada; horizonte estourado — tolerância zero
+- [x] Se a fixture não reproduzir o cabeçalho, **parar e reportar** com a saída real; não ajustar a fixture fora dos valores da spec
+- [x] Digest lido da execução antes de `T-606`–`T-615`, não escrito à mão
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 
