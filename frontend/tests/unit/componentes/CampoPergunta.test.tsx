@@ -798,3 +798,58 @@ describe("MENU — instituição do credor (T-415)", () => {
     expect(aoValor).toHaveBeenLastCalledWith(["OUTRA", "T"]);
   });
 });
+
+describe("RF-562: ícone ⓘ ao lado do rótulo/legend (T-676)", () => {
+  const EXPLICACAO = { o_que_e: "O que é.", onde_encontrar: "Onde encontrar." };
+
+  it("pergunta com `explicacao` mostra o ícone ⓘ ao lado do `<label>`", () => {
+    render(
+      <CampoPergunta
+        pergunta={fabricar("MOEDA", { explicacao: EXPLICACAO })}
+        valor=""
+        naoSei={false}
+        onValor={vi.fn()}
+        onNaoSei={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "O que é Campo de teste MOEDA?" }),
+    ).toBeInTheDocument();
+  });
+
+  it("pergunta com `explicacao` mostra o ícone ⓘ ao lado do `<legend>` (grupo)", () => {
+    render(
+      <CampoPergunta
+        pergunta={fabricar("SELECAO_UNICA", {
+          explicacao: EXPLICACAO,
+          opcoes: [{ rotulo: "Sim", valor_interno: "SIM", admite_nao_sei: false }],
+        })}
+        valor=""
+        naoSei={false}
+        onValor={vi.fn()}
+        onNaoSei={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "O que é Campo de teste SELECAO_UNICA?",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("pergunta sem `explicacao` não mostra nenhum ícone novo", () => {
+    render(
+      <CampoPergunta
+        pergunta={fabricar("MOEDA")}
+        valor=""
+        naoSei={false}
+        onValor={vi.fn()}
+        onNaoSei={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+});

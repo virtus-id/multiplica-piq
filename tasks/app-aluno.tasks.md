@@ -15984,11 +15984,14 @@ continuam verdes sem edição.
 
 **Critérios de aceite**
 
-- [ ] Os dois cenários cobertos
-- [ ] Verificação: `npm run test` em `frontend/`
+- [x] Os dois cenários cobertos
+- [x] Verificação: `npx vitest run tests/unit/componentes/CampoPergunta.test.tsx`
+      — 38 passed
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — arquivo roda e passa (38 passed, 35
+anteriores + 3 novos); `npm run test`/lint/build completos da suíte do
+`frontend/` ainda pendentes.
 
 ---
 
