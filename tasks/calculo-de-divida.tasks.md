@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`72/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (7): `T-539` (backlog, sem spec) e `T-684` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
+`73/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (6): `T-539` (backlog, sem spec) e `T-685` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1505,19 +1505,19 @@ Estado `recalculo` (R2.4). Marcar "Recalcular o X" dispara `preverCalculadora(ca
 Docblock `// @vitest-environment happy-dom`; API simulada com `vi.spyOn(api, …)`; prévia `INCOMPATIVEL` do exemplo do `AC-534`. Tabela "Unitários — `DivergenciaDaDivida.test.tsx`" de R2.9; cada teste cita o `AC`/`EC` no nome.
 
 **Critérios de aceite**
-- [ ] `AC-608`: `getByRole("dialog", { name: "Os valores desta dívida não batem" })`; frase com `R$ 528,72` e `R$ 400,00`; radios na ordem Manter, saldo, parcela, taxa, prazo, com "Manter" marcada; saldo, taxa, rótulo `hipótese` e aviso da hipótese conservadora; sem `hipotese_conservadora`, o bloco não existe; os dois botões
-- [ ] `AC-609`: "Confirmar e continuar" com "Manter" ⇒ `aoConfirmar(null)`; `preverCalculadora` nunca chamado
-- [ ] `AC-612`: "Recalcular a parcela" ⇒ `preverCalculadora` com `{ ...corpo, recalcular: "PARCELA" }` ⇒ "Parcela recalculada: R$ 528,72 (calculado)" ⇒ confirmar ⇒ `aoConfirmar("PARCELA")`
-- [ ] `AC-613`, `EC-102`: "Recalcular a taxa" com `ERRO` ⇒ frase exata do `RF-519` em `role="alert"`, confirmar desabilitado; depois "Recalcular a parcela" ⇒ frase some, valor aparece, confirmar habilitado
-- [ ] `RF-567`: confirmar desabilitado com a resposta pendente e depois de falha de rede; trocar de opção aborta o sinal anterior e a resposta atrasada não aparece
-- [ ] `AC-611`, `EC-100`: "Voltar e corrigir" ⇒ `aoVoltar` chamado, `aoConfirmar` não; `fireEvent(dialog, new Event("close"))` ⇒ `aoVoltar` (o happy-dom não implementa a tecla Esc; o Esc real fica no e2e, `T-688`)
-- [ ] `EC-105`: com `erroAoSalvar`, `role="alert"` com a mensagem **dentro** do `dialog`
-- [ ] Lei nº 3: o mesmo regex do teste da página aplicado a `src/componentes/DivergenciaDaDivida.tsx`
-- [ ] Arquivo todo verde
+- [x] `AC-608`: `getByRole("dialog", { name: "Os valores desta dívida não batem" })`; frase com `R$ 528,72` e `R$ 400,00`; radios na ordem Manter, saldo, parcela, taxa, prazo, com "Manter" marcada; saldo, taxa, rótulo `hipótese` e aviso da hipótese conservadora; sem `hipotese_conservadora`, o bloco não existe; os dois botões
+- [x] `AC-609`: "Confirmar e continuar" com "Manter" ⇒ `aoConfirmar(null)`; `preverCalculadora` nunca chamado
+- [x] `AC-612`: "Recalcular a parcela" ⇒ `preverCalculadora` com `{ ...corpo, recalcular: "PARCELA" }` ⇒ "Parcela recalculada: R$ 528,72 (calculado)" ⇒ confirmar ⇒ `aoConfirmar("PARCELA")`
+- [x] `AC-613`, `EC-102`: "Recalcular a taxa" com `ERRO` ⇒ frase exata do `RF-519` em `role="alert"`, confirmar desabilitado; depois "Recalcular a parcela" ⇒ frase some, valor aparece, confirmar habilitado
+- [x] `RF-567`: confirmar desabilitado com a resposta pendente e depois de falha de rede; trocar de opção aborta o sinal anterior e a resposta atrasada não aparece
+- [x] `AC-611`, `EC-100`: "Voltar e corrigir" ⇒ `aoVoltar` chamado, `aoConfirmar` não; `fireEvent(dialog, new Event("close"))` ⇒ `aoVoltar` (o happy-dom não implementa a tecla Esc; o Esc real fica no e2e, `T-688`)
+- [x] `EC-105`: com `erroAoSalvar`, `role="alert"` com a mensagem **dentro** do `dialog`
+- [x] Lei nº 3: o mesmo regex do teste da página aplicado a `src/componentes/DivergenciaDaDivida.tsx`
+- [x] Arquivo todo verde
 
 **Verificação:** `npm --prefix frontend run test -- tests/unit/componentes/DivergenciaDaDivida.test.tsx`
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)` — `DivergenciaDaDivida.test.tsx`: 13 testes, 13 verdes
 
 ---
 
