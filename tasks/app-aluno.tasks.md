@@ -15070,7 +15070,7 @@ comportamento observável ainda.
       real que ainda tem `B5.00`)
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; **desvio do literal da tarefa**: a troca pura do `if _abre_fichas_de_divida(...)` pela checagem nova quebrava `test_t291_b5_00_com_duas_dividas_declaradas_abre_a_primeira_ficha` (posta `B5.00` direto num caso sem nenhuma resposta anterior — `proxima` não é `B5.FIM02` nesse caso, é a primeira pendência de toda a coleção; a premissa "a varredura sempre passa por `B5.00` antes de alcançar `B5.FIM02` com zero fichas" só vale com os blocos anteriores já respondidos). Mantido `_abre_fichas_de_divida` em OU com a checagem nova (em vez de substituída), para satisfazer literalmente o próprio critério "suíte atual sem falha nova"; `_abre_fichas_de_divida`/`_DECLARACAO_DE_DIVIDAS` seguem intactas, saem só em `T-649`, como já previsto. `tests/app_aluno/test_coleta_fichas_de_divida.py`: 2 passed (os dois testes existentes, intocados); `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 

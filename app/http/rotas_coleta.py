@@ -775,10 +775,29 @@ def responder_pergunta(
         )
     elif sem_nome:
         abrir_fichas = (*abrir_fichas, EscopoRepeticao.ITEM_DESPESA)
-    # `T-291` (RF-87, DE-04): a cabeça de `DIVIDA_ID` não tem condição, então
-    # `escopos_abertos_pela_resposta` nunca a aponta. Com `B5.00`
-    # respondida e a pendência de dívidas pedindo fichas, a lista abre.
-    if _abre_fichas_de_divida(
+    # `T-642` (RF-557, RF-558): a próxima pendência virou B5.FIM02 e não há
+    # ficha nenhuma — o "criar" de `_primeiro_item_ou_lista`, abaixo, cria a
+    # ficha 1 (ela já sabe criar qualquer escopo de `_FICHAS_QUE_NASCEM_COM_
+    # ITEM`). Com ficha(s) já existente(s), fechar a última pergunta do item
+    # já adicionou `DIVIDA_ID` a `abrir_fichas` pelo caso "b" da mesma
+    # função — `RF-558` sai de graça, sem código novo aqui.
+    #
+    # Mantido em OU com `_abre_fichas_de_divida` (abaixo), em vez de
+    # substituí-lo: a varredura só alcança `B5.FIM02` com zero fichas
+    # depois de TODO registro anterior (Blocos 1 a 4 inclusive) já estar
+    # respondido — verdade no fluxo real (sequencial), mas não em
+    # `test_t291_b5_00_com_duas_dividas_declaradas_abre_a_primeira_ficha`
+    # (posta `B5.00` direto, sem respostas anteriores): ali `proxima` é a
+    # primeira pendência de TODA a coleção, não `B5.FIM02`, e a checagem
+    # nova sozinha deixaria de criar a ficha. `_abre_fichas_de_divida`
+    # continua cobrindo esse caso até sair em `T-649`.
+    pergunta_de_proxima = proxima.get("pergunta")
+    novo_fecha_cadastro = (
+        isinstance(pergunta_de_proxima, dict)
+        and pergunta_de_proxima.get("ID") == ID_FIM_DE_CADASTRO
+        and not itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID)
+    )
+    if novo_fecha_cadastro or _abre_fichas_de_divida(
         colecao, registro.VARIAVEL_GRAVADA, respostas_apos_gravar, itens_por_escopo
     ):
         abrir_fichas = (*abrir_fichas, EscopoRepeticao.DIVIDA_ID)
@@ -904,8 +923,36 @@ def _proxima_do_item(
     return {"pergunta": pergunta, "coleta_completa": False}
 
 
+# `T-642` (`RF-557`, `RF-558`) — substitui `_DECLARACAO_DE_DIVIDAS`/
+# `_abre_fichas_de_divida`, ligados a `B5.00` (sai em `T-649`). Sem ela, a
+# cabeça de `DIVIDA_ID` (`B5.A01`) não tem condição — `escopos_abertos_
+# pela_resposta` nunca a aponta — então o único sinal que resta é a PRÓPRIA
+# `B5.FIM02` virando a pendência.
+ID_FIM_DE_CADASTRO: Final[str] = "B5.FIM02"
+
+
+def criar_primeira_ficha_de_divida(
+    CASO_ID: str,
+    colecao: ColecaoDeRegistros,
+    respostas: RespostasCaso,
+    repositorio_itens: RepositorioItens,
+) -> PendenciaObrigatoria | None:
+    """`T-642` (`RF-557`) — cria a ficha 1 de `DIVIDA_ID` (mesmo mecanismo de
+    `RF-101`/`_FICHAS_QUE_NASCEM_COM_ITEM`: `proximo_identificador` + a
+    MESMA busca de `_proxima_do_item`, aqui como `PendenciaObrigatoria`
+    pura, sem serialização) e devolve a primeira pergunta aberta dela.
+    `None` só se a ficha nascer sem pergunta aberta (defensivo — `B5.A01`
+    não tem condição, não deveria ocorrer). Chamada pelas três entradas do
+    Bloco 5 (`POST` de resposta, `GET /pergunta` sem `ID`, `rotas_inicio.py`)."""
+    item_id = repositorio_itens.proximo_identificador(CASO_ID, EscopoRepeticao.DIVIDA_ID)
+    itens_por_escopo, _ = _itens_e_rotulos(repositorio_itens, CASO_ID, colecao)
+    return proxima_pergunta_do_item(colecao.registros, respostas, itens_por_escopo, item_id)
+
+
 # `T-291` — a variável de `B5.00`: a declaração das dívidas (`T-389`: `B5.00A`,
-# dos tipos declarados, saiu do questionário).
+# dos tipos declarados, saiu do questionário). Sai em `T-649`, junto do
+# mecanismo antigo abaixo — `criar_primeira_ficha_de_divida`, acima, já o
+# substituiu no ponto de entrada do `POST` (`responder_pergunta`).
 _DECLARACAO_DE_DIVIDAS: Final[tuple[str, ...]] = ("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL",)
 
 
