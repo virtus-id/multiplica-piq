@@ -33,6 +33,7 @@ import type {
   CampoDaDivida,
   ConfirmacaoDaCalculadora,
   CorpoDaCalculadora,
+  ExplicacaoDoCampo,
   PeriodicidadeDaTaxa,
   Pergunta,
   RespostaDaPrevia,
@@ -40,6 +41,7 @@ import type {
   TipoResposta,
 } from "../tipos";
 import Botao from "./Botao";
+import Explicacao from "./Explicacao";
 
 /** Espera depois da última edição antes de pedir a prévia. */
 export const ESPERA_DA_PREVIA_MS = 400;
@@ -107,6 +109,8 @@ interface Inicial {
   sistema: SistemaDaDivida;
   periodicidade: PeriodicidadeDaTaxa;
   enunciados: Partial<Record<CampoDaDivida, string>>;
+  /** `RF-562`: o conteúdo do ícone ⓘ de cada campo — mesmo texto da tela de pergunta. */
+  explicacoes: Partial<Record<CampoDaDivida, ExplicacaoDoCampo>>;
   /** O rótulo de cada opção do servidor, pelo `valor_interno`. */
   rotulosDoSistema: Partial<Record<SistemaDaDivida, string>>;
   rotulosDaPeriodicidade: Partial<Record<PeriodicidadeDaTaxa, string>>;
@@ -170,6 +174,12 @@ async function carregarInicial(
       SALDO: saldo?.enunciado,
       PARCELA: parcela?.enunciado,
       PRAZO: prazo?.enunciado,
+    },
+    explicacoes: {
+      ...(saldo?.explicacao ? { SALDO: saldo.explicacao } : {}),
+      ...(parcela?.explicacao ? { PARCELA: parcela.explicacao } : {}),
+      ...(taxa?.explicacao ? { TAXA: taxa.explicacao } : {}),
+      ...(prazo?.explicacao ? { PRAZO: prazo.explicacao } : {}),
     },
     rotulosDoSistema: {
       PRICE: rotulosDoSistema.PRICE,
@@ -374,14 +384,24 @@ export default function CalculadoraDaDivida({
             }
           />
         );
+        const explicacaoDoCampo = inicial.explicacoes[campo];
         return (
           <div key={campo} className="field flex flex-col gap-2">
-            <label
-              htmlFor={id}
-              className="font-serif text-[1.15rem] font-semibold"
-            >
-              {rotulo}
-            </label>
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor={id}
+                className="font-serif text-[1.15rem] font-semibold"
+              >
+                {rotulo}
+              </label>
+              {explicacaoDoCampo && (
+                <Explicacao
+                  campo={NOMES[campo]}
+                  oQueE={explicacaoDoCampo.o_que_e}
+                  ondeEncontrar={explicacaoDoCampo.onde_encontrar}
+                />
+              )}
+            </div>
             {campo === "PRAZO" ? (
               entrada
             ) : campo === "TAXA" ? (

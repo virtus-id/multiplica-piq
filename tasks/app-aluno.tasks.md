@@ -16011,14 +16011,17 @@ por `obterPergunta`). No `<label>{rotulo}</label>` de cada campo, acrescenta
 
 **Critérios de aceite**
 
-- [ ] Os quatro campos (`SALDO`, `PARCELA`, `TAXA`, `PRAZO`) mostram o
+- [x] Os quatro campos (`SALDO`, `PARCELA`, `TAXA`, `PRAZO`) mostram o
       ícone ⓘ com o mesmo texto da tela de pergunta correspondente
-- [ ] Nenhuma requisição nova além das quatro já existentes de
+- [x] Nenhuma requisição nova além das quatro já existentes de
       `carregarInicial`
 - [ ] `npm run build` verde
 - [ ] Gates: lint, build (teste em `T-678`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — suíte atual
+(`CalculadoraDaDivida.test.tsx`, sem `explicacao` nos fixtures) continua
+passando sem edição (13 passed); `npm run build`/lint completos ainda
+pendentes.
 
 ---
 
