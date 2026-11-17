@@ -8235,12 +8235,12 @@ diagnostico_pre.PISO_CAPACIDADE), parametros, D_ESTRELA=resultado_hibrido.D_ESTR
 repassados a `publicar_ORDEM_QUITACAO(..., motivos=motivos)`. O ramo 10d (lista
 do revisor) republica sem `motivos`.
 
-- [ ] O delta vem da mesma função usada no laço (um lugar só)
-- [ ] Sem `ORDEM_DE_ATAQUE` ou com a lista, `motivos = None`
-- [ ] `T-603` e `T-604` verdes sem edição
-- [ ] Rehash só de `engine/motor.py`; gates: lint, build, test
+- [x] O delta vem da mesma função usada no laço (um lugar só)
+- [x] Sem `ORDEM_DE_ATAQUE` ou com a lista, `motivos = None`
+- [x] `T-603` e `T-604` verdes sem edição
+- [x] Rehash só de `engine/motor.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 

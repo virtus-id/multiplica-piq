@@ -115,7 +115,13 @@ from engine.ataque_imediato import (
     derivar_RESERVA_RECOMENDADA,
 )
 from engine.beneficio_marginal import BeneficioMarginal, calcular_beneficio_marginal
-from engine.ciclo_mensal import Cenario, EstadoSimulacao, SelecionarAlvo, simular_cenario
+from engine.ciclo_mensal import (
+    Cenario,
+    EstadoSimulacao,
+    SelecionarAlvo,
+    delta_de_ranqueamento_da_ordem,
+    simular_cenario,
+)
 from engine.comparacao import comparar_cenarios
 from engine.diagnostico import Diagnostico, calcular_diagnostico
 from engine.estado import CERTEZA_RECURSO_EXTRAORDINARIO, Divida, EstadoFinanceiro
@@ -138,7 +144,11 @@ from engine.gates import (
 from engine.metodos.avalanche import criar_selecionar_alvo_avalanche
 from engine.metodos.bola_de_neve import criar_selecionar_alvo_bola_de_neve
 from engine.metodos.hibrido import criar_selecionar_alvo_hibrido
-from engine.ordem import consolidar_ORDEM_STATUS, publicar_ORDEM_QUITACAO
+from engine.ordem import (
+    consolidar_ORDEM_STATUS,
+    derivar_MOTIVO_POSICAO,
+    publicar_ORDEM_QUITACAO,
+)
 from engine.parametros import Parametros
 from engine.precisao import CONTEXTO_MOTOR, dinheiro
 from engine.prioridade_ordem import aplicar_prioridade_ordem
@@ -610,8 +620,23 @@ def calcular_plano(
         # seguida da consolidação de ORDEM_STATUS (T-64, AC-33).
         metodo_recomendado = resultado_recomendacao.METODO_RECOMENDADO_PIQ
         cenario_recomendado = cenarios_por_metodo[metodo_recomendado]
+        # RF-553: o motivo de cada posição só existe quando a ordem publicada é
+        # a ORDEM_DE_ATAQUE do método — com o mesmo delta do laço (RF-552).
+        motivos = None
+        if lista is None and cenario_recomendado.ORDEM_DE_ATAQUE:
+            motivos = derivar_MOTIVO_POSICAO(
+                cenario_recomendado.ORDEM_DE_ATAQUE,
+                dividas,
+                metodo_recomendado,
+                delta_de_ranqueamento_da_ordem(
+                    diagnostico_pre.CAPACIDADE_ATAQUE_CONSERVADORA,
+                    diagnostico_pre.PISO_CAPACIDADE,
+                ),
+                parametros,
+                D_ESTRELA=resultado_hibrido.D_ESTRELA,
+            )
         ordem_publicada = publicar_ORDEM_QUITACAO(
-            cenario_recomendado, metodo_recomendado, dividas, particao
+            cenario_recomendado, metodo_recomendado, dividas, particao, motivos=motivos
         )
 
         # Passos 10a-10d (RF-545, plano R13.1): só com a lista do revisor.
