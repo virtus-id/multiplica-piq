@@ -184,6 +184,25 @@ def _chave_desempate_O05(
     return (fluxo_liberado_chave, custo_financeiro_chave, peso_emocional_chave, divida_id)
 
 
+def chave_bola_de_neve(
+    divida_id: str, divida: Divida
+) -> tuple[Decimal, Decimal, Decimal, Decimal, str] | None:
+    """`O-04` · `O-05` · `RF-553` — a chave com que a Bola de Neve ordena,
+    achatada: `(VALOR_RELEVANTE_PARA_QUITACAO, fluxo liberado negado, custo
+    negado, peso emocional efetivo negado, DIVIDA_ID)`. Mesma ordem
+    lexicográfica de `_chave_desempate_O05` precedida do valor relevante;
+    uma fonte só para o seletor e o motivo da posição (`engine/ordem.py`).
+
+    Índice 0 = critério `O-04`; índice 3 = peso emocional efetivo (`§16.4`
+    passo 4); 1, 2 e 4 = demais desempates de `O-05`. `None` com valor
+    relevante `DESCONHECIDO` (a dívida vai para `informacao_pendente`).
+    """
+    valor_relevante = compor_VALOR_RELEVANTE_PARA_QUITACAO(divida).VALOR_RELEVANTE_PARA_QUITACAO
+    if valor_relevante is DESCONHECIDO:
+        return None
+    return (valor_relevante, *_chave_desempate_O05(divida_id, divida))
+
+
 def _ordenar_por_valor_relevante(
     elegiveis: Mapping[str, Divida],
 ) -> ResultadoOrdenacaoBolaDeNeve:
@@ -197,27 +216,20 @@ def _ordenar_por_valor_relevante(
     Dívida com `VALOR_RELEVANTE_PARA_QUITACAO = DESCONHECIDO` não entra na
     ordenação — vai para `informacao_pendente` (ver docstring do módulo).
     """
-    valores_relevantes: dict[str, Dinheiro] = {}
+    chaves: dict[str, tuple[Decimal, Decimal, Decimal, Decimal, str]] = {}
     informacao_pendente: list[str] = []
     for divida_id, divida in elegiveis.items():
-        resultado_valor_relevante = compor_VALOR_RELEVANTE_PARA_QUITACAO(divida)
-        valor_relevante = resultado_valor_relevante.VALOR_RELEVANTE_PARA_QUITACAO
-        if valor_relevante is DESCONHECIDO:
+        chave = chave_bola_de_neve(divida_id, divida)
+        if chave is None:
             # RF-16/AC-44: sem VALOR_RELEVANTE_PARA_QUITACAO não há como
             # comparar esta dívida a nenhuma outra por O-04 — desviada para
             # INFORMACAO_PENDENTE (triagem formal é Gate 1, engine/gates.py,
             # fora do escopo desta função; aqui só a exclusão defensiva).
             informacao_pendente.append(divida_id)
             continue
-        valores_relevantes[divida_id] = valor_relevante
+        chaves[divida_id] = chave
 
-    ordenados = sorted(
-        valores_relevantes.keys(),
-        key=lambda divida_id: (
-            valores_relevantes[divida_id],
-            _chave_desempate_O05(divida_id, elegiveis[divida_id]),
-        ),
-    )
+    ordenados = sorted(chaves.keys(), key=lambda divida_id: chaves[divida_id])
 
     return ResultadoOrdenacaoBolaDeNeve(
         ordem=tuple(ordenados),

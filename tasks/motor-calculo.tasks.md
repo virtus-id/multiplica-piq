@@ -8127,11 +8127,11 @@ negado, peso emocional efetivo negado, DIVIDA_ID)` — a ordem lexicográfica de
 hoje, achatada; `None` com valor relevante `DESCONHECIDO` (vai para
 `informacao_pendente`, como hoje). `_ordenar_por_valor_relevante` passa a usá-la.
 
-- [ ] Índice 0 = critério `O-04`; índice 3 = peso emocional (`§16.4` passo 4) — documentado no docstring
-- [ ] `tests/regras/test_bola_de_neve.py`, gabaritos, `T-603` e `T-604` verdes sem edição
-- [ ] Rehash só de `engine/metodos/bola_de_neve.py`; gates: lint, build, test
+- [x] Índice 0 = critério `O-04`; índice 3 = peso emocional (`§16.4` passo 4) — documentado no docstring
+- [x] `tests/regras/test_bola_de_neve.py`, gabaritos, `T-603` e `T-604` verdes sem edição
+- [x] Rehash só de `engine/metodos/bola_de_neve.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 

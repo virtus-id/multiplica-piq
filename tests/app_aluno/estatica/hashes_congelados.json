@@ -15,7 +15,7 @@
   "engine/gates.py": "2c70a5ba6abd26c152b6d99374b8193b29bb2fc6e4c42a90bc75f1888e579af7",
   "engine/metodos/__init__.py": "1466f1a7f253fd864bbb914af1b7c3ce94d6cb734f41b36196a1880125787f7c",
   "engine/metodos/avalanche.py": "e10f2e1399917cb3fb3516caf1aef7cbd790e31384b36558c305b8b8d3bd0caa",
-  "engine/metodos/bola_de_neve.py": "4c2c938a0c1532c4fd6dedd28cac255da4d4e85219a026aa895a4deb96644142",
+  "engine/metodos/bola_de_neve.py": "94971a7da905482cac1fa8a7d23ff2d27700456ac464fd97e388cf5bfbd8ae6f",
   "engine/metodos/hibrido.py": "4d0875f0d61c3baa1a9d9043d857a136dd03f11eedbfe7defeb752c972082a8f",
   "engine/motor.py": "d8f50dbb6c6e39b197153c3007e47f386d3cd08e83402af0de68a69f9c817032",
   "engine/ordem.py": "fda43a482ffeac8ef9d9b29f49737c590019db52592855c738e834aa065a40d6",
