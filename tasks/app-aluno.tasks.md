@@ -16058,11 +16058,20 @@ conteúdo. Fora do gate automático (`e2e: —`), mesmo status de `T-663`.
 
 **Critérios de aceite**
 
-- [ ] Nenhuma asserção do arquivo depende do texto do parêntese removido
-- [ ] Nova asserção (ou ajuste) confirma o ⓘ do campo de taxa
-- [ ] Execução manual registrada no status da tarefa
+- [x] Nenhuma asserção do arquivo depende do texto do parêntese removido
+      (a fixture `B5.D06` já nunca o teve; novo teste confirma a ausência)
+- [x] Nova asserção (ou ajuste) confirma o ⓘ do campo de taxa
+- [x] Execução manual registrada no status da tarefa
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída` — fixture `B5.D06` ganhou `explicacao`; novo
+teste "RF-562/RF-563: o rótulo da taxa não traz o parêntese, e o ⓘ abre a
+mesma ajuda do registro" confirma a ausência do parêntese e o conteúdo do
+balão.
+
+**Execução real** (`cd frontend && npx playwright test
+tests/e2e/calculadora-da-divida.spec.ts`, Chromium local, servidor
+`npm run dev` auto-iniciado pelo Playwright): **8 passed** (4 testes × 2
+projetos, desktop e mobile-360) — nenhuma falha.
 
 ---
 
