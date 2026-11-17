@@ -14765,12 +14765,12 @@ revisor (`para_revisor=True`). Nenhuma rota muda.
 `ORDEM_DE_ATAQUE` completa e `editavel` já é falso em estabilização. Fakes e
 `dependency_overrides` do arquivo.
 
-- [ ] Caso do Rodrigo em `AGUARDANDO_REVISAO`: `ordem_do_revisor.vigente` com as duas dívidas na ordem do método, `editavel = false`
-- [ ] `POST .../ordem` com a vigente → `409`; com a outra permutação → `422`; nenhum snapshot anexado, nenhum evento
-- [ ] Se exigir código de produção para passar, parar e reportar (o plano diz que não exige)
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_ordem_do_revisor.py`; gates: lint, build, test
+- [x] Caso do Rodrigo em `AGUARDANDO_REVISAO`: `ordem_do_revisor.vigente` com as duas dívidas na ordem do método, `editavel = false`
+- [x] `POST .../ordem` com a vigente → `409`; com a outra permutação → `422`; nenhum snapshot anexado, nenhum evento
+- [x] Se exigir código de produção para passar, parar e reportar (o plano diz que não exige)
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_ordem_do_revisor.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; sem código de produção (`test_ac587_caso_do_rodrigo_mostra_as_duas_dividas_so_leitura`; 36 passed no arquivo)
 
 ---
 
