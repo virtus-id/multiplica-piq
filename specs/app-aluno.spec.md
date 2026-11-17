@@ -509,6 +509,54 @@ com a redação canônica obrigatória.
 > 4. **Aviso da nota de incômodo:** "Esta dívida está no plano e termina no
 >    mês indicado em \"Termina em\"."
 
+### Rodada 17 (2026-11-16) — ordem provisória do plano deficitário: completa, com o porquê e o término
+
+> **Correção autorizada + pequena feature.** No caso de teste do aluno
+> `rodrigo@teste.com` (estabilização, duas dívidas), a seção 3 do plano
+> deficitário ("A ordem de quitação, por enquanto provisória") mostrava uma
+> dívida só e a seção "Ordem de quitação" da conferência sumia (ela só aparece
+> com duas ou mais). A causa é do motor (`motor-calculo` Rodada 8, `RF-552`):
+> a ordem perdia a dívida que não conseguia comparar. **Respostas do
+> especialista (Marcelo) de 2026-11-16**, registradas em
+> `docs/perguntas-marcelo-calculo-de-divida.md`: (1) a ordem em estabilização
+> usa o mesmo critério do mês positivo; (2) a lista mostra **o porquê de cada
+> dívida**, em palavras simples, sempre o motivo que de fato decidiu a
+> posição; (3) ao lado de cada dívida, **a previsão de término pagando só as
+> parcelas**. A aplicação só lê o que o motor publica (`MOTIVO_POSICAO`,
+> `sem_acao.QUITACOES_SO_PARCELAS`; `AC-42`): nenhuma conta, nenhuma inferência
+> do motivo a partir dos dados da dívida. O plano normal não muda.
+>
+> **Numeração global** (último `RF-551`, `AC-575`, `EC-84`, `OQ-102`,
+> `US-414`; `RF-552` a `RF-554`, `US-415`, `AC-576` a `AC-585`, `EC-85` a
+> `EC-91`, `OQ-103` e `OQ-104` são do motor): esta rodada usa `RF-555`,
+> `RF-556`, `US-416`, `AC-586` a `AC-591` e `EC-92` a `EC-94`.
+
+| ID | Requisito | Regras / seções / IDs de origem | Prioridade |
+| --- | --- | --- | --- |
+| `RF-555` | **O porquê de cada dívida na ordem provisória.** Na seção 3 do plano deficitário, na tela do aluno, no PDF (liberado e prévia) e no plano do aluno mostrado na conferência (`RF-121`), cada dívida traz **uma frase** que explica a posição, escolhida pelo `MOTIVO_POSICAO` daquela posição (`motor-calculo` `RF-553`) entre chaves novas do bloco `estabilizacao` de `textos-canonicos.yaml` — um texto por valor do domínio, igual para os três métodos (sugestão, a validar com o especialista; redação abaixo). Consequência direta: a preferência declarada e o incômodo só aparecem como motivo quando o motor diz que decidiram (`PREFERENCIA_QUITACAO`, `DESEMPATE_PESO_EMOCIONAL`). Vale para as duas variantes da seção (`estabilizacao` e `estabilizacao_por_divida`, `RF-480`). A etiqueta "Começa por esta" da primeira continua. Snapshot sem `MOTIVO_POSICAO` (anterior à Rodada 8 do motor): sem a frase, como hoje. Sem estabilização, nada muda | Respostas do especialista (2026-11-16), item 2 · `motor-calculo` `RF-553` · `RF-111`, `RF-121`, `RF-468`, `RF-480`, `AC-42`, `GAB-04` | essencial |
+| `RF-556` | **Quando cada dívida termina pagando só as parcelas.** Na mesma seção, cada dívida traz a previsão lida de `prognostico.sem_acao.QUITACOES_SO_PARCELAS` (`motor-calculo` `RF-554`): com mês, "Termina em {mês}, se você mantiver as parcelas em dia." (`{mês}` no mesmo rótulo de mês dos demais "Termina em" do plano); sem a dívida na lista, "Só com as parcelas de hoje, ela não termina." — sem mês, sem conta. Nesta seção, a previsão **substitui** os dois itens que vêm da simulação em déficit e a contradizem: a etiqueta "Não será quitada com os valores de hoje" (`RF-481`, lida de `ORDEM_FORA_DO_HORIZONTE`) e o fato "Recebe o valor extra" (`RF-542`, lido de `MesDoPlano.DIVIDA_ALVO`), já que em estabilização não há valor extra ("não há dinheiro livre", texto da seção). Os demais fatos da dívida (saldo, parcela, taxa) continuam. Snapshot sem `QUITACOES_SO_PARCELAS`: a seção fica como hoje, inclusive os dois itens. Sem estabilização, nada muda | Respostas do especialista (2026-11-16), item 3 · `motor-calculo` `RF-554`, `RF-77` · `RF-481`, `RF-542`, `AC-42`, `GAB-04` | essencial |
+
+> **Redação sugerida para `RF-555` e `RF-556`** (equipe técnica, a validar com o
+> especialista; sem "sobra", sem travessão):
+>
+> | `MOTIVO_POSICAO` | Frase |
+> | --- | --- |
+> | `MAIOR_BENEFICIO_MARGINAL` | "É a que mais economiza juros a cada real extra que você colocar nela." |
+> | `MAIOR_TAXA` | "É a que cobra a maior taxa de juros entre as que restam." |
+> | `MENOR_VALOR_RELEVANTE` | "É a menor entre as que restam: termina mais cedo e libera a parcela dela para as próximas." |
+> | `CRITERIO_HIBRIDO` | "É a que você consegue quitar mais rápido sem aumentar de forma relevante o custo total." |
+> | `GARANTIA_ESSENCIAL` | "Tem como garantia um bem que você marcou como essencial, e o plano protege esse bem primeiro." |
+> | `NEGATIVADA` | "Está negativada, e o plano coloca as dívidas negativadas na frente das demais." |
+> | `PESO_GARANTIA` | "Tem um bem dado como garantia, e o plano coloca essas dívidas antes das que têm garantia menor ou nenhuma." |
+> | `PREFERENCIA_QUITACAO` | "Você marcou que quer quitá-la entre as primeiras, e o custo dela é parecido com o da outra opção." |
+> | `DESEMPATE_PESO_EMOCIONAL` | "Empatou com outra dívida pelo critério do plano, e você disse que esta pesa mais para você." |
+> | `DESEMPATE` | "Empatou com outra dívida pelo critério do plano e ficou à frente pela regra de desempate." |
+> | `ULTIMA_RESTANTE` | "É a última da lista: entra quando as anteriores forem quitadas." |
+> | `UNICA_DIVIDA` | "É a única dívida deste plano." |
+>
+> Previsão: "Termina em {mês}, se você mantiver as parcelas em dia." · "Só
+> com as parcelas de hoje, ela não termina."
+
 ## 3. User Stories
 
 ### `US-01` — Responder em várias sessões sem perder nada
@@ -815,6 +863,17 @@ Atende: `RF-546`, `RF-547`, `RF-548`, `RF-549`
 > textos que digam uma coisa e um cronograma que faça outra**.
 
 Atende: `RF-549`, `RF-550`, `RF-551`
+
+### Rodada 17 (2026-11-16) — ordem provisória do plano deficitário
+
+### `US-416` — Entender a ordem enquanto o mês ainda não fecha
+
+> Como **aluno com o mês fechando no negativo**, quero **ver todas as minhas
+> dívidas na ordem provisória, com o motivo de cada posição e quando cada uma
+> termina se eu mantiver as parcelas em dia**, para **confiar na ordem e
+> saber o que acontece com cada dívida enquanto eu ajusto o mês**.
+
+Atende: `RF-555`, `RF-556`
 
 ## 4. Acceptance Criteria
 
@@ -1183,6 +1242,21 @@ Atende: `RF-549`, `RF-550`, `RF-551`
 | `AC-574` | `US-414` | Dados dois snapshots do mesmo estado, um com `ORDEM_DO_REVISOR` e outro sem, quando o plano do aluno (tela, PDF liberado e prévia) é montado, então os únicos textos fixos de `textos-canonicos.yaml` que diferem entre os dois são as quatro variantes neutras de `RF-551`; no plano com `ORDEM_DO_REVISOR`, nenhum texto contém "revisor" nem "especialista", nenhum diz que a ordem foi alterada, nenhuma das quatro passagens contém "mais cobra juros", "a menor" ou a frase de prioridade da `§16.4`, e o rodapé continua dizendo o método |
 | `AC-575` | `US-414` | Dado um snapshot sem `ORDEM_DO_REVISOR` (inclusive os gravados antes desta rodada), quando o plano do aluno é montado, então a explicação da posição, "Como o seu plano funciona", a resposta de "Por que não começar pela maior dívida?" e o aviso de incômodo são exatamente os de antes de `RF-551` |
 
+### Rodada 17 (2026-11-16) — ordem provisória do plano deficitário
+
+> **Rastreabilidade `RF` → `AC`.** `RF-555` → `AC-586`, `AC-588`, `AC-590`,
+> `AC-591` · `RF-556` → `AC-586`, `AC-589`, `AC-590`, `AC-591` ·
+> `RF-548` (com `motor-calculo` `RF-552`) → `AC-587`.
+
+| ID | Story | Critério (verificável) |
+| --- | --- | --- |
+| `AC-586` | `US-416` | Dado o snapshot do caso de teste `rodrigo@teste.com` calculado depois da Rodada 8 do motor (`motor-calculo` `AC-576`), quando o plano deficitário é montado (tela do aluno, PDF, prévia do PDF e plano do aluno na conferência), então a seção 3 tem **duas** linhas, financiamento imobiliário e depois consignado, pelo nome legível; a primeira traz a frase de `MAIOR_BENEFICIO_MARGINAL` e "Termina em {mês de D001 em `QUITACOES_SO_PARCELAS`}, se você mantiver as parcelas em dia."; a segunda traz a frase de `ULTIMA_RESTANTE` e "Termina em {mês 24}, se você mantiver as parcelas em dia."; e nenhuma linha contém a frase de `PREFERENCIA_QUITACAO`, a de `DESEMPATE_PESO_EMOCIONAL`, "Recebe o valor extra" nem "Não será quitada com os valores de hoje" (`RF-555`, `RF-556`) |
+| `AC-587` | `US-413` | Dado o mesmo caso em `AGUARDANDO_REVISAO`, quando o revisor abre a conferência, então a seção "Ordem de quitação" aparece com as duas dívidas na ordem vigente (a do método), sem subir/descer nem "Recalcular nesta ordem" (estabilização, `RF-548`); e `POST /api/revisao/caso/{id}/ordem` com qualquer lista não vazia continua recusado sem anexar snapshot (`motor-calculo` `AC-557`) |
+| `AC-588` | `US-416` | Dado, para cada valor do domínio de `MOTIVO_POSICAO`, um snapshot em estabilização com uma posição desse motivo, quando a seção 3 é montada, então a linha traz exatamente a frase daquele motivo em `textos-canonicos.yaml`; a frase de `PREFERENCIA_QUITACAO` só aparece em posição com esse motivo e a de `DESEMPATE_PESO_EMOCIONAL` só com esse motivo, mesmo quando a dívida tem `PREFERENCIA_QUITACAO` ou peso emocional alto; todo valor do domínio tem frase cadastrada; e nenhuma frase da seção contém "sobra" (`RF-555`) |
+| `AC-589` | `US-416` | Dada uma dívida em estabilização ausente de `QUITACOES_SO_PARCELAS` (parcela que não cobre os juros, por exemplo), quando a seção 3 é montada, então a linha traz "Só com as parcelas de hoje, ela não termina." e nenhum mês; dada uma dívida presente, o `{mês}` é o mesmo rótulo que o plano usa nos demais "Termina em" para aquele número de mês (`RF-556`) |
+| `AC-590` | `US-416` | Dado um snapshot em estabilização gravado antes da Rodada 8 do motor (sem `MOTIVO_POSICAO` e sem `QUITACOES_SO_PARCELAS`), quando a seção 3 é montada, então ela é idêntica à de antes desta rodada; e, auditado o código de montagem da seção, nenhuma frase ou mês dela vem de soma, subtração, comparação de valores da dívida ou dos sinais da `§16.4` — só da leitura dos dois campos (`AC-42`) (`RF-555`, `RF-556`) |
+| `AC-591` | `US-416` | Dado um plano fora de estabilização — inclusive com o horizonte estourado e `MOTIVO_POSICAO` no snapshot (`aluno.teste3`) —, quando o plano é montado, então a explicação de cada dívida, "Não será quitada com os valores de hoje", "Recebe o valor extra" e os demais textos são exatamente os de antes desta rodada, e nenhuma frase de `RF-555`/`RF-556` aparece (`RF-555`, `RF-556`) |
+
 ## 5. Non-Functional Requirements
 
 - **Performance:** cada transição de pergunta responde em p95 < 500 ms. A
@@ -1266,6 +1340,18 @@ Atende: `RF-549`, `RF-550`, `RF-551`
   `calcular_plano`; o motivo interno fica só na trilha (`RF-547`), nunca no
   log.
 
+### Rodada 17 (2026-11-16) — ordem provisória do plano deficitário
+
+- **Mesma informação na tela e no PDF.** As duas frases por dívida aparecem
+  nos dois, com a mesma redação.
+- **Responsividade.** Em 360 px cada dívida da seção 3 cabe sem rolagem
+  lateral, com as duas frases quebrando linha (no PDF, a tabela da seção ganha
+  espaço para elas ou as frases vão abaixo do nome; a forma é do plano).
+- **Acessibilidade.** As frases são texto, não só cor ou ícone; a ordem de
+  leitura é nome, motivo, previsão.
+- **Lei nº 3 (`AC-42`).** Só leitura de `MOTIVO_POSICAO` e
+  `QUITACOES_SO_PARCELAS`; nenhum cálculo nem inferência na aplicação.
+
 ## 6. Edge Cases
 
 | ID | Situação | Comportamento esperado |
@@ -1343,6 +1429,14 @@ Atende: `RF-549`, `RF-550`, `RF-551`
 | `EC-82` | O motor falha no recálculo do ajuste (erro de invariante ou de parâmetros) | Nenhum snapshot é anexado e nenhum evento de ajuste é gravado; o caso continua em `AGUARDANDO_REVISAO` com o snapshot mais recente intacto; o revisor vê a mensagem de erro e o log registra a falha como em todo `calcular_plano` |
 | `EC-83` | O revisor tem a conferência aberta em duas abas, ajusta a ordem numa e libera pela outra | `liberar` libera o snapshot mais recente (o ajustado), mesmo que a outra aba ainda mostre o anterior — comportamento de `liberar` mantido (ver Risks) |
 | `EC-84` | Caso com uma só dívida na ordem publicada | A seção não oferece edição (`RF-548`); se a rota for chamada com a lista dessa única dívida, ela é igual à ordem de ataque vigente e a rota responde `409`, nada a recalcular (`OQ-101`). O motor, chamado diretamente, aceitaria a lista sem mudar os números (`motor-calculo` `EC-80`): a recusa é da rota |
+
+### Rodada 17 (2026-11-16) — ordem provisória do plano deficitário
+
+| ID | Situação | Comportamento esperado |
+| --- | --- | --- |
+| `EC-92` | `MOTIVO_POSICAO` com valor sem frase em `textos-canonicos.yaml` (domínio cresceu no motor) | Aparece o código técnico, visível, nunca uma frase genérica que diga outro motivo (mesma regra de `rotulos_de_apoio`); o teste de `AC-588` falha antes de chegar ao aluno |
+| `EC-93` | Estabilização por dívida que cresce (`RF-480`, `estabilizacao_por_divida`) | As mesmas frases por dívida: a previsão sempre; o porquê quando o snapshot traz `MOTIVO_POSICAO` (ordem publicada a partir da ordem de ataque, `motor-calculo` `EC-89`), senão sem ele, como hoje. A dívida que cresce não está em `QUITACOES_SO_PARCELAS` e traz "Só com as parcelas de hoje, ela não termina." |
+| `EC-94` | Uma só dívida na ordem | Uma linha, com a frase de `UNICA_DIVIDA` e a previsão; a seção "Ordem de quitação" do revisor não aparece (menos de duas dívidas, `RF-548`) |
 
 ## 7. Assumptions
 
@@ -1518,6 +1612,20 @@ Atende: `RF-549`, `RF-550`, `RF-551`
   - **sem estouro do horizonte**, `ORDEM_QUITACAO` continua a ordem de
     quitação da simulação e pode diferir da lista (`motor-calculo` `EC-78`).
 
+### Rodada 17 (2026-11-16) — ordem provisória do plano deficitário
+
+- **O motivo é do motor.** A aplicação não reconstrói o motivo a partir de
+  garantia, negativação, preferência ou peso emocional da dívida (como
+  `_tem_sinal_de_prioridade` faz hoje no plano normal): só traduz
+  `MOTIVO_POSICAO` em frase.
+- **"Pagando só as parcelas" é o "sem ação" do motor** (`RF-77`): o pagamento
+  de hoje de cada dívida, sem valor extra e sem reaplicar a parcela de uma
+  dívida quitada. A frase é condicional ("se você mantiver as parcelas em
+  dia"), coerente com o aviso já existente ("Continue pagando em dia as
+  parcelas contratuais").
+- **Os textos são sugestão** a validar com o especialista (lista em
+  `docs/perguntas-marcelo-calculo-de-divida.md`), como em `RF-551`.
+
 ## 8. Risks
 
 | Risco | Impacto | Mitigação |
@@ -1566,6 +1674,14 @@ Atende: `RF-549`, `RF-550`, `RF-551`
 | O snapshot ajustado guarda a `comparacao` entre métodos feita na ordem do método, ao lado do cenário recomendado na ordem do revisor (`motor-calculo` `RF-545`) | **baixo** — quem audita pode cruzar números de ordens diferentes | `ORDEM_DO_REVISOR` no snapshot sinaliza o ajuste; o snapshot anterior da cadeia guarda o cenário na ordem do método |
 | O tempo "parado há" do painel (`RF-112`) pode zerar com o evento de ajuste, se for medido pelo último evento da trilha | **baixo** — o caso parece recém-movido sem ter mudado de etapa | O plano confere de onde vem o tempo parado antes de gravar o evento |
 | Variantes neutras de `RF-551` chegam ao aluno sem validação do especialista | **médio** — texto ao aluno é conteúdo de método | Marcadas "sugestão, a validar", como `T-549`/`T-564`; validar antes de liberar o primeiro plano ajustado |
+
+### Rodada 17 (2026-11-16) — ordem provisória do plano deficitário
+
+| Risco | Impacto | Mitigação |
+| --- | --- | --- |
+| O aluno lê "Termina em {mês}" como promessa, embora o mês feche no negativo e as parcelas possam atrasar | **médio** — expectativa errada sobre a dívida | Frase condicional ("se você mantiver as parcelas em dia") e os avisos já existentes da seção ("Isto ainda não é uma instrução de pagamento") |
+| As frases chegam ao aluno sem validação do especialista | **médio** — texto ao aluno é conteúdo de método | Sugestão registrada em `docs/perguntas-marcelo-calculo-de-divida.md`; validar antes de liberar o próximo plano deficitário |
+| A seção 3 mostrar ao mesmo tempo a previsão e os itens da simulação em déficit ("Não será quitada…", "Recebe o valor extra") | **alto** — a mesma dívida "termina em" e "não será quitada" na mesma linha | `RF-556` substitui os dois itens na seção 3; `AC-586` verifica a ausência deles |
 
 ## 9. Out of Scope
 
@@ -1684,6 +1800,17 @@ Atende: `RF-549`, `RF-550`, `RF-551`
   (`RF-551`).
 - **Mudar fórmula, parâmetro ou a escolha do método** (`motor-calculo`
   `RF-545`).
+
+### Rodada 17 (2026-11-16) — o que fica fora
+
+- **O plano normal** (fora de estabilização): explicação da posição,
+  "Recebe o valor extra" e "Não será quitada com os valores de hoje" não
+  mudam, mesmo com `MOTIVO_POSICAO` no snapshot (`AC-591`).
+- **Ajustar a ordem em estabilização** pela conferência: continua sem
+  edição (`RF-548`, `motor-calculo` `AC-557`).
+- **Qualquer cálculo** de mês, de motivo ou de ordem na aplicação.
+- **Completar a ordem com dívidas que o motor não consegue comparar**
+  (`motor-calculo` `OQ-103`).
 
 ## 10. Open Questions
 
@@ -1813,3 +1940,12 @@ passaram a bloquear trabalho concreto.
 | `OQ-99` | **"Voltar à ordem do método" exige motivo interno?** A decisão diz "motivo obrigatório ao alterar"; voltar também muda a ordem vigente | `RF-546` (validação da lista vazia), `RF-548` (estado do botão), `AC-564` | `respondida (2026-11-14, responsável do produto)` — **não**: voltar à ordem do método não exige motivo; a trilha registra autor e data (`RF-546`, `RF-547`, `RF-548`, `AC-564`) |
 | `OQ-100` | **Com que versão de parâmetros o ajuste recalcula:** a `PARAMETROS_VERSION` do snapshot mais recente ou a vigente? Se os parâmetros mudaram desde o envio do aluno, a vigente muda números além da ordem, e o "antes e depois" deixa de mostrar só o efeito da ordem | `RF-546`, `AC-563` | `respondida (2026-11-14, responsável do produto)` — a **do snapshot**: o recálculo usa a `PARAMETROS_VERSION` do snapshot mais recente; só a ordem muda (`RF-546`, `AC-563`) |
 | `OQ-101` | **O que a rota faz se receber exatamente a ordem já vigente** (ou a lista vazia com a ordem do método já vigente)? Anexa um snapshot igual em números, ou recusa como "nada a recalcular"? A tela já não oferece o botão nesse caso (`RF-548`) | `RF-546` | `respondida (2026-11-14, responsável do produto)` — **recusa**, sem novo snapshot nem evento; o botão já fica desativado na tela. Código **`409`** (definido no plano): a requisição é bem formada e a lista é válida, mas conflita com o estado atual do recurso — mesma família da recusa por estado do caso; `422` fica para lista ou motivo inválidos (`RF-546`, `AC-565`, `EC-84`) |
+
+### Rodada 17 (2026-11-16) — ordem provisória do plano deficitário
+
+> Nenhuma questão nova neste slug. As três decisões de produto vieram do
+> especialista em 2026-11-16 (os itens 2 e 3 viraram `RF-555`/`RF-556`); a
+> redação das frases é sugestão a validar, não questão aberta. As questões
+> desta correção são do motor: `OQ-103` (completar a ordem com dívidas sem
+> comparação) e `OQ-104` (`D*` do Híbrido em estabilização), em
+> `specs/motor-calculo.spec.md`; nenhuma bloqueia `RF-555`/`RF-556`.

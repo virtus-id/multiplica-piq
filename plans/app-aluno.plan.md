@@ -3456,3 +3456,221 @@ conteúdo inválido (lista ou motivo).
 | `RF-551` | `R18.4` (`_textos_da_ordem_do_revisor`, bloco YAML), `R18.5` · `AC-574`, `AC-575` |
 
 Tarefas: em `tasks/app-aluno.tasks.md`, depois das do `motor-calculo` (`R13`).
+
+---
+
+# Rodada 17 (2026-11-16) — Ordem provisória do plano deficitário (`RF-555`, `RF-556`)
+
+| Campo | Valor |
+| --- | --- |
+| Slug | `ordem-em-estabilizacao` (rodada do `app-aluno`) |
+| Spec | `specs/app-aluno.spec.md` Rodada 17 — `RF-555`, `RF-556`, `US-416`, `AC-586`–`AC-591`, `EC-92`–`EC-94`; nenhuma `OQ` nova |
+| Depende de | `plans/motor-calculo.plan.md` §`R14` (`RF-552`–`RF-554`): `PosicaoOrdem.MOTIVO_POSICAO`, `PrognosticoSemAcao.QUITACOES_SO_PARCELAS`, `ORDEM_DE_ATAQUE` completa em estabilização |
+| Status | `rascunho` |
+
+Seções `R19.x` (o prefixo `R18` é da Rodada 16).
+
+## R19.1. Architecture Overview
+
+A aplicação **só lê** os dois campos novos do motor e os traduz em frase
+(`AC-42`). Uma função de montagem (`report/plano.py`) alimenta os três
+destinos que já existem:
+
+```text
+snapshot (motor R14)
+  ORDEM_QUITACAO[i].MOTIVO_POSICAO · prognostico.sem_acao.QUITACOES_SO_PARCELAS
+        │
+report/plano._montar_contexto_plano — só com diagnostico.MODO_ESTABILIZACAO
+  ContextoPosicao.motivo_da_posicao   ← textos.estabilizacao["motivo_{CODIGO}"]   (RF-555; EC-92: o código)
+  ContextoPosicao.previsao_so_parcelas ← "Termina em {rotulo_do_mes(m)}, …" | "Só com as parcelas de hoje, …"  (RF-556)
+  com QUITACOES_SO_PARCELAS presente: fora_do_horizonte = "" e fatos sem "Recebe o valor extra" (RF-556)
+        │
+        ├── estabilizacao.html ── PDF liberado e prévia (report/pdf.renderizar_html_do_plano)
+        └── app/http/serializacao_plano ── PlanoDoDeficitario.tsx
+                                           (tela do aluno e plano do aluno na conferência, RF-121)
+```
+
+**A seção "Ordem de quitação" da conferência (`AC-587`) não tem código
+novo.** `app/revisao/ordem_vigente` (ramo 2) já lê
+`cenarios[recomendado].ORDEM_DE_ATAQUE`, que o motor passa a publicar
+completa; `editavel` já é `False` em estabilização
+(`rotas_api_plano.py:595`) e a rota `POST .../ordem` já é recusada (`409`
+quando a lista é a vigente, `OQ-101`; `422` por `ErroOrdemDoRevisor` nas
+demais, `EC-79`). Só teste.
+
+O que **não** muda: o plano normal (`_explicacao_da_posicao`,
+`_tem_sinal_de_prioridade`, `_fato_recebe_extra`, `posicao.html`,
+`PlanoDoAluno.tsx` fora de estabilização — `AC-591`), as rotas, a máquina de
+estados, o banco, `OrdemDoRevisor.tsx` e o motor.
+
+## R19.2. Tech Stack
+
+Nenhuma dependência nova. Jinja2 (PDF) e React (tela), como hoje.
+
+## R19.3. Project Structure
+
+| Caminho | Mudança | Requisito |
+| --- | --- | --- |
+| `report/plano.py` | `ContextoPosicao.motivo_da_posicao`, `ContextoPosicao.previsao_so_parcelas`; `_quitacoes_so_parcelas`, `_frase_do_motivo`, `_previsao_so_parcelas`; quatro argumentos do `ContextoPosicao(...)` de `_montar_contexto_plano` passam a depender de estabilização | `RF-555`, `RF-556` |
+| `report/templates/plano/textos-canonicos.yaml` | bloco `estabilizacao`: 12 chaves `motivo_<CODIGO>` e `previsao_termina`, `previsao_nao_termina` (redação da spec, "sugestão, a validar") | `RF-555`, `RF-556` |
+| `report/templates/plano/estabilizacao.html` | na célula do nome, abaixo das etiquetas: o motivo e a previsão, cada um em `<div>` de texto | `RF-555`, `RF-556`, `NFR` |
+| `app/http/serializacao_plano.py` | duas chaves por posição: `"motivo_da_posicao"`, `"previsao_so_parcelas"` (vazias quando não se aplicam) | `RF-555`, `RF-556` |
+| `frontend/src/tipos.ts` | `PosicaoDaOrdem.motivo_da_posicao?: string`, `previsao_so_parcelas?: string` | idem |
+| `frontend/src/componentes/PlanoDoDeficitario.tsx` | na lista da ordem, depois do nome: motivo, previsão (ordem de leitura do `NFR`) | idem |
+
+Nenhum arquivo de `engine/` ou `persistencia/`; `hashes_congelados.json` não
+é tocado por este plano.
+
+## R19.4. Data Model — contratos
+
+```python
+# report/plano.py — ContextoPosicao (dois campos novos, com padrão; os demais inalterados)
+motivo_da_posicao: str = ""      # RF-555: frase do MOTIVO_POSICAO; "" fora de estabilização ou sem o campo
+previsao_so_parcelas: str = ""   # RF-556: "" fora de estabilização ou com snapshot sem QUITACOES_SO_PARCELAS
+
+def _quitacoes_so_parcelas(snapshot: SnapshotOrdem) -> Mapping[str, int] | None:
+    """RF-556 — {DIVIDA_ID: mês} lido de prognostico.sem_acao.QUITACOES_SO_PARCELAS.
+    None sem MODO_ESTABILIZACAO, sem prognostico ou com o campo None (snapshot
+    anterior: a seção fica como hoje, AC-590). Leitura pura."""
+
+def _frase_do_motivo(motivo: MOTIVO_POSICAO | None, textos: TextosCanonicosPlano) -> str:
+    """RF-555 — textos.estabilizacao.get(f"motivo_{motivo.value}", motivo.value);
+    "" com None. Sem frase cadastrada aparece o CÓDIGO, visível (EC-92), nunca
+    uma frase genérica. Nada lê a Divida (AC-588, AC-590)."""
+
+def _previsao_so_parcelas(
+    divida_id: str, so_parcelas: Mapping[str, int], textos: TextosCanonicosPlano
+) -> str:
+    """RF-556 — presente: estabilizacao["previsao_termina"].format(mes=rotulo_do_mes(m)),
+    o mesmo rótulo dos demais "Termina em" (AC-589); ausente:
+    estabilizacao["previsao_nao_termina"]. Sem conta."""
+
+# _montar_contexto_plano — por posição (lookup e condicional, nenhuma aritmética, AC-42):
+#   estab = snapshot.diagnostico.MODO_ESTABILIZACAO
+#   so_parcelas = _quitacoes_so_parcelas(snapshot)               # uma vez, fora do laço
+#   motivo_da_posicao   = _frase_do_motivo(posicao.MOTIVO_POSICAO, textos) if estab else ""
+#   previsao_so_parcelas = _previsao_so_parcelas(id, so_parcelas, textos) if so_parcelas is not None else ""
+#   fora_do_horizonte   = como hoje, mas "" quando so_parcelas is not None
+#   fatos               = _fatos_da_divida(...) quando so_parcelas is not None,
+#                         senão _fatos_com_recebe_extra(...) como hoje
+```
+
+```yaml
+# textos-canonicos.yaml — bloco estabilizacao (chaves planas: o parser de
+# TextosCanonicosPlano.estabilizacao já é Mapping[str, str]); redação da spec.
+motivo_MAIOR_BENEFICIO_MARGINAL: "É a que mais economiza juros a cada real extra que você colocar nela."
+motivo_MAIOR_TAXA: "É a que cobra a maior taxa de juros entre as que restam."
+# … uma por valor de MOTIVO_POSICAO (12), texto da tabela "Redação sugerida" de RF-555/RF-556
+previsao_termina: "Termina em {mes}, se você mantiver as parcelas em dia."
+previsao_nao_termina: "Só com as parcelas de hoje, ela não termina."
+```
+
+```ts
+// frontend/src/tipos.ts — PosicaoDaOrdem
+motivo_da_posicao?: string     // RF-555, texto pronto do servidor
+previsao_so_parcelas?: string  // RF-556, idem
+```
+
+As frases valem para as duas variantes da seção (`estabilizacao` e
+`estabilizacao_por_divida`, `EC-93`): o template já usa
+`textos.estabilizacao` nos dois ramos. "Começa por esta" fica.
+
+## R19.5. Data Flow
+
+| Snapshot | Seção 3 (tela, PDF, prévia, conferência) |
+| --- | --- |
+| Estabilização, depois da Rodada 8 do motor (Rodrigo, `AC-586`) | todas as dívidas da `ORDEM_DE_ATAQUE`; por linha: nome, frase do motivo, previsão, saldo/parcela/taxa; sem "Recebe o valor extra" nem "Não será quitada…" |
+| Estabilização por dívida que cresce (`EC-93`) | previsão sempre; motivo só se o snapshot o traz (ordem de ataque com estouro ou capacidade ≤ 0, `motor` `EC-89`); a dívida que cresce: "Só com as parcelas de hoje, ela não termina." |
+| Uma só dívida (`EC-94`) | uma linha com a frase de `UNICA_DIVIDA` e a previsão; a seção do revisor não aparece (`< 2`, `RF-548`, sem mudança) |
+| Estabilização gravada antes da Rodada 8 (`AC-590`) | idêntica a hoje: sem motivo (`MOTIVO_POSICAO is None`), sem previsão e com os dois itens antigos (`QUITACOES_SO_PARCELAS is None`) |
+| Fora de estabilização, inclusive `aluno.teste3` com `MOTIVO_POSICAO` (`AC-591`) | idêntica a hoje: os dois campos novos ficam `""`; nada novo aparece |
+
+## R19.6. External Interfaces
+
+`GET` do plano do aluno, `GET /api/revisao/caso/{CASO_ID_REVISAO}` e a prévia:
+cada item de `plano.ordem` ganha `motivo_da_posicao` e `previsao_so_parcelas`
+(strings; `""` quando não se aplicam), para aluno e revisor. Nenhuma rota,
+status ou autenticação muda.
+
+## R19.7. State Management
+
+Nenhum estado novo: tudo é derivado do snapshot a cada leitura. O cliente só
+renderiza as strings.
+
+## R19.8. Error Handling Strategy
+
+| Situação | Comportamento |
+| --- | --- |
+| `MOTIVO_POSICAO` sem frase no YAML (`EC-92`) | aparece o código; o teste de `AC-588` (todo valor do enum tem frase) falha antes de chegar ao aluno |
+| Snapshot sem `prognostico` ou sem `QUITACOES_SO_PARCELAS` | `_quitacoes_so_parcelas` → `None`: sem previsão, os dois itens antigos ficam (`AC-590`) |
+| Posição sem `MOTIVO_POSICAO` em estabilização (ordem de quitação, `RF-09`; snapshot anterior) | sem frase de motivo; o resto da linha como acima |
+| Payload antigo no cliente (campos ausentes) | `?? ""`: nada é renderizado |
+
+## R19.9. Testing Strategy
+
+- **`tests/app_aluno/test_plano_ordem_em_estabilizacao.py` (novo).**
+  - `AC-586`: snapshot de `calcular_plano(_estado_rodrigo(), ...)` (fixture de
+    `tests/regras/test_ordem_em_estabilizacao.py`, importada como
+    `_estado_gab04` já é): o `ContextoPlano`, o payload de `serializar_plano`
+    (aluno e `para_revisor=True`) e o HTML de `renderizar_html_do_plano` têm
+    duas linhas (financiamento imobiliário, depois consignado, pelo nome),
+    as frases de `MAIOR_BENEFICIO_MARGINAL` e `ULTIMA_RESTANTE`, "Termina em
+    {rotulo_do_mes(mês de D001)}…" e "Termina em {rotulo_do_mes(24)}…", e
+    nenhum de: frase de `PREFERENCIA_QUITACAO`, de `DESEMPATE_PESO_EMOCIONAL`,
+    "Recebe o valor extra", "Não será quitada com os valores de hoje".
+  - `AC-588`: parametrizado por `engine.tipos.MOTIVO_POSICAO` — snapshot de
+    estabilização com `dataclasses.replace` na `ORDEM_QUITACAO` (uma posição
+    com aquele motivo), a linha traz exatamente a frase do YAML; com a dívida
+    marcada `PREFERENCIA_QUITACAO` e peso emocional alto e outro motivo, as
+    frases de preferência/incômodo não aparecem; toda chave
+    `motivo_<CODIGO>` existe; nenhuma frase do bloco contém "sobra".
+  - `AC-589`: dívida ausente de `QUITACOES_SO_PARCELAS` → "Só com as parcelas
+    de hoje, ela não termina." e nenhum rótulo de mês; presente → o mesmo
+    `rotulo_do_mes` do "Termina em" do plano normal.
+  - `AC-590`: o mesmo snapshot de estabilização com os dois campos em `None`
+    → `ContextoPosicao` e HTML da seção iguais aos produzidos hoje (os testes
+    atuais de estabilização seguem verdes sem edição); e uma checagem AST de
+    que `_frase_do_motivo` e `_previsao_so_parcelas` não recebem `Divida` nem
+    leem `TAXA_*`, `GARANTIA_*`, `NEGATIVADA`, `PREFERENCIA_QUITACAO`,
+    `PESO_EMOCIONAL`. `tests/app_aluno/estatica/test_sem_aritmetica_sobre_snapshot.py`
+    segue verde.
+  - `AC-591`: `aluno.teste3` (horizonte estourado, com `MOTIVO_POSICAO`) →
+    `ContextoPlano` igual ao do mesmo snapshot com `MOTIVO_POSICAO` e
+    `QUITACOES_SO_PARCELAS` zerados; `motivo_da_posicao`/`previsao_so_parcelas`
+    vazios em todas as posições.
+  - `EC-92` (motivo sem frase → código), `EC-93` (`estabilizacao_por_divida`
+    com e sem motivo), `EC-94` (uma dívida).
+  - `AC-587`: com os fakes e `dependency_overrides` de
+    `tests/app_aluno/test_rotas_ordem_do_revisor.py`, o caso do Rodrigo em
+    `AGUARDANDO_REVISAO`: `ordem_do_revisor.vigente` com as duas dívidas na
+    ordem do método, `editavel = False`; `POST .../ordem` com a vigente →
+    `409`, com a outra permutação → `422`; nenhum snapshot anexado.
+- **Frontend** (`frontend/tests/unit/componentes/PlanoDoDeficitario.test.tsx`,
+  estendido): com os dois campos, aparecem na ordem nome, motivo, previsão; sem
+  eles (ou vazios), nada novo é renderizado.
+- **Fora de teste automatizado:** a redação das frases (validação do
+  especialista, `docs/perguntas-marcelo-calculo-de-divida.md`) e o layout em
+  360 px / PDF (conferência visual na prévia).
+
+## R19.10. Risks & Trade-offs
+
+| Decisão | Alternativa descartada | Por quê | Risco assumido |
+| --- | --- | --- | --- |
+| Dois campos novos em `ContextoPosicao`, só preenchidos em estabilização | Reaproveitar `explicacao` | `explicacao` é do plano normal e tem regras próprias (`T-549`); separar garante `AC-591` por construção | Dois campos a mais no payload, vazios fora de estabilização |
+| Chaves planas `motivo_<CODIGO>` no bloco `estabilizacao` | Sub-mapa `motivo_posicao:` | O parser atual achata o bloco em `Mapping[str, str]`; um sub-mapa exigiria mudar o parser | Nomes de chave longos no YAML |
+| Frases abaixo do nome, na mesma célula (PDF) e no mesmo item (tela) | Colunas novas na tabela do PDF | Cabe em 360 px e no A4 sem rolagem lateral (`NFR`); ordem de leitura nome → motivo → previsão | — |
+| Com `QUITACOES_SO_PARCELAS`, os dois itens da simulação em déficit saem da seção 3 | Mostrar os três | Contradição na mesma linha (risco alto da spec) | Só dentro da seção 3 em estabilização; o plano normal não muda |
+| `AC-587` sem código | Mexer na rota/tela do revisor | O motor completo resolve; a rota já recusa em estabilização | Depende de `R14` estar entregue antes |
+| Frases "sugestão, a validar" | Esperar o especialista | Padrão `RF-551`/`T-549`; não bloqueia | Validar antes de liberar o próximo plano deficitário (risco da spec) |
+| "Termina em {mês}" lido como promessa | — | Frase condicional e avisos existentes da seção (spec) | médio, aceito pela spec |
+
+## R19.11. Traceability
+
+| Requisito | Coberto por |
+| --- | --- |
+| `RF-555` | `R19.1`, `R19.3`, `R19.4` (`motivo_da_posicao`, `_frase_do_motivo`, chaves `motivo_<CODIGO>`), `R19.5` · `AC-586`, `AC-588`, `AC-590`, `AC-591`, `EC-92`, `EC-93`, `EC-94` |
+| `RF-556` | `R19.1`, `R19.3`, `R19.4` (`previsao_so_parcelas`, `_quitacoes_so_parcelas`, `_previsao_so_parcelas`, troca de `fora_do_horizonte`/`fatos`), `R19.5` · `AC-586`, `AC-589`, `AC-590`, `AC-591`, `EC-93` |
+| `RF-548` com `motor-calculo` `RF-552` | `R19.1` (sem código: `ordem_vigente` ramo 2, `editavel`) · `AC-587` |
+| `NFR` da Rodada 17 (tela = PDF, 360 px, acessibilidade, `AC-42`) | `R19.3`, `R19.4`, `R19.9` |
+
+Tarefas: em `tasks/app-aluno.tasks.md`, depois das do `motor-calculo` (`R14`).

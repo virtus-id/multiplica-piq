@@ -4964,3 +4964,368 @@ observáveis do snapshot, tolerância zero para ordem, prazo, método e status:
 
 Tarefas: no backlog de `tasks/motor-calculo.tasks.md`, antes das do `app-aluno`
 (`R18`), que dependem do campo e do parâmetro.
+
+---
+
+# Rodada 8 (2026-11-16) — Ordem em estabilização (`RF-552`–`RF-554`)
+
+| Campo | Valor |
+| --- | --- |
+| Slug | `ordem-em-estabilizacao` (rodada do `motor-calculo`) |
+| Spec | `specs/motor-calculo.spec.md` Rodada 8 — `RF-552`, `RF-553`, `RF-554`, `US-415`, `AC-576`–`AC-585`, `EC-85`–`EC-91`; `OQ-103` e `OQ-104` abertas, **fora do escopo** (nenhum item deste plano as implementa) |
+| Lado da aplicação | `plans/app-aluno.plan.md` §`R19` (textos da seção 3, tela, PDF, conferência) |
+| Status | `rascunho` |
+
+## R14.1. Architecture Overview — três pontos de mudança, a simulação intocada
+
+O defeito está num único lugar: o laço de `ORDEM_DE_ATAQUE` de
+`engine/ciclo_mensal.py::simular_cenario` (`RF-512`, linhas ~925-938) passa
+`restante.CAPACIDADE_ATAQUE_M` (negativa em déficit) como delta ao seletor. O
+laço mensal (`executar_mes`) **não muda**, nem o `SelecionarAlvo`, nem a
+`§16.4`, nem os seletores dos métodos (só ganham uma extração de função, sem
+mudar valor — `R14.4`).
+
+```text
+simular_cenario(e, dg, dividas, sel, p, aportes)
+  laço mensal (executar_mes) ......................................... intocado
+  laço da ORDEM_DE_ATAQUE (depois do laço mensal):
+    monta se ESTOUROU_HORIZONTE                                  ← RF-512, como hoje
+          ou (dg.MODO_ESTABILIZACAO e capacidade inicial ≤ 0)    ← RF-552 (2)
+    delta = delta_de_ranqueamento_da_ordem(capacidade inicial, dg.PISO_CAPACIDADE)  ← RF-552 (1)
+    escolhida = sel(restante, delta)        ← o MESMO sel (método + §16.4) da simulação
+
+calcular_plano, passo 10 (só sem ordem_do_revisor e com ORDEM_DE_ATAQUE no cenário recomendado)
+    motivos = derivar_MOTIVO_POSICAO(ORDEM_DE_ATAQUE, dividas, metodo, delta, p, D_ESTRELA)  ← RF-553
+    publicar_ORDEM_QUITACAO(..., motivos=motivos)   → PosicaoOrdem.MOTIVO_POSICAO
+
+calcular_prognostico
+    sem_acao.QUITACOES_SO_PARCELAS = _quitacoes(simulação "sem ação", até o fim dela)    ← RF-554
+```
+
+**Por que o motivo sai do mesmo seletor sem mudar `SelecionarAlvo`.** No laço
+da ordem, o estado é sempre `estado_inicial` com mais dívidas marcadas como
+quitadas e o **mesmo delta**; logo a "segunda colocada" `Y` de `RF-553` na
+posição *k* (o seletor em `R` sem `X`) **é exatamente a escolha da posição
+*k+1***. `Y` sai de graça da própria sequência; nenhuma chamada a mais do
+seletor (`NFR` de custo). Falta só saber **qual nível separou `X` de `Y`**, e
+isso é lido das mesmas funções que os seletores usam para ordenar:
+
+- `§16.4` passos 1-3: `engine/prioridade_ordem.py::_chave_grupo` (importada,
+  não copiada — o arquivo não muda);
+- passo 5 (preferência): "o método sozinho poria `Y` antes" é a comparação do
+  critério do método entre `X` e `Y` dando `Y`, dentro do mesmo grupo;
+- Avalanche: `beneficio_de_ranqueamento` (extraída do corpo do seletor, que
+  passa a chamá-la); Bola de Neve: `chave_bola_de_neve` (extraída da chave de
+  `sorted`, idem); Híbrido: `D_ESTRELA` (que o seletor força) e, depois dela,
+  a Avalanche.
+
+Nenhuma regra paralela: se alguém mudar a chave de um método, o seletor e o
+motivo mudam juntos (`NFR` "uma fonte de verdade").
+
+## R14.2. Tech Stack
+
+Nenhuma dependência nova. Python/stdlib, como o resto do motor (`RF-552` item
+4: nenhum `P_*` novo; `PISO_CAPACIDADE` já está no `Diagnostico`).
+`ENGINE_VERSION` não muda (é carimbo de parâmetros e `AC-577` exige os campos
+de hoje idênticos), mesma decisão de `R13`.
+
+## R14.3. Project Structure
+
+| Caminho | Mudança | Requisito |
+| --- | --- | --- |
+| `engine/tipos.py` | `class MOTIVO_POSICAO(Enum)`, 12 valores ASCII | `RF-553` |
+| `engine/ciclo_mensal.py` | `delta_de_ranqueamento_da_ordem`; no laço da ordem, a condição de montagem e o delta | `RF-552` (1), (2) |
+| `engine/metodos/avalanche.py` | extrai `beneficio_de_ranqueamento` do corpo do seletor (o seletor passa a chamá-la; mesmo valor) | `RF-553` (`NFR` uma fonte) |
+| `engine/metodos/bola_de_neve.py` | extrai `chave_bola_de_neve` da chave de `_ordenar_por_valor_relevante` (idem) | `RF-553` |
+| `engine/metodos/hibrido.py` | `ResultadoHibrido.D_ESTRELA: str \| None = None`, preenchido por `criar_selecionar_alvo_hibrido` | `RF-553` (e) `CRITERIO_HIBRIDO` |
+| `engine/ordem.py` | `PosicaoOrdem.MOTIVO_POSICAO` (último campo, `None`); `publicar_ORDEM_QUITACAO(..., motivos=None)`; `derivar_MOTIVO_POSICAO` e `_criterio_do_metodo` | `RF-553` |
+| `engine/motor.py` | passo 10: calcula `motivos` (só sem lista e com `ORDEM_DE_ATAQUE`) e os repassa a `publicar_ORDEM_QUITACAO` | `RF-553` |
+| `engine/prognostico.py` | `PrognosticoSemAcao.QUITACOES_SO_PARCELAS: ... \| None = None`, preenchido em `calcular_prognostico` | `RF-554` |
+| `persistencia/arquivo/repositorio_snapshots.py` | `_posicao_ordem` lê `MOTIVO_POSICAO` com `.get`; `_prognostico` lê `QUITACOES_SO_PARCELAS` com `.get` (ausente/`null` → `None`). A escrita já serializa os campos novos (`_serializar_canonico`) | `AC-584` |
+| `tests/app_aluno/estatica/hashes_congelados.json` | regravado pelo procedimento de `RF-41` do `app-aluno`, **só** com os nove arquivos acima (`AC-44`) | — |
+| `engine/prioridade_ordem.py`, `engine/snapshot.py`, `engine/comparacao.py`, `engine/status_metodo.py`, `engine/beneficio_marginal.py`, `persistencia/supabase/repositorio_snapshots.py` | **não mudam**. O Supabase guarda `ORDEM_QUITACAO` e `prognostico` inteiros em `dados_completos` e devolve pelo leitor de arquivo; `hash_inputs` só lê entradas | `AC-577`, `AC-584` |
+
+## R14.4. Data Model — contratos
+
+```python
+# engine/tipos.py — RF-553 · domínio fechado ASCII
+class MOTIVO_POSICAO(Enum):
+    UNICA_DIVIDA = "UNICA_DIVIDA"
+    ULTIMA_RESTANTE = "ULTIMA_RESTANTE"
+    GARANTIA_ESSENCIAL = "GARANTIA_ESSENCIAL"
+    NEGATIVADA = "NEGATIVADA"
+    PESO_GARANTIA = "PESO_GARANTIA"
+    PREFERENCIA_QUITACAO = "PREFERENCIA_QUITACAO"
+    MAIOR_BENEFICIO_MARGINAL = "MAIOR_BENEFICIO_MARGINAL"
+    MAIOR_TAXA = "MAIOR_TAXA"
+    MENOR_VALOR_RELEVANTE = "MENOR_VALOR_RELEVANTE"
+    CRITERIO_HIBRIDO = "CRITERIO_HIBRIDO"
+    DESEMPATE_PESO_EMOCIONAL = "DESEMPATE_PESO_EMOCIONAL"
+    DESEMPATE = "DESEMPATE"
+
+# engine/ciclo_mensal.py — RF-552 (1) · RF-512 · §11.1
+def delta_de_ranqueamento_da_ordem(capacidade: Dinheiro, PISO_CAPACIDADE: Dinheiro) -> Dinheiro: ...
+# capacidade > 0 → capacidade (hoje, byte a byte); senão → PISO_CAPACIDADE, como está
+# (EC-88: piso ≤ 0 segue sem delta positivo; nada inventado). Usada pelo laço e
+# pelo motor (delta do motivo) — um lugar só.
+#
+# simular_cenario, laço da ordem (único trecho alterado do módulo):
+#   capacidade inicial = estado_inicial.CAPACIDADE_ATAQUE_M (= dg.CAPACIDADE_ATAQUE_CONSERVADORA)
+#   monta se: estourou_horizonte or (dg.MODO_ESTABILIZACAO and capacidade inicial <= 0)   # RF-552 (2)
+#   escolhida = sel(restante, delta)   # delta acima, constante no laço
+#   ORDEM_FORA_DO_HORIZONTE = da sequência, as que a simulação não quitou (como hoje)
+# A condição usa o `dg` recebido: o "sem ação" (capacidade 0, seletor que nunca
+# escolhe) e o verde (capacidade + extra) seguem corretos sem caso especial.
+
+# engine/metodos/avalanche.py — §11.1 · O-01 · RF-553
+def beneficio_de_ranqueamento(divida: Divida, delta: Dinheiro, p: Parametros) -> BeneficioMarginal | None: ...
+# DELTA_TESTE = MIN(delta, VALOR_RELEVANTE_PARA_QUITACAO); None quando o valor
+# relevante ou o benefício é DESCONHECIDO (RF-16). O seletor passa a montar
+# `beneficios` com ela; ordenação (-benefício, DIVIDA_ID) inalterada.
+
+# engine/metodos/bola_de_neve.py — O-04 · O-05 · RF-553
+def chave_bola_de_neve(divida_id: str, divida: Divida) -> tuple[Decimal, Decimal, Decimal, Decimal, str] | None: ...
+# (VALOR_RELEVANTE, fluxo liberado negado, custo negado, peso emocional efetivo negado, DIVIDA_ID)
+# — a mesma ordem lexicográfica de hoje, achatada; None com valor relevante
+# DESCONHECIDO (vai para informacao_pendente, como hoje). Índice 0 = critério
+# O-04; índice 3 = peso emocional (§16.4 passo 4); 1, 2, 4 = demais desempates.
+
+# engine/metodos/hibrido.py — H-05
+@dataclass(frozen=True, slots=True)
+class ResultadoHibrido:
+    classificacao: CLASSIFICACAO_CENARIO
+    selecionar_alvo: SelecionarAlvo | None
+    D_ESTRELA: str | None = None          # RF-553 (e): a dívida que o seletor força
+
+# engine/ordem.py — RF-553
+@dataclass(frozen=True, slots=True)
+class PosicaoOrdem:
+    posicao: int
+    DIVIDA_ID: str
+    JUSTIFICATIVA_POSICAO: str                       # Q-05, inalterada
+    valores_de_apoio: Mapping[str, Dinheiro | Decimal]
+    MOTIVO_POSICAO: MOTIVO_POSICAO | None = None     # None = ordem não veio da ORDEM_DE_ATAQUE / snapshot anterior
+
+def publicar_ORDEM_QUITACAO(
+    cenario_recomendado: Cenario, metodo_recomendado: METODO,
+    dividas: Mapping[str, Divida], particao: ParticaoElegibilidade,
+    *, definida_pelo_revisor: bool = False,
+    motivos: tuple[MOTIVO_POSICAO, ...] | None = None,
+) -> ResultadoOrdemPublicada: ...
+# Só envelopa: motivos[i] vai para a posição i da sequência publicada.
+# len(motivos) != len(sequência) → ErroOrdemInconsistente (bug do motor).
+
+def derivar_MOTIVO_POSICAO(
+    sequencia: tuple[str, ...],          # Cenario.ORDEM_DE_ATAQUE do recomendado
+    dividas: Mapping[str, Divida],       # o mesmo inventário que simular_cenario recebeu (R)
+    metodo: METODO,
+    delta: Dinheiro,                     # delta_de_ranqueamento_da_ordem(...) — o mesmo do laço
+    p: Parametros,
+    D_ESTRELA: str | None = None,        # só lido com metodo HIBRIDO
+) -> tuple[MOTIVO_POSICAO, ...]: ...
+# Para cada posição k, X = sequencia[k], R = dividas − sequencia[:k],
+# Y = sequencia[k+1] (ou None no fim — EC-85). Primeiro que se aplica:
+#   (a) len(sequencia) == 1                         → UNICA_DIVIDA
+#   (b) R == {X}                                    → ULTIMA_RESTANTE
+#   (c) Y e _chave_grupo(X) > _chave_grupo(Y)       → 1º componente diferente:
+#       (GARANTIA_ESSENCIAL, NEGATIVADA, PESO_GARANTIA)
+#   x_vence, motivo_do_metodo = _criterio_do_metodo(X, Y, ...)
+#   (d) Y, mesmo grupo e not x_vence                → PREFERENCIA_QUITACAO
+#   (e)(f)(g)                                       → motivo_do_metodo
+
+def _criterio_do_metodo(
+    x: Divida, y: Divida | None, metodo: METODO, delta: Dinheiro, p: Parametros, D_ESTRELA: str | None
+) -> tuple[bool, MOTIVO_POSICAO]: ...
+# (o método sozinho põe X antes de Y?, nível que separou):
+#   HIBRIDO: X == D* → (True, CRITERIO_HIBRIDO); Y == D* → (False, CRITERIO_HIBRIDO);
+#            senão, como AVALANCHE (H-07).
+#   AVALANCHE: bx = beneficio_de_ranqueamento(x); Y None ou by None → (True, critério);
+#            senão chave (-benefício, DIVIDA_ID): benefícios diferentes → critério,
+#            iguais → DESEMPATE. Critério = MAIOR_TAXA se bx.origem != "SIMULACAO"
+#            (fallback §11.1, taxa ou CET), senão MAIOR_BENEFICIO_MARGINAL.
+#            bx None é inalcançável (o seletor não escolhe sem benefício) →
+#            ErroOrdemInconsistente, nunca motivo inventado.
+#   BOLA_DE_NEVE: chave_bola_de_neve de X e Y; 1º índice diferente:
+#            0 → MENOR_VALOR_RELEVANTE, 3 → DESEMPATE_PESO_EMOCIONAL, outro → DESEMPATE;
+#            Y None → (True, MENOR_VALOR_RELEVANTE).
+
+# engine/motor.py — calcular_plano, passo 10 (único trecho novo)
+#   motivos = None
+#   if lista is None and cenario_recomendado.ORDEM_DE_ATAQUE:
+#       motivos = derivar_MOTIVO_POSICAO(cenario_recomendado.ORDEM_DE_ATAQUE, dividas,
+#           metodo_recomendado,
+#           delta_de_ranqueamento_da_ordem(diagnostico_pre.CAPACIDADE_ATAQUE_CONSERVADORA,
+#                                          diagnostico_pre.PISO_CAPACIDADE),
+#           parametros, D_ESTRELA=resultado_hibrido.D_ESTRELA)
+#   ordem_publicada = publicar_ORDEM_QUITACAO(cenario_recomendado, ..., motivos=motivos)
+# Com a lista do revisor, o ramo 10d republica sem `motivos` (RF-553: ausente).
+
+# engine/prognostico.py — RF-554
+@dataclass(frozen=True, slots=True)
+class PrognosticoSemAcao:
+    ...                                                             # campos atuais
+    QUITACOES_SO_PARCELAS: tuple[tuple[str, Meses], ...] | None = None
+# None = snapshot anterior (a aplicação mantém a seção como hoje); () = calculado,
+# nenhuma termina. Valor: _quitacoes(sem_acao, sem_acao.PRAZO_TOTAL) — a MESMA
+# simulação "sem ação" já feita, lida sem o corte em `horizonte`; ela já para em
+# P_HORIZONTE_MAXIMO_SIMULACAO. Dívida que cresce ou com pagamento zero nunca
+# quita → ausente (RF-79, EC-90). Nenhuma simulação nova.
+```
+
+Persistência (arquivo; o Supabase reaproveita o mesmo leitor):
+`ORDEM_QUITACAO[i].MOTIVO_POSICAO`: `"MAIOR_BENEFICIO_MARGINAL"` ou `null`/ausente
+→ `None`. `prognostico.sem_acao.QUITACOES_SO_PARCELAS`: `[["D002", 24], …]`,
+`[]`, ou `null`/ausente → `None`. `SNAPSHOT_ID` é lido, nunca recalculado.
+
+## R14.5. Data Flow — o que muda em cada caso
+
+| Caso | Laço da ordem | `ORDEM_QUITACAO` publicada | `MOTIVO_POSICAO` | Simulação, custo, prazo, método, `ORDEM_STATUS`, `D*` |
+| --- | --- | --- | --- | --- |
+| Capacidade > 0, sem estouro (`GAB-B`, `GAB-C`, `AC-513`, `AC-555`) | não monta (como hoje) | ordem de quitação (`RF-09`) | ausente | iguais (`AC-577`, `AC-584`) |
+| Capacidade > 0, com estouro (`aluno.teste3`, `AC-556` sem lista) | monta com a capacidade (como hoje) | `ORDEM_DE_ATAQUE` (igual) | **presente** (único campo novo, `AC-577`) | iguais |
+| Com `ordem_do_revisor` | o do seletor da lista (como hoje) | como `R13` | ausente (`AC-584`) | como `R13` |
+| `MODO_ESTABILIZACAO`, capacidade ≤ 0 (Rodrigo, `GAB-A`, `AC-579`) | **sempre** monta, delta = `PISO_CAPACIDADE` | `ORDEM_DE_ATAQUE` (agora completa) | presente | iguais (`AC-576`): o delta muda só no laço da ordem; `executar_mes`, `_beneficios_marginais_da_ordem` (capacidade do diagnóstico) e `escolher_D_ESTRELA` não leem o delta novo (`OQ-104`) |
+| Fora de estabilização, capacidade 0 (`AC-580`) | monta só com estouro, delta = piso | `ORDEM_DE_ATAQUE` com estouro | presente com estouro | iguais |
+| Estabilização por dívida que cresce, capacidade > 0 (`EC-89`) | como hoje | como hoje (com estouro, `ORDEM_DE_ATAQUE` + motivo) | presente só com estouro | iguais |
+
+Consequência derivada, não um campo novo: `DIVIDA_ALVO_ATUAL` e
+`PROXIMA_DIVIDA` são as posições 1 e 2 da ordem publicada
+(`engine/snapshot.py:306`); onde a ordem publicada muda (estabilização com
+capacidade ≤ 0), eles acompanham. Leitura adotada para `AC-577` ("só a ordem
+publicada pode mudar" inclui o que o snapshot espelha dela) — ver `R14.10`.
+
+`sem_acao.QUITACOES_SO_PARCELAS` vem em **todo** snapshot novo com
+prognóstico, em qualquer modo (`AC-577`: campo novo autorizado).
+
+## R14.6. External Interfaces
+
+Nenhuma. `calcular_plano`, as portas (`FonteParametros`,
+`RepositorioSnapshots`) e o banco não mudam de assinatura nem de esquema; os
+dois campos novos vivem no JSON do snapshot (arquivo) e em `dados_completos`
+(Supabase), sem migração.
+
+## R14.7. State Management
+
+O motor continua puro (`NFR`): nenhum relógio, I/O ou `P_*`. O delta é
+derivado de `Diagnostico` já calculado; o motivo é saída do cálculo e vive só
+no snapshot (`PosicaoOrdem`). `hash_inputs`/`SNAPSHOT_ID` não mudam porque só
+leem entradas (`AC-577`, `AC-584`).
+
+## R14.8. Error Handling Strategy
+
+| Situação | Detecção | Saída | Recuperação |
+| --- | --- | --- | --- |
+| Seletor sem candidata no laço (sem benefício comparável, mesmo com o piso — `EC-85`; piso ≤ 0 — `EC-88`) | `escolhida is None`, como hoje | o laço para; a sequência fica parcial; se vazia, vale a ordem de quitação (`RF-09`, `publicar` já faz `ORDEM_DE_ATAQUE or ORDEM_QUITACAO`). Última posição sem `Y` com outras dívidas em `R` → motivo do critério do método | nenhuma; completar é `OQ-103` |
+| `len(motivos)` ≠ tamanho da sequência publicada | `publicar_ORDEM_QUITACAO` | `ErroOrdemInconsistente` | bug do motor, não publicado em silêncio |
+| `X` da Avalanche sem benefício em `derivar_MOTIVO_POSICAO` | `_criterio_do_metodo` | `ErroOrdemInconsistente` (inalcançável) | idem |
+| Snapshot anterior sem os campos | leitor de arquivo (`.get`) | `MOTIVO_POSICAO = None`, `QUITACOES_SO_PARCELAS = None`, mesmo `SNAPSHOT_ID` (`AC-584`) | a aplicação mantém a seção como hoje (`app-aluno` `RF-555`/`RF-556`) |
+
+## R14.9. Testing Strategy
+
+**Ordem das tarefas.** O teste de caracterização (abaixo) é a primeira tarefa
+e é escrito **antes** de tocar o motor, como `test_ordem_do_revisor_identidade.py`
+fez em `R13`.
+
+- **`tests/regras/test_ordem_em_estabilizacao_identidade.py` (novo) — `AC-577`.**
+  Para `GAB-B`, `GAB-C`, os cinco invariantes, `aluno.teste3`
+  (`tests/regras/test_ordem_com_todas_as_dividas.py::_caso_teste3`) e os
+  estados de `AC-513` e `AC-554`–`AC-562` (reaproveitados de
+  `tests/regras/test_ordem_do_revisor.py`, com e sem lista): o SHA-256 do
+  snapshot serializado (`_serializar_canonico` + `json.dumps(sort_keys=True)`),
+  **removidas** as chaves `MOTIVO_POSICAO` de cada posição e
+  `QUITACOES_SO_PARCELAS` de `prognostico.sem_acao`, lido da execução na
+  branch **antes** da mudança e congelado no arquivo; depois dela, tem de
+  reproduzir byte a byte. Para `GAB-A`, o mesmo digest removendo também
+  `ORDEM_QUITACAO`, `DIVIDA_ALVO_ATUAL`, `PROXIMA_DIVIDA` e, em cada cenário,
+  `ORDEM_DE_ATAQUE`/`ORDEM_FORA_DO_HORIZONTE`; os testes de `AC-05` ficam como
+  estão. Os gabaritos e `test_ordem_do_revisor_identidade.py` continuam verdes
+  sem edição.
+- **`tests/regras/test_ordem_em_estabilizacao.py` (novo).**
+  - Fixture `_estado_rodrigo()`: `carregar_gab_c()` com `dataclasses.replace`,
+    no padrão de `test_ordem_do_revisor.py::_estado` —
+    `RENDA_TOTAL_RECORRENTE = 13.701,27`, despesas do `GAB-C` ajustadas para
+    as saídas somarem 24.058,11 (parcelas 2.256 + 5.287,11 + despesas
+    16.515,00), `dividas = (D001, D002)` por `replace(base, ...)`: D001 saldo
+    e valor de quitação 120.000, taxa 0,0158, parcela e pagamento 2.256; D002
+    100.000, 0,02, 5.287,11, `PREFERENCIA_QUITACAO=True`; as duas sem
+    garantia, sem negativação. O primeiro teste afirma o cabeçalho da Rodada 8
+    (`MODO_ESTABILIZACAO`, `RESULTADO_MENSAL_ATUAL` e
+    `CAPACIDADE_ATAQUE_CONSERVADORA` = −10.356,84, `PISO_CAPACIDADE` =
+    13.701,27 × 3% exato, Avalanche recomendada, horizonte estourado) — se a
+    fixture não reproduzir o caso, o teste falha antes de qualquer critério.
+    Exportada para o `app-aluno` (`R19.9`), como `_estado_gab04` já é.
+  - `AC-576`: `ORDEM_DE_ATAQUE == ("D001", "D002")`, as duas posições, motivos
+    `MAIOR_BENEFICIO_MARGINAL` e `ULTIMA_RESTANTE`, `ORDEM_FORA_DO_HORIZONTE`
+    = as da ordem que a simulação não quita; e `METODO_RECOMENDADO_PIQ`,
+    `STATUS_METODO`, `ORDEM_STATUS`, `diagnostico`, `PRAZO_TOTAL`,
+    `CUSTO_FUTURO_TOTAL`, `meses` de cada cenário e `MESES_DO_PLANO` iguais
+    aos congelados antes da mudança (digest, como acima).
+  - `AC-585`: `QUITACOES_SO_PARCELAS` contém `("D002", 24)` e
+    `("D001", 118)` (Price, n = −ln(1 − 0,0158 × 120.000 / 2.256) / ln(1,0158)
+    ≈ 117,07 → quita no mês 118, dentro de 120); um estado em que o plano
+    termina antes do mês "só parcelas" de uma dívida (ela está em
+    `QUITACOES_SO_PARCELAS` e não em `sem_acao.QUITACOES`); uma dívida cuja
+    parcela não cobre os juros (ausente); os demais campos de `sem_acao`
+    idênticos aos de antes.
+  - `AC-578`, `AC-579`, `AC-580` e `EC-85`–`EC-91` por `calcular_plano`
+    sobre variações do mesmo `_estado` (renda e carteira trocadas por
+    `replace`); `AC-580` usa `CAPACIDADE_ATAQUE_DECLARADA = 0` com resultado
+    positivo.
+  - `AC-581`–`AC-583` (motivo por tipo): carteiras de
+    `tests/regras/test_prioridade_ordem.py` (`_carteira`, `_com`,
+    `_duas_primeiras`; `§16.4-C3`–`C10`) num `Diagnostico` de déficit
+    (`calcular_diagnostico` de `_estado_rodrigo()`), pelo mesmo caminho que o
+    motor compõe — `aplicar_prioridade_ordem(seletor do método)`,
+    `simular_cenario`, `derivar_MOTIVO_POSICAO` com
+    `delta_de_ranqueamento_da_ordem` — comparando a sequência e os motivos.
+    Escolher o método recomendado por carteira via `calcular_plano` não é
+    controlável nessas carteiras; o fio motor→publicação é provado por
+    `AC-576` ponta a ponta. `AC-583(d)` precisa de uma carteira em déficit em
+    que o Híbrido é `CALCULAVEL` (uma dívida pequena que a própria parcela
+    quita dentro do horizonte dá à Avalanche de referência uma quitação); se
+    não houver, parar e reportar (`R14.10`).
+  - `AC-584`: sem estouro fora de estabilização → todas as posições com
+    `MOTIVO_POSICAO is None`; `AC-556` com a lista → idem; duas execuções →
+    motivos e `QUITACOES_SO_PARCELAS` iguais; linha de `snapshots.jsonl` sem as
+    duas chaves (e o `_dados_completos` do Supabase sem elas) lida de volta →
+    `None`, mesmo `SNAPSHOT_ID`; round-trip com os campos preenchidos (inclusive
+    `QUITACOES_SO_PARCELAS = ()`, distinto de `None`).
+- **Não regressão dos seletores.** `tests/regras/test_avalanche.py`,
+  `test_bola_de_neve.py`, `test_hibrido.py`, `test_prioridade_ordem.py` e os
+  gabaritos seguem sem edição (as extrações não mudam valor).
+- **Estáticos.** `hashes_congelados.json` regravado só com os arquivos de
+  `R14.3`; `test_motor_e_deterministico` e a pureza de `engine/` seguem
+  verdes; `ruff`/`mypy --strict` (`sdd.config.md` §2).
+
+## R14.10. Risks & Trade-offs
+
+| Decisão | Alternativa descartada | Por quê | Risco assumido |
+| --- | --- | --- | --- |
+| `Y` = a escolha seguinte da mesma sequência; o nível que decidiu vem das funções de chave que os seletores usam | (1) `SelecionarAlvo` devolver `(Divida, motivo)`; (2) chamar o seletor do método de novo sobre `{X, Y}` | (1) muda o tipo do ponto único de variação e os três seletores, com risco direto na simulação (`AC-576`); (2) exige fabricar `EstadoSimulacao` e uma chamada extra por posição. A sequência já tem `Y`; as chaves já existem | Quem mudar a chave de um método e esquecer o motivo quebra `AC-581`–`AC-583` (é o mesmo código, então só se a extração for desfeita) |
+| Delta trocado só no laço da ordem, por uma função usada pelo laço e pelo motor | Trocar também em `executar_mes`/`_beneficios_marginais_da_ordem`/`D*` | `RF-552` item 3 e `OQ-104` | A ordem com o piso pode diferir da do mês positivo real (risco da spec; texto `ordem_intro` já avisa) |
+| O laço da ordem passa a rodar em toda `simular_cenario` em déficit (também nas simulações das candidatas do Híbrido, no verde e no "sem ação") | Um parâmetro "monte a ordem" em `simular_cenario` | Menor diff; o resultado dessas simulações não lê a ordem; o "sem ação" tem seletor que nunca escolhe | Custo: até N escolhas a mais por simulação em déficit. Benefício marginal é memoizado (`lru_cache` de trajetória, mesmo delta); teto de referência continua a carteira de 30 dívidas (`NFR`) — `tests/desempenho/test_orcamento_30_dividas.py` tem de seguir verde, e ganha uma variante em déficit |
+| Extrair `beneficio_de_ranqueamento` e `chave_bola_de_neve` dos seletores | Copiar as três linhas do `§11.1` em `ordem.py` | `NFR` "uma fonte de verdade" proíbe segunda implementação | A extração precisa ser estritamente equivalente — guardada pelos gabaritos e pela caracterização de `AC-577` |
+| `PrognosticoSemAcao.QUITACOES_SO_PARCELAS` opcional `None` | Padrão `()` como `QUITACOES` | A aplicação precisa distinguir "snapshot anterior" (seção como hoje) de "nenhuma termina" (`app-aluno` `RF-556`) | — |
+| **Leitura adotada 1 — `(a)` × `EC-85`.** Ordem publicada com uma posição porque as outras elegíveis não são comparáveis: vale `(a)` `UNICA_DIVIDA`, a primeira regra da precedência ("a ordem tem uma só dívida"); `EC-85` ("motivo do critério do método") vale para a última posição de uma ordem com duas ou mais | Ler `(a)` como "uma só elegível" | A precedência de `RF-553` é literal; a frase ao aluno ("É a única dívida deste plano") é verdadeira sobre o plano publicado | Caso raro em déficit com o piso; confirmar com o responsável do produto na revisão das tarefas, sem bloquear |
+| **Leitura adotada 2 — `AC-577` e o que espelha a ordem.** Em `GAB-A`/estabilização, `DIVIDA_ALVO_ATUAL` e `PROXIMA_DIVIDA` acompanham a ordem publicada (são as posições 1 e 2, `engine/snapshot.py:306`) | Congelá-los | Mudar a ordem sem eles seria um snapshot incoerente; não são campo independente | Se o responsável do produto ler `AC-577` como "só os três campos", é contradição da spec: parar e reportar |
+| **Valores esperados de `AC-576`/`AC-585` vêm da spec** (D001 antes de D002; D002 no mês 24) e um derivado (D001 no mês 118) | Ajustar o teste ao que o motor der | Regra: contradição entre spec e código se reporta | Se a primeira execução der outra ordem ou outro mês, parar e reportar, não ajustar |
+| `AC-581`–`AC-583` pelo caminho de regras (seletor + `simular_cenario` + `derivar_MOTIVO_POSICAO`), não por `calcular_plano` | Montar estados completos em que a Avalanche/Bola/Híbrido seja o recomendado | A recomendação em déficit não é controlável nessas carteiras; o motivo não depende do método ter vencido, só da sequência e do delta | `AC-583(d)` pode não ter carteira em déficit com `D*`: parar e reportar se for o caso |
+| `OQ-103`, `OQ-104` abertas | — | Fora do escopo (spec) | Nenhum item deste plano as toca |
+
+## R14.11. Traceability
+
+| Requisito | Coberto por |
+| --- | --- |
+| `RF-552` (1) delta = piso com capacidade ≤ 0 | `R14.1`, `R14.4` (`delta_de_ranqueamento_da_ordem`, laço) · `AC-576`, `AC-580`, `EC-87`, `EC-88`, `EC-91` |
+| `RF-552` (2) estabilização em déficit: ordem de ataque sempre publicada | `R14.4` (condição do laço), `R14.5` · `AC-576`, `AC-579`, `EC-89` |
+| `RF-552` (3) simulação, método, `ORDEM_STATUS`, `D*` intocados | `R14.1`, `R14.5`, `R14.10` · `AC-576`, `AC-577`, `AC-580`, `EC-91` |
+| `RF-552` (4) nenhum `P_*` | `R14.2`, `R14.7` |
+| `RF-553` domínio e precedência (a)–(g) | `R14.4` (`MOTIVO_POSICAO`, `derivar_MOTIVO_POSICAO`, `_criterio_do_metodo`) · `AC-576`, `AC-578`, `AC-581`, `AC-582`, `AC-583`, `EC-85`, `EC-86` |
+| `RF-553` saída do mesmo seletor | `R14.1`, `R14.4` (`beneficio_de_ranqueamento`, `chave_bola_de_neve`, `D_ESTRELA`, `_chave_grupo`), `R14.10` |
+| `RF-553` ausente sem `ORDEM_DE_ATAQUE`, com lista, em snapshot anterior | `R14.4` (motor passo 10, `PosicaoOrdem`), `R14.3` (persistência) · `AC-584` |
+| `RF-554` `QUITACOES_SO_PARCELAS` | `R14.4` (`PrognosticoSemAcao`), `R14.3` · `AC-585`, `AC-584`, `EC-90` |
+| Não regressão (`AC-577`) | `R14.5`, `R14.9` (caracterização antes da mudança) |
+| `OQ-103`, `OQ-104` | abertas, sem item de plano (`R14.10`) |
+
+Tarefas: no backlog de `tasks/motor-calculo.tasks.md`, antes das do `app-aluno`
+(`R19`), que leem os dois campos; a primeira é a caracterização de `AC-577`.

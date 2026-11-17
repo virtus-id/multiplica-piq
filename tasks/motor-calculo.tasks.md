@@ -7966,3 +7966,466 @@ o argumento, e os dois batem com o `hash_inputs`/`SNAPSHOT_ID` congelados.
 | `OQ-102` (aberta) | `T-578`, não agendada, fora do escopo |
 
 **Requisitos sem tarefa:** nenhum.
+
+---
+
+## Rodada 8 da spec — Ordem em estabilização (2026-11-16, `RF-552`–`RF-554`)
+
+> **Feature `ordem-em-estabilizacao`, lado do motor.** Spec:
+> `specs/motor-calculo.spec.md` Rodada 8 (`RF-552`, `RF-553`, `RF-554`,
+> `US-415`, `AC-576`–`AC-585`, `EC-85`–`EC-91`; `OQ-103` e `OQ-104` abertas,
+> **fora do escopo**). Plano: `plans/motor-calculo.plan.md` `R14.1`–`R14.11`.
+> As tarefas do lado da aplicação (`R19`, `T-623` em diante) estão em
+> `tasks/app-aluno.tasks.md` e dependem destas.
+>
+> **Regras desta rodada.** (1) **Caracterização antes da mudança**: `T-603` e
+> `T-604` congelam os digests lidos da branch **antes** de qualquer arquivo de
+> `engine/` mudar, e têm de continuar verdes em todas as tarefas seguintes, sem
+> edição dos valores. (2) O laço mensal (`executar_mes`), `SelecionarAlvo`, a
+> `§16.4` e o valor de cada seletor **não mudam**; `engine/prioridade_ordem.py`,
+> `engine/snapshot.py`, `engine/comparacao.py`, `engine/status_metodo.py`,
+> `engine/beneficio_marginal.py` e `persistencia/supabase/repositorio_snapshots.py`
+> ficam com `git diff` vazio. (3) Nenhum `P_*` novo; `ENGINE_VERSION` não muda.
+> (4) Toda tarefa que altera arquivo de `engine/` ou `persistencia/` regrava em
+> `tests/app_aluno/estatica/hashes_congelados.json` só o hash dos arquivos que
+> ela alterou (procedimento de `RF-41` do `app-aluno`, `AC-44`). (5) **Valor
+> esperado divergente não se ajusta**: se a primeira execução de um teste der
+> outro valor que o da spec/plano (ex.: D001 antes de D002, D002 no mês 24, D001
+> no mês ~118, `PISO_CAPACIDADE` = 411,04), **pare e reporte** com a saída real;
+> o teste não é editado para passar. (6) Gates do `sdd.config.md` §2 ao fim de
+> cada tarefa: `lint` (`.venv/Scripts/python.exe -m ruff check .`), `build`
+> (`mypy`, comando da §2) e `test` (`.venv/Scripts/python.exe -m pytest -q`).
+>
+> **Decisões registradas (2026-11-16).** **Leitura 1** (`R14.10`) adotada: ordem
+> publicada com uma só posição porque as demais elegíveis não são comparáveis →
+> `UNICA_DIVIDA` (regra `(a)`, primeira da precedência literal de `RF-553`);
+> o motivo do critério do método de `EC-85` vale para a última posição de uma
+> ordem com duas ou mais. **Leitura 2** (`AC-577`) adotada: `DIVIDA_ALVO_ATUAL` e
+> `PROXIMA_DIVIDA` são as posições 1 e 2 da ordem publicada
+> (`engine/snapshot.py:306`) e, em estabilização, mudam junto com ela — é
+> consequência direta de `RF-552`, não regressão; `T-605` emenda o `AC-577`.
+
+### Entrega A — Caracterização e spec antes de tocar o motor
+
+### `T-603` — Congelar o digest de identidade dos snapshots antes da mudança
+
+- **Tipo:** `Test` · **Dependências:** nenhuma · **Rastreia:** `RF-552` (3), `AC-577` · plano `R14.9` (caracterização), `R14.5`
+- **Arquivos:** `tests/regras/test_ordem_em_estabilizacao_identidade.py` (novo)
+
+**Descrição.** Primeira tarefa da rodada, escrita **antes** de qualquer mudança
+no motor, no padrão de `test_ordem_do_revisor_identidade.py` (`T-565`). Para
+`GAB-B`, `GAB-C`, os cinco invariantes, `aluno.teste3`
+(`test_ordem_com_todas_as_dividas.py::_caso_teste3`), o estado de `AC-513` e os
+de `AC-554`–`AC-562` (de `test_ordem_do_revisor.py`, com e sem lista): SHA-256
+do snapshot serializado (`_serializar_canonico` + `json.dumps(sort_keys=True)`)
+com as chaves `MOTIVO_POSICAO` (de cada posição) e `QUITACOES_SO_PARCELAS` (de
+`prognostico.sem_acao`) removidas se presentes. Para `GAB-A`, o mesmo digest
+removendo também `ORDEM_QUITACAO`, `DIVIDA_ALVO_ATUAL`, `PROXIMA_DIVIDA` e, em
+cada cenário, `ORDEM_DE_ATAQUE`/`ORDEM_FORA_DO_HORIZONTE` (Leitura 2).
+
+- [ ] Um caso parametrizado por estado; os digests são lidos da execução na branch antes de `T-606`–`T-615`, nunca escritos à mão
+- [ ] Remoção das chaves feita sobre o dicionário serializado (o teste passa hoje e depois da mudança sem edição)
+- [ ] `GAB-A/B/C`, invariantes, `AC-05` e `test_ordem_do_revisor_identidade.py` existentes não são editados
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao_identidade.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-604` — Criar a fixture `_estado_rodrigo()` e congelar o digest da simulação antes da mudança
+
+- **Tipo:** `Test` · **Dependências:** nenhuma · **Rastreia:** `AC-576` (cabeçalho e não-regressão), `RF-552` (3) · plano `R14.9` (`_estado_rodrigo`)
+- **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py` (novo)
+
+**Descrição.** Fixture `_estado_rodrigo()` sobre `carregar_gab_c()` com
+`dataclasses.replace`, no padrão de `test_ordem_do_revisor.py::_estado`:
+`RENDA_TOTAL_RECORRENTE` = 13.701,27; despesas ajustadas para as saídas somarem
+24.058,11 (parcelas 2.256 + 5.287,11 + despesas 16.515,00); D001 saldo e valor
+de quitação 120.000, taxa 0,0158, parcela e pagamento 2.256; D002 100.000,
+0,02, 5.287,11, `PREFERENCIA_QUITACAO=True`; as duas sem garantia e sem
+negativação. Exportável para o `app-aluno` (`R19.9`), como `_estado_gab04`.
+Primeiro teste: o cabeçalho da Rodada 8. Segundo: digest (como `T-603`, `GAB-A`)
+de `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, `ORDEM_STATUS`, `diagnostico`,
+`PRAZO_TOTAL`, `CUSTO_FUTURO_TOTAL`, `meses` de cada cenário e `MESES_DO_PLANO`,
+lido **antes** da mudança.
+
+- [ ] Cabeçalho: `MODO_ESTABILIZACAO`; `RESULTADO_MENSAL_ATUAL` e `CAPACIDADE_ATAQUE_CONSERVADORA` = −10.356,84; `PISO_CAPACIDADE` = 13.701,27 × 3% exato (411,04 na exibição); Avalanche recomendada; horizonte estourado — tolerância zero
+- [ ] Se a fixture não reproduzir o cabeçalho, **parar e reportar** com a saída real; não ajustar a fixture fora dos valores da spec
+- [ ] Digest lido da execução antes de `T-606`–`T-615`, não escrito à mão
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-605` — Emendar o `AC-577`: `DIVIDA_ALVO_ATUAL` e `PROXIMA_DIVIDA` podem mudar no `GAB-A`
+
+- **Tipo:** `Docs` · **Dependências:** nenhuma · **Rastreia:** `AC-577`, `RF-552` (2) · plano `R14.5` (consequência derivada), `R14.10` (Leitura 2)
+- **Arquivos:** `specs/motor-calculo.spec.md`
+
+**Descrição.** Uma frase no `AC-577`: na lista de campos de `GAB-A` que podem
+mudar ("só `ORDEM_QUITACAO` publicada, `ORDEM_DE_ATAQUE`,
+`ORDEM_FORA_DO_HORIZONTE` e os campos novos"), acrescentar `DIVIDA_ALVO_ATUAL` e
+`PROXIMA_DIVIDA`, com a razão: são as posições 1 e 2 da ordem publicada e mudam
+com ela por consequência de `RF-552`, não regressão.
+
+- [ ] Só o texto do `AC-577` muda; nenhum outro `AC`/`RF` é editado
+- [ ] Os valores de `AC-05` continuam fora da lista do que pode mudar
+- [ ] Verificação: `git diff specs/motor-calculo.spec.md` mostra só a frase do `AC-577`
+
+**Status:** `[ ] pendente`
+
+---
+
+### Entrega B — Peças do motor (cada uma sem efeito na saída até `T-610`/`T-613`)
+
+### `T-606` — Criar o domínio `MOTIVO_POSICAO` em `engine/tipos.py`
+
+- **Tipo:** `Data` · **Dependências:** `T-603`, `T-604` · **Rastreia:** `RF-553` (domínio) · plano `R14.3`, `R14.4`
+- **Arquivos:** `engine/tipos.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `class MOTIVO_POSICAO(Enum)` com os 12 valores ASCII de `R14.4`
+(`UNICA_DIVIDA`, `ULTIMA_RESTANTE`, `GARANTIA_ESSENCIAL`, `NEGATIVADA`,
+`PESO_GARANTIA`, `PREFERENCIA_QUITACAO`, `MAIOR_BENEFICIO_MARGINAL`,
+`MAIOR_TAXA`, `MENOR_VALOR_RELEVANTE`, `CRITERIO_HIBRIDO`,
+`DESEMPATE_PESO_EMOCIONAL`, `DESEMPATE`), valor = nome.
+
+- [ ] Exatamente 12 membros, nomes idênticos aos da spec, caractere por caractere
+- [ ] `T-603` e `T-604` verdes
+- [ ] Rehash só de `engine/tipos.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-607` — Extrair `beneficio_de_ranqueamento` do seletor da Avalanche
+
+- **Tipo:** `Data` · **Dependências:** `T-603`, `T-604` · **Rastreia:** `RF-553` (saída do mesmo seletor, `NFR` uma fonte de verdade) · `§11.1`, `O-01` · plano `R14.3`, `R14.4`, `R14.10`
+- **Arquivos:** `engine/metodos/avalanche.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `beneficio_de_ranqueamento(divida, delta, p) -> BeneficioMarginal
+| None`: `DELTA_TESTE = MIN(delta, VALOR_RELEVANTE_PARA_QUITACAO)`; `None` com
+valor relevante ou benefício `DESCONHECIDO` (`RF-16`). O seletor passa a montar
+`beneficios` com ela; ordenação `(-benefício, DIVIDA_ID)` inalterada.
+
+- [ ] Extração estritamente equivalente: `tests/regras/test_avalanche.py`, gabaritos, `T-603` e `T-604` verdes sem edição
+- [ ] Nenhuma cópia da regra `§11.1` fora de `avalanche.py`
+- [ ] Rehash só de `engine/metodos/avalanche.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-608` — Extrair `chave_bola_de_neve` da ordenação da Bola de Neve
+
+- **Tipo:** `Data` · **Dependências:** `T-603`, `T-604` · **Rastreia:** `RF-553` (saída do mesmo seletor) · `O-04`, `O-05` · plano `R14.3`, `R14.4`
+- **Arquivos:** `engine/metodos/bola_de_neve.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `chave_bola_de_neve(divida_id, divida) -> tuple[Decimal, Decimal,
+Decimal, Decimal, str] | None`: `(VALOR_RELEVANTE, fluxo liberado negado, custo
+negado, peso emocional efetivo negado, DIVIDA_ID)` — a ordem lexicográfica de
+hoje, achatada; `None` com valor relevante `DESCONHECIDO` (vai para
+`informacao_pendente`, como hoje). `_ordenar_por_valor_relevante` passa a usá-la.
+
+- [ ] Índice 0 = critério `O-04`; índice 3 = peso emocional (`§16.4` passo 4) — documentado no docstring
+- [ ] `tests/regras/test_bola_de_neve.py`, gabaritos, `T-603` e `T-604` verdes sem edição
+- [ ] Rehash só de `engine/metodos/bola_de_neve.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-609` — Expor `D_ESTRELA` em `ResultadoHibrido`
+
+- **Tipo:** `Data` · **Dependências:** `T-603`, `T-604` · **Rastreia:** `RF-553` (e) `CRITERIO_HIBRIDO`, `EC-91` · `H-05` · plano `R14.3`, `R14.4`
+- **Arquivos:** `engine/metodos/hibrido.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `ResultadoHibrido.D_ESTRELA: str | None = None` (último campo),
+preenchido por `criar_selecionar_alvo_hibrido` com a dívida que o seletor força.
+Nenhuma mudança na escolha da `D*` (`OQ-104`).
+
+- [ ] `D_ESTRELA` = a dívida que o seletor devolve no mês 1 quando o Híbrido é `CALCULAVEL`; `None` nos demais casos
+- [ ] `tests/regras/test_hibrido.py`, gabaritos, `T-603` e `T-604` verdes sem edição
+- [ ] Rehash só de `engine/metodos/hibrido.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-610` — Ranquear a ordem de ataque com o piso e sempre montá-la em estabilização com déficit
+
+- **Tipo:** `Data` · **Dependências:** `T-603`, `T-604`, `T-605` · **Rastreia:** `RF-552` (1), (2), (3), (4), `AC-576`, `AC-579`, `AC-580`, `EC-87`, `EC-88`, `EC-89` · `RF-512`, `§11.1` · plano `R14.1`, `R14.4` (`delta_de_ranqueamento_da_ordem`, laço), `R14.5`
+- **Arquivos:** `engine/ciclo_mensal.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `delta_de_ranqueamento_da_ordem(capacidade, PISO_CAPACIDADE)`:
+capacidade > 0 → capacidade; senão → `PISO_CAPACIDADE` como está (`EC-88`: piso
+≤ 0 segue sem delta positivo). No laço da `ORDEM_DE_ATAQUE` de
+`simular_cenario` (único trecho alterado do módulo): monta se
+`ESTOUROU_HORIZONTE` **ou** (`dg.MODO_ESTABILIZACAO` e capacidade inicial ≤ 0);
+`escolhida = sel(restante, delta)` com o delta acima, constante no laço;
+`ORDEM_FORA_DO_HORIZONTE` como hoje.
+
+- [ ] `executar_mes` e o resto do módulo sem diff; nenhum `P_*` lido a mais
+- [ ] `T-603` verde sem edição (inclusive `GAB-A`, cujas chaves de ordem estão fora do digest) e `T-604` verde (simulação, método, `ORDEM_STATUS` e `D*` iguais)
+- [ ] `test_motor_e_deterministico` e a pureza de `engine/` verdes
+- [ ] Rehash só de `engine/ciclo_mensal.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-611` — Acrescentar `PosicaoOrdem.MOTIVO_POSICAO` e o argumento `motivos` em `publicar_ORDEM_QUITACAO`
+
+- **Tipo:** `Data` · **Dependências:** `T-606` · **Rastreia:** `RF-553` (campo; ausente sem `ORDEM_DE_ATAQUE`), `AC-584` · plano `R14.4` (`PosicaoOrdem`, `publicar_ORDEM_QUITACAO`), `R14.8`
+- **Arquivos:** `engine/ordem.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `PosicaoOrdem.MOTIVO_POSICAO: MOTIVO_POSICAO | None = None`
+(último campo). `publicar_ORDEM_QUITACAO(..., *, motivos: tuple[MOTIVO_POSICAO,
+...] | None = None)` só envelopa: `motivos[i]` vai para a posição *i* da
+sequência publicada; `len(motivos)` ≠ tamanho da sequência →
+`ErroOrdemInconsistente`.
+
+- [ ] Sem o argumento, saída idêntica (`T-603`, `T-604` verdes)
+- [ ] Tamanho divergente levanta `ErroOrdemInconsistente` (nada publicado em silêncio)
+- [ ] `JUSTIFICATIVA_POSICAO` e `valores_de_apoio` não mudam
+- [ ] Rehash só de `engine/ordem.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-612` — Criar `derivar_MOTIVO_POSICAO` e `_criterio_do_metodo`
+
+- **Tipo:** `Data` · **Dependências:** `T-607`, `T-608`, `T-609`, `T-611` · **Rastreia:** `RF-553` (precedência (a)–(g), saída do mesmo seletor), `EC-85`, `EC-86` · `§16.4`, `H-07` · plano `R14.1`, `R14.4`, `R14.8`, `R14.10` (Leitura 1)
+- **Arquivos:** `engine/ordem.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `derivar_MOTIVO_POSICAO(sequencia, dividas, metodo, delta, p,
+D_ESTRELA=None)`: para cada posição *k*, `X = sequencia[k]`,
+`R = dividas − sequencia[:k]`, `Y = sequencia[k+1]` ou `None`; primeiro que se
+aplica: (a) `len(sequencia) == 1` → `UNICA_DIVIDA` (**Leitura 1**: vale mesmo
+quando há outras elegíveis não comparáveis); (b) `R == {X}` →
+`ULTIMA_RESTANTE`; (c) `_chave_grupo(X) > _chave_grupo(Y)` → primeiro
+componente diferente (`GARANTIA_ESSENCIAL`, `NEGATIVADA`, `PESO_GARANTIA`);
+(d) mesmo grupo e o método sozinho poria `Y` antes → `PREFERENCIA_QUITACAO`;
+(e)(f)(g) → motivo de `_criterio_do_metodo` (regras de `R14.4`: Híbrido por
+`D_ESTRELA` e depois Avalanche; Avalanche `MAIOR_TAXA` com origem ≠
+`"SIMULACAO"`, senão `MAIOR_BENEFICIO_MARGINAL`, empate → `DESEMPATE`; Bola de
+Neve índice 0 → `MENOR_VALOR_RELEVANTE`, 3 → `DESEMPATE_PESO_EMOCIONAL`, outro
+→ `DESEMPATE`). Ainda não chamada por `calcular_plano`.
+
+- [ ] `_chave_grupo` importada de `engine/prioridade_ordem.py` (arquivo sem diff); critérios lidos só de `beneficio_de_ranqueamento`/`chave_bola_de_neve`/`D_ESTRELA` — nenhuma regra copiada
+- [ ] `X` da Avalanche sem benefício → `ErroOrdemInconsistente`, nunca motivo inventado
+- [ ] Última posição sem `Y` com outras dívidas em `R` (ordem com duas ou mais) → motivo do critério do método (`EC-85`)
+- [ ] Função pura; `T-603`, `T-604` verdes
+- [ ] Rehash só de `engine/ordem.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-613` — Ligar os motivos ao passo 10 de `calcular_plano`
+
+- **Tipo:** `Data` · **Dependências:** `T-610`, `T-612` · **Rastreia:** `RF-553` (motivo na ordem publicada; ausente com lista do revisor), `AC-576`, `AC-584` · plano `R14.1`, `R14.4` (`engine/motor.py`)
+- **Arquivos:** `engine/motor.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** Só sem `ordem_do_revisor` e com `ORDEM_DE_ATAQUE` no cenário
+recomendado: `motivos = derivar_MOTIVO_POSICAO(ORDEM_DE_ATAQUE, dividas,
+metodo_recomendado, delta_de_ranqueamento_da_ordem(diagnostico_pre.CAPACIDADE_ATAQUE_CONSERVADORA,
+diagnostico_pre.PISO_CAPACIDADE), parametros, D_ESTRELA=resultado_hibrido.D_ESTRELA)`,
+repassados a `publicar_ORDEM_QUITACAO(..., motivos=motivos)`. O ramo 10d (lista
+do revisor) republica sem `motivos`.
+
+- [ ] O delta vem da mesma função usada no laço (um lugar só)
+- [ ] Sem `ORDEM_DE_ATAQUE` ou com a lista, `motivos = None`
+- [ ] `T-603` e `T-604` verdes sem edição
+- [ ] Rehash só de `engine/motor.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-614` — Calcular `sem_acao.QUITACOES_SO_PARCELAS` no prognóstico
+
+- **Tipo:** `Data` · **Dependências:** `T-603`, `T-604` · **Rastreia:** `RF-554`, `AC-585`, `EC-90` · `RF-79` · plano `R14.4` (`PrognosticoSemAcao`)
+- **Arquivos:** `engine/prognostico.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `PrognosticoSemAcao.QUITACOES_SO_PARCELAS: tuple[tuple[str,
+Meses], ...] | None = None` (último campo); em `calcular_prognostico`,
+`_quitacoes(sem_acao, sem_acao.PRAZO_TOTAL)` — a **mesma** simulação "sem ação"
+já feita, lida sem o corte em `horizonte` (ela já para em
+`P_HORIZONTE_MAXIMO_SIMULACAO`). `()` = calculado e nenhuma termina; `None` só
+em snapshot anterior.
+
+- [ ] Nenhuma simulação nova; os demais campos de `sem_acao` idênticos (`T-603`, `T-604` verdes)
+- [ ] Preenchido em todo prognóstico novo, em qualquer modo
+- [ ] Rehash só de `engine/prognostico.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-615` — Ler `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` no repositório de arquivo
+
+- **Tipo:** `Data` · **Dependências:** `T-611`, `T-614` · **Rastreia:** `RF-553` e `RF-554` (snapshot anterior), `AC-584` · plano `R14.3`, `R14.4` (Persistência)
+- **Arquivos:** `persistencia/arquivo/repositorio_snapshots.py`, `tests/app_aluno/estatica/hashes_congelados.json`
+
+**Descrição.** `_posicao_ordem` lê `MOTIVO_POSICAO` com `.get` (string →
+`MOTIVO_POSICAO(...)`; ausente/`null` → `None`); `_prognostico` lê
+`QUITACOES_SO_PARCELAS` com `.get` (lista de pares → `tuple` de `tuple`;
+`[]` → `()`; ausente/`null` → `None`). A escrita já serializa os campos. O
+Supabase reaproveita esse leitor (`dados_completos`), sem diff e sem migração.
+
+- [ ] `SNAPSHOT_ID` lido, nunca recalculado
+- [ ] `persistencia/supabase/repositorio_snapshots.py` sem diff; nenhuma migração SQL
+- [ ] Rehash só do arquivo alterado; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### Entrega C — Testes dos critérios
+
+### `T-616` — Testar o caso do Rodrigo: ordem completa, motivos e previsão só com parcelas
+
+- **Tipo:** `Test` · **Dependências:** `T-613`, `T-614` · **Rastreia:** `AC-576`, `AC-585`, `EC-90` · `RF-552`, `RF-553`, `RF-554` · plano `R14.9`, `R14.10` (valores esperados)
+- **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py`
+
+- [ ] `AC-576`: `ORDEM_DE_ATAQUE == ("D001", "D002")`; `ORDEM_QUITACAO` com as duas nessa ordem; motivos `MAIOR_BENEFICIO_MARGINAL`, `ULTIMA_RESTANTE`; `ORDEM_FORA_DO_HORIZONTE` = as dessa ordem que a simulação não quita; digest de `T-604` igual
+- [ ] `AC-585`: `QUITACOES_SO_PARCELAS` contém `("D002", 24)` e `("D001", 118)` (Price: −ln(1 − 0,0158 × 120.000 / 2.256) / ln(1,0158) ≈ 117,07 → mês 118, dentro de 120)
+- [ ] `AC-585`: estado em que o plano termina antes do mês "só parcelas" de uma dívida → ela está em `QUITACOES_SO_PARCELAS` e não em `sem_acao.QUITACOES`; demais campos de `sem_acao` idênticos aos de antes
+- [ ] `EC-90`: parcela que não cobre os juros e pagamento efetivo zero → ausentes da lista
+- [ ] **Se a primeira execução der outra ordem, outro motivo ou outro mês (ex.: D001 fora de 118), parar e reportar com a saída real — não ajustar o valor esperado**
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-617` — Testar Bola de Neve em estabilização, déficit sem estouro e capacidade zero fora de estabilização
+
+- **Tipo:** `Test` · **Dependências:** `T-613` · **Rastreia:** `AC-578`, `AC-579`, `AC-580`, `EC-87` · `RF-552`, `RF-553` · plano `R14.9`
+- **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py`
+
+**Descrição.** Por `calcular_plano` sobre variações de `_estado_rodrigo()`
+(renda e carteira trocadas por `replace`); tolerância zero.
+
+- [ ] `AC-578`/`EC-87`: Bola de Neve recomendada, três dívidas de valores relevantes distintos, sem `§16.4` → as três, da menor para a maior, motivos `MENOR_VALOR_RELEVANTE`, `MENOR_VALOR_RELEVANTE`, `ULTIMA_RESTANTE`
+- [ ] `AC-579`: déficit sem estouro → `ORDEM_DE_ATAQUE` não vazia, `ORDEM_QUITACAO` = ela (não a ordem de término), motivo em toda posição
+- [ ] `AC-580`: fora de estabilização, `RESULTADO_MENSAL_ATUAL` > 0, `CAPACIDADE_ATAQUE_DECLARADA = 0`, Avalanche, estouro → as duas ranqueadas com o piso; `MODO_ESTABILIZACAO`, cenários e método iguais aos de antes
+- [ ] Valor esperado divergente → parar e reportar (regra 5 da rodada)
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-618` — Testar o motivo por tipo: `§16.4`, preferência, desempates, taxa, Híbrido e dívida única
+
+- **Tipo:** `Test` · **Dependências:** `T-610`, `T-612` · **Rastreia:** `AC-581`, `AC-582`, `AC-583` · `RF-553` · plano `R14.9`, `R14.10` (caminho de regras)
+- **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py`
+
+**Descrição.** Carteiras de `tests/regras/test_prioridade_ordem.py`
+(`_carteira`, `_com`, `_duas_primeiras`; `§16.4-C3`–`C10`) num `Diagnostico` de
+déficit (`calcular_diagnostico(_estado_rodrigo())`), pelo caminho que o motor
+compõe: `aplicar_prioridade_ordem(seletor do método)` → `simular_cenario` →
+`derivar_MOTIVO_POSICAO` com `delta_de_ranqueamento_da_ordem`. O fio
+motor → publicação é provado por `T-616`.
+
+- [ ] `AC-581`: 1ª posição `GARANTIA_ESSENCIAL` (C3, C6), `NEGATIVADA` (C4, C7), `PESO_GARANTIA` (C5, imóvel antes de veículo; veículo antes de "outra garantia" na seguinte)
+- [ ] `AC-582`: 2,00% × 1,95% com preferência na segunda (C9) → a segunda primeiro com `PREFERENCIA_QUITACAO`; 2,00% × 1,80% (C10) e preferência na que o método já punha primeiro → nenhuma `PREFERENCIA_QUITACAO`, 1ª com o motivo do método
+- [ ] `AC-583`: (a) C8 → `DESEMPATE_PESO_EMOCIONAL`; (b) iguais menos o `DIVIDA_ID` → `DESEMPATE`; (c) benefício do fallback por taxa → `MAIOR_TAXA`; (d) Híbrido `CALCULAVEL` em déficit → `D*` com `CRITERIO_HIBRIDO` e seguintes com o motivo da Avalanche; (e) uma só elegível → `UNICA_DIVIDA`
+- [ ] `AC-583(d)`: se não houver carteira em déficit com o Híbrido `CALCULAVEL`, **parar e reportar**; não marcar o caso como `skip` em silêncio
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-619` — Testar os casos de borda `EC-85`, `EC-86`, `EC-88`, `EC-89` e `EC-91`
+
+- **Tipo:** `Test` · **Dependências:** `T-613`, `T-614` · **Rastreia:** `EC-85`, `EC-86`, `EC-88`, `EC-89`, `EC-91` · `RF-552`, `RF-553`, `RF-554` · plano `R14.8`, `R14.10` (Leitura 1)
+- **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py`
+
+- [ ] `EC-85`: parte das elegíveis sem benefício comparável → laço para, sequência parcial, nada inventado; sequência vazia → vale a ordem de quitação (`RF-09`); ordem com duas ou mais cuja última posição não tem `Y` → motivo do critério do método
+- [ ] `EC-85` × `(a)` (**Leitura 1**): sequência com uma posição porque as demais não são comparáveis → `UNICA_DIVIDA`
+- [ ] `EC-86`: uma só elegível → `ORDEM_DE_ATAQUE` = ela, `UNICA_DIVIDA`
+- [ ] `EC-88`: `PISO_CAPACIDADE` ≤ 0 → nenhum delta positivo inventado; comportamento de `EC-85`
+- [ ] `EC-89`: estabilização por dívida que cresce com capacidade > 0 → ordem como hoje (com estouro, `ORDEM_DE_ATAQUE` + motivo); `QUITACOES_SO_PARCELAS` presente; com capacidade zero, piso e item 2 de `RF-552`
+- [ ] `EC-91`: Híbrido em estabilização → `D*` igual à de antes; posições seguintes ranqueadas com o piso
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-620` — Testar ausência, determinismo e compatibilidade de snapshot (`AC-584`)
+
+- **Tipo:** `Test` · **Dependências:** `T-613`, `T-615` · **Rastreia:** `AC-584` · `RF-553`, `RF-554`, `V-01` · plano `R14.9`
+- **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py`
+
+- [ ] Fora de estabilização sem estouro → toda posição com `MOTIVO_POSICAO is None`; estado de `AC-556` com a lista do revisor → idem
+- [ ] Duas execuções do mesmo estado → motivos e `QUITACOES_SO_PARCELAS` iguais
+- [ ] Linha de `snapshots.jsonl` sem as duas chaves (e o `_dados_completos` do Supabase sem elas, sem banco real) → `None` e o mesmo `SNAPSHOT_ID`
+- [ ] Round-trip com os campos preenchidos, inclusive `QUITACOES_SO_PARCELAS = ()` distinto de `None`
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-621` — Acrescentar a variante em déficit ao orçamento de 30 dívidas
+
+- **Tipo:** `Test` · **Dependências:** `T-613` · **Rastreia:** `RF-552` (2) (`NFR` de custo) · plano `R14.10` (laço da ordem em toda simulação em déficit)
+- **Arquivos:** `tests/desempenho/test_orcamento_30_dividas.py`
+
+**Descrição.** O laço da ordem passa a rodar em toda `simular_cenario` em
+déficit (candidatas do Híbrido, verde, "sem ação"). Variante da carteira de 30
+dívidas em `MODO_ESTABILIZACAO` com capacidade ≤ 0, mesmo orçamento do teste
+atual.
+
+- [ ] Teste atual verde sem edição; variante em déficit dentro do mesmo orçamento
+- [ ] Estouro do orçamento → parar e reportar com a medição, não afrouxar o limite
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/desempenho/test_orcamento_30_dividas.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-622` — Provar a não-regressão do motor ao fim da rodada
+
+- **Tipo:** `Test` · **Dependências:** `T-616`, `T-617`, `T-618`, `T-619`, `T-620`, `T-621` · **Rastreia:** `AC-577`, `RF-552` (3), (4) · plano `R14.9` (Não regressão, Estáticos)
+- **Arquivos:** nenhum de código; `tasks/motor-calculo.tasks.md` (status)
+
+- [ ] `T-603` e `T-604` verdes com os valores congelados originais (sem edição desde a criação: `git log -p` dos dois arquivos)
+- [ ] `test_avalanche.py`, `test_bola_de_neve.py`, `test_hibrido.py`, `test_prioridade_ordem.py`, gabaritos, `AC-05` e `test_ordem_do_revisor_identidade.py` sem edição e verdes
+- [ ] `git diff main --stat` vazio em `engine/prioridade_ordem.py`, `engine/snapshot.py`, `engine/comparacao.py`, `engine/status_metodo.py`, `engine/beneficio_marginal.py`, `persistencia/supabase/repositorio_snapshots.py`
+- [ ] `hashes_congelados.json` mudou só nas nove entradas de `R14.3`; `test_motor_e_deterministico` e pureza de `engine/` verdes
+- [ ] Gates do `sdd.config.md` §2 (lint, build, test) verdes, saída real anotada
+
+**Status:** `[ ] pendente`
+
+---
+
+### Cobertura de requisitos — Rodada 8 (`RF-552`–`RF-554`)
+
+| Requisito / critério | Tarefas |
+| --- | --- |
+| `RF-552` (1) delta = piso com capacidade ≤ 0 | `T-610`, `T-613`, `T-617`, `T-619` |
+| `RF-552` (2) estabilização em déficit: ordem sempre publicada | `T-610`, `T-616`, `T-617`, `T-621` |
+| `RF-552` (3) simulação, método, `ORDEM_STATUS`, `D*` intocados | `T-603`, `T-604`, `T-610`, `T-622` |
+| `RF-552` (4) nenhum `P_*` | `T-610`, `T-622` |
+| `RF-553` domínio e precedência (a)–(g) | `T-606`, `T-612`, `T-618`, `T-619` |
+| `RF-553` saída do mesmo seletor | `T-607`, `T-608`, `T-609`, `T-612` |
+| `RF-553` ausente sem `ORDEM_DE_ATAQUE`, com lista, em snapshot anterior | `T-611`, `T-613`, `T-615`, `T-620` |
+| `RF-554` `QUITACOES_SO_PARCELAS` | `T-614`, `T-615`, `T-616`, `T-620` |
+| `AC-576`, `AC-585` | `T-604` (cabeçalho e digest), `T-616` |
+| `AC-577` | `T-603`, `T-605` (emenda), `T-622` |
+| `AC-578`, `AC-579`, `AC-580` | `T-617` |
+| `AC-581`, `AC-582`, `AC-583` | `T-618` |
+| `AC-584` | `T-620` |
+| `EC-85`, `EC-86`, `EC-88`, `EC-89`, `EC-91` | `T-619` |
+| `EC-87` | `T-617` |
+| `EC-90` | `T-616` |
+| `OQ-103`, `OQ-104` (abertas) | sem tarefa — fora do escopo da spec |
+
+**Requisitos sem tarefa:** nenhum.

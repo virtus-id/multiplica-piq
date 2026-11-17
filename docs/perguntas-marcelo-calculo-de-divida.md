@@ -120,3 +120,50 @@ Onde cada texto aparece e como fica:
 Continuam como estão: o segundo e o terceiro quadros de "Como o seu plano funciona", a explicação das outras dívidas e a indicação do método no fim do plano.
 
 Os quatro textos são sugestão. Se algum não estiver bom, basta mandar a redação que prefere.
+
+---
+
+# Respostas de 2026-11-16 — ordem em estabilização
+
+Contexto: no plano de quem fecha o mês no negativo, a lista "A ordem de quitação, por enquanto provisória" de um caso de teste com duas dívidas (financiamento imobiliário e consignado) mostrava só uma. Registro das respostas do Marcelo:
+
+**1.** Com o mês no negativo, qual critério monta a ordem sugerida?
+**Resposta:** o mesmo critério do mês positivo: o do método recomendado, com as prioridades de 16/10 (bem essencial, negativada, garantia, preferência dentro de 5% de custo).
+→ Como no mês negativo não há valor livre, o plano compara as dívidas como se houvesse o menor valor que ele já considera um mês positivo (o piso de capacidade). Decisão técnica da equipe, só informativa. Ver `RF-552`.
+
+**2.** A lista deve explicar a posição de cada dívida?
+**Resposta:** sim, o porquê de cada uma, em palavras simples, e sempre o motivo que de fato decidiu a posição. A preferência ou o incômodo só aparecem quando foram eles que decidiram. Ver `RF-553`, `RF-555`.
+
+**3.** O que mostrar ao lado de cada dívida?
+**Resposta:** a previsão de término pagando só as parcelas, sem valor extra. Dívida que não termina assim tem texto próprio, sem mês. Ver `RF-554`, `RF-556`.
+
+## Textos novos para conferir (2026-11-16)
+
+Aparecem só no plano de quem fecha o mês no negativo, ao lado de cada dívida da lista. Cada dívida recebe **uma** destas frases, a do motivo que decidiu a posição dela:
+
+| Quando | Frase |
+| --- | --- |
+| Avalanche, pela economia de juros | "É a que mais economiza juros a cada real extra que você colocar nela." |
+| Avalanche, quando só a taxa dá para comparar | "É a que cobra a maior taxa de juros entre as que restam." |
+| Bola de Neve | "É a menor entre as que restam: termina mais cedo e libera a parcela dela para as próximas." |
+| Híbrido | "É a que você consegue quitar mais rápido sem aumentar de forma relevante o custo total." |
+| Bem essencial | "Tem como garantia um bem que você marcou como essencial, e o plano protege esse bem primeiro." |
+| Negativada | "Está negativada, e o plano coloca as dívidas negativadas na frente das demais." |
+| Garantia (imóvel, veículo, outra) | "Tem um bem dado como garantia, e o plano coloca essas dívidas antes das que têm garantia menor ou nenhuma." |
+| Preferência do aluno (dentro de 5% de custo) | "Você marcou que quer quitá-la entre as primeiras, e o custo dela é parecido com o da outra opção." |
+| Empate decidido pelo incômodo | "Empatou com outra dívida pelo critério do plano, e você disse que esta pesa mais para você." |
+| Outro empate | "Empatou com outra dívida pelo critério do plano e ficou à frente pela regra de desempate." |
+| Última da lista | "É a última da lista: entra quando as anteriores forem quitadas." |
+| Uma dívida só | "É a única dívida deste plano." |
+
+E a previsão, logo abaixo:
+
+> "Termina em {mês}, se você mantiver as parcelas em dia."
+>
+> "Só com as parcelas de hoje, ela não termina."
+
+*Exemplo (o caso de teste):* financiamento imobiliário — "É a que mais economiza juros a cada real extra que você colocar nela." e "Termina em {mês}, se você mantiver as parcelas em dia."; consignado — "É a última da lista: entra quando as anteriores forem quitadas." e "Termina em {mês 24 do plano}, se você mantiver as parcelas em dia." (o aluno marcou que quer quitar o consignado primeiro, mas os juros dos dois diferem mais de 5%; por isso a preferência não aparece como motivo).
+
+Nessa lista deixam de aparecer "Recebe o valor extra" e "Não será quitada com os valores de hoje", que vinham da conta com o mês no negativo e contradiziam a previsão.
+
+Todos os textos são sugestão. Se algum não estiver bom, basta mandar a redação que prefere.

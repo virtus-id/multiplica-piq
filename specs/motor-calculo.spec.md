@@ -254,6 +254,46 @@ financeiro completo e devolve um plano carimbado com versão.
 | --- | --- | --- | --- |
 | `RF-545` | **[mudança de motor] Ordem de quitação definida pelo revisor.** `calcular_plano` ganha a entrada opcional `ordem_do_revisor`: uma lista de `DIVIDA_ID`. **Ausente ou vazia**, a saída é idêntica à de hoje, campo a campo, inclusive `hash_inputs` e `SNAPSHOT_ID`. **Presente**, a lista é a **sequência de ataque** (a ordem em que as dívidas recebem o valor extra, não a ordem de quitação) e precisa ser uma **permutação exata do conjunto** de `DIVIDA_ID` elegíveis depois dos gates — o mesmo conjunto que o motor publicaria para o mesmo estado sem ela (`RF-09`/`RF-512`), em qualquer ordem: sem repetição, sem falta, sem sobra, sem dívida bloqueada; fora disso o motor recusa com erro de validação e não produz snapshot. Com a lista válida: (1) o método recomendado é escolhido exatamente como hoje, sobre os cenários dos métodos **sem** a lista — `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, a comparação entre métodos e os cenários dos métodos não recomendados não mudam; (2) o cenário publicado do método recomendado é o do ciclo mensal com as mesmas fórmulas, os mesmos aportes e as mesmas regras, trocando só a escolha da dívida da vez (seletor do método mais `§16.4`) por: **a primeira dívida da lista ainda não quitada**; se não houver candidata na lista, vale o seletor do método (com `§16.4`); (3) tudo o que hoje deriva do cenário recomendado passa a derivar desse cenário, pelas mesmas regras: `ORDEM_QUITACAO` publicada (`RF-09`; com estouro do horizonte, `ORDEM_DE_ATAQUE` é a própria lista e `ORDEM_FORA_DO_HORIZONTE` são as dívidas dela que a simulação não quita, `RF-512`), `PRAZO_TOTAL`, custo futuro, mês de quitação de cada dívida, `MESES_DO_PLANO` (dívida da vez e detalhe mês a mês), aportes dentro do horizonte (`RF-70`) e o prognóstico com esforço extra (`com_extra`, `RF-78`) e o cenário adicional com recursos `PROVAVEL`/`POSSIVEL` (`RF-71`, `OQ-97` respondida), que também escolhem a dívida da vez pela lista; (4) o prognóstico "sem ação" (`RF-77`, o caminho vermelho) não muda; (5) a `JUSTIFICATIVA_POSICAO` de cada posição usa uma variante "definida pelo revisor" no lugar do critério do método (`O-01`, `O-04`, `H-05`), nunca vazia (`Q-05`); (6) o snapshot registra `ORDEM_DO_REVISOR` (a lista recebida), que entra em `hash_inputs` — logo `SNAPSHOT_ID` difere do cálculo sem a lista —, e o encadeamento (`V-01`) registra o motivo "ajuste da ordem pelo revisor" (como evento ou motivo, a critério do plano). Snapshot gravado antes deste requisito volta sem `ORDEM_DO_REVISOR` e com o mesmo `SNAPSHOT_ID`. O motor não conhece o revisor: autor e motivo interno são da aplicação. Nenhuma fórmula muda e nenhum `P_*` é criado | Decisão do responsável do produto (2026-11-14), processo determinístico validado pelo especialista · `RF-08`, `RF-09`, `RF-512`, `RF-70`, `RF-77`, `RF-78`, `§16.4`, `V-01`, `Q-05` · cenário adicional: `OQ-97` (respondida, segue a lista) · `RF-79`/`T-466`: `OQ-98` | essencial |
 
+### Rodada 8 (2026-11-16) — ordem em estabilização
+
+> **MUDANÇA DE MOTOR, CORREÇÃO AUTORIZADA, ESCOPO MÍNIMO.** Defeito
+> reproduzido no caso de teste do aluno `rodrigo@teste.com`, em
+> `MODO_ESTABILIZACAO` (renda 13.701,27; saídas 24.058,11;
+> `CAPACIDADE_ATAQUE_CONSERVADORA` = −10.356,84; `PISO_CAPACIDADE` = 411,04;
+> D001 financiamento imobiliário 120.000 / 1,58% a.m. / parcela 2.256; D002
+> consignado 100.000 / 2% a.m. / parcela estimada de 24 meses 5.287,11 com
+> `PREFERENCIA_QUITACAO`; Avalanche recomendada; horizonte estourado). O laço
+> de `ORDEM_DE_ATAQUE` (`RF-512`, `engine/ciclo_mensal.py`) passa a
+> capacidade negativa como delta de teste ao seletor; a Avalanche calcula
+> `MIN(delta, VALOR_RELEVANTE_PARA_QUITACAO)` negativo (`§11.1`), D001 cai no
+> fallback de taxa, D002 fica sem benefício e é descartada (`RF-16`), e a
+> ordem publicada sai só com D001 — contra `RF-512`/`AC-512` ("todas as
+> dívidas"). Na aplicação, a seção 3 do plano deficitário mostra uma dívida
+> e a seção "Ordem de quitação" do revisor some.
+>
+> **Fonte:** respostas do especialista (Marcelo) de 2026-11-16 (registradas em
+> `docs/perguntas-marcelo-calculo-de-divida.md`): (1) em estabilização, a
+> ordem sugerida usa **o mesmo critério do mês positivo** (o do método
+> recomendado, com a `§16.4`); (2) a lista mostra **o porquê de cada
+> dívida**, sempre o motivo que de fato decidiu a posição; (3) ao lado de cada
+> dívida, **a previsão de término pagando só as parcelas**. O delta positivo
+> (`PISO_CAPACIDADE`) é decisão técnica da equipe, justificada em §7 (Rodada
+> 8). **Nenhuma fórmula nova, nenhum `P_*` novo; com capacidade de ataque
+> positiva, os campos de hoje saem idênticos** (só os campos novos de
+> `RF-553`/`RF-554` aparecem). Textos ao aluno: `specs/app-aluno.spec.md`
+> Rodada 17 (`RF-555`, `RF-556`).
+>
+> **Numeração global** (último `RF-551`, `AC-575`, `EC-84`, `OQ-102`,
+> `US-414`): `RF-552` a `RF-554`, `US-415`, `AC-576` a `AC-585`, `EC-85` a
+> `EC-91`, `OQ-103` e `OQ-104` são desta rodada; `RF-555`, `RF-556`,
+> `US-416`, `AC-586` a `AC-591` e `EC-92` a `EC-94` são do `app-aluno`.
+
+| ID | Requisito | Regras / seções da canônica | Prioridade |
+| --- | --- | --- | --- |
+| `RF-552` | **[mudança de motor] Ordem de ataque com capacidade ≤ 0: mesmo critério, delta de teste positivo.** (1) Quando a capacidade de ataque com que o laço de `ORDEM_DE_ATAQUE` (`RF-512`) ranqueia for **menor ou igual a zero**, o delta de teste entregue ao seletor do método (com a `§16.4`) em cada escolha desse laço é o `PISO_CAPACIDADE` do diagnóstico, em vez da capacidade; com capacidade **positiva**, nada muda. Daí em diante as regras são as de hoje: a Avalanche aplica `MIN(delta, VALOR_RELEVANTE_PARA_QUITACAO)` (`§11.1`), a Bola de Neve não usa o delta (`O-04`), o Híbrido segue a Avalanche depois de `D*` (`H-07`). (2) Em `MODO_ESTABILIZACAO` com capacidade ≤ 0 (o caso de déficit), a `ORDEM_DE_ATAQUE` é montada **sempre**, com ou sem estouro do horizonte, e é ela a `ORDEM_QUITACAO` publicada; `ORDEM_FORA_DO_HORIZONTE` continua sendo as dívidas dela que a simulação não quita. Nos demais casos, `RF-512` não muda (só com estouro). (3) A troca do delta vale **só para o ranqueamento da ordem publicada**: a simulação mês a mês (`simular_cenario`/`executar_mes`, inclusive a escolha da dívida da vez de `MESES_DO_PLANO`), o custo, o prazo, a comparação entre métodos, o método recomendado, `ORDEM_STATUS` e a escolha de `D*` do Híbrido não mudam (`OQ-104`). (4) Nenhum `P_*` novo: `PISO_CAPACIDADE` já existe (`RF-26`, Definições §8) e continua sem alterar nenhuma capacidade | `RF-512`, `RF-15`, `RF-26`, `§11.1`, `§16.4`, `O-01`, `O-04`, `H-07` · decisão (1) do especialista (2026-11-16) · decisão técnica do delta (§7, Rodada 8) | essencial |
+| `RF-553` | **[mudança de motor] O motivo de cada posição, publicado por tipo.** Cada posição de `ORDEM_QUITACAO` publicada a partir da `ORDEM_DE_ATAQUE` do método (com estouro, `RF-512`, ou em estabilização com capacidade ≤ 0, `RF-552` item 2) ganha `MOTIVO_POSICAO`, domínio fechado ASCII: `UNICA_DIVIDA`, `ULTIMA_RESTANTE`, `GARANTIA_ESSENCIAL`, `NEGATIVADA`, `PESO_GARANTIA`, `PREFERENCIA_QUITACAO`, `MAIOR_BENEFICIO_MARGINAL`, `MAIOR_TAXA`, `MENOR_VALOR_RELEVANTE`, `CRITERIO_HIBRIDO`, `DESEMPATE_PESO_EMOCIONAL`, `DESEMPATE`. Seja `X` a dívida escolhida na posição *k*, `R` as dívidas ainda não ordenadas (com `X`) e `Y` a **segunda colocada** (a que o mesmo seletor, com a `§16.4` e o mesmo delta, escolheria em `R` sem `X`). O motivo é o **primeiro** que se aplica, nesta ordem: (a) `UNICA_DIVIDA` — a ordem tem uma só dívida; (b) `ULTIMA_RESTANTE` — `R` só tem `X`; (c) `GARANTIA_ESSENCIAL`, `NEGATIVADA` ou `PESO_GARANTIA` — `X` está num grupo de chave `(essencial, negativada, peso_garantia)` da `§16.4` (passos 1 a 3) **maior** que o de `Y`, e o motivo é o primeiro componente em que diferem; (d) `PREFERENCIA_QUITACAO` — mesmo grupo e `X` só ficou à frente pelo passo 5 da `§16.4` (o método sozinho poria `Y` antes); (e) o critério principal do método, quando ele distinguiu `X` de `Y`: `MAIOR_BENEFICIO_MARGINAL` (`O-01`, benefício de `X` por simulação), `MAIOR_TAXA` (`O-01` com o benefício de `X` vindo do fallback do `§11.1`, taxa ou `CET`), `MENOR_VALOR_RELEVANTE` (`O-04`), `CRITERIO_HIBRIDO` (a `D*` do Híbrido, `H-05`; depois de `D*` o Híbrido segue a Avalanche e o motivo é o dela); (f) `DESEMPATE_PESO_EMOCIONAL` — o critério principal empatou e quem decidiu foi o peso emocional efetivo (`§16.4` passo 4, `O-05`); (g) `DESEMPATE` — empatou e decidiu outro nível da cadeia (inclusive `DIVIDA_ID`). O motivo é **saída do mesmo seletor** que escolheu a posição, nunca uma segunda regra paralela. `MOTIVO_POSICAO` fica **ausente** quando a ordem publicada não vem da `ORDEM_DE_ATAQUE` do método (sem estouro fora de estabilização, `RF-09`; com `ORDEM_DO_REVISOR`, `RF-545`) e em snapshot gravado antes deste requisito, que continua válido com o mesmo `SNAPSHOT_ID`. `JUSTIFICATIVA_POSICAO` (`Q-05`) não muda | `RF-09`, `RF-512`, `RF-545`, `Q-05`, `§16.4`, `O-01`, `O-04`, `O-05`, `H-04`, `H-05`, `H-07`, `§11.1` · decisão (2) do especialista (2026-11-16) | essencial |
+| `RF-554` | **[mudança de motor] Quando cada dívida termina pagando só as parcelas.** `prognostico.sem_acao` (`RF-77`) ganha `QUITACOES_SO_PARCELAS`: o par (`DIVIDA_ID`, mês) de **cada** dívida que a projeção "sem ação" já existente quita sozinha (só o pagamento mensal efetivo de hoje, sem ataque, sem reaplicar parcela liberada), contado até `P_HORIZONTE_MAXIMO_SIMULACAO` — **sem** o corte em `PRAZO_TOTAL` do cenário recomendado que `sem_acao.QUITACOES` aplica. Dívida ausente da lista não termina nesse horizonte (inclusive a que cresce, `RF-79`); nenhum mês é estimado (`RF-16`). Nenhuma simulação nova: é a mesma trajetória do "sem ação", lida sem o corte. Campo opcional: snapshot anterior volta sem ele e com o mesmo `SNAPSHOT_ID` | `RF-77`, `RF-79`, `EC-13`, `EC-57`, `RF-16` · decisão (3) do especialista (2026-11-16) | essencial |
+
 ## 3. User Stories
 
 ### `US-01` — Saber por onde começar
@@ -513,6 +553,18 @@ Atende: `RF-70`, `RF-71`, `RF-72`, `RF-73`, `RF-74`, `RF-75`, `RF-76`
 
 Atende: `RF-545`
 
+### Rodada 8 (2026-11-16) — ordem em estabilização
+
+### `US-415` — Ver a ordem inteira mesmo com o mês no negativo
+
+> Como **servidor endividado com o mês fechando no negativo**, quero
+> **receber todas as minhas dívidas na ordem em que o método as atacaria num
+> mês positivo, com o motivo de cada posição e quando cada uma termina se eu
+> só mantiver as parcelas**, para **saber por onde começar quando o mês
+> fechar e o que acontece enquanto isso, sem dívida sumindo da lista**.
+
+Atende: `RF-552`, `RF-553`, `RF-554`
+
 ## 4. Acceptance Criteria
 
 > Os critérios `AC-01` a `AC-18` são reprodução literal de gabaritos da seção 10
@@ -771,6 +823,26 @@ Atende: `RF-545`
 | `AC-561` | `US-412` | Dado o estado de `AC-555` com `CONTRIBUICAO_EXTRA_MENSAL` positiva e a lista, quando `calcular_plano` roda, então em cada mês de `com_extra.MESES` a dívida da vez é a primeira da lista ainda não quitada, e `com_extra.MESES_ANTECIPADOS` e `com_extra.ECONOMIA_CUSTO` comparam o verde com o plano **na ordem da lista**; e, com recurso extraordinário `PROVAVEL` ou `POSSIVEL` no estado, em cada mês do `cenario_adicional` a dívida da vez também é a primeira da lista ainda não quitada (`OQ-97`) (`RF-545`, `RF-78`, `RF-71`) |
 | `AC-562` | `US-412` | Dado um snapshot anterior v1 e a lista válida, quando `calcular_plano` roda, então o novo snapshot é a versão 2, aponta para a v1, registra o motivo "ajuste da ordem pelo revisor", e a `JUSTIFICATIVA_POSICAO` de cada posição é não vazia, traz a variante "definida pelo revisor" e não traz o critério do método (`O-01`, `O-04`, `H-05`) (`RF-545`, `V-01`, `Q-05`) |
 
+### Rodada 8 (2026-11-16) — ordem em estabilização (**mudança de motor**)
+
+> **Rastreabilidade.** `RF-552` → `AC-576`, `AC-577`, `AC-578`, `AC-579`,
+> `AC-580` · `RF-553` → `AC-576`, `AC-581`, `AC-582`, `AC-583`, `AC-584` ·
+> `RF-554` → `AC-585`. `AC-577` fixa a não-regressão; `AC-584` o
+> determinismo e a compatibilidade de snapshot.
+
+| ID | Story | Critério verificável |
+| --- | --- | --- |
+| `AC-576` | `US-415` | Dado o caso de teste `rodrigo@teste.com` (estado do cabeçalho da Rodada 8: `MODO_ESTABILIZACAO`, `CAPACIDADE_ATAQUE_CONSERVADORA` = −10.356,84, `PISO_CAPACIDADE` = 411,04, D001 e D002 sem garantia e sem negativação, só D002 com `PREFERENCIA_QUITACAO`, Avalanche recomendada), quando `calcular_plano` roda, então `ORDEM_DE_ATAQUE` = (`D001`, `D002`); `ORDEM_QUITACAO` publicada tem as duas posições nessa ordem; `MOTIVO_POSICAO` é `MAIOR_BENEFICIO_MARGINAL` em D001 e `ULTIMA_RESTANTE` em D002 (a preferência de D002 não decidiu: custos 1,58% e 2% a.m. diferem mais de 5%); `ORDEM_FORA_DO_HORIZONTE` traz exatamente as dívidas dessa ordem que a simulação não quita; e `METODO_RECOMENDADO_PIQ`, `STATUS_METODO`, `ORDEM_STATUS`, `diagnostico`, os cenários (prazo, custo, `meses`) e `MESES_DO_PLANO` são idênticos aos de antes de `RF-552` (`RF-552`, `RF-553`) |
+| `AC-577` | `US-415` | Dados `GAB-B`, `GAB-C`, os cinco invariantes, o caso de `AC-512` (`aluno.teste3`), o de `AC-513` e os estados de `AC-554` a `AC-562` — todos com capacidade de ataque positiva —, quando o motor roda depois desta rodada, então todos os campos que o snapshot já publicava (inclusive `ORDEM_QUITACAO`, `ORDEM_DE_ATAQUE`, `ORDEM_FORA_DO_HORIZONTE`, `JUSTIFICATIVA_POSICAO`, `valores_de_apoio`, `hash_inputs` e `SNAPSHOT_ID`) são idênticos aos de antes, com tolerância zero; os únicos campos novos são `MOTIVO_POSICAO` (só onde a ordem publicada vem da `ORDEM_DE_ATAQUE` do método) e `sem_acao.QUITACOES_SO_PARCELAS`. Dado `GAB-A` (estabilização), os valores de `AC-05` continuam os mesmos e só `ORDEM_QUITACAO` publicada, `ORDEM_DE_ATAQUE`, `ORDEM_FORA_DO_HORIZONTE` e os campos novos podem mudar (`RF-552`) |
+| `AC-578` | `US-415` | Dado um estado em `MODO_ESTABILIZACAO` com a Bola de Neve recomendada e três dívidas de `VALOR_RELEVANTE_PARA_QUITACAO` distintos, sem campos da `§16.4`, quando `calcular_plano` roda, então `ORDEM_DE_ATAQUE` traz as três, da menor para a maior (a mesma sequência de antes, que já não dependia do delta, `O-04`), com `MOTIVO_POSICAO` = `MENOR_VALOR_RELEVANTE`, `MENOR_VALOR_RELEVANTE`, `ULTIMA_RESTANTE` (`RF-552`, `RF-553`) |
+| `AC-579` | `US-415` | Dado um estado em `MODO_ESTABILIZACAO` por déficit (capacidade negativa) cuja simulação **não** estoura o horizonte, quando `calcular_plano` roda, então `ORDEM_DE_ATAQUE` não é vazia, `ORDEM_QUITACAO` publicada é ela (não a ordem em que a simulação terminou as dívidas) e cada posição traz `MOTIVO_POSICAO` (`RF-552`, `RF-553`) |
+| `AC-580` | `US-415` | Dado um estado fora de estabilização com `RESULTADO_MENSAL_ATUAL` > 0 e `CAPACIDADE_ATAQUE_DECLARADA` = 0 (capacidade conservadora zero), Avalanche recomendada, duas dívidas com benefício simulável e horizonte estourado, quando `calcular_plano` roda, então `ORDEM_DE_ATAQUE` traz as duas, ranqueadas com o `PISO_CAPACIDADE` como delta de teste, e `MODO_ESTABILIZACAO`, os cenários e o método recomendado são os de antes (`RF-552`) |
+| `AC-581` | `US-415` | Dadas, em `MODO_ESTABILIZACAO` com a Avalanche recomendada, as carteiras dos critérios `§16.4-C3` a `§16.4-C7`, quando `calcular_plano` roda, então o `MOTIVO_POSICAO` da primeira posição é: `GARANTIA_ESSENCIAL` (C3 e C6), `NEGATIVADA` (C4 e C7) e `PESO_GARANTIA` (C5, imóvel antes de veículo; e veículo antes de "outra garantia" na posição seguinte) (`RF-553`) |
+| `AC-582` | `US-415` | Dadas duas dívidas no mesmo grupo da `§16.4`, a primeira do método com custo 2,00% a.m. e a segunda com 1,95% a.m. e `PREFERENCIA_QUITACAO` (critério `§16.4-C9`), quando `calcular_plano` roda em estabilização, então a segunda vem primeiro com `MOTIVO_POSICAO` = `PREFERENCIA_QUITACAO`. Com custos 2,00% e 1,80% (`§16.4-C10`), ou com a preferência só na dívida que o método já punha primeiro, nenhuma posição traz `PREFERENCIA_QUITACAO` e a primeira traz o motivo do critério do método (`RF-553`) |
+| `AC-583` | `US-415` | Em estabilização: (a) duas dívidas empatadas na Bola de Neve com pesos 5 e 4 e urgências 0 e 10 (`§16.4-C8`) → a de peso efetivo 6 vem primeiro com `DESEMPATE_PESO_EMOCIONAL`; (b) duas dívidas iguais em todos os níveis menos o `DIVIDA_ID` → a primeira traz `DESEMPATE`; (c) na Avalanche, dívida escolhida cujo benefício vem do fallback por taxa (`§11.1`) → `MAIOR_TAXA`; (d) Híbrido recomendado → a `D*` traz `CRITERIO_HIBRIDO` (salvo motivo da `§16.4`) e as seguintes trazem o motivo da Avalanche; (e) carteira com uma só dívida elegível → `UNICA_DIVIDA` (`RF-553`) |
+| `AC-584` | `US-415` | Dado um estado fora de estabilização que não estoura o horizonte, quando `calcular_plano` roda, então nenhuma posição traz `MOTIVO_POSICAO`; dado o estado de `AC-556` com a lista do revisor, também não. Dado um snapshot gravado antes desta rodada, lido de volta, então ele não traz `MOTIVO_POSICAO` nem `QUITACOES_SO_PARCELAS` e conserva o `SNAPSHOT_ID`. Dados o mesmo estado e os mesmos parâmetros, duas execuções produzem `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` idênticos (`RF-553`, `RF-554`) |
+| `AC-585` | `US-415` | Dado o caso de `AC-576`, quando `calcular_plano` roda, então `sem_acao.QUITACOES_SO_PARCELAS` traz D002 no mês 24 e D001 no mês em que a projeção "sem ação" a quita (dentro de `P_HORIZONTE_MAXIMO_SIMULACAO`). Dado um estado em que o plano termina antes do mês em que uma dívida se quitaria só com as parcelas, então essa dívida está em `QUITACOES_SO_PARCELAS` com esse mês, mesmo ausente de `sem_acao.QUITACOES`. Dada uma dívida cuja parcela não cobre os juros (`RF-79`), então ela não está na lista. Os demais campos de `sem_acao` não mudam (`RF-554`) |
+
 ## 5. Non-Functional Requirements
 
 - **Precisão:** aritmética decimal exata em todo o cálculo interno. Ponto
@@ -918,6 +990,23 @@ Atende: `RF-545`
   fatia cita, em nome ou comentário, §14.2.4 como a fonte da fórmula de
   integração, no mesmo padrão já exigido nas Rodadas 2, 3 e nas fatias 4A/4B.
 
+### Rodada 8 (2026-11-16) — ordem em estabilização
+
+- **Tolerância zero** para `ORDEM_DE_ATAQUE`, `ORDEM_QUITACAO` publicada,
+  `MOTIVO_POSICAO` e os meses de `QUITACOES_SO_PARCELAS` (são ordem, status e
+  número de meses, seção 5).
+- **Uma fonte de verdade para a ordem.** `MOTIVO_POSICAO` sai das mesmas
+  comparações que escolheram a posição (seletor do método com a `§16.4`); o
+  motor não ganha uma segunda implementação da `§16.4` nem do critério do
+  método só para explicar.
+- **Custo.** O motivo exige, por posição, no máximo uma escolha a mais do
+  seletor (a segunda colocada); a carteira de 30 dívidas (NFR de custo de
+  simulação) continua o limite de referência.
+- **Pureza e determinismo** mantidos: nenhum relógio, I/O ou `P_*` novo;
+  `PISO_CAPACIDADE` é lido do `Diagnostico` já calculado.
+- **Rastreabilidade normativa:** o ponto que troca o delta cita `RF-552`,
+  `RF-512` e `§11.1`; o que deriva o motivo cita `RF-553` e `§16.4`.
+
 ## 6. Edge Cases
 
 | ID | Situação | Comportamento esperado |
@@ -1016,6 +1105,18 @@ Atende: `RF-545`
 | `EC-78` | Uma dívida da lista se quita só com as próprias parcelas antes da sua vez | A dívida da vez passa à próxima da lista ainda não quitada. Sem estouro do horizonte, `ORDEM_QUITACAO` publicada é a ordem de quitação da simulação (`RF-09`) e pode diferir da lista; `ORDEM_DO_REVISOR` guarda a lista como recebida (`RF-545`) |
 | `EC-79` | Estado em `MODO_ESTABILIZACAO`, sem ordem publicada | Só a ausência ou a lista vazia são aceitas; qualquer lista não vazia é recusada (`AC-557`) |
 | `EC-80` | A lista é igual à **ordem de ataque** que o método seguiu sem ela (a sequência das dívidas da vez, com as que nunca recebem o extra no fim, na ordem de quitação) | Para o motor é válida e os números são os mesmos do cálculo sem a lista; o snapshot traz `ORDEM_DO_REVISOR`, `hash_inputs` diferente e a justificativa "definida pelo revisor" (`RF-545`). Pela rota do revisor essa lista é a ordem vigente e é recusada com `409`, nada a recalcular (`app-aluno` `OQ-101`). A lista igual à `ORDEM_QUITACAO` publicada **não** é, em geral, a ordem de ataque (`EC-78`): pode mudar os números |
+
+### Rodada 8 (2026-11-16) — ordem em estabilização
+
+| ID | Situação | Comportamento esperado |
+| --- | --- | --- |
+| `EC-85` | Nenhuma ou só parte das dívidas elegíveis tem benefício comparável mesmo com o delta positivo (sem simulação e sem taxa nem `CET` para o fallback, ou dívida que a própria parcela quita no 1º mês, sem delta aplicável) | Nada é inventado (`RF-16`): o laço termina quando o seletor não devolve candidata, como hoje, e essas dívidas ficam fora da `ORDEM_DE_ATAQUE`. Se a sequência ficar vazia, vale a ordem de quitação da simulação (`RF-09`). Se `X` não tem segunda colocada porque as demais não são comparáveis, o motivo de `X` é o do critério do método. Completar a ordem com as não comparáveis é `OQ-103` |
+| `EC-86` | Uma só dívida elegível | `ORDEM_DE_ATAQUE` = essa dívida, com `MOTIVO_POSICAO` = `UNICA_DIVIDA`. No `app-aluno`, a seção do revisor não aparece (menos de duas dívidas) |
+| `EC-87` | Bola de Neve recomendada em estabilização | O seletor não usa o delta (`O-04`): a sequência é a mesma de antes, agora completa e com os campos novos (`AC-578`) |
+| `EC-88` | `PISO_CAPACIDADE` também ≤ 0 (renda zero e piso absoluto zero) | Não há delta positivo: o ranqueamento recebe o piso como está e segue `EC-85`, sem valor inventado. Nenhum `P_*` novo para cobrir o caso |
+| `EC-89` | Estabilização por dívida que cresce (`RF-79`) com resultado mensal ≥ 0 | Com capacidade positiva, nada muda: o delta continua a capacidade e a ordem publicada segue `RF-512` como hoje (com estouro, a `ORDEM_DE_ATAQUE`, que ganha `MOTIVO_POSICAO`); `QUITACOES_SO_PARCELAS` vem sempre. Com capacidade zero, valem o piso e o item 2 de `RF-552` |
+| `EC-90` | Dívida cuja parcela não cobre os juros, ou com pagamento efetivo zero | Não se quita só com as parcelas: fica fora de `QUITACOES_SO_PARCELAS` (`RF-554`); o relatório diz que ela não termina, sem mês |
+| `EC-91` | Híbrido recomendado em estabilização | A `D*` continua escolhida como hoje (sobre as simulações com a capacidade do diagnóstico, `OQ-104`); as posições seguintes, que seguem a Avalanche (`H-07`), são ranqueadas com o piso |
 
 ## 7. Assumptions
 
@@ -1248,6 +1349,39 @@ de `OQ-97`, `OQ-99`, `OQ-100` e `OQ-101` (`OQ-98` segue aberta):
   lista num plano novo é a aplicação (`app-aluno` `RF-550`); para o motor,
   cálculo sem a entrada é o cálculo de sempre.
 
+### Rodada 8 (2026-11-16) — ordem em estabilização
+
+- **Por que o `PISO_CAPACIDADE` como delta de teste (decisão técnica da
+  equipe, 2026-11-16).** O `§11.1` define `DELTA_TESTE_AVALANCHE =
+  MIN(CAPACIDADE_ATAQUE_CONSERVADORA, VALOR_RELEVANTE_PARA_QUITACAO)` e não
+  trata capacidade ≤ 0: a canônica não ranqueia em déficit (método e ordem
+  são "fase 2 condicional", `RF-15`/`AC-11`), e com delta ≤ 0 o benefício
+  marginal fica indefinido (divisão por zero ou trajetória com pagamento
+  menor que a parcela). A decisão (1) do especialista pede o critério do mês
+  positivo, que só existe com delta positivo. O `PISO_CAPACIDADE` é o **menor
+  resultado mensal que a própria metodologia já chama de capacidade
+  positiva** (Definições §8: abaixo dele, `EQUILIBRIO_FRAGIL`; a partir dele,
+  `CAPACIDADE_POSITIVA`, `AC-38`/`AC-39`): é o "mês positivo" mínimo do caso,
+  já calculado, sem número novo. A canônica já aceita que o delta mude com o
+  contexto (resíduo, `AC-14`). Alternativas descartadas: o valor relevante
+  inteiro (troca o critério marginal por "quitação inteira"); R$ 1 ou outro
+  número fixo (um `P_*` disfarçado); `CAPACIDADE_ATAQUE_DECLARADA` (pode
+  ser desconhecida ou zero, e em déficit não é real). Não é questão para o
+  especialista (é técnica); o efeito aparece no texto que ele confere
+  ("a ordem pode mudar quando o mês fechar", já dito em `ordem_intro`).
+- **A regra é "capacidade ≤ 0", não "estabilização".** Cobre também o mês
+  fora de estabilização com capacidade zero (`AC-580`), que tinha o mesmo
+  defeito. Com capacidade positiva nada muda.
+- **Em estabilização por déficit a ordem publicada é sempre a de ataque.** A
+  ordem de quitação da simulação em déficit não segue o critério do método (a
+  dívida da vez recebe a parcela menos o déficit), então não é "o critério do
+  mês positivo" pedido pela decisão (1). Na estabilização por dívida que
+  cresce com capacidade positiva (`RF-79`) a simulação usa capacidade real e
+  nada muda (`EC-89`).
+- **"Pagando só as parcelas" = o "sem ação" de `RF-77`**: o pagamento mensal
+  efetivo de hoje de cada dívida (para a parcela estimada de 24 meses, ela
+  mesma), sem ataque e sem reaplicar a parcela liberada.
+
 ## 8. Risks
 
 | Risco | Impacto | Mitigação |
@@ -1283,6 +1417,15 @@ de `OQ-97`, `OQ-99`, `OQ-100` e `OQ-101` (`OQ-98` segue aberta):
 | **Rodada 4 (fatia 4C) — mudança de assinatura da função pública mais central do motor** (`calcular_diagnostico`), ou reordenação do pipeline de `calcular_plano`, decidida por conveniência de implementação em vez de registrada como decisão explícita | **alto** — é a mudança de maior risco de toda a Rodada 4 segundo o próprio discovery (§5): potencial efeito sobre todo chamador de `calcular_diagnostico` dentro de `engine/` e em `app-aluno`, incluindo ~22 chamadas já mapeadas na Rodada 3 (gabaritos, testes, `engine/motor.py:241`) | `RF-68` exige que a decisão seja tomada e documentada, não implementada silenciosamente; `OQ-44` (seção 10) registra os desenhos possíveis sem escolher um |
 | **Rodada 4 (fatia 4C) — reimplementar ou "simplificar" a fórmula de `ATAQUE_IMEDIATO_RECOMENDADO`** no ponto de integração, em vez de compor as funções puras já homologadas de `engine/ataque_imediato.py` e `engine/gates.py` | **alto** — duplicar a fórmula cria dois pontos de verdade que podem divergir silenciosamente entre as versões isolada (gabaritos `GAB-AI`/`GAB-NFI`) e integrada (`Diagnostico` real) | `RF-67`/`AC-115` exigem composição, auditada por leitura de código, não apenas pelo resultado numérico |
 | **Rodada 4 (fatia 4C) — tratar a mudança de `ATAQUE_IMEDIATO_RECOMENDADO` de `0` para o valor real como regressão** e, por reflexo do padrão das fatias anteriores, tentar "corrigir" o gabarito para manter `0` | **médio** — inverteria o próprio objetivo desta fatia; um revisor acostumado à régua "gabarito mudou = bug" das rodadas anteriores pode aplicá-la incorretamente aqui | `AC-116` nomeia explicitamente que esta é a única mudança de valor esperada em toda a base de gabaritos, e que os demais campos permanecem sob tolerância zero |
+
+### Rodada 8 (2026-11-16) — ordem em estabilização
+
+| Risco | Impacto | Mitigação |
+| --- | --- | --- |
+| A ordem ranqueada com o piso difere da que sairá quando o mês fechar positivo com outra capacidade (o benefício marginal depende do delta) | **médio** — o aluno vê uma ordem que pode mudar | O texto da seção já diz que a ordem é provisória e pode mudar quando o mês fechar (`estabilizacao.ordem_intro`); o snapshot novo nasce de recálculo, como sempre (`R-01`) |
+| O motivo ser derivado por uma segunda leitura das regras (como hoje o relatório adivinha a prioridade pelos sinais da dívida) e divergir da escolha real | **alto** — o aluno lê "você marcou que quer quitá-la primeiro" numa posição que a preferência não decidiu | NFR "uma fonte de verdade"; `AC-576` e `AC-582` exigem que a preferência e o incômodo só apareçam quando decidiram |
+| Mudar a simulação em estabilização junto com a ordem (trocar também o delta de `executar_mes`) | **alto** — mudaria custo, prazo, `MESES_DO_PLANO` e talvez o método recomendado, fora do escopo autorizado | `RF-552` item 3 limita a troca ao laço da ordem; `AC-576` exige os cenários idênticos |
+| `GAB-A` (estabilização) mudar de ordem publicada e alguém tratar como regressão | **baixo** | `AC-577` nomeia os campos de `GAB-A` autorizados a mudar; os valores normativos de `AC-05` ficam |
 
 ## 9. Out of Scope
 
@@ -1483,6 +1626,26 @@ de `OQ-97`, `OQ-99`, `OQ-100` e `OQ-101` (`OQ-98` segue aberta):
   desnormalizar status estratégico de volta para `Divida`) permanecem em
   aberto — decisão do plano técnico, não desta spec (seção 10).
 
+### Rodada 8 (2026-11-16) — o que a correção não faz
+
+- **Capacidade positiva, em qualquer modo.** Nenhum campo de hoje muda
+  (`AC-577`).
+
+- **A simulação em estabilização** (`simular_cenario`/`executar_mes` com a
+  capacidade negativa aplicada à dívida da vez), seus prazos, custos,
+  `MESES_DO_PLANO`, a comparação entre métodos, o método recomendado,
+  `ORDEM_STATUS` (`_beneficios_marginais_da_ordem` segue com a capacidade do
+  diagnóstico) e a escolha de `D*` do Híbrido (`OQ-104`).
+- **Completar a ordem com dívidas sem comparação** (`OQ-103`).
+- **`MOTIVO_POSICAO` no plano sem estouro fora de estabilização** e o uso do
+  motivo na explicação do plano normal (`explicacao_da_posicao`, que hoje
+  infere a prioridade pelos sinais da dívida): candidato a rodada futura.
+- **Ajustar a ordem em estabilização pelo revisor** continua recusado
+  (`AC-557`, `EC-79`). Nota de leitura: `EC-79` diz "sem ordem publicada", mas
+  em estabilização o motor publica a ordem provisória; a recusa da lista não
+  muda.
+- **Mudar `JUSTIFICATIVA_POSICAO`**, fórmula, parâmetro ou criar `P_*`.
+
 ## 10. Open Questions
 
 | ID | Pergunta | Por que importa | Status |
@@ -1647,6 +1810,13 @@ de `OQ-97`, `OQ-99`, `OQ-100` e `OQ-101` (`OQ-98` segue aberta):
 | `OQ-97` | O **cenário adicional** (`RF-71`, projeção com `PROVAVEL` e `POSSIVEL`) também segue a lista do revisor, ou continua na ordem do método? A decisão diz "o cronograma inteiro" e lista o que muda (prazo, custo, prognóstico azul e verde, mural, mês a mês), sem citar o cenário adicional | O aluno lê o cenário adicional ao lado do plano: em ordens diferentes, os dois podem mostrar dívidas terminando em sequências diferentes | Parte de `RF-545` sobre o cenário adicional | `respondida (2026-11-14, responsável do produto)` — **sim**: o cenário adicional também segue a lista do revisor, como o resto do cronograma (`RF-545` item 3, `AC-561`) |
 | `OQ-98` | Quando a `T-466` (o extra cobre primeiro a falta das dívidas que crescem, `RF-79`, hoje adiada) for feita, essa cobertura vem antes da lista do revisor, ou a lista manda também sobre ela? | As duas regras escolhem quem recebe o extra no mesmo mês | Nada hoje (`T-466` está no backlog, sem data) | `aberta` — não bloqueia `RF-545` |
 | `OQ-102` | O prognóstico verde (`RF-78`) e o cenário adicional (`RF-71`) do **Híbrido** devem usar o seletor com as prioridades da `§16.4`? Hoje `engine/motor.py:560` (`sel_por_metodo[HIBRIDO]`) guarda o seletor do Híbrido **sem** `aplicar_prioridade_ordem`, enquanto o cenário do Híbrido é simulado **com** ela; Avalanche e Bola de Neve usam o seletor com `§16.4` nos três | Com o Híbrido recomendado e uma dívida priorizada pela `§16.4`, o verde e o cenário adicional podem seguir outra dívida da vez que a do plano | Nada desta rodada: corrigir muda a saída sem a lista (`AC-554`). Fora do escopo de `RF-545`; vai ao backlog do `motor-calculo` | `aberta` — achado técnico (2026-11-14), não bloqueia `RF-545` |
+
+### Rodada 8 — ordem em estabilização (2026-11-16)
+
+| ID | Pergunta | Por que importa | Bloqueia | Status |
+| --- | --- | --- | --- | --- |
+| `OQ-103` | A `ORDEM_DE_ATAQUE` deve **completar** a lista com as dívidas que o seletor não consegue comparar (`EC-85`)? Proposta registrada, não adotada: no fim, na ordem em que a simulação as quita e, entre as que não quita, por `DIVIDA_ID`. Hoje o laço para no primeiro "sem candidata" (`RF-16`), também fora de estabilização com capacidade positiva (ex.: dívida que a própria parcela quita no 1º mês, cujo delta aplicado é zero) | `RF-512`/`AC-512` pedem "todas as dívidas"; completar exige uma regra de posição que a canônica não tem e mudaria a saída de casos fora de estabilização. A correção 1 (`RF-552`) resolve o caso reproduzido (as duas dívidas passam a ser comparáveis), não este | Nada desta rodada | `aberta` — decisão de produto/técnica; candidata ao backlog |
+| `OQ-104` | No Híbrido em estabilização, a escolha de `D*` (simulações das candidatas e o nível 5 do desempate `H-04`, que usa `MIN(CAPACIDADE_ATAQUE_CONSERVADORA, VALOR_RELEVANTE_PARA_QUITACAO)` direto) também deve usar o piso? | Com capacidade negativa a `D*` sai de simulações em déficit; trocar mudaria a classificação do Híbrido e, talvez, o método recomendado em estabilização | Nada desta rodada (`RF-552` item 3) | `aberta` — achado técnico (2026-11-16) |
 
 ## 11. Definições incorporadas
 

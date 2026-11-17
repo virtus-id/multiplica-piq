@@ -14570,3 +14570,279 @@ maior dívida?", aviso da nota de incômodo) e as quatro frases. Sem termo técn
 
 **Requisitos sem tarefa:** nenhum. **Fora de teste automatizado:** redação das
 quatro variantes (validação do especialista, `T-601`) e o p95 (`T-602`).
+
+---
+
+## Rodada 17 — Ordem provisória do plano deficitário (2026-11-16, `RF-555`, `RF-556`)
+
+> **Feature `ordem-em-estabilizacao`, lado da aplicação.** Spec:
+> `specs/app-aluno.spec.md` Rodada 17 (`RF-555`, `RF-556`, `US-416`,
+> `AC-586`–`AC-591`, `EC-92`–`EC-94`; nenhuma `OQ` nova). Plano:
+> `plans/app-aluno.plan.md` `R19.1`–`R19.11`. **Depende do motor**: `T-603` a
+> `T-622` em `tasks/motor-calculo.tasks.md` (`engine.tipos.MOTIVO_POSICAO`,
+> `PosicaoOrdem.MOTIVO_POSICAO`, `PrognosticoSemAcao.QUITACOES_SO_PARCELAS`,
+> `ORDEM_DE_ATAQUE` completa em estabilização, fixture `_estado_rodrigo()`).
+>
+> **Regras desta rodada.** (1) A aplicação **só lê** os dois campos e os
+> traduz em frase: nenhuma soma, subtração ou comparação de valores da dívida
+> ou dos sinais da `§16.4` (`AC-42`). (2) Nenhum arquivo de `engine/` ou
+> `persistencia/` muda; `hashes_congelados.json` não é tocado. (3) Plano normal
+> intocado: `_explicacao_da_posicao`, `_tem_sinal_de_prioridade`,
+> `_fato_recebe_extra`, `posicao.html` e `PlanoDoAluno.tsx` fora de
+> estabilização sem diff (`AC-591`); rotas, máquina de estados, banco e
+> `OrdemDoRevisor.tsx` também. (4) Frases "sugestão, a validar" com o
+> especialista — já registradas em `docs/perguntas-marcelo-calculo-de-divida.md`,
+> seção "Textos novos para conferir (2026-11-16)". (5) Valor esperado
+> divergente do da spec/plano (ex.: mês de D001) → parar e reportar, não ajustar
+> o teste. (6) Gates do `sdd.config.md` §2 (`lint`, `build`, `test`) ao fim de
+> cada tarefa; nas de frontend, também `npm run test` e `npm run build` em
+> `frontend/`.
+
+### Entrega A — Servidor: frase do motivo e previsão na seção 3
+
+### `T-623` — Acrescentar as frases do motivo e da previsão ao bloco `estabilizacao`
+
+- **Tipo:** `Data` · **Dependências:** nenhuma · **Rastreia:** `RF-555`, `RF-556` · plano `R19.3`, `R19.4` (bloco YAML), `R19.10` (chaves planas)
+- **Arquivos:** `report/templates/plano/textos-canonicos.yaml`
+
+**Descrição.** No bloco `estabilizacao` (chaves planas, o parser já é
+`Mapping[str, str]`): 12 chaves `motivo_<CODIGO>`, uma por valor de
+`MOTIVO_POSICAO`, e `previsao_termina` ("Termina em {mes}, se você mantiver as
+parcelas em dia."), `previsao_nao_termina` ("Só com as parcelas de hoje, ela
+não termina."), marcadas "sugestão, a validar com o especialista".
+
+- [ ] As 14 frases idênticas, caractere por caractere, às da seção de 2026-11-16 de `docs/perguntas-marcelo-calculo-de-divida.md` (copiadas por script)
+- [ ] Nenhuma frase contém "sobra"; nenhum texto existente do YAML muda (testes atuais do plano verdes)
+- [ ] `test_textos_ao_aluno` verde; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-624` — Criar `_frase_do_motivo`, `_quitacoes_so_parcelas` e `_previsao_so_parcelas`
+
+- **Tipo:** `Data` · **Dependências:** `T-606`, `T-614`, `T-623` · **Rastreia:** `RF-555`, `RF-556`, `EC-92` · `AC-42` · plano `R19.4`, `R19.8`
+- **Arquivos:** `report/plano.py`
+
+**Descrição.** `ContextoPosicao.motivo_da_posicao: str = ""` e
+`previsao_so_parcelas: str = ""` (com padrão). Funções puras de `R19.4`:
+`_quitacoes_so_parcelas(snapshot)` → `{DIVIDA_ID: mês}` ou `None` (sem
+`MODO_ESTABILIZACAO`, sem `prognostico` ou campo `None`);
+`_frase_do_motivo(motivo, textos)` → `textos.estabilizacao.get(f"motivo_{v}",
+v)`, `""` com `None` (`EC-92`: o código, nunca frase genérica);
+`_previsao_so_parcelas(id, so_parcelas, textos)` → `previsao_termina` com
+`rotulo_do_mes(m)` ou `previsao_nao_termina`. Ainda não chamadas.
+
+- [ ] Nenhuma das três recebe `Divida` nem faz aritmética; `rotulo_do_mes` é o mesmo do "Termina em" do plano normal
+- [ ] `test_sem_aritmetica_sobre_snapshot` e `test_fronteira_import_engine` verdes (`engine.tipos` já liberado)
+- [ ] Saída do plano inalterada (testes atuais verdes); gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-625` — Preencher motivo e previsão em `_montar_contexto_plano` só em estabilização
+
+- **Tipo:** `Data` · **Dependências:** `T-624` · **Rastreia:** `RF-555`, `RF-556`, `AC-586`, `AC-590`, `AC-591`, `EC-93` · plano `R19.4` (`_montar_contexto_plano`), `R19.5`
+- **Arquivos:** `report/plano.py`
+
+**Descrição.** Por posição: `estab = snapshot.diagnostico.MODO_ESTABILIZACAO`;
+`so_parcelas = _quitacoes_so_parcelas(snapshot)` (uma vez, fora do laço);
+`motivo_da_posicao` = frase se `estab`, senão `""`; `previsao_so_parcelas` =
+previsão se `so_parcelas is not None`, senão `""`; com `so_parcelas` presente,
+`fora_do_horizonte = ""` e `fatos = _fatos_da_divida(...)` (sem "Recebe o valor
+extra"); senão, os dois como hoje.
+
+- [ ] Fora de estabilização e com snapshot anterior, o `ContextoPosicao` é o de hoje campo a campo (testes atuais de estabilização e do plano normal verdes sem edição)
+- [ ] Vale nas duas variantes (`estabilizacao` e `estabilizacao_por_divida`)
+- [ ] `test_sem_aritmetica_sobre_snapshot` verde; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-626` — Mostrar motivo e previsão no `estabilizacao.html`
+
+- **Tipo:** `UI` · **Dependências:** `T-625` · **Rastreia:** `RF-555`, `RF-556` · `NFR` (tela = PDF, ordem de leitura, acessibilidade) · plano `R19.3`, `R19.10`
+- **Arquivos:** `report/templates/plano/estabilizacao.html`
+
+**Descrição.** Na célula do nome, abaixo das etiquetas: o motivo e a previsão,
+cada um em `<div>` de texto, só quando não vazios. Nenhuma coluna nova. "Começa
+por esta" fica.
+
+- [ ] Ordem no HTML: nome → motivo → previsão; campos vazios não geram elemento
+- [ ] Testes atuais do PDF de estabilização verdes sem edição
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-627` — Serializar `motivo_da_posicao` e `previsao_so_parcelas` no plano
+
+- **Tipo:** `Data` · **Dependências:** `T-625` · **Rastreia:** `RF-555`, `RF-556` · plano `R19.3`, `R19.6`
+- **Arquivos:** `app/http/serializacao_plano.py`
+
+**Descrição.** Cada item de `plano.ordem` ganha `"motivo_da_posicao"` e
+`"previsao_so_parcelas"` (strings, `""` quando não se aplicam), para aluno e
+revisor (`para_revisor=True`). Nenhuma rota muda.
+
+- [ ] Demais chaves do payload inalteradas
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### Entrega B — Testes do servidor
+
+### `T-628` — Testar o plano deficitário do Rodrigo na tela, no PDF e na prévia
+
+- **Tipo:** `Test` · **Dependências:** `T-616`, `T-626`, `T-627` · **Rastreia:** `AC-586` · `RF-555`, `RF-556` · plano `R19.9`
+- **Arquivos:** `tests/app_aluno/test_plano_ordem_em_estabilizacao.py` (novo)
+
+**Descrição.** Snapshot de `calcular_plano(_estado_rodrigo(), ...)` (fixture de
+`tests/regras/test_ordem_em_estabilizacao.py`, importada como `_estado_gab04`).
+
+- [ ] `ContextoPlano`, `serializar_plano` (aluno e `para_revisor=True`) e HTML de `renderizar_html_do_plano` com duas linhas: financiamento imobiliário, depois consignado, pelo nome
+- [ ] Frases de `MAIOR_BENEFICIO_MARGINAL` e `ULTIMA_RESTANTE`; "Termina em {rotulo_do_mes(mês de D001)}…" e "Termina em {rotulo_do_mes(24)}…"
+- [ ] Nenhuma linha com a frase de `PREFERENCIA_QUITACAO`, a de `DESEMPATE_PESO_EMOCIONAL`, "Recebe o valor extra" ou "Não será quitada com os valores de hoje"
+- [ ] Mês divergente do do motor (`T-616`) → parar e reportar
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-629` — Testar uma frase por motivo, a previsão e o motivo sem frase
+
+- **Tipo:** `Test` · **Dependências:** `T-625` · **Rastreia:** `AC-588`, `AC-589`, `EC-92` · `RF-555`, `RF-556` · plano `R19.9`
+- **Arquivos:** `tests/app_aluno/test_plano_ordem_em_estabilizacao.py`
+
+- [ ] `AC-588`: parametrizado por `engine.tipos.MOTIVO_POSICAO` — snapshot de estabilização com `dataclasses.replace` na `ORDEM_QUITACAO` → a linha traz exatamente a frase do YAML; toda chave `motivo_<CODIGO>` existe; nenhuma frase do bloco contém "sobra"
+- [ ] `AC-588`: dívida com `PREFERENCIA_QUITACAO` e peso emocional alto e outro motivo → as frases de preferência/incômodo não aparecem
+- [ ] `AC-589`: dívida ausente de `QUITACOES_SO_PARCELAS` → "Só com as parcelas de hoje, ela não termina." e nenhum rótulo de mês; presente → o mesmo `rotulo_do_mes` do "Termina em" do plano normal
+- [ ] `EC-92`: motivo sem frase cadastrada (textos com a chave removida) → aparece o código
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-630` — Testar snapshot anterior, auditoria sem aritmética e plano normal intocado
+
+- **Tipo:** `Test` · **Dependências:** `T-626`, `T-627` · **Rastreia:** `AC-590`, `AC-591` · `AC-42` · plano `R19.9`
+- **Arquivos:** `tests/app_aluno/test_plano_ordem_em_estabilizacao.py`
+
+- [ ] `AC-590`: snapshot de estabilização com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` em `None` → `ContextoPosicao` e HTML da seção iguais aos de hoje (com os dois itens antigos)
+- [ ] `AC-590`: checagem AST de que `_frase_do_motivo` e `_previsao_so_parcelas` não recebem `Divida` nem leem `TAXA_*`, `GARANTIA_*`, `NEGATIVADA`, `PREFERENCIA_QUITACAO`, `PESO_EMOCIONAL`; `test_sem_aritmetica_sobre_snapshot` verde
+- [ ] `AC-591`: `aluno.teste3` (estouro, com `MOTIVO_POSICAO`) → `ContextoPlano` igual ao do mesmo snapshot com os dois campos zerados; `motivo_da_posicao`/`previsao_so_parcelas` vazios em todas as posições
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-631` — Testar estabilização por dívida que cresce e dívida única
+
+- **Tipo:** `Test` · **Dependências:** `T-626` · **Rastreia:** `EC-93`, `EC-94` · `RF-555`, `RF-556`, `RF-548` · plano `R19.5`, `R19.9`
+- **Arquivos:** `tests/app_aluno/test_plano_ordem_em_estabilizacao.py`
+
+- [ ] `EC-93`: `estabilizacao_por_divida` com e sem `MOTIVO_POSICAO` → previsão sempre, motivo só com o campo; a dívida que cresce traz "Só com as parcelas de hoje, ela não termina."
+- [ ] `EC-94`: uma dívida → uma linha com a frase de `UNICA_DIVIDA` e a previsão
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-632` — Testar a seção "Ordem de quitação" da conferência no caso do Rodrigo
+
+- **Tipo:** `Test` · **Dependências:** `T-616` · **Rastreia:** `AC-587` · `RF-548` com `motor-calculo` `RF-552`, `AC-557`, `OQ-101`, `EC-79` · plano `R19.1` (sem código), `R19.10`
+- **Arquivos:** `tests/app_aluno/test_rotas_ordem_do_revisor.py`
+
+**Descrição.** Sem código novo: `ordem_vigente` (ramo 2) já lê a
+`ORDEM_DE_ATAQUE` completa e `editavel` já é falso em estabilização. Fakes e
+`dependency_overrides` do arquivo.
+
+- [ ] Caso do Rodrigo em `AGUARDANDO_REVISAO`: `ordem_do_revisor.vigente` com as duas dívidas na ordem do método, `editavel = false`
+- [ ] `POST .../ordem` com a vigente → `409`; com a outra permutação → `422`; nenhum snapshot anexado, nenhum evento
+- [ ] Se exigir código de produção para passar, parar e reportar (o plano diz que não exige)
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_ordem_do_revisor.py`; gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### Entrega C — Frontend: o plano deficitário na tela
+
+### `T-633` — Mostrar motivo e previsão em `PlanoDoDeficitario.tsx`
+
+- **Tipo:** `UI` · **Dependências:** `T-627` · **Rastreia:** `RF-555`, `RF-556` · `NFR` (360 px, ordem de leitura, acessibilidade) · plano `R19.3`, `R19.4` (`tipos.ts`), `R19.8`
+- **Arquivos:** `frontend/src/tipos.ts`, `frontend/src/componentes/PlanoDoDeficitario.tsx`
+
+**Descrição.** `PosicaoDaOrdem.motivo_da_posicao?: string`,
+`previsao_so_parcelas?: string`. Na lista da ordem, depois do nome: motivo,
+depois previsão, como texto; `?? ""` e nada renderizado quando vazio (payload
+antigo).
+
+- [ ] Ordem de leitura nome → motivo → previsão; sem colunas novas, sem rolagem lateral em 360 px
+- [ ] `PlanoDoAluno.tsx` sem diff
+- [ ] Verificação: `npm run build` em `frontend/` verde
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-634` — Testar `PlanoDoDeficitario` com e sem os campos novos
+
+- **Tipo:** `Test` · **Dependências:** `T-633` · **Rastreia:** `RF-555`, `RF-556` · plano `R19.9` (Frontend)
+- **Arquivos:** `frontend/tests/unit/componentes/PlanoDoDeficitario.test.tsx`
+
+- [ ] Com os dois campos: aparecem na ordem nome, motivo, previsão
+- [ ] Sem eles (ausentes ou `""`): nada novo renderizado; testes atuais verdes sem edição
+- [ ] Verificação: `npm run test` em `frontend/` verde
+
+**Status:** `[ ] pendente`
+
+---
+
+### Entrega D — Fechamento
+
+### `T-635` — Verificar a feature `ordem-em-estabilizacao` de ponta a ponta
+
+- **Tipo:** `Test` · **Dependências:** `T-622`, `T-628`, `T-629`, `T-630`, `T-631`, `T-632`, `T-634` · **Rastreia:** `RF-552`–`RF-556`, `NFR` da Rodada 17 (tela = PDF, 360 px) · plano `R14.9`, `R19.9`
+- **Arquivos:** nenhum de código; `tasks/app-aluno.tasks.md` e `tasks/motor-calculo.tasks.md` (status e notas)
+
+- [ ] Gates do `sdd.config.md` §2 (install, lint, build, test) verdes, com a saída real anotada
+- [ ] `npm run test` e `npm run build` do `frontend/` verdes
+- [ ] No navegador, `rodrigo@teste.com` recalculado: seção 3 com as duas dívidas, motivo e previsão na tela do aluno (360 px), no PDF liberado, na prévia e no plano do aluno na conferência; seção "Ordem de quitação" do revisor só leitura
+- [ ] Leitura 1 (`UNICA_DIVIDA` quando só uma posição restou por falta de comparação) apresentada ao responsável do produto na revisão; resposta anotada (não bloqueia)
+- [ ] Status das tarefas `T-603`–`T-634` atualizados; spec e planos com status coerente
+
+**Status:** `[ ] pendente`
+
+---
+
+### Cobertura de requisitos — Rodada 17 (`RF-555`, `RF-556`)
+
+| Requisito | Tarefas |
+| --- | --- |
+| `RF-555` — porquê de cada posição | `T-623`, `T-624`, `T-625`, `T-626`, `T-627`, `T-628`, `T-629`, `T-630`, `T-631`, `T-633`, `T-634` |
+| `RF-556` — previsão só com as parcelas | `T-623`, `T-624`, `T-625`, `T-626`, `T-627`, `T-628`, `T-629`, `T-630`, `T-631`, `T-633`, `T-634` |
+| `RF-548` com `motor-calculo` `RF-552` | `T-632` (sem código, por desenho) |
+| `NFR` (tela = PDF, 360 px, acessibilidade, `AC-42`) | `T-624`, `T-626`, `T-630`, `T-633`, `T-635` |
+
+| Critério | Tarefa de teste |
+| --- | --- |
+| `AC-586` | `T-628` |
+| `AC-587` | `T-632` |
+| `AC-588`, `AC-589` | `T-629` |
+| `AC-590`, `AC-591` | `T-630` |
+| `EC-92` | `T-629` |
+| `EC-93`, `EC-94` | `T-631` |
+
+**Requisitos sem tarefa:** nenhum. **Fora de teste automatizado:** redação das
+14 frases (validação do especialista; já registradas em
+`docs/perguntas-marcelo-calculo-de-divida.md`) e o layout em 360 px / PDF
+(conferência visual, `T-635`).
