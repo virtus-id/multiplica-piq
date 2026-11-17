@@ -63,8 +63,6 @@ from app.http.rotas_coleta import (
     ID_FIM_DE_CADASTRO,
     _itens_por_escopo,
     criar_primeira_ficha_de_divida,
-    faltam_fichas_de_divida,
-    posterior_a_declaracao_de_dividas,
 )
 from app.http.rotas_plano import obter_repositorio_snapshots
 from app.http.rotas_revisao import formatar_pendencia_homologacao
@@ -253,24 +251,9 @@ def _proxima_etapa(
                 return ProximaEtapa(
                     destino=DESTINO_DA_ETAPA.CALCULANDO,
                 )
-            # `T-301` (DE-04, RF-87): passada a declaração das dívidas, fora
-            # de uma ficha, e com fichas faltando — o destino é a lista de
-            # fichas, não `B5.FIM02` (cuja regra de exibição não muda).
-            if (
-                pendencia.item_id is None
-                and posterior_a_declaracao_de_dividas(colecao, pendencia.ID)
-                and faltam_fichas_de_divida(colecao, respostas, itens_por_escopo)
-            ):
-                return ProximaEtapa(
-                    destino=DESTINO_DA_ETAPA.INVENTARIO,
-                    abrir_fichas=(EscopoRepeticao.DIVIDA_ID,),
-                )
-            # `T-645` (RF-557, RF-558): o mecanismo novo — a própria pendência
-            # é `B5.FIM02`. Checado DEPOIS do ramo antigo (acima, `T-301`):
-            # enquanto `B5.00` existir no questionário, ele intercepta
-            # primeiro qualquer caso com quantidade declarada e fichas
-            # faltando (`R20.10`) — este ramo só é alcançado quando o antigo
-            # não se aplica (ex.: coleção sem `B5.00`, nos testes de `T-646`).
+            # `T-645`/`T-649` (RF-557, RF-558): a própria pendência é
+            # `B5.FIM02` — sem `B5.00` (saiu em `T-649`), este é o ÚNICO
+            # ramo que decide o destino quando a varredura chega até aqui.
             if pendencia.ID == ID_FIM_DE_CADASTRO:
                 if itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID):
                     return ProximaEtapa(

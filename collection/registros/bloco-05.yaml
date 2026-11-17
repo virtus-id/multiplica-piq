@@ -1,34 +1,12 @@
-# Bloco 5 — Inventário de dívidas. 58 perguntas, transcritas caractere por
+# Bloco 5 — Inventário de dívidas. 57 perguntas, transcritas caractere por
 # caractere da §11 da canônica (specs/piq-app-spec.md, linhas 2618-3473). T-17
-# (RF-03, RF-04, RF-09, AC-04, AC-36). 55 das 58 perguntas são REP por
-# DIVIDA_ID (cada dívida é uma ficha) — só B5.00, B5.00A e B5.FIM02 não são
-# repetíveis (são perguntas de caso, não de ficha de dívida).
+# (RF-03, RF-04, RF-09, AC-04, AC-36). 55 das 57 perguntas são REP por
+# DIVIDA_ID (cada dívida é uma ficha) — só B5.FIM02 não é repetível (é
+# pergunta de caso, não de ficha de dívida). `T-649` (RF-557, Rodada 18):
+# `B5.00` (a quantidade declarada) saiu — o Bloco 5 abre direto na primeira
+# ficha, sem pergunta de quantidade antes.
 QUESTIONARIO_VERSION: "1.6.0"
 perguntas:
-  - ID: B5.00
-    bloco: 5
-    enunciado: >-
-      Quantas dívidas ou operações financeiras diferentes você tem hoje?
-    tipo: NUMERO
-    obrigatoriedade: [OBR]
-    escopo_repeticao: NENHUM
-    opcoes:
-      - {rotulo: "___ dívida(s)", valor_interno: null}
-      - {rotulo: Nenhuma dívida., valor_interno: "0"}
-    VARIAVEL_GRAVADA: QUANTIDADE_DIVIDAS_DECLARADA_INICIAL
-    faixa:
-      minimo: 0
-      maximo: 50
-      mensagem: Informe a quantidade de dívidas, de 1 a 50, ou escolha "Nenhuma dívida".
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: false
-    salto_consequencia: >-
-      A quantidade é exata: o cálculo exige uma ficha para cada dívida
-      declarada. "Nenhuma dívida" não abre ficha e não gera plano.
-
   # Grupo A — Identificação (ficha REP por dívida)
   - ID: B5.A01
     bloco: 5

@@ -15286,7 +15286,7 @@ postam `B5.00` direto) e qualquer fixture que a responda — corrigidos em
       `test_coleta_fichas_de_divida.py` e nos testes que respondem `B5.00`
       como fixture — corrigidas nas tarefas seguintes, não aqui)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `carregar_registros()`: 56 registros, sem `B5.00`, `QUESTIONARIO_VERSION` "1.6.0"; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos (a remoção não quebra nenhum import de teste por nome — só o comportamento em runtime, corrigido nas tarefas seguintes). Suíte completa ainda não comparada aqui — ver `T-651`–`T-656`
 
 ---
 
