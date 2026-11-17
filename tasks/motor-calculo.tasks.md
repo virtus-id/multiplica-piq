@@ -8309,13 +8309,13 @@ Supabase reaproveita esse leitor (`dados_completos`), sem diff e sem migração.
 **Descrição.** Por `calcular_plano` sobre variações de `_estado_rodrigo()`
 (renda e carteira trocadas por `replace`); tolerância zero.
 
-- [ ] `AC-578`/`EC-87`: Bola de Neve recomendada, três dívidas de valores relevantes distintos, sem `§16.4` → as três, da menor para a maior, motivos `MENOR_VALOR_RELEVANTE`, `MENOR_VALOR_RELEVANTE`, `ULTIMA_RESTANTE`
-- [ ] `AC-579`: déficit sem estouro → `ORDEM_DE_ATAQUE` não vazia, `ORDEM_QUITACAO` = ela (não a ordem de término), motivo em toda posição
-- [ ] `AC-580`: fora de estabilização, `RESULTADO_MENSAL_ATUAL` > 0, `CAPACIDADE_ATAQUE_DECLARADA = 0`, Avalanche, estouro → as duas ranqueadas com o piso; `MODO_ESTABILIZACAO`, cenários e método iguais aos de antes
-- [ ] Valor esperado divergente → parar e reportar (regra 5 da rodada)
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] `AC-578`/`EC-87`: Bola de Neve recomendada, três dívidas de valores relevantes distintos, sem `§16.4` → as três, da menor para a maior, motivos `MENOR_VALOR_RELEVANTE`, `MENOR_VALOR_RELEVANTE`, `ULTIMA_RESTANTE`
+- [x] `AC-579`: déficit sem estouro → `ORDEM_DE_ATAQUE` não vazia, `ORDEM_QUITACAO` = ela (não a ordem de término), motivo em toda posição
+- [x] `AC-580`: fora de estabilização, `RESULTADO_MENSAL_ATUAL` > 0, `CAPACIDADE_ATAQUE_DECLARADA = 0`, Avalanche, estouro → as duas ranqueadas com o piso; `MODO_ESTABILIZACAO`, cenários e método iguais aos de antes
+- [x] Valor esperado divergente → parar e reportar (regra 5 da rodada)
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — `AC-580` usa três dívidas: com capacidade zero, duas dívidas de benefício por simulação (cada uma quita sozinha no horizonte) nunca estouram o cenário; a terceira (D003, 1.000.000 a 1%) estoura e é ranqueada pelo fallback de taxa, depois das duas.
 
 ---
 
