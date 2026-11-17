@@ -8213,13 +8213,13 @@ componente diferente (`GARANTIA_ESSENCIAL`, `NEGATIVADA`, `PESO_GARANTIA`);
 Neve índice 0 → `MENOR_VALOR_RELEVANTE`, 3 → `DESEMPATE_PESO_EMOCIONAL`, outro
 → `DESEMPATE`). Ainda não chamada por `calcular_plano`.
 
-- [ ] `_chave_grupo` importada de `engine/prioridade_ordem.py` (arquivo sem diff); critérios lidos só de `beneficio_de_ranqueamento`/`chave_bola_de_neve`/`D_ESTRELA` — nenhuma regra copiada
-- [ ] `X` da Avalanche sem benefício → `ErroOrdemInconsistente`, nunca motivo inventado
-- [ ] Última posição sem `Y` com outras dívidas em `R` (ordem com duas ou mais) → motivo do critério do método (`EC-85`)
-- [ ] Função pura; `T-603`, `T-604` verdes
-- [ ] Rehash só de `engine/ordem.py`; gates: lint, build, test
+- [x] `_chave_grupo` importada de `engine/prioridade_ordem.py` (arquivo sem diff); critérios lidos só de `beneficio_de_ranqueamento`/`chave_bola_de_neve`/`D_ESTRELA` — nenhuma regra copiada
+- [x] `X` da Avalanche sem benefício → `ErroOrdemInconsistente`, nunca motivo inventado
+- [x] Última posição sem `Y` com outras dívidas em `R` (ordem com duas ou mais) → motivo do critério do método (`EC-85`)
+- [x] Função pura; `T-603`, `T-604` verdes
+- [x] Rehash só de `engine/ordem.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 
