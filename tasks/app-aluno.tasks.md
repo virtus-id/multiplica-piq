@@ -15852,15 +15852,17 @@ e para uma pergunta sem ⓘ.
 
 **Critérios de aceite**
 
-- [ ] `AC-602`: nenhuma ocorrência do parêntese no enunciado servido de
+- [x] `AC-602`: nenhuma ocorrência do parêntese no enunciado servido de
       `B5.D06`
-- [ ] `GET /pergunta/B5.B03` (e os outros três) devolve `explicacao` com os
+- [x] `GET /pergunta/B5.B03` (e os outros três) devolve `explicacao` com os
       dois campos; uma pergunta sem `explicacao` no registro devolve
       `explicacao: null`
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_registro_calculo_divida.py tests/app_aluno/test_resposta_json.py`
+- [x] Verificação: `.venv/bin/python -m pytest -q tests/app_aluno/test_registro_calculo_divida.py tests/app_aluno/test_resposta_json.py`
+      — 30 passed
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — as duas suítes rodam e passam (30 passed);
+gates completos (lint/build/suíte inteira) ainda pendentes.
 
 ---
 

@@ -288,6 +288,24 @@ def test_ac537_nao_sei_no_saldo_nao_bloqueia_o_avanco_e_vira_pendencia_de_envio(
 # ------------------------------------------------------------------- T-525
 
 
+# ------------------------------------------------------------------- T-671
+
+
+_PARENTESE_REMOVIDO = "No seu contrato, extrato ou aplicativo do banco"
+
+
+def test_ac602_enunciado_de_b5d06_nao_traz_mais_o_parentese_de_ajuda_no_registro() -> None:
+    assert _PARENTESE_REMOVIDO not in _registro("B5.D06").enunciado
+
+
+def test_ac602_enunciado_de_b5d06_nao_traz_mais_o_parentese_de_ajuda_no_get_pergunta(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cliente, _ = _cliente(monkeypatch)
+    pergunta = cliente.get(f"/caso/{_CASO}/pergunta/B5.D06?item_id={_DIVIDA}").json()["pergunta"]
+    assert _PARENTESE_REMOVIDO not in pergunta["enunciado"]
+
+
 def test_ac545_nenhum_arquivo_do_questionario_fica_na_versao_anterior() -> None:
     """`T-525`: a mesma `QUESTIONARIO_VERSION` em todos os arquivos que a declaram (`PD-13`)."""
     from pathlib import Path
