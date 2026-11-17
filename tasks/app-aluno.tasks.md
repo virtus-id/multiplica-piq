@@ -14675,11 +14675,11 @@ extra"); senão, os dois como hoje.
 cada um em `<div>` de texto, só quando não vazios. Nenhuma coluna nova. "Começa
 por esta" fica.
 
-- [ ] Ordem no HTML: nome → motivo → previsão; campos vazios não geram elemento
-- [ ] Testes atuais do PDF de estabilização verdes sem edição
-- [ ] Gates: lint, build, test
+- [x] Ordem no HTML: nome → motivo → previsão; campos vazios não geram elemento
+- [x] Testes atuais do PDF de estabilização verdes sem edição
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; 20 arquivos de teste do plano/PDF: 212 passed, 2 failed (as da `main`: `test_ac189…`, `test_plano_exibido_e_o_mesmo_html…`)
 
 ---
 
