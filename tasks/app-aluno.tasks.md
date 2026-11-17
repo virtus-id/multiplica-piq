@@ -15629,7 +15629,7 @@ a gravação falhar; com 0 fichas, nenhum dos dois aparece. Sem
 - [ ] Verificação: `npm run test` em `frontend/`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; quatro testes novos (os 1+/zero fichas, gravação com sucesso e com falha); os nove testes existentes continuam intocados. `TelaFichas.test.tsx` isolado: 13 passed; suíte completa: 356 passed, 9 failed (os mesmos da baseline); `npm run build`/`npm run lint`: limpo
 
 ---
 

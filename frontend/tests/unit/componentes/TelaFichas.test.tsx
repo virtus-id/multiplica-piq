@@ -278,6 +278,130 @@ describe("TelaFichas — margens dentro do vínculo (T-259)", () => {
   });
 });
 
+describe("T-659 (RF-558): fimDeCadastro troca os botões finais", () => {
+  const FIM_DE_CADASTRO = {
+    idPergunta: "B5.FIM02",
+    rotuloAdicionar: "Cadastrar outra dívida",
+    rotuloConcluir: "Não tenho mais, seguir",
+  };
+
+  it("com 1+ fichas, os dois botões novos substituem Continuar/+ Adicionar", async () => {
+    vi.spyOn(api, "listarFichas").mockResolvedValue({
+      fichas: [{ item_id: "D001", completa: true, campos: [] }],
+    } as unknown as Awaited<ReturnType<typeof api.listarFichas>>);
+    render(
+      <TelaFichas
+        casoId="CASO-1"
+        escopo="DIVIDA_ID"
+        titulo="Dívida"
+        tituloPlural="Dívidas"
+        onAbrirFicha={vi.fn()}
+        onContinuar={vi.fn()}
+        fimDeCadastro={FIM_DE_CADASTRO}
+      />,
+    );
+
+    await screen.findByRole("button", { name: "Cadastrar outra dívida" });
+    expect(
+      screen.getByRole("button", { name: "Não tenho mais, seguir" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Continuar" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /\+ Adicionar/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("'Não tenho mais, seguir' grava B5.FIM02=SIM antes de continuar", async () => {
+    vi.spyOn(api, "listarFichas").mockResolvedValue({
+      fichas: [{ item_id: "D001", completa: true, campos: [] }],
+    } as unknown as Awaited<ReturnType<typeof api.listarFichas>>);
+    const gravar = vi
+      .spyOn(api, "gravarResposta")
+      .mockResolvedValue({} as Awaited<ReturnType<typeof api.gravarResposta>>);
+    const onContinuar = vi.fn();
+    render(
+      <TelaFichas
+        casoId="CASO-1"
+        escopo="DIVIDA_ID"
+        titulo="Dívida"
+        tituloPlural="Dívidas"
+        onAbrirFicha={vi.fn()}
+        onContinuar={onContinuar}
+        fimDeCadastro={FIM_DE_CADASTRO}
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Não tenho mais, seguir" }),
+    );
+
+    await waitFor(() =>
+      expect(gravar).toHaveBeenCalledWith("CASO-1", {
+        idPergunta: "B5.FIM02",
+        valor: "SIM",
+      }),
+    );
+    expect(onContinuar).toHaveBeenCalled();
+  });
+
+  it("falha ao gravar mostra o erro e não chama onContinuar", async () => {
+    vi.spyOn(api, "listarFichas").mockResolvedValue({
+      fichas: [{ item_id: "D001", completa: true, campos: [] }],
+    } as unknown as Awaited<ReturnType<typeof api.listarFichas>>);
+    vi.spyOn(api, "gravarResposta").mockRejectedValue(new Error("503"));
+    const onContinuar = vi.fn();
+    render(
+      <TelaFichas
+        casoId="CASO-1"
+        escopo="DIVIDA_ID"
+        titulo="Dívida"
+        tituloPlural="Dívidas"
+        onAbrirFicha={vi.fn()}
+        onContinuar={onContinuar}
+        fimDeCadastro={FIM_DE_CADASTRO}
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Não tenho mais, seguir" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Não foi possível salvar.",
+    );
+    expect(onContinuar).not.toHaveBeenCalled();
+  });
+
+  it("com zero fichas, nenhum dos dois aparece — só o botão de adicionar", async () => {
+    vi.spyOn(api, "listarFichas").mockResolvedValue({
+      fichas: [],
+    } as unknown as Awaited<ReturnType<typeof api.listarFichas>>);
+    render(
+      <TelaFichas
+        casoId="CASO-1"
+        escopo="DIVIDA_ID"
+        titulo="Dívida"
+        tituloPlural="Dívidas"
+        onAbrirFicha={vi.fn()}
+        fimDeCadastro={FIM_DE_CADASTRO}
+      />,
+    );
+
+    await screen.findByText("Nenhuma ficha cadastrada ainda.");
+    expect(
+      screen.queryByRole("button", { name: "Cadastrar outra dívida" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Não tenho mais, seguir" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "+ Adicionar dívida" }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("T-311: adicionar outro item", () => {
   it('com uma ficha, o convite é "outra" e o item novo abre direto', async () => {
     vi.spyOn(api, "criarFicha").mockResolvedValue({
