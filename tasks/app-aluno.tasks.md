@@ -14724,13 +14724,13 @@ revisor (`para_revisor=True`). Nenhuma rota muda.
 - **Tipo:** `Test` · **Dependências:** `T-625` · **Rastreia:** `AC-588`, `AC-589`, `EC-92` · `RF-555`, `RF-556` · plano `R19.9`
 - **Arquivos:** `tests/app_aluno/test_plano_ordem_em_estabilizacao.py`
 
-- [ ] `AC-588`: parametrizado por `engine.tipos.MOTIVO_POSICAO` — snapshot de estabilização com `dataclasses.replace` na `ORDEM_QUITACAO` → a linha traz exatamente a frase do YAML; toda chave `motivo_<CODIGO>` existe; nenhuma frase do bloco contém "sobra"
-- [ ] `AC-588`: dívida com `PREFERENCIA_QUITACAO` e peso emocional alto e outro motivo → as frases de preferência/incômodo não aparecem
-- [ ] `AC-589`: dívida ausente de `QUITACOES_SO_PARCELAS` → "Só com as parcelas de hoje, ela não termina." e nenhum rótulo de mês; presente → o mesmo `rotulo_do_mes` do "Termina em" do plano normal
-- [ ] `EC-92`: motivo sem frase cadastrada (textos com a chave removida) → aparece o código
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] `AC-588`: parametrizado por `engine.tipos.MOTIVO_POSICAO` — snapshot de estabilização com `dataclasses.replace` na `ORDEM_QUITACAO` → a linha traz exatamente a frase do YAML; toda chave `motivo_<CODIGO>` existe; nenhuma frase do bloco contém "sobra"
+- [x] `AC-588`: dívida com `PREFERENCIA_QUITACAO` e peso emocional alto e outro motivo → as frases de preferência/incômodo não aparecem
+- [x] `AC-589`: dívida ausente de `QUITACOES_SO_PARCELAS` → "Só com as parcelas de hoje, ela não termina." e nenhum rótulo de mês; presente → o mesmo `rotulo_do_mes` do "Termina em" do plano normal
+- [x] `EC-92`: motivo sem frase cadastrada (textos com a chave removida) → aparece o código
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; 12 motivos parametrizados
 
 ---
 
