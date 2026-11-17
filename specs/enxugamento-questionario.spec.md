@@ -472,8 +472,15 @@ A ficha da despesa não mensal pede um nome (obrigatório para concluir), e a li
 ### RF-424. Fotografia do mês com as despesas à vista, em tabela (2026-10-22)
 Na `B3.C00` as despesas por item e as não mensais aparecem sempre abertas, em tabela compacta (modelo da fila do revisor) com o botão "Corrigir" à direita e, no monitor, lado a lado; abaixo de 768px viram cartões.
 
-### RF-425. Quantidade de dívidas exata, com "Nenhuma dívida" (2026-10-22)
+### RF-425. Quantidade de dívidas exata, com "Nenhuma dívida" (2026-10-22) — SUBSTITUÍDO por `app-aluno` `RF-557` (Rodada 18, 2026-11-17)
 `B5.00` perde o "Não sei exatamente quantas". A pessoa escolhe "Nenhuma dívida" ou informa a quantidade (inteiro de 1 a 50); valor negativo, decimal ou vazio é recusado. O cálculo exige uma ficha para cada dívida declarada. "Nenhuma dívida" não abre ficha de dívida, mostra na própria pergunta o aviso de que, sem dívidas, não há plano de quitação, e o caso não segue para o cálculo (pendência de inventário `SEM_DIVIDAS`, que leva de volta à `B5.00`).
+
+> **Nota de substituição (2026-11-17).** `B5.00` sai do questionário: o
+> Bloco 5 passa a abrir direto a primeira ficha de dívida, sem pergunta de
+> quantidade. A pendência `SEM_DIVIDAS` continua existindo, mas passa a
+> valer só pela ausência de qualquer ficha de dívida com resposta, não por
+> comparação com um número declarado. Ver `specs/app-aluno.spec.md`,
+> Rodada 18, `RF-557` a `RF-561`.
 
 ### RF-426. Credor escolhido em lista de instituições (2026-10-22)
 `B5.A01` ("Para quem você deve nessa operação?") deixa de ser texto livre: a pessoa escolhe num menu entre Caixa Econômica Federal, Banco do Brasil, Itaú, Bradesco, Santander, Nubank, Banco Inter, C6 Bank, Sicoob e Sicredi, ou em "Outra instituição ou pessoa", que abre um campo para digitar o nome (1 a 60 letras). O nome mostrado no plano, na lista e na conferência é o do banco ou o digitado; respostas antigas em texto livre seguem como estão.

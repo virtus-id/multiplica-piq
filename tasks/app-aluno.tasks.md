@@ -15029,3 +15029,1083 @@ na cadeia histórica do docstring ("`T-637` (`RF-561`): `-1`, `B5.C02C` (58 →
 **Status:** `[x] concluída (2026-11-17)`; `test_contagem_de_coleta.py`: 19 passed; suíte completa ao fim das 5 tarefas: 25 failed (as mesmas da `main`), 2815 passed, 81 skipped (777,45 s); `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
+
+## Entrega B — Frente 2: cadastro de dívidas sem a pergunta de quantidade (`B5.00` sai)
+
+### B.1 — Mecanismo novo (`B5.FIM02` cria a ficha 1), ainda inatingível em produção
+
+### `T-642` — Criar `ID_FIM_DE_CADASTRO` e `criar_primeira_ficha_de_divida`; religar `responder_pergunta`
+
+- **Tipo:** `Data` · **Dependências:** nenhuma · **Rastreia:** `RF-557`, `RF-558` · plano `R20.1` (bloco A), `R20.4`
+- **Arquivos:** `app/http/rotas_coleta.py`
+
+**Descrição.** Acrescenta `ID_FIM_DE_CADASTRO: Final[str] = "B5.FIM02"` e
+`criar_primeira_ficha_de_divida(CASO_ID, colecao, respostas,
+repositorio_itens) -> PendenciaObrigatoria | None` (cria o item 1 de
+`DIVIDA_ID` pelo mesmo mecanismo de `_FICHAS_QUE_NASCEM_COM_ITEM`/
+`_proxima_do_item`, devolve a primeira pergunta aberta dela; `None` só
+defensivamente, se a ficha nascer sem pergunta). Em `responder_pergunta`,
+troca o `if _abre_fichas_de_divida(...)` por uma checagem sobre a `proxima`
+já serializada: se ela virou `B5.FIM02` e não há nenhuma ficha de
+`DIVIDA_ID` em `itens_por_escopo`, acrescenta `EscopoRepeticao.DIVIDA_ID` a
+`abrir_fichas` — o mesmo efeito de hoje, mas agora `_primeiro_item_ou_lista`
+(inalterada) cria a ficha 1 pelo caminho genérico que já usa para as outras
+fichas que nascem com o primeiro item.
+
+**A função nova (`criar_primeira_ficha_de_divida`) ainda não é chamada por
+este arquivo** — ela existe para `rotas_pergunta.py` e `rotas_inicio.py`
+(`T-644`, `T-645`), que não têm `_primeiro_item_ou_lista` por perto.
+**Inatingível em produção nesta tarefa:** enquanto `B5.00` existir no
+questionário real, a varredura nunca entrega `B5.FIM02` com zero fichas no
+`POST` (sempre passa por `B5.00` primeiro) — a mudança não altera nenhum
+comportamento observável ainda.
+
+**Critérios de aceite**
+
+- [ ] `ID_FIM_DE_CADASTRO` e `criar_primeira_ficha_de_divida` existem, com a
+      assinatura do contrato do plano (`R20.4`)
+- [ ] `_abre_fichas_de_divida`/`_DECLARACAO_DE_DIVIDAS` continuam intactas
+      (saem só em `T-649`) — nenhuma regressão no comportamento atual
+- [ ] Suíte atual sem nenhuma falha nova (mudança aditiva, sobre a coleção
+      real que ainda tem `B5.00`)
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-643` — Testar `criar_primeira_ficha_de_divida` isoladamente, com coleção sem `B5.00`
+
+- **Tipo:** `Test` · **Dependências:** `T-642` · **Rastreia:** `AC-592`, `AC-594` (parcial, via `POST`) · `RF-557`, `RF-558`
+- **Arquivos:** `tests/app_aluno/test_coleta_fichas_de_divida.py`
+
+**Descrição.** Usa o helper `_trecho(*ids)` já existente no arquivo (recorte
+dos registros reais) para montar uma coleção sem `B5.00`, cujo primeiro
+registro de `DIVIDA_ID` é `B5.A01` e o único `NENHUM`-escopo restante é
+`B5.FIM02`. Acrescenta dois testes ao arquivo (que será reescrito em
+`T-652` — por ora só ganha estes dois, mantendo os dois de `B5.00` que
+`T-652` ainda vai substituir).
+
+**Critérios de aceite**
+
+- [ ] Zero fichas → o `POST /resposta` que leva a `B5.FIM02` devolve
+      `proxima.pergunta.ID == "B5.A01"` com `item_id` novo;
+      `"DIVIDA_ID" not in abrir_fichas`
+- [ ] Uma ficha fechada, zero novas respostas → fechar a última pergunta do
+      item devolve `abrir_fichas == ["DIVIDA_ID"]` e `proxima` não é
+      `B5.FIM02`
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_coleta_fichas_de_divida.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-644` — `GET /caso/{id}/pergunta` sem `ID` trata `B5.FIM02` (defensivo)
+
+- **Tipo:** `Data` · **Dependências:** `T-642` · **Rastreia:** `RF-558` · `AC-594` · plano `R20.3`, `R20.4`, `R20.10` (risco "checar em três pontos")
+- **Arquivos:** `app/http/rotas_pergunta.py`
+
+**Descrição.** Em `proxima_pergunta`, depois de `_primeira_exibivel`
+encontrar `B5.FIM02`: com fichas de `DIVIDA_ID` já existentes, devolve
+`{"pergunta": None, "coleta_completa": False, "abrir_fichas":
+["DIVIDA_ID"], "CASO_ID": CASO_ID}` em vez de renderizar a pergunta; sem
+nenhuma ficha, chama `criar_primeira_ficha_de_divida` (importada de
+`rotas_coleta.py`) e renderiza a pergunta devolvida. Caminho defensivo —
+`AC-594` é incondicional ("dado QUALQUER caso... nunca a pergunta
+isolada"), mesmo que este ponto raramente seja alcançado no fluxo normal
+(`R20.10`).
+
+**Critérios de aceite**
+
+- [ ] `registro.ID == ID_FIM_DE_CADASTRO` desvia para um dos dois ramos
+      acima, nunca renderiza `B5.FIM02` como pergunta
+- [ ] Import de `ID_FIM_DE_CADASTRO`/`criar_primeira_ficha_de_divida` de
+      `rotas_coleta.py`, sem duplicar a constante
+- [ ] Gates: lint, build, test (ainda inatingível em produção — `B5.00`
+      segue no questionário)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-645` — `GET /caso/{id}/inicio` (`_proxima_etapa`) trata `B5.FIM02` (defensivo)
+
+- **Tipo:** `Data` · **Dependências:** `T-642` · **Rastreia:** `RF-557`, `RF-558` · `AC-592`, `AC-593`, `AC-594` · plano `R20.3`, `R20.4`, `R20.10` (risco "efeito colateral no GET")
+- **Arquivos:** `app/http/rotas_inicio.py`
+
+**Descrição.** `_proxima_etapa` ganha o parâmetro `repositorio_itens:
+RepositorioItens`; quando `pendencia.ID == ID_FIM_DE_CADASTRO`: com fichas
+de `DIVIDA_ID`, devolve `ProximaEtapa(destino=DESTINO_DA_ETAPA.INVENTARIO,
+abrir_fichas=(EscopoRepeticao.DIVIDA_ID,))`; sem fichas, chama
+`criar_primeira_ficha_de_divida` e devolve
+`ProximaEtapa(destino=DESTINO_DA_ETAPA.PERGUNTA, ID_PERGUNTA=primeira.ID,
+item_id=primeira.item_id)`. O ramo antigo
+(`posterior_a_declaracao_de_dividas`/`faltam_fichas_de_divida`) **continua
+presente** — sai só em `T-649`. O chamador de `_proxima_etapa` (a rota `GET
+/inicio`) já tem `repositorio_itens` injetado; passa a encaminhá-lo.
+
+**Critérios de aceite**
+
+- [ ] `_proxima_etapa` aceita `repositorio_itens` e o novo ramo de
+      `ID_FIM_DE_CADASTRO` coexiste com o ramo antigo sem alterá-lo
+- [ ] A rota `GET /inicio` passa `repositorio_itens` para `_proxima_etapa`
+- [ ] Suíte atual sem falha nova (mudança aditiva — `B5.00` ainda bloqueia
+      antes de `B5.FIM02` chegar com zero fichas)
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-646` — Testar os dois desvios defensivos (`GET /pergunta`, `GET /inicio`) com coleção sem `B5.00`
+
+- **Tipo:** `Test` · **Dependências:** `T-644`, `T-645` · **Rastreia:** `AC-592`, `AC-593`, `AC-594` · `RF-557`, `RF-558`
+- **Arquivos:** `tests/app_aluno/test_rotas_pergunta.py`, `tests/app_aluno/test_rotas_inicio.py`
+
+**Descrição.** Mesma técnica de coleção reduzida de `T-643`, agora para os
+dois outros pontos de entrada: `GET /caso/{id}/pergunta` sem `ID` e `GET
+/caso/{id}/inicio`, cada um com zero e com uma ficha de `DIVIDA_ID`.
+
+**Critérios de aceite**
+
+- [ ] `GET /pergunta` sem `ID`, zero fichas, coleção sem `B5.00`: devolve
+      `B5.A01` de um item novo
+- [ ] `GET /pergunta` sem `ID`, uma ficha fechada: devolve
+      `abrir_fichas: ["DIVIDA_ID"]`, nunca `B5.FIM02`
+- [ ] `GET /inicio`, zero fichas: `proxima_etapa.destino == PERGUNTA` com
+      `ID_PERGUNTA == "B5.A01"` de um item novo
+- [ ] `GET /inicio`, uma ficha fechada: `proxima_etapa.destino ==
+      INVENTARIO` com `abrir_fichas == (DIVIDA_ID,)`
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_pergunta.py tests/app_aluno/test_rotas_inicio.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### B.2 — Inventário: `SEM_DIVIDAS` passa a depender só da existência de ficha
+
+### `T-647` — Reescrever `app/casos/inventario.py`: `SEM_DIVIDAS` sem comparação de quantidade
+
+- **Tipo:** `Data` · **Dependências:** nenhuma · **Rastreia:** `RF-559` · plano `R20.3`, `R20.4`
+- **Arquivos:** `app/casos/inventario.py`, `app/casos/textos/inventario.yaml`, `app/http/rotas_calculo.py`
+
+**Descrição.** Remove do enum `TIPO_PENDENCIA_INVENTARIO`:
+`DIVIDAS_FALTANDO`, `DIVIDAS_ACIMA`, `DIVIDAS_SEM_CONFIRMACAO`; remove
+`FichaDeDivida`, `DetalheDasDividas`, `_detalhe_das_dividas`, `_rotulos`,
+`_TIPO_DA_FICHA`, `_QUANTIDADE_DECLARADA`, `_FIM_DO_CADASTRO`,
+`_ESTA_FOI_A_ULTIMA` e o campo `PendenciaInventario.dividas`.
+`PendenciaInventario.ID_PARA_CORRIGIR` vira `str | None`.
+`pendencias_de_inventario` passa a gerar `SEM_DIVIDAS` sempre que
+`cadastrados(DIVIDA_ID)` é vazio (`escopo=DIVIDA_ID`,
+`ID_PARA_CORRIGIR=None`), sem nenhuma leitura de
+`QUANTIDADE_DIVIDAS_DECLARADA_INICIAL`. `inventario.yaml` perde
+`DIVIDAS_FALTANDO*`, `DIVIDAS_ACIMA`, `DIVIDAS_SEM_CONFIRMACAO` e reescreve
+`SEM_DIVIDAS` sem "corrija a quantidade" (sugestão: "Você ainda não
+cadastrou nenhuma dívida. Sem dívidas, não há plano de quitação para
+montar." — marcada "sugestão, a validar com o especialista").
+`rotas_calculo.py::formatar_pendencia_inventario` para de serializar a
+chave `"dividas"`.
+
+**Critérios de aceite**
+
+- [ ] `TIPO_PENDENCIA_INVENTARIO` tem só `SEM_DIVIDAS`,
+      `RENDA_EXTRA_SEM_ITEM`, `NAO_MENSAL_SEM_ITEM`
+- [ ] `PendenciaInventario` não tem mais o campo `dividas`;
+      `ID_PARA_CORRIGIR: str | None`
+- [ ] `pendencias_de_inventario` nunca lê
+      `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL`
+- [ ] `formatar_pendencia_inventario` não inclui a chave `"dividas"` no
+      payload
+- [ ] Nova redação de `SEM_DIVIDAS` em `inventario.yaml` marcada "sugestão,
+      a validar com o especialista" em comentário
+- [ ] `mypy --strict` sem erro novo
+- [ ] Gates: lint, build (teste ainda não ajustado, ver `T-648`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-648` — Ajustar `test_rotas_inventario.py` e `test_inventario.py` para a nova `SEM_DIVIDAS`
+
+- **Tipo:** `Test` · **Dependências:** `T-647` · **Rastreia:** `AC-595`, `AC-596`, `EC-97` · `RF-559` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_rotas_inventario.py`, `tests/app_aluno/test_inventario.py`
+
+**Descrição.** Remove todo teste de `DIVIDAS_FALTANDO`/`DIVIDAS_ACIMA`/
+`DIVIDAS_SEM_CONFIRMACAO`. Novos/ajustados: zero fichas de `DIVIDA_ID` com
+resposta → só `SEM_DIVIDAS`, com `ID_PARA_CORRIGIR is None` e `escopo ==
+DIVIDA_ID`; uma ficha com ao menos uma resposta → nenhuma pendência de
+dívida; ficha criada e vazia (sem resposta) não conta como cadastrada.
+`test_rotas_inventario.py` ajusta a chamada direta a `_proxima_etapa` para
+o novo parâmetro `repositorio_itens` (de `T-645`).
+
+**Critérios de aceite**
+
+- [ ] `AC-595`: zero fichas (nenhuma, ou só vazias) → `SEM_DIVIDAS` com
+      `ID_PARA_CORRIGIR is None`, mensagem sem menção a "quantidade"
+- [ ] `AC-596`: uma ficha com resposta → nenhuma de `SEM_DIVIDAS`,
+      `DIVIDAS_FALTANDO`, `DIVIDAS_ACIMA`, `DIVIDAS_SEM_CONFIRMACAO` (as três
+      últimas não existem mais no enum)
+- [ ] `EC-97`: sem nenhuma ficha, o cálculo é recusado com `SEM_DIVIDAS` e
+      não há opção "não tenho dívida" na resposta da rota
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_inventario.py tests/app_aluno/test_inventario.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### B.3 — Remover `B5.00` de fato e o mecanismo antigo
+
+### `T-649` — Remover `B5.00` do questionário e o mecanismo antigo de `rotas_coleta.py`/`rotas_inicio.py`
+
+- **Tipo:** `Data` · **Dependências:** `T-642`, `T-644`, `T-645`, `T-647` · **Rastreia:** `RF-557`, `RF-558`, `RF-559` · plano `R20.3`, `R20.4`
+- **Arquivos:** `collection/registros/bloco-05.yaml`, `app/http/rotas_coleta.py`, `app/http/rotas_inicio.py`
+
+**Descrição.** Remove o registro `B5.00` de `bloco-05.yaml` e atualiza o
+comentário do cabeçalho do arquivo que ainda cita "só `B5.00`, `B5.00A` e
+`B5.FIM02`" (`B5.00A` já saiu em `T-389`) para "só `B5.FIM02`". Com o
+mecanismo novo já ligado nos três pontos de entrada (`T-642`, `T-644`,
+`T-645`) e o inventário já reescrito (`T-647`), este é o ponto em que o
+caminho novo se torna o único alcançável: remove `_DECLARACAO_DE_DIVIDAS`,
+`_abre_fichas_de_divida`, `faltam_fichas_de_divida`,
+`posterior_a_declaracao_de_dividas` de `rotas_coleta.py`, e o ramo
+correspondente em `rotas_inicio.py::_proxima_etapa`. **Não bumpa
+`QUESTIONARIO_VERSION` de novo** (já subiu em `T-637`). **Quebra
+deliberadamente** `test_coleta_fichas_de_divida.py` (os dois testes que
+postam `B5.00` direto) e qualquer fixture que a responda — corrigidos em
+`T-651`–`T-655`, nas tarefas seguintes.
+
+**Critérios de aceite**
+
+- [ ] `B5.00` não existe mais em nenhum arquivo de registro
+- [ ] `_DECLARACAO_DE_DIVIDAS`, `_abre_fichas_de_divida`,
+      `faltam_fichas_de_divida`, `posterior_a_declaracao_de_dividas` não
+      existem mais em `rotas_coleta.py`
+- [ ] `rotas_inicio.py::_proxima_etapa` não importa mais as duas últimas
+- [ ] `QUESTIONARIO_VERSION` continua `"1.6.0"` em todos os arquivos
+- [ ] `mypy --strict` sem erro novo
+- [ ] Gates: lint, build (falhas esperadas em
+      `test_coleta_fichas_de_divida.py` e nos testes que respondem `B5.00`
+      como fixture — corrigidas nas tarefas seguintes, não aqui)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-650` — Remover `fichas_faltando` de `serializacao_plano.py`, `report/plano.py` e `textos-canonicos.yaml`
+
+- **Tipo:** `Data` · **Dependências:** nenhuma · **Rastreia:** `RF-559` · plano `R20.3`
+- **Arquivos:** `app/http/serializacao_plano.py`, `report/plano.py`, `report/templates/plano/textos-canonicos.yaml`
+
+**Descrição.** `vocabulario_do_caso` (`serializacao_plano.py`) para de ler
+`QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` e de montar `fichas_faltando`.
+`VocabularioDoCaso.fichas_faltando` (`report/plano.py`) e o bloco
+correspondente em `_avisos_gerais` saem. A chave `avisos.fichas_faltando`
+sai de `textos-canonicos.yaml`. Sem `B5.00`, o aviso nunca mais teria
+condição de aparecer — é remoção de código morto, não mudança de
+comportamento observável.
+
+**Critérios de aceite**
+
+- [ ] `VocabularioDoCaso` não tem mais `fichas_faltando`
+- [ ] `_avisos_gerais` não lê mais esse campo
+- [ ] `textos-canonicos.yaml` sem a chave `avisos.fichas_faltando`
+- [ ] Nenhum plano existente ganha ou perde aviso (os demais avisos de
+      `_avisos_gerais` continuam idênticos)
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-651` — Provar que um caso antigo com `B5.00` respondida não é afetado (`AC-597`, `EC-95`) e ajustar a contagem
+
+- **Tipo:** `Test` · **Dependências:** `T-649` · **Rastreia:** `AC-597`, `EC-95` · `RF-560` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_remocao_sem_efeito.py`, `tests/app_aluno/test_contagem_de_coleta.py`
+
+**Descrição.** Acrescenta
+`("B5.00", "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", None, 1)` a `_REMOVIDAS`
+em `test_remocao_sem_efeito.py` (151 → 152) — prova, pelo mesmo mecanismo
+genérico de `T-640`, que responder `B5.00` não muda `EstadoFinanceiro` nem
+`SnapshotOrdem`. A âncora de contagem cai de 57 para 56
+(`test_a_colecao_real_tem_57_registros` → `test_a_colecao_real_tem_56_
+registros`, nova linha na cadeia histórica: "`T-649` (`RF-557`): `-1`,
+`B5.00` (57 → 56)").
+
+**Critérios de aceite**
+
+- [ ] `_REMOVIDAS` com 152 entradas; as duas asserções de contagem
+      atualizadas
+- [ ] `AC-597`: um caso com `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL = 3` e 2
+      fichas com resposta não é bloqueado por divergência (essa comparação
+      não existe mais); o mesmo caso com 0 fichas é bloqueado só por
+      `SEM_DIVIDAS`
+- [ ] Função de contagem renomeada para
+      `test_a_colecao_real_tem_56_registros`, `assert
+      len(_registros_reais()) == 56`
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_remocao_sem_efeito.py tests/app_aluno/test_contagem_de_coleta.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-652` — Reescrever `test_coleta_fichas_de_divida.py` e ajustar `test_t319_t322_fichas_em_sequencia.py`
+
+- **Tipo:** `Test` · **Dependências:** `T-649` · **Rastreia:** `AC-592`, `AC-593`, `AC-594` · `RF-557`, `RF-558` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_coleta_fichas_de_divida.py`, `tests/app_aluno/test_t319_t322_fichas_em_sequencia.py`
+
+**Descrição.** Os dois testes que postam `ID_PERGUNTA: "B5.00"` direto
+(`test_t291_...`) não têm mais pergunta para postar — reescreve para o fluxo
+real: fim do Bloco 4, sem nenhuma resposta de quantidade, já abre `B5.A01`
+com um `item_id` novo (equivalente ao que `T-643` já prova com coleção
+reduzida, agora sobre a coleção real completa); fechar a única ficha devolve
+`abrir_fichas == ["DIVIDA_ID"]` e nunca serve `B5.FIM02`. Os dois testes de
+`T-643` (coleção reduzida) continuam no arquivo, intocados.
+`test_t319_t322_fichas_em_sequencia.py` ajusta a pré-condição que hoje
+responde `B5.00` antes de abrir a sequência de fichas.
+
+**Critérios de aceite**
+
+- [ ] Nenhum teste do arquivo posta `ID_PERGUNTA: "B5.00"`
+- [ ] Sobre a coleção real: fim do Bloco 4 → próxima pergunta é `B5.A01` de
+      um item novo
+- [ ] Fechar a única ficha → `abrir_fichas == ["DIVIDA_ID"]`, `proxima`
+      nunca é `B5.FIM02`
+- [ ] `test_t319_t322_fichas_em_sequencia.py` verde sem resposta a `B5.00`
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_coleta_fichas_de_divida.py tests/app_aluno/test_t319_t322_fichas_em_sequencia.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-653` — Ajustar `test_rotas_inicio.py` para `_proxima_etapa` sem o ramo antigo
+
+- **Tipo:** `Test` · **Dependências:** `T-649` · **Rastreia:** `AC-592`, `AC-593`, `AC-594` · `RF-557`, `RF-558` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_rotas_inicio.py`
+
+**Descrição.** Remove/ajusta todo teste que dependia de
+`posterior_a_declaracao_de_dividas`/`faltam_fichas_de_divida` ou que posta
+`B5.00` como pré-condição. Os testes de `T-646` (coleção reduzida) já
+cobrem o mecanismo novo isoladamente; este arquivo passa a cobri-lo sobre a
+coleção real.
+
+**Critérios de aceite**
+
+- [ ] Nenhuma referência a `posterior_a_declaracao_de_dividas`/
+      `faltam_fichas_de_divida` resta no arquivo
+- [ ] Sobre a coleção real: `GET /inicio` sem nenhuma ficha aponta `B5.A01`
+      de um item novo; com uma ficha fechada, aponta a lista (`abrir_fichas
+      == (DIVIDA_ID,)`)
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_inicio.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-654` — Ajustar `test_rotas_calculo.py`, `test_rotas_coleta_conversao.py`, `test_progresso.py` e `test_t415_credor_em_lista.py`
+
+- **Tipo:** `Test` · **Dependências:** `T-649`, `T-647` · **Rastreia:** `RF-559` · `AC-595`, `AC-596` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_rotas_calculo.py`, `tests/app_aluno/test_rotas_coleta_conversao.py`, `tests/app_aluno/test_progresso.py`, `tests/app_aluno/test_t415_credor_em_lista.py`
+
+**Descrição.** Nos quatro arquivos, `B5.00`/`QUANTIDADE_DIVIDAS_DECLARADA_
+INICIAL` aparece só como pré-condição de fixture (ex.: responder `B5.00`
+para destravar o cálculo antes de testar outra coisa), nunca como asserção
+da regra em si. Ajusta cada fixture para cadastrar a ficha direto (sem
+passar por `B5.00`), sem mudar o que cada teste de fato verifica.
+
+**Critérios de aceite**
+
+- [ ] Nenhum dos quatro arquivos posta ou lê `B5.00`/
+      `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` como pré-condição
+- [ ] Nenhuma asserção de negócio dos quatro arquivos muda de sentido
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_calculo.py tests/app_aluno/test_rotas_coleta_conversao.py tests/app_aluno/test_progresso.py tests/app_aluno/test_t415_credor_em_lista.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-655` — `fixtures/caso_completo.py` para de responder `B5.00`
+
+- **Tipo:** `Test` · **Dependências:** `T-649` · **Rastreia:** `RF-557` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/fixtures/caso_completo.py`
+
+**Descrição.** Remove a entrada `"QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1`
+do dicionário de respostas simuladas. A ficha de dívida da fixture
+(`DIVIDA_ID_UNICA`) já existe independentemente dessa resposta —
+`montar_estado_financeiro` não lê `B5.00`, então a remoção não muda nenhum
+`EstadoFinanceiro` montado por quem importa esta fixture.
+
+**Critérios de aceite**
+
+- [ ] O dicionário de respostas não tem mais
+      `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL`
+- [ ] Todo teste que importa `caso_completo`/`caso_completo_com_divida_gab03`
+      continua verde sem edição própria
+- [ ] Verificação: suíte completa (`test` da seção 2 do `sdd.config.md`)
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-656` — Novo `test_bloco5_sem_contagem.py`: ponta a ponta de `RF-557`–`RF-560`
+
+- **Tipo:** `Test` · **Dependências:** `T-652`, `T-653`, `T-655` · **Rastreia:** `RF-557`, `RF-558`, `RF-559`, `RF-560` · `AC-592`–`AC-597` · `EC-95`, `EC-97`, `EC-98` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_bloco5_sem_contagem.py` (novo)
+
+**Descrição.** Um arquivo próprio, ponta a ponta, sobre a coleção real e a
+aplicação real (mesmo arranjo de `test_coleta_fichas_de_divida.py`): Bloco 5
+abre em `B5.A01` sem nenhuma pergunta de quantidade antes; `B5.FIM02` nunca
+é servida como pergunta de uma resposta de `GET`/`POST`, em nenhum dos três
+pontos de entrada; `SEM_DIVIDAS` com 0 fichas, livre com 1+; caso antigo
+(`B5.00 = 3` no histórico, 2 fichas com resposta) livre do bloqueio por
+divergência; `EC-98` — gravar `B5.FIM02 = SIM` direto pela rota, com 0
+fichas, é aceito mas não desbloqueia o cálculo (`SEM_DIVIDAS` persiste).
+
+**Critérios de aceite**
+
+- [ ] `AC-592`: zero fichas → Bloco 5 abre em `B5.A01`, nenhuma pergunta de
+      quantidade antes
+- [ ] `AC-593`, `AC-594`: fechar a única ficha devolve a lista
+      (`abrir_fichas`), nunca `B5.FIM02` isolada, nos três pontos de entrada
+- [ ] `AC-595`, `AC-596`, `EC-97`: `SEM_DIVIDAS` só com zero fichas com
+      resposta
+- [ ] `AC-597`, `EC-95`: resposta antiga de `B5.00` no banco não afeta o
+      bloqueio
+- [ ] `EC-98`: `POST /resposta` com `B5.FIM02 = SIM` e zero fichas é aceito
+      (`200`), mas `POST /calculo` continua `400` com `SEM_DIVIDAS`
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_bloco5_sem_contagem.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### B.4 — Frontend: tipos, `AlertaInventario`, `TelaFichas`, `TelaPergunta`
+
+### `T-657` — Ajustar `tipos.ts`/`api.ts`: `ID_PARA_CORRIGIR` e `ID` ficam `string | null`, `dividas` sai
+
+- **Tipo:** `UI` · **Dependências:** `T-647`, `T-649` · **Rastreia:** `RF-558`, `RF-559` · plano `R20.3`, `R20.4`
+- **Arquivos:** `frontend/src/tipos.ts`, `frontend/src/services/api.ts`
+
+**Descrição.** Espelha o contrato do servidor (`T-647`/`T-649`):
+`PendenciaDoCalculo.ID: string | null` (`api.ts`);
+`PendenciaDeInventario.ID_PARA_CORRIGIR: string | null`, remove o campo
+`dividas` (`api.ts`); `RespostaPergunta.abrir_fichas?: string[]` (`tipos.ts`,
+para o desvio defensivo de `T-644`).
+
+**Critérios de aceite**
+
+- [ ] `PendenciaDoCalculo.ID` e `PendenciaDeInventario.ID_PARA_CORRIGIR`
+      aceitam `null`
+- [ ] `PendenciaDeInventario` não tem mais `dividas`
+- [ ] `RespostaPergunta.abrir_fichas?` existe e é opcional
+- [ ] `npm run build` em `frontend/` verde (erros de tipo nos consumidores
+      corrigidos nas tarefas seguintes, `T-658`–`T-660`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-658` — `AlertaInventario.tsx`: remover o bloco "fichas já cadastradas"
+
+- **Tipo:** `UI` · **Dependências:** `T-657` · **Rastreia:** `RF-559` · plano `R20.3`
+- **Arquivos:** `frontend/src/componentes/AlertaInventario.tsx`
+
+**Descrição.** Remove `cadastrarProxima`, o bloco "Fichas já cadastradas"
+(a lista de fichas + botão "Cadastrar a próxima dívida") e qualquer leitura
+de `pendencia.dividas`. O botão de ação da pendência colapsa para
+`pendencia.escopo && <Botao ...>Cadastrar as fichas</Botao>` — o mesmo
+botão que `RENDA_EXTRA_SEM_ITEM`/`NAO_MENSAL_SEM_ITEM` já usam. "Corrigir a
+resposta" só aparece quando `pendencia.ID_PARA_CORRIGIR` não é `null`.
+
+**Critérios de aceite**
+
+- [ ] Nenhuma referência a `dividas`/`cadastrarProxima`/"Fichas já
+      cadastradas" resta no componente
+- [ ] `SEM_DIVIDAS` renderiza só "Cadastrar as fichas" (via
+      `pendencia.escopo`)
+- [ ] Pendência com `ID_PARA_CORRIGIR === null` não renderiza "Corrigir a
+      resposta"
+- [ ] `npm run build` verde
+- [ ] Gates: lint, build (teste do componente ajustado em `T-661`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-659` — `TelaFichas.tsx`: prop `fimDeCadastro` troca os dois botões finais
+
+- **Tipo:** `UI` · **Dependências:** nenhuma · **Rastreia:** `RF-558` · `AC-593` · plano `R20.3`, `R20.4`
+- **Arquivos:** `frontend/src/telas/TelaFichas.tsx`
+
+**Descrição.** Prop nova, opcional:
+`fimDeCadastro?: { idPergunta: string; rotuloAdicionar: string;
+rotuloConcluir: string }`. Quando presente e `fichas.length > 0`, a área de
+`acoes` troca "Continuar"/"+ Adicionar outra dívida" por `rotuloAdicionar`
+→ `aoAdicionar()` (já existente) e `rotuloConcluir` → grava
+`idPergunta = "SIM"` (via `gravarResposta`) e só então chama
+`onContinuar()`. Ausente, comportamento de hoje, intocado — o componente é
+reaproveitado por outros escopos (`RENDA_ADICIONAL_ID`, `VINCULO_ID`, ...)
+que não usam a prop.
+
+**Critérios de aceite**
+
+- [ ] Sem `fimDeCadastro`: nenhuma diferença de comportamento ou de texto
+      nos botões (todo escopo que não é `DIVIDA_ID` fica intocado)
+- [ ] Com `fimDeCadastro` e `fichas.length > 0`: os dois botões novos
+      substituem os antigos
+- [ ] Com `fimDeCadastro` e `fichas.length === 0`: nenhum dos dois aparece
+      (comportamento de hoje — só o botão de adicionar)
+- [ ] "Não tenho mais, seguir" grava a resposta antes de chamar
+      `onContinuar`; falha de gravação mostra "Não foi possível salvar.",
+      sem chamar `onContinuar`
+- [ ] `npm run build` verde
+- [ ] Gates: lint, build (teste em `T-662`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-660` — `TelaPergunta.tsx`/`App.tsx`: tratar `abrir_fichas` do `GET` sem pergunta e ligar `fimDeCadastro`
+
+- **Tipo:** `UI` · **Dependências:** `T-657`, `T-659` · **Rastreia:** `RF-558` · `AC-594` · plano `R20.3`, `R20.4`
+- **Arquivos:** `frontend/src/telas/TelaPergunta.tsx`, `frontend/src/App.tsx`
+
+**Descrição.** Em `TelaPergunta.tsx::carregar`, antes de tratar
+`!dados.pergunta` como `onColetaCompleta()`: se `dados.abrir_fichas` vier
+não vazio, chama `onAbrirFichas(dados.abrir_fichas)` no lugar (espelha o
+desvio defensivo de `T-644`). Em `App.tsx`, ao instanciar `<TelaFichas>` no
+caso `'fichas'`, passa `fimDeCadastro={escopo === 'DIVIDA_ID' ? {
+idPergunta: 'B5.FIM02', rotuloAdicionar: 'Cadastrar outra dívida',
+rotuloConcluir: 'Não tenho mais, seguir' } : undefined}` — derivado da
+rota, nunca guardado em estado (mesma disciplina de `TITULOS_POR_ESCOPO`).
+
+**Critérios de aceite**
+
+- [ ] `carregar()` chama `onAbrirFichas` quando `!dados.pergunta &&
+      dados.abrir_fichas?.length`, e `onColetaCompleta()` só quando
+      `abrir_fichas` vier vazio ou ausente
+- [ ] `App.tsx` passa `fimDeCadastro` só para `escopo === 'DIVIDA_ID'`;
+      nenhum outro escopo ganha os textos novos
+- [ ] `npm run build` verde
+- [ ] Gates: lint, build (teste em `T-662`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-661` — Ajustar `AlertaInventario.test.tsx`
+
+- **Tipo:** `Test` · **Dependências:** `T-658` · **Rastreia:** `RF-559` · `AC-595`, `AC-596`
+- **Arquivos:** `frontend/tests/unit/componentes/AlertaInventario.test.tsx`
+
+**Descrição.** Remove o teste do bloco "Fichas já cadastradas". Acrescenta:
+`SEM_DIVIDAS` (com `escopo: 'DIVIDA_ID'`, sem `dividas`) mostra "Cadastrar
+as fichas"; pendência com `ID_PARA_CORRIGIR: null` não mostra "Corrigir a
+resposta".
+
+**Critérios de aceite**
+
+- [ ] Nenhum teste do bloco removido resta
+- [ ] `SEM_DIVIDAS` renderiza "Cadastrar as fichas" e não renderiza
+      "Corrigir a resposta" quando `ID_PARA_CORRIGIR` é `null`
+- [ ] Verificação: `npm run test` em `frontend/`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-662` — Ajustar `TelaFichas.test.tsx` para `fimDeCadastro`
+
+- **Tipo:** `Test` · **Dependências:** `T-659`, `T-660` · **Rastreia:** `RF-558` · `AC-593`
+- **Arquivos:** `frontend/tests/unit/componentes/TelaFichas.test.tsx`
+
+**Descrição.** Com `fimDeCadastro` e 1+ fichas: os dois botões novos
+aparecem e substituem os antigos; "Não tenho mais, seguir" grava
+`B5.FIM02=SIM` antes de chamar `onContinuar`, e não chama `onContinuar` se
+a gravação falhar; com 0 fichas, nenhum dos dois aparece. Sem
+`fimDeCadastro`: testes atuais do componente passam sem edição.
+
+**Critérios de aceite**
+
+- [ ] Os quatro cenários acima cobertos
+- [ ] Testes atuais (sem `fimDeCadastro`) continuam verdes sem edição
+- [ ] Verificação: `npm run test` em `frontend/`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-663` — Ajustar `coleta.spec.ts` e `inventario.spec.ts` (Playwright) para o Bloco 5 sem `B5.00`
+
+- **Tipo:** `Test` · **Dependências:** `T-656`, `T-661`, `T-662` · **Rastreia:** `RF-557`, `RF-558`, `RF-559` · `AC-592`, `AC-595`
+- **Arquivos:** `frontend/tests/e2e/coleta.spec.ts`, `frontend/tests/e2e/inventario.spec.ts`
+
+**Descrição.** `coleta.spec.ts` ajustado para o Bloco 5 abrir direto em
+`B5.A01`, sem passar por `B5.00`; `inventario.spec.ts` ajustado para o
+fluxo de `SEM_DIVIDAS` sem quantidade declarada. **Fora do gate automático
+desta rodada** (`e2e: —` em `sdd.config.md` §2) — roda sob pedido, mesmo
+status de toda suíte Playwright no projeto.
+
+**Critérios de aceite**
+
+- [ ] Nenhum dos dois arquivos interage com `B5.00`
+- [ ] `coleta.spec.ts` navega o Bloco 5 do começo (`B5.A01`) ao fim
+      ("Não tenho mais, seguir") sem erro de seletor
+- [ ] Execução manual registrada no status da tarefa (comando real e
+      resultado), não assumida
+
+**Status:** `[ ] pendente`
+
+---
+
+## Entrega C — Frente 3: ícone ⓘ nos quatro campos numéricos da ficha
+
+### `T-664` — Registrar os textos do ⓘ em `docs/perguntas-marcelo-calculo-de-divida.md`
+
+- **Tipo:** `Docs` · **Dependências:** nenhuma · **Rastreia:** `RF-562` · plano `R20.9` (nota "fora de teste automatizado")
+- **Arquivos:** `docs/perguntas-marcelo-calculo-de-divida.md`
+
+**Descrição.** Nova seção "Textos novos para conferir (2026-11-17)", mesmo
+padrão da seção de 2026-11-16 (ordem em estabilização): a tabela de quatro
+campos (saldo `B5.B03`, parcela `B5.C02`, meses que faltam `B5.C02B`, taxa
+ou CET `B5.D06`) com "O que é" e "Onde encontrar", mais a linha comum ("Não
+encontrou? Peça ao banco pelo aplicativo, ao gerente ou à ouvidoria."),
+transcrita caractere por caractere da seção Assumptions de
+`specs/app-aluno.spec.md` Rodada 18. Marcada "sugestão, a validar com o
+especialista (Marcelo)" — a frase do CET em particular, que não vem
+literalmente do curso.
+
+**Critérios de aceite**
+
+- [ ] Seção nova, com a tabela de 4 linhas + linha comum, idêntica
+      caractere por caractere à da spec
+- [ ] Marcação explícita de "a validar" / "sugestão"
+- [ ] Nenhum conteúdo de seção anterior do arquivo é alterado
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-665` — `Explicacao` dataclass em `collection/registro.py`
+
+- **Tipo:** `Data` · **Dependências:** nenhuma · **Rastreia:** `RF-562` · plano `R20.3`, `R20.4`
+- **Arquivos:** `collection/registro.py`
+
+**Descrição.** Dataclass `Explicacao(frozen=True, slots=True)` com
+`o_que_e: str` e `onde_encontrar: str`. `RegistroPergunta` ganha
+`explicacao: Explicacao | None = None`, ao lado dos demais campos opcionais
+de padrão neutro (`apoio`, `faixa`).
+
+**Critérios de aceite**
+
+- [ ] `Explicacao` existe com os dois campos `str`, imutável
+- [ ] `RegistroPergunta.explicacao` é opcional, padrão `None`
+- [ ] Registro existente (sem `explicacao` no YAML) continua carregando sem
+      edição em nenhum outro arquivo
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-666` — `_converter_explicacao` em `collection/carga.py`
+
+- **Tipo:** `Data` · **Dependências:** `T-665` · **Rastreia:** `RF-562` · plano `R20.3`, `R20.4`
+- **Arquivos:** `collection/carga.py`
+
+**Descrição.** `_converter_explicacao(bruta: dict[str, Any] | None) ->
+Explicacao | None` — `None` passa, dict converte para
+`Explicacao(o_que_e=bruta["o_que_e"], onde_encontrar=
+bruta["onde_encontrar"])`. Chamada em `_converter_registro` como
+`explicacao=_converter_explicacao(pergunta.get("explicacao"))`.
+
+**Critérios de aceite**
+
+- [ ] Registro sem `explicacao` no YAML carrega com `explicacao is None`
+- [ ] Registro com `explicacao: {o_que_e: ..., onde_encontrar: ...}`
+      carrega os dois valores sem perda
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-667` — Propriedade `explicacao` em `collection/esquema-registros.json`
+
+- **Tipo:** `Data` · **Dependências:** `T-665` · **Rastreia:** `RF-562` · plano `R20.4`
+- **Arquivos:** `collection/esquema-registros.json`
+
+**Descrição.** Em `$defs.registroPergunta.properties`, propriedade
+`explicacao` opcional: objeto com `o_que_e` e `onde_encontrar`, ambos
+`string`/`minLength: 1`, `required: ["o_que_e", "onde_encontrar"]`,
+`additionalProperties: false`. Não entra na lista `required` do registro —
+a maioria das perguntas não tem ⓘ.
+
+**Critérios de aceite**
+
+- [ ] Registro com `explicacao: {o_que_e: "x", onde_encontrar: "y"}` valida
+- [ ] Registro com `explicacao: {o_que_e: "x"}` (sem `onde_encontrar`) é
+      recusado pelo esquema
+- [ ] Registro sem `explicacao` continua validando
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-668` — Testar a carga de `explicacao` e a recusa do esquema incompleto
+
+- **Tipo:** `Test` · **Dependências:** `T-666`, `T-667` · **Rastreia:** `RF-562` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_carga.py`
+
+**Descrição.** Três casos: registro de teste com `explicacao` completa
+carrega os dois campos; registro sem `explicacao` carrega `None`; YAML com
+`explicacao` faltando `onde_encontrar` levanta `ErroDeCarga` pela
+validação de esquema.
+
+**Critérios de aceite**
+
+- [ ] Os três casos cobertos
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_carga.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-669` — `explicacao` nos quatro campos de `bloco-05.yaml`; remover o parêntese de `B5.D06`
+
+- **Tipo:** `Data` · **Dependências:** `T-664`, `T-668` · **Rastreia:** `RF-562`, `RF-563` · `AC-602` · plano `R20.3`
+- **Arquivos:** `collection/registros/bloco-05.yaml`
+
+**Descrição.** Acrescenta `explicacao: {o_que_e, onde_encontrar}` em
+`B5.B03`, `B5.C02`, `B5.C02B` e `B5.D06`, com o texto copiado caractere por
+caractere de `T-664` (mesmo procedimento de `T-623`: "copiadas por script",
+não digitadas de novo). Remove de `B5.D06` o parêntese final do enunciado
+("No seu contrato, extrato ou aplicativo do banco, esse número pode
+aparecer escrito como CET ou como taxa de juros. Informe o que encontrar e
+diga se é ao mês ou ao ano.") — o conteúdo equivalente passa a viver só na
+`explicacao` desse campo. **Não bumpa `QUESTIONARIO_VERSION`** de novo (já
+subiu para `"1.6.0"` em `T-637`; `AC-598` exige só "acima da anterior à
+rodada").
+
+**Critérios de aceite**
+
+- [ ] Os quatro campos têm `explicacao` com os textos de `T-664`,
+      caractere por caractere
+- [ ] O enunciado de `B5.D06` não contém o parêntese nem parte dele
+- [ ] `QUESTIONARIO_VERSION` continua `"1.6.0"` (sem novo bump)
+- [ ] Gates: lint, build (teste em `T-671`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-670` — `serializar_pergunta` ganha a chave `"explicacao"`
+
+- **Tipo:** `Data` · **Dependências:** `T-665` · **Rastreia:** `RF-562` · plano `R20.3`, `R20.4`
+- **Arquivos:** `app/http/serializacao.py`
+
+**Descrição.** Em `serializar_pergunta`, ao lado de `"apoio":
+registro.apoio`, acrescenta `"explicacao": None if registro.explicacao is
+None else {"o_que_e": registro.explicacao.o_que_e, "onde_encontrar":
+registro.explicacao.onde_encontrar}`.
+
+**Critérios de aceite**
+
+- [ ] Pergunta com `explicacao` no registro serializa o objeto `{o_que_e,
+      onde_encontrar}`
+- [ ] Pergunta sem `explicacao` serializa `"explicacao": null`
+- [ ] Gates: lint, build (teste em `T-671`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-671` — Testar a serialização de `explicacao` e a ausência do parêntese em `B5.D06` (`AC-602`)
+
+- **Tipo:** `Test` · **Dependências:** `T-669`, `T-670` · **Rastreia:** `RF-562`, `RF-563` · `AC-602` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_registro_calculo_divida.py`, `tests/app_aluno/test_resposta_json.py`
+
+**Descrição.** `test_registro_calculo_divida.py` ganha o teste de
+`AC-602`: o enunciado de `B5.D06` (via registro e via `GET /pergunta`) não
+contém "No seu contrato, extrato ou aplicativo do banco" nem parte do
+parêntese. `test_resposta_json.py` ganha o teste de `explicacao`
+presente/ausente no payload JSON de `GET /pergunta`, para os quatro campos
+e para uma pergunta sem ⓘ.
+
+**Critérios de aceite**
+
+- [ ] `AC-602`: nenhuma ocorrência do parêntese no enunciado servido de
+      `B5.D06`
+- [ ] `GET /pergunta/B5.B03` (e os outros três) devolve `explicacao` com os
+      dois campos; uma pergunta sem `explicacao` no registro devolve
+      `explicacao: null`
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_registro_calculo_divida.py tests/app_aluno/test_resposta_json.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-672` — `ExplicacaoDoCampo` e `Pergunta.explicacao` em `tipos.ts`
+
+- **Tipo:** `UI` · **Dependências:** nenhuma · **Rastreia:** `RF-562` · plano `R20.3`, `R20.4`
+- **Arquivos:** `frontend/src/tipos.ts`
+
+**Descrição.** `export interface ExplicacaoDoCampo { o_que_e: string;
+onde_encontrar: string }`; `Pergunta.explicacao?: ExplicacaoDoCampo | null`,
+ao lado de `apoio`.
+
+**Critérios de aceite**
+
+- [ ] `ExplicacaoDoCampo` existe com os dois campos `string`
+- [ ] `Pergunta.explicacao` aceita `undefined`, `null` e o objeto
+- [ ] `npm run build` verde
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-673` — Novo componente `Explicacao.tsx` (botão ⓘ + balão)
+
+- **Tipo:** `UI` · **Dependências:** `T-672` · **Rastreia:** `RF-562` · `AC-600`, `AC-601`, `EC-99` · plano `R20.2`, `R20.4`, `R20.7`, `R20.10`
+- **Arquivos:** `frontend/src/componentes/Explicacao.tsx` (novo)
+
+**Descrição.** `interface ExplicacaoProps { campo: string; oQueE: string;
+ondeEncontrar: string }`. Um único `aberto` (`useState`) controlado por
+hover (`onMouseEnter`/`onMouseLeave`), foco (`onFocus`/`onBlur`), toque e
+clique — nunca dois estados independentes que possam se desfazer um ao
+outro (`R20.10`). Botão com `aria-label={"O que é " + campo + "?"}`,
+`aria-expanded={aberto}`, `aria-describedby` apontando para o balão; `Esc`
+fecha e devolve o foco ao botão; clique/toque fora fecha; nunca modal (não
+bloqueia o campo ao lado). Ícone decorativo: reusa `<Icone nome="duvida"
+.../>` de `Icone.tsx` (já `aria-hidden`, já `focusable="false"`) — nenhum
+`<title>`, nenhum SVG novo.
+
+**Critérios de aceite**
+
+- [ ] Hover abre o balão; `mouseleave` fecha
+- [ ] `Tab` foca e abre; `Escape` fecha e devolve o foco ao botão
+- [ ] Toque/clique no botão abre; toque/clique fora do balão fecha
+- [ ] `aria-label`, `aria-expanded` e `aria-describedby` corretos nos dois
+      estados
+- [ ] Nenhum `<title>` dentro do `<svg>` do ícone (reusa `Icone.tsx` sem
+      alteração)
+- [ ] `npm run build` verde
+- [ ] Gates: lint, build (teste em `T-674`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-674` — Testar `Explicacao.tsx`
+
+- **Tipo:** `Test` · **Dependências:** `T-673` · **Rastreia:** `AC-600`, `AC-601`, `EC-99` · `RF-562`
+- **Arquivos:** `frontend/tests/unit/componentes/Explicacao.test.tsx` (novo)
+
+**Descrição.** Cobre os quatro mecanismos de ativação e os dois de
+acessibilidade: hover abre/`mouseleave` fecha; `Tab` foca+abre, `Escape`
+fecha com foco de volta ao botão; clique/toque abre; clique fora fecha;
+`aria-label`/`aria-expanded`/`aria-describedby` corretos em cada transição;
+o balão nunca tem `role="dialog"`/modal (não captura foco do campo ao
+lado).
+
+**Critérios de aceite**
+
+- [ ] Os quatro mecanismos de ativação cobertos, cada um isoladamente
+- [ ] Acessibilidade (rótulo, estado exposto, não-modal) coberta
+- [ ] Verificação: `npm run test` em `frontend/`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-675` — `CampoPergunta.tsx` renderiza `<Explicacao>` ao lado do rótulo/legend
+
+- **Tipo:** `UI` · **Dependências:** `T-672`, `T-673` · **Rastreia:** `RF-562` · plano `R20.3`, `R20.5` (fluxo C)
+- **Arquivos:** `frontend/src/componentes/CampoPergunta.tsx`
+
+**Descrição.** Nos quatro pontos em que o componente renderiza `<label>`/
+`<legend>{pergunta.enunciado}</legend>`, acrescenta `<Explicacao
+campo={pergunta.enunciado} oQueE={pergunta.explicacao.o_que_e}
+ondeEncontrar={pergunta.explicacao.onde_encontrar} />` quando
+`pergunta.explicacao` existe. Nenhuma requisição nova — o texto já vem com
+a pergunta (`GET /pergunta`/`POST /resposta`).
+
+**Critérios de aceite**
+
+- [ ] Pergunta com `explicacao` mostra o ícone ⓘ ao lado do
+      rótulo/legend, nos quatro tipos de campo do componente
+- [ ] Pergunta sem `explicacao` não mostra nenhum ícone novo
+- [ ] `npm run build` verde
+- [ ] Gates: lint, build (teste em `T-676`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-676` — Ajustar `CampoPergunta.test.tsx` para o ⓘ
+
+- **Tipo:** `Test` · **Dependências:** `T-675` · **Rastreia:** `RF-562`
+- **Arquivos:** `frontend/tests/unit/componentes/CampoPergunta.test.tsx`
+
+**Descrição.** Com `pergunta.explicacao` presente, o ícone ⓘ aparece ao
+lado do rótulo; sem, não aparece. Testes atuais (sem `explicacao`)
+continuam verdes sem edição.
+
+**Critérios de aceite**
+
+- [ ] Os dois cenários cobertos
+- [ ] Verificação: `npm run test` em `frontend/`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-677` — `CalculadoraDaDivida.tsx`: `Inicial.explicacoes` e `<Explicacao>` por campo
+
+- **Tipo:** `UI` · **Dependências:** `T-672`, `T-673`, `T-669` · **Rastreia:** `RF-562` · plano `R20.3`, `R20.4`, `R20.5` (fluxo C)
+- **Arquivos:** `frontend/src/componentes/CalculadoraDaDivida.tsx`
+
+**Descrição.** `Inicial` ganha `explicacoes: Partial<Record<CampoDaDivida,
+ExplicacaoDoCampo>>`, montado em `carregarInicial` a partir de
+`saldo?.explicacao`, `parcela?.explicacao`, `taxa?.explicacao`,
+`prazo?.explicacao` (as mesmas quatro perguntas já buscadas individualmente
+por `obterPergunta`). No `<label>{rotulo}</label>` de cada campo, acrescenta
+`<Explicacao campo={NOMES[campo]} .../>` quando
+`inicial.explicacoes[campo]` existe — mesmo conteúdo da tela de pergunta
+(`RF-562`).
+
+**Critérios de aceite**
+
+- [ ] Os quatro campos (`SALDO`, `PARCELA`, `TAXA`, `PRAZO`) mostram o
+      ícone ⓘ com o mesmo texto da tela de pergunta correspondente
+- [ ] Nenhuma requisição nova além das quatro já existentes de
+      `carregarInicial`
+- [ ] `npm run build` verde
+- [ ] Gates: lint, build (teste em `T-678`)
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-678` — Ajustar `CalculadoraDaDivida.test.tsx` para o ⓘ
+
+- **Tipo:** `Test` · **Dependências:** `T-677` · **Rastreia:** `RF-562`
+- **Arquivos:** `frontend/tests/unit/componentes/CalculadoraDaDivida.test.tsx`
+
+**Descrição.** Com `explicacao` nas quatro perguntas buscadas, os quatro
+ícones aparecem; sem, nenhum aparece. Testes atuais continuam verdes sem
+edição.
+
+**Critérios de aceite**
+
+- [ ] Os dois cenários cobertos para os quatro campos
+- [ ] Verificação: `npm run test` em `frontend/`
+- [ ] Gates: lint, build, test
+
+**Status:** `[ ] pendente`
+
+---
+
+### `T-679` — Ajustar `calculadora-da-divida.spec.ts` (Playwright) para o rótulo sem o parêntese
+
+- **Tipo:** `Test` · **Dependências:** `T-669`, `T-677` · **Rastreia:** `RF-563` · `AC-602`
+- **Arquivos:** `frontend/tests/e2e/calculadora-da-divida.spec.ts`
+
+**Descrição.** Confere que o rótulo do campo de taxa na calculadora não
+traz mais o parêntese de ajuda, e que o ⓘ ao lado dele abre o mesmo
+conteúdo. Fora do gate automático (`e2e: —`), mesmo status de `T-663`.
+
+**Critérios de aceite**
+
+- [ ] Nenhuma asserção do arquivo depende do texto do parêntese removido
+- [ ] Nova asserção (ou ajuste) confirma o ⓘ do campo de taxa
+- [ ] Execução manual registrada no status da tarefa
+
+**Status:** `[ ] pendente`
+
+---
+
+## Entrega D — Fechamento
+
+### `T-680` — Verificar a Rodada 18 (cadastro sem contagem e ícone ⓘ) de ponta a ponta
+
+- **Tipo:** `Test` · **Dependências:** `T-637`–`T-679` · **Rastreia:** `RF-557`–`RF-563`, `NFR` da Rodada 18 (acessibilidade do ⓘ, 360 px, p95) · plano `R20.1`–`R20.11`
+- **Arquivos:** nenhum de código; `tasks/app-aluno.tasks.md` (status e notas)
+
+**Descrição.** Mesmo padrão de `T-635` (Rodada 17): compara a suíte inteira
+com a baseline da `main`, sem exigir zero falhas absolutas — só nenhuma
+falha NOVA além das já conhecidas antes desta rodada.
+
+**Critérios de aceite**
+
+- [ ] Gates do `sdd.config.md` §2 (lint, build, test) sem falha nova, com a
+      saída real anotada (contagem de `passed`/`failed`/`skipped`)
+- [ ] `npm run test`, `npm run build` e `npm run lint` do `frontend/` sem
+      falha nova
+- [ ] No navegador: Bloco 5 abre direto em `B5.A01`; fim de cada ficha
+      mostra "Cadastrar outra dívida"/"Não tenho mais, seguir"; cálculo sem
+      nenhuma dívida mostra `SEM_DIVIDAS` sem menção a quantidade; os
+      quatro ícones ⓘ abrem por mouse, teclado e toque, em 360 px e em
+      desktop, na tela de pergunta e na calculadora; o rótulo da taxa não
+      traz mais o parêntese
+- [ ] Os textos do ⓘ e a nova redação de `SEM_DIVIDAS`
+      (`app/casos/textos/inventario.yaml`) apresentados ao responsável do
+      produto para validação com o especialista; resposta anotada (não
+      bloqueia o fechamento técnico)
+- [ ] Status das tarefas `T-637`–`T-679` atualizados; spec e plano com
+      status coerente
+
+**Status:** `[ ] pendente`
+
+---
+
+### Cobertura de requisitos — Rodada 18 (`RF-557`–`RF-563`)
+
+| Requisito | Tarefas |
+| --- | --- |
+| `RF-557` — Bloco 5 abre direto na primeira ficha | `T-642`, `T-643`, `T-644`, `T-645`, `T-646`, `T-649`, `T-652`, `T-653`, `T-656` |
+| `RF-558` — cadastrar outra ou seguir, `B5.FIM02` nunca isolada | `T-642`, `T-643`, `T-644`, `T-645`, `T-646`, `T-649`, `T-652`, `T-656`, `T-657`, `T-659`, `T-660`, `T-661`, `T-662` |
+| `RF-559` — `SEM_DIVIDAS` só pela existência de ficha | `T-647`, `T-648`, `T-650`, `T-654`, `T-656`, `T-657`, `T-658`, `T-661` |
+| `RF-560` — caso antigo com `B5.00` não é afetado | `T-649`, `T-651`, `T-656` |
+| `RF-561` — `B5.C02C` sai | `T-637`, `T-638`, `T-639`, `T-640`, `T-641` |
+| `RF-562` — ícone ⓘ nos quatro campos | `T-664`, `T-665`, `T-666`, `T-667`, `T-668`, `T-669`, `T-670`, `T-671`, `T-672`, `T-673`, `T-674`, `T-675`, `T-676`, `T-677`, `T-678` |
+| `RF-563` — sem o parêntese no enunciado da taxa | `T-669`, `T-671`, `T-677`, `T-679` |
+
+| Critério | Tarefa de teste |
+| --- | --- |
+| `AC-592` | `T-643`, `T-646`, `T-652`, `T-656` |
+| `AC-593` | `T-643`, `T-646`, `T-652`, `T-656`, `T-659`, `T-662` |
+| `AC-594` | `T-643`, `T-644`, `T-646`, `T-652`, `T-656`, `T-660` |
+| `AC-595` | `T-648`, `T-656` |
+| `AC-596` | `T-648`, `T-656` |
+| `AC-597` | `T-651`, `T-656` |
+| `AC-598` | `T-637`, `T-656` |
+| `AC-599` | `T-640` |
+| `AC-600` | `T-673`, `T-674` |
+| `AC-601` | `T-673`, `T-674` |
+| `AC-602` | `T-669`, `T-671` |
+| `EC-95` | `T-651`, `T-656` |
+| `EC-96` | `T-640` |
+| `EC-97` | `T-648`, `T-656` |
+| `EC-98` | `T-656` |
+| `EC-99` | `T-673`, `T-674` |
+
+**Requisitos sem tarefa:** nenhum. **Fora de teste automatizado:** os
+textos do ⓘ e a nova redação de `SEM_DIVIDAS` (validação do especialista,
+`T-680`), o e2e Playwright (`T-663`, `T-679`, `e2e: —` no `sdd.config.md`
+§2) e o p95 de performance do `NFR` (conferência manual, `T-680`).
