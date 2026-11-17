@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`70/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (9): `T-539` (backlog, sem spec) e `T-682` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
+`71/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (8): `T-539` (backlog, sem spec) e `T-683` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1455,20 +1455,20 @@ Seção nova no fim do arquivo, "Textos novos para conferir (2026-11-17) — pop
 Componente com as props de R2.4 (`casoId`, `corpo`, `previa`, `gravando`, `erroAoSalvar`, `aoConfirmar`, `aoVoltar`) e o auxiliar exportado `textoDoValor`. `<dialog aria-labelledby="divergencia-titulo">` aberto por `showModal()` num `useEffect` de montagem com guarda `if (!dialog.open)` (`PD-19`, `PD-20`); estrutura e textos da tabela "Popup — estrutura e textos" de R2.4. Nesta tarefa o recálculo ainda não pede nada ao servidor (`T-683`).
 
 **Critérios de aceite**
-- [ ] `<dialog>` nativo, sem biblioteca, polyfill nem fallback (R2.2, R2.10 risco 6); nenhuma classe de `display` no `<dialog>` — `.cartao` (com `max-h` e `overflow-y-auto`) num `div` interno
-- [ ] Título `<h2 id="divergencia-titulo">`; frase em `p.aviso-atencao` com `previa.teorico.texto` e `previa.valores.PARCELA.texto` como vieram
-- [ ] `fieldset` com legenda `sr-only` "Qual informação recalcular?"; "Manter os valores que informei" marcada ao montar; abrir não chama o servidor
-- [ ] Junto de "Manter", "Saldo: {s} · Taxa: {t} ({rotulo})" e o `aviso` em `.nota`, **só** se `hipotese_conservadora` vier
-- [ ] Um radio "Recalcular o saldo" / "a parcela" / "a taxa" / "o prazo" por item de `previa.alternativas`, na ordem recebida
-- [ ] "Confirmar e continuar" (`Botao`, "Salvando…" enquanto `gravando`) chama `aoConfirmar(escolha)`, com `null` para "Manter"
-- [ ] "Voltar e corrigir" (`Botao variante="secundario"`) só chama `dialog.close()`; o único caminho para `aoVoltar` é o `onClose` do `<dialog>` (`PD-21`)
-- [ ] `erroAoSalvar` aparece **dentro** do `<dialog>`, em `p.aviso-erro role="alert"`
-- [ ] `textoDoValor("PRAZO", "24") === "24 meses"`; nos demais campos devolve o texto inalterado; nenhuma operação aritmética sobre valores (Lei nº 3)
-- [ ] `typecheck` sem erro
+- [x] `<dialog>` nativo, sem biblioteca, polyfill nem fallback (R2.2, R2.10 risco 6); nenhuma classe de `display` no `<dialog>` — `.cartao` (com `max-h` e `overflow-y-auto`) num `div` interno
+- [x] Título `<h2 id="divergencia-titulo">`; frase em `p.aviso-atencao` com `previa.teorico.texto` e `previa.valores.PARCELA.texto` como vieram
+- [x] `fieldset` com legenda `sr-only` "Qual informação recalcular?"; "Manter os valores que informei" marcada ao montar; abrir não chama o servidor
+- [x] Junto de "Manter", "Saldo: {s} · Taxa: {t} ({rotulo})" e o `aviso` em `.nota`, **só** se `hipotese_conservadora` vier
+- [x] Um radio "Recalcular o saldo" / "a parcela" / "a taxa" / "o prazo" por item de `previa.alternativas`, na ordem recebida
+- [x] "Confirmar e continuar" (`Botao`, "Salvando…" enquanto `gravando`) chama `aoConfirmar(escolha)`, com `null` para "Manter"
+- [x] "Voltar e corrigir" (`Botao variante="secundario"`) só chama `dialog.close()`; o único caminho para `aoVoltar` é o `onClose` do `<dialog>` (`PD-21`)
+- [x] `erroAoSalvar` aparece **dentro** do `<dialog>`, em `p.aviso-erro role="alert"`
+- [x] `textoDoValor("PRAZO", "24") === "24 meses"`; nos demais campos devolve o texto inalterado; nenhuma operação aritmética sobre valores (Lei nº 3)
+- [x] `typecheck` sem erro
 
 **Verificação:** `npm --prefix frontend run typecheck` (testes em `T-684`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)` — `typecheck` sem erro
 
 ---
 
