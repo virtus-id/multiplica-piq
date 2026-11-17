@@ -15703,13 +15703,14 @@ de padrão neutro (`apoio`, `faixa`).
 
 **Critérios de aceite**
 
-- [ ] `Explicacao` existe com os dois campos `str`, imutável
-- [ ] `RegistroPergunta.explicacao` é opcional, padrão `None`
-- [ ] Registro existente (sem `explicacao` no YAML) continua carregando sem
+- [x] `Explicacao` existe com os dois campos `str`, imutável
+- [x] `RegistroPergunta.explicacao` é opcional, padrão `None`
+- [x] Registro existente (sem `explicacao` no YAML) continua carregando sem
       edição em nenhum outro arquivo
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — verificação completa (lint/build/test) ainda
+pendente, a rodar ao final da Entrega C/D.
 
 ---
 

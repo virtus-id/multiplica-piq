@@ -136,6 +136,15 @@ class OpcaoRegistro:
 
 
 @dataclass(frozen=True, slots=True)
+class Explicacao:
+    """RF-562 — o conteúdo do ícone ⓘ: o que o campo é e onde encontrar o
+    dado. Opcional — registro sem `explicacao` não ganha ícone."""
+
+    o_que_e: str
+    onde_encontrar: str
+
+
+@dataclass(frozen=True, slots=True)
 class RegistroPergunta:
     """RF-03 — uma pergunta da §11, como DADO. Editar o YAML e reiniciar troca
     o enunciado sem tocar em código (`AC-36`)."""
@@ -174,3 +183,5 @@ class RegistroPergunta:
     # Como a escolha é desenhada (`T-415`): `MENU` = caixa de seleção, para
     # lista longa (ex.: as instituições de `B5.A01`). Ausente = botões.
     apresentacao: Literal["MENU"] | None = None
+    # O conteúdo do ícone ⓘ (`RF-562`): ausente na maioria das perguntas.
+    explicacao: Explicacao | None = None
