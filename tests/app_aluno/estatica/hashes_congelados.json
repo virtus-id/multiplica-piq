@@ -29,7 +29,7 @@
   "engine/snapshot.py": "4a069a221717d1bc7dc243b77946b3e7cc671364be7f102cdb38d77d136f7249",
   "engine/status_metodo.py": "2ac516366621942afe043eb10318c3a85fd31dd56039187ab8cc85102c0a7a3b",
   "engine/taxa.py": "4517a06c266294d9992e94b8e56d2222a9e8fc66033db3d888e4dd2e7fa36fd5",
-  "engine/tipos.py": "2c17378595973f04ad00b7d0a99724f1bb5d737b08d2bc29cd9cbe941c91417c",
+  "engine/tipos.py": "5154cbf6015b062c6e0602e1bba146138eb2f17b036dce4c1156ed98039ed5b4",
   "engine/trajetoria.py": "348be79136f883e9ea99d2f3c78d9f21319cb3c0ce639aa3fb81e48b692b772c",
   "engine/troca.py": "3e5010e120bb0aad52e79893b70e5a5c5286916c342f91fea1156a3303c7e20d",
   "engine/valor_quitacao.py": "7f88fcc21ea7bbb310595e4c2803f4df17b1695a228c1da1ec1fe9f8d337dcb4",

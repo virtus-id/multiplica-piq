@@ -8090,11 +8090,11 @@ com ela por consequência de `RF-552`, não regressão.
 `MAIOR_TAXA`, `MENOR_VALOR_RELEVANTE`, `CRITERIO_HIBRIDO`,
 `DESEMPATE_PESO_EMOCIONAL`, `DESEMPATE`), valor = nome.
 
-- [ ] Exatamente 12 membros, nomes idênticos aos da spec, caractere por caractere
-- [ ] `T-603` e `T-604` verdes
-- [ ] Rehash só de `engine/tipos.py`; gates: lint, build, test
+- [x] Exatamente 12 membros, nomes idênticos aos da spec, caractere por caractere
+- [x] `T-603` e `T-604` verdes
+- [x] Rehash só de `engine/tipos.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 
