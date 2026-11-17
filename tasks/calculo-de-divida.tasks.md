@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`75/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (4): `T-539` (backlog, sem spec) e `T-687` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
+`76/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (3): `T-539` (backlog, sem spec), `T-688` e `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1583,25 +1583,25 @@ Estado `divergenciaAberta`; `continuar()` (`PD-22`), `confirmar(recalcular)` e `
 Tabela "Unitários — `CalculadoraDaDivida.test.tsx`" de R2.9: testes novos, mantidos, reescritos e removidos. Cada teste cita o `AC`/`EC` no nome.
 
 **Critérios de aceite**
-- [ ] `AC-603`: prévia `CONFERIDO` com `valores`, `resumo` e `mensagem` ⇒ nenhum desses textos, nenhum "Resumo do cálculo", nenhuma marca, nenhum `role="status"`; "Continuar" ⇒ `recalcular: null`, sem `dialog`
-- [ ] `AC-604`, `AC-606`: prévia `INCOMPATIVEL` ⇒ nada de "Valores incompatíveis", "Qual informação recalcular?", radios nem hipótese conservadora, sem `dialog`; "Continuar" ⇒ `dialog` com o nome do título e `confirmarCalculadora` **não** chamado
-- [ ] `AC-605`: frase do `RF-519` e "O saldo devedor precisa ser maior que zero." em `role="alert"`, "Continuar" desabilitado
-- [ ] `AC-607`: `CALCULADO`, `PENDENTE` e `SEM_CALCULO` ⇒ salva direto com `recalcular: null`, sem `dialog`
-- [ ] `AC-609`: "Manter" + "Confirmar e continuar" ⇒ corpo com os quatro digitados e `recalcular: null`; `aoConfirmar` chamado; `dialog` some
-- [ ] `AC-611`, `EC-100`, `EC-104`: "Voltar e corrigir" ⇒ nada gravado, campos intactos, foco em `#calculadora-SALDO`; novo "Continuar" reabre com "Manter" marcada; editar a parcela para um valor `CONFERIDO` ⇒ "Continuar" salva sem popup
-- [ ] `AC-612`, `EC-101`: recalcular a parcela no popup ⇒ `recalcular: "PARCELA"`; ficha reaberta com `B5.C02` em "não sei" e prévia `CALCULADO`/`PARCELA` ⇒ campo vazio, "Não sei" marcado, "Calculado: R$ 528,72", "Continuar" salva sem popup
-- [ ] `AC-614`: "Calculado: R$ 528,72", "Calculado: 2,00% a.m." e "Calculado: 24 meses" abaixo do campo certo; input vazio; linha no `aria-describedby`
-- [ ] `AC-615`: "Estimada: R$ 528,72 (hipótese de 24 meses)" abaixo da parcela; texto longo de `hipotese` ausente; nenhuma linha no prazo (substitui os dois testes `T-531` com `data-testid="parcela-estimada"`)
-- [ ] `AC-616`, `AC-529`: "Calculado: 24 meses" some na hora da edição (parcela, SAC, "ao ano") e não volta com `ERRO`
-- [ ] `EC-103`: "Continuar" desabilitado antes da prévia e depois de falha de rede
-- [ ] `EC-105`: `confirmarCalculadora` rejeita com o popup aberto ⇒ `dialog` continua, `role="alert"` dentro dele, `aoConfirmar` não chamado
-- [ ] Mantidos verdes: carga do gravado, "não sei" vai `null`, falha de rede, 422 no caminho direto, Lei nº 3 (regex no fonte), `RF-562`; "descarta resposta fora de ordem" reescrito para a linha "Calculado: …"
-- [ ] Removidos: "incompatibilidade em texto e escolha por teclado" e os dois `AC-553` (a regra está em `T-684`)
-- [ ] Os dois arquivos de componente todos verdes
+- [x] `AC-603`: prévia `CONFERIDO` com `valores`, `resumo` e `mensagem` ⇒ nenhum desses textos, nenhum "Resumo do cálculo", nenhuma marca, nenhum `role="status"`; "Continuar" ⇒ `recalcular: null`, sem `dialog`
+- [x] `AC-604`, `AC-606`: prévia `INCOMPATIVEL` ⇒ nada de "Valores incompatíveis", "Qual informação recalcular?", radios nem hipótese conservadora, sem `dialog`; "Continuar" ⇒ `dialog` com o nome do título e `confirmarCalculadora` **não** chamado
+- [x] `AC-605`: frase do `RF-519` e "O saldo devedor precisa ser maior que zero." em `role="alert"`, "Continuar" desabilitado
+- [x] `AC-607`: `CALCULADO`, `PENDENTE` e `SEM_CALCULO` ⇒ salva direto com `recalcular: null`, sem `dialog`
+- [x] `AC-609`: "Manter" + "Confirmar e continuar" ⇒ corpo com os quatro digitados e `recalcular: null`; `aoConfirmar` chamado; `dialog` some
+- [x] `AC-611`, `EC-100`, `EC-104`: "Voltar e corrigir" ⇒ nada gravado, campos intactos, foco em `#calculadora-SALDO`; novo "Continuar" reabre com "Manter" marcada; editar a parcela para um valor `CONFERIDO` ⇒ "Continuar" salva sem popup
+- [x] `AC-612`, `EC-101`: recalcular a parcela no popup ⇒ `recalcular: "PARCELA"`; ficha reaberta com `B5.C02` em "não sei" e prévia `CALCULADO`/`PARCELA` ⇒ campo vazio, "Não sei" marcado, "Calculado: R$ 528,72", "Continuar" salva sem popup
+- [x] `AC-614`: "Calculado: R$ 528,72", "Calculado: 2,00% a.m." e "Calculado: 24 meses" abaixo do campo certo; input vazio; linha no `aria-describedby`
+- [x] `AC-615`: "Estimada: R$ 528,72 (hipótese de 24 meses)" abaixo da parcela; texto longo de `hipotese` ausente; nenhuma linha no prazo (substitui os dois testes `T-531` com `data-testid="parcela-estimada"`)
+- [x] `AC-616`, `AC-529`: "Calculado: 24 meses" some na hora da edição (parcela, SAC, "ao ano") e não volta com `ERRO`
+- [x] `EC-103`: "Continuar" desabilitado antes da prévia e depois de falha de rede
+- [x] `EC-105`: `confirmarCalculadora` rejeita com o popup aberto ⇒ `dialog` continua, `role="alert"` dentro dele, `aoConfirmar` não chamado
+- [x] Mantidos verdes: carga do gravado, "não sei" vai `null`, falha de rede, 422 no caminho direto, Lei nº 3 (regex no fonte), `RF-562`; "descarta resposta fora de ordem" reescrito para a linha "Calculado: …"
+- [x] Removidos: "incompatibilidade em texto e escolha por teclado" e os dois `AC-553` (a regra está em `T-684`)
+- [x] Os dois arquivos de componente todos verdes
 
 **Verificação:** `npm --prefix frontend run test -- tests/unit/componentes/CalculadoraDaDivida.test.tsx tests/unit/componentes/DivergenciaDaDivida.test.tsx`
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)` — `CalculadoraDaDivida.test.tsx` (27) + `DivergenciaDaDivida.test.tsx` (13): 40 testes, 40 verdes
 
 ---
 
