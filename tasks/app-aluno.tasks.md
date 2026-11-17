@@ -15252,11 +15252,7 @@ o novo parâmetro `repositorio_itens` (de `T-645`).
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_inventario.py tests/app_aluno/test_inventario.py`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
-
----
-
-### B.3 — Remover `B5.00` de fato e o mecanismo antigo
+**Status:** `[x] concluída (2026-11-17)`; `test_rotas_inventario.py`/`test_inventario.py`: 12 passed; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos. `tests/app_aluno/test_rotas_inicio.py::_RepositorioItensDublê` ganhou `nomear` e os dois parâmetros opcionais de `proximo_identificador` (ela não satisfazia o `Protocol RepositorioItens` completo — só apareceu agora porque `test_t251_...`, acima, passou a chamar `_proxima_etapa` com o parâmetro tipado, não dinâmico como no `dependency_overrides`), não listado nos Arquivos desta tarefa. **Achado não previsto em nenhuma tarefa desta rodada** (reportado no fim, não resolvido aqui): `pendencias_de_inventario` sem comparação de quantidade (`T-647`) faz `SEM_DIVIDAS` aparecer para QUALQUER coleção sem ficha de `DIVIDA_ID`, mesmo sem nenhum registro de Bloco 5 nela — `app/http/rotas_inicio.py::fichas_abertas` (`bool(itens_em_aberto(...) or pendencias_de_inventario(...))`) passa a ser sempre `True` nesses casos, quebrando `tests/app_aluno/test_rotas_inicio.py::test_t293_coleta_completa_nao_diz_em_andamento` e `test_t293_ficha_em_branco_marca_fichas_abertas` (nenhuma delas listada em nenhum `Arquivos` de `T-647`/`T-648`/`T-654`/`T-656`) — deixado para a comparação com a baseline ao fim de B.3
 
 ### `T-649` — Remover `B5.00` do questionário e o mecanismo antigo de `rotas_coleta.py`/`rotas_inicio.py`
 

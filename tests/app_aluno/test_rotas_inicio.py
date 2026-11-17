@@ -172,7 +172,13 @@ class _RepositorioItensDublê:
     def __init__(self, itens: tuple[ItemRepetido, ...] = ()) -> None:
         self._itens = itens
 
-    def proximo_identificador(self, CASO_ID: str, escopo: EscopoRepeticao) -> str:
+    def proximo_identificador(
+        self,
+        CASO_ID: str,
+        escopo: EscopoRepeticao,
+        origem: str | None = None,
+        item_pai_id: str | None = None,
+    ) -> str:
         """`T-646` (`R20.10`): `GET /inicio` pode criar a ficha 1 como
         efeito colateral — autoincremento simples, mesmo padrão de
         `tests/app_aluno/test_coleta_fichas_de_divida.py::_Itens`."""
@@ -188,6 +194,9 @@ class _RepositorioItensDublê:
             ),
         )
         return item_id
+
+    def nomear(self, caso_id: str, item_id: str, nome: str) -> None:
+        raise NotImplementedError  # pragma: no cover — não usado aqui
 
     def remover(self, caso_id, item_id, agora=None):  # type: ignore[no-untyped-def]
         raise NotImplementedError  # pragma: no cover — a rota só lê
