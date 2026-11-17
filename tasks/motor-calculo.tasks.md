@@ -8331,13 +8331,13 @@ compõe: `aplicar_prioridade_ordem(seletor do método)` → `simular_cenario` �
 `derivar_MOTIVO_POSICAO` com `delta_de_ranqueamento_da_ordem`. O fio
 motor → publicação é provado por `T-616`.
 
-- [ ] `AC-581`: 1ª posição `GARANTIA_ESSENCIAL` (C3, C6), `NEGATIVADA` (C4, C7), `PESO_GARANTIA` (C5, imóvel antes de veículo; veículo antes de "outra garantia" na seguinte)
-- [ ] `AC-582`: 2,00% × 1,95% com preferência na segunda (C9) → a segunda primeiro com `PREFERENCIA_QUITACAO`; 2,00% × 1,80% (C10) e preferência na que o método já punha primeiro → nenhuma `PREFERENCIA_QUITACAO`, 1ª com o motivo do método
-- [ ] `AC-583`: (a) C8 → `DESEMPATE_PESO_EMOCIONAL`; (b) iguais menos o `DIVIDA_ID` → `DESEMPATE`; (c) benefício do fallback por taxa → `MAIOR_TAXA`; (d) Híbrido `CALCULAVEL` em déficit → `D*` com `CRITERIO_HIBRIDO` e seguintes com o motivo da Avalanche; (e) uma só elegível → `UNICA_DIVIDA`
-- [ ] `AC-583(d)`: se não houver carteira em déficit com o Híbrido `CALCULAVEL`, **parar e reportar**; não marcar o caso como `skip` em silêncio
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] `AC-581`: 1ª posição `GARANTIA_ESSENCIAL` (C3, C6), `NEGATIVADA` (C4, C7), `PESO_GARANTIA` (C5, imóvel antes de veículo; veículo antes de "outra garantia" na seguinte)
+- [x] `AC-582`: 2,00% × 1,95% com preferência na segunda (C9) → a segunda primeiro com `PREFERENCIA_QUITACAO`; 2,00% × 1,80% (C10) e preferência na que o método já punha primeiro → nenhuma `PREFERENCIA_QUITACAO`, 1ª com o motivo do método
+- [x] `AC-583`: (a) C8 → `DESEMPATE_PESO_EMOCIONAL`; (b) iguais menos o `DIVIDA_ID` → `DESEMPATE`; (c) benefício do fallback por taxa → `MAIOR_TAXA`; (d) Híbrido `CALCULAVEL` em déficit → `D*` com `CRITERIO_HIBRIDO` e seguintes com o motivo da Avalanche; (e) uma só elegível → `UNICA_DIVIDA`
+- [x] `AC-583(d)`: se não houver carteira em déficit com o Híbrido `CALCULAVEL`, **parar e reportar**; não marcar o caso como `skip` em silêncio
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — `AC-583(d)`: carteira em déficit de R$ 50 (A 5.000 a 4%, B 4.000 a 2%, S 150 a 0% que quita em 2 meses) com o Híbrido `CALCULAVEL` e `D*` = A; não foi preciso parar.
 
 ---
 

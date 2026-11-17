@@ -12,24 +12,41 @@ não pode mudar a simulação, o método nem o status (`RF-552` item 3).
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from decimal import Decimal
 
-from engine.ciclo_mensal import Cenario, EstadoSimulacao, SelecionarAlvo, simular_cenario
-from engine.diagnostico import Diagnostico
+import pytest
+
+from engine.ciclo_mensal import (
+    Cenario,
+    EstadoSimulacao,
+    SelecionarAlvo,
+    delta_de_ranqueamento_da_ordem,
+    simular_cenario,
+)
+from engine.diagnostico import Diagnostico, calcular_diagnostico
 from engine.estado import Divida, EstadoFinanceiro
 from engine.metodos.avalanche import beneficio_de_ranqueamento, criar_selecionar_alvo_avalanche
 from engine.metodos.bola_de_neve import criar_selecionar_alvo_bola_de_neve
+from engine.metodos.hibrido import criar_selecionar_alvo_hibrido
 from engine.motor import calcular_plano
+from engine.ordem import derivar_MOTIVO_POSICAO
 from engine.parametros import Parametros
 from engine.precisao import dinheiro
 from engine.prioridade_ordem import aplicar_prioridade_ordem
 from engine.snapshot import SnapshotOrdem, _serializar_canonico
-from engine.tipos import METODO, MOTIVO_POSICAO, Dinheiro, SimNaoTalvez
+from engine.tipos import (
+    CLASSIFICACAO_CENARIO,
+    METODO,
+    MOTIVO_POSICAO,
+    Dinheiro,
+    SimNaoTalvez,
+)
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from tests.fixtures.carregar import carregar_gab_c
 from tests.regras.test_ordem_em_estabilizacao_identidade import _CONGELADOS, digest_do_snapshot
+from tests.regras.test_prioridade_ordem import _carteira, _com, _duas_primeiras
 
 
 def _parametros() -> Parametros:
@@ -323,3 +340,191 @@ def test_ac580_capacidade_zero_fora_de_estabilizacao_ranqueia_com_o_piso() -> No
     assert replace(cenario, metodo=None, ORDEM_DE_ATAQUE=(), ORDEM_FORA_DO_HORIZONTE=()) == (
         sem_a_ordem(diagnostico)
     )
+
+
+# --- T-618: AC-581, AC-582, AC-583 (motivo por tipo, caminho de regras) ------
+#
+# Carteiras de `test_prioridade_ordem.py` (§16.4-C3 a C10) num Diagnostico de
+# déficit, pelo caminho que o motor compõe: seletor do método com a §16.4 →
+# simular_cenario → derivar_MOTIVO_POSICAO com delta_de_ranqueamento_da_ordem.
+# O fio motor → publicação é provado ponta a ponta por AC-576 (T-616).
+
+_FABRICAS: dict[METODO, Callable[[Mapping[str, Divida], Parametros], SelecionarAlvo]] = {
+    METODO.AVALANCHE: criar_selecionar_alvo_avalanche,
+    METODO.BOLA_DE_NEVE: criar_selecionar_alvo_bola_de_neve,
+}
+
+
+def _pelo_caminho_de_regras(
+    metodo: METODO, dividas: Mapping[str, Divida], estado: EstadoFinanceiro | None = None
+) -> list[tuple[str, MOTIVO_POSICAO]]:
+    estado = _estado_rodrigo() if estado is None else estado
+    parametros = _parametros()
+    diagnostico = calcular_diagnostico(estado, parametros)
+    assert diagnostico.MODO_ESTABILIZACAO
+    assert diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA <= 0
+    d_estrela = None
+    if metodo is METODO.HIBRIDO:
+        hibrido = criar_selecionar_alvo_hibrido(estado, dividas, diagnostico, parametros)
+        assert hibrido.classificacao is CLASSIFICACAO_CENARIO.CALCULAVEL
+        assert hibrido.selecionar_alvo is not None
+        sel_do_metodo, d_estrela = hibrido.selecionar_alvo, hibrido.D_ESTRELA
+    else:
+        sel_do_metodo = _FABRICAS[metodo](dividas, parametros)
+    sel = aplicar_prioridade_ordem(sel_do_metodo, dividas, parametros)
+    cenario = simular_cenario(estado, diagnostico, dividas, sel, parametros)
+    delta = delta_de_ranqueamento_da_ordem(
+        diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA, diagnostico.PISO_CAPACIDADE
+    )
+    motivos = derivar_MOTIVO_POSICAO(
+        cenario.ORDEM_DE_ATAQUE, dividas, metodo, delta, parametros, D_ESTRELA=d_estrela
+    )
+    return list(zip(cenario.ORDEM_DE_ATAQUE, motivos, strict=True))
+
+
+@pytest.mark.parametrize(
+    ("carteira", "esperado"),
+    [
+        pytest.param(
+            _com(C=dict(GARANTIA_ESSENCIAL=True, TIPO_GARANTIA="OUTRO_BEM")),
+            [("C", MOTIVO_POSICAO.GARANTIA_ESSENCIAL)],
+            id="C3",
+        ),
+        pytest.param(
+            _com(A=dict(NEGATIVADA=True), C=dict(GARANTIA_ESSENCIAL=True, TIPO_GARANTIA="OUTRA")),
+            [("C", MOTIVO_POSICAO.GARANTIA_ESSENCIAL), ("A", MOTIVO_POSICAO.NEGATIVADA)],
+            id="C6",
+        ),
+        pytest.param(
+            _com(C=dict(NEGATIVADA=True)),
+            [("C", MOTIVO_POSICAO.NEGATIVADA)],
+            id="C4",
+        ),
+        pytest.param(
+            _com(A=dict(TIPO_GARANTIA="IMOVEL"), C=dict(NEGATIVADA=True, TIPO_GARANTIA="OUTRA")),
+            [("C", MOTIVO_POSICAO.NEGATIVADA), ("A", MOTIVO_POSICAO.PESO_GARANTIA)],
+            id="C7",
+        ),
+        pytest.param(
+            _com(
+                A=dict(TIPO_GARANTIA="OUTRO_BEM"),
+                B=dict(TIPO_GARANTIA="VEICULO"),
+                C=dict(TIPO_GARANTIA="IMOVEL"),
+            ),
+            # imóvel antes de veículo; veículo antes de "outra garantia"
+            [("C", MOTIVO_POSICAO.PESO_GARANTIA), ("B", MOTIVO_POSICAO.PESO_GARANTIA)],
+            id="C5",
+        ),
+    ],
+)
+def test_ac581_grupo_da_164_e_o_motivo(
+    carteira: dict[str, Divida], esperado: list[tuple[str, MOTIVO_POSICAO]]
+) -> None:
+    resultado = _pelo_caminho_de_regras(METODO.AVALANCHE, carteira)
+    assert resultado[: len(esperado)] == esperado
+    assert resultado[-1][1] is MOTIVO_POSICAO.ULTIMA_RESTANTE
+
+
+def test_ac582_preferencia_so_quando_decidiu() -> None:
+    # C9: 2,00% × 1,95% (2,5%), preferência na segunda → ela vem primeiro
+    c9 = _duas_primeiras("0.0200", "0.0195", B=dict(PREFERENCIA_QUITACAO=True))
+    assert _pelo_caminho_de_regras(METODO.AVALANCHE, c9) == [
+        ("B", MOTIVO_POSICAO.PREFERENCIA_QUITACAO),
+        ("A", MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL),
+        ("C", MOTIVO_POSICAO.ULTIMA_RESTANTE),
+    ]
+    # C10: 2,00% × 1,80% (10%) — a preferência não decide
+    c10 = _duas_primeiras("0.0200", "0.0180", B=dict(PREFERENCIA_QUITACAO=True))
+    # preferência só na dívida que o método já punha primeiro
+    so_na_primeira = _duas_primeiras("0.0200", "0.0195", A=dict(PREFERENCIA_QUITACAO=True))
+    for carteira in (c10, so_na_primeira):
+        resultado = _pelo_caminho_de_regras(METODO.AVALANCHE, carteira)
+        assert resultado[0] == ("A", MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL)
+        assert MOTIVO_POSICAO.PREFERENCIA_QUITACAO not in [m for _, m in resultado]
+
+
+_IGUAIS: dict[str, object] = dict(
+    SALDO_DEVEDOR_ATUAL=dinheiro("500"),
+    VALOR_QUITACAO_HOJE=dinheiro("500"),
+    TAXA_EFETIVA_MENSAL_NORMALIZADA=Decimal("0.05"),
+)
+
+
+def _sem_simulacao(saldo: str, taxa: str, parcela: str) -> dict[str, object]:
+    """Dívida que não quita no horizonte: benefício pelo fallback de taxa (§11.1)."""
+    return dict(
+        SALDO_DEVEDOR_ATUAL=dinheiro(saldo),
+        VALOR_QUITACAO_HOJE=dinheiro(saldo),
+        TAXA_EFETIVA_MENSAL_NORMALIZADA=Decimal(taxa),
+        PARCELA_CONTRATUAL=dinheiro(parcela),
+        PAGAMENTO_MENSAL_EFETIVO=dinheiro(parcela),
+    )
+
+
+def test_ac583a_c8_peso_emocional_efetivo_desempata() -> None:
+    carteira = _carteira(
+        X=dict(_IGUAIS, PESO_EMOCIONAL=5, URGENCIA_PERCEBIDA=0),
+        Y=dict(_IGUAIS, PESO_EMOCIONAL=4, URGENCIA_PERCEBIDA=10),  # peso efetivo 6
+    )
+    assert _pelo_caminho_de_regras(METODO.BOLA_DE_NEVE, carteira) == [
+        ("Y", MOTIVO_POSICAO.DESEMPATE_PESO_EMOCIONAL),
+        ("X", MOTIVO_POSICAO.ULTIMA_RESTANTE),
+    ]
+
+
+@pytest.mark.parametrize("metodo", [METODO.AVALANCHE, METODO.BOLA_DE_NEVE])
+def test_ac583b_iguais_menos_o_id_e_desempate(metodo: METODO) -> None:
+    carteira = _carteira(X=dict(_IGUAIS), Y=dict(_IGUAIS))
+    assert _pelo_caminho_de_regras(metodo, carteira) == [
+        ("X", MOTIVO_POSICAO.DESEMPATE),
+        ("Y", MOTIVO_POSICAO.ULTIMA_RESTANTE),
+    ]
+
+
+def test_ac583c_beneficio_do_fallback_por_taxa_e_maior_taxa() -> None:
+    carteira = _carteira(
+        X=_sem_simulacao("1000000", "0.02", "20100"),
+        Y=_sem_simulacao("1000000", "0.01", "10100"),
+    )
+    piso = calcular_diagnostico(_estado_rodrigo(), _parametros()).PISO_CAPACIDADE
+    beneficio = beneficio_de_ranqueamento(carteira["X"], piso, _parametros())
+    assert beneficio is not None and beneficio.origem == "FALLBACK_TAXA"
+    assert _pelo_caminho_de_regras(METODO.AVALANCHE, carteira) == [
+        ("X", MOTIVO_POSICAO.MAIOR_TAXA),
+        ("Y", MOTIVO_POSICAO.ULTIMA_RESTANTE),
+    ]
+
+
+def _carteira_hibrido() -> dict[str, Divida]:
+    """Em déficit de R$ 50 o Híbrido é `CALCULAVEL`: S quita com a própria
+    parcela em 2 meses e dá à Avalanche de referência a primeira quitação; A
+    como `D*` não atrasa o prazo nem passa da tolerância de custo."""
+    return _carteira(
+        A=_sem_simulacao("5000", "0.04", "300"),
+        B=_sem_simulacao("4000", "0.02", "300"),
+        S=_sem_simulacao("150", "0.00", "100"),
+    )
+
+
+def _estado_hibrido() -> EstadoFinanceiro:
+    carteira = _carteira_hibrido()
+    # despesas 16.515 + parcelas 700 − 50: resultado −50
+    return replace(
+        _estado_rodrigo(),
+        RENDA_TOTAL_RECORRENTE=dinheiro("17165"),
+        dividas=tuple(carteira.values()),
+    )
+
+
+def test_ac583d_hibrido_d_estrela_e_depois_o_motivo_da_avalanche() -> None:
+    assert _pelo_caminho_de_regras(METODO.HIBRIDO, _carteira_hibrido(), _estado_hibrido()) == [
+        ("A", MOTIVO_POSICAO.CRITERIO_HIBRIDO),
+        ("B", MOTIVO_POSICAO.MAIOR_BENEFICIO_MARGINAL),
+        ("S", MOTIVO_POSICAO.ULTIMA_RESTANTE),
+    ]
+
+
+def test_ac583e_uma_so_divida_e_unica_divida() -> None:
+    assert _pelo_caminho_de_regras(METODO.AVALANCHE, _carteira(X={})) == [
+        ("X", MOTIVO_POSICAO.UNICA_DIVIDA)
+    ]
