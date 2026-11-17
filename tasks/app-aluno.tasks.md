@@ -15773,11 +15773,14 @@ validação de esquema.
 
 **Critérios de aceite**
 
-- [ ] Os três casos cobertos
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_carga.py`
+- [x] Os três casos cobertos
+- [x] Verificação: `.venv/bin/python -m pytest -q tests/app_aluno/test_carga.py`
+      — 37 passed
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — suíte do arquivo roda e passa (37 passed);
+gates completos (lint/build/suíte inteira) ainda pendentes, a rodar ao final
+da Entrega C/D.
 
 ---
 

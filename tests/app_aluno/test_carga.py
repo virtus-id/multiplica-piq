@@ -705,3 +705,30 @@ def test_t491_calculo_divida_mal_formada_e_recusada_nomeando_o_registro(
     tmp_path: Path, mudanca: dict[str, object]
 ) -> None:
     assert "B5.CALC01" in _recusa(tmp_path, _calculo_divida(**mudanca))
+
+
+# ------------------------------------------------------------ T-668 (RF-562)
+
+
+def test_t668_explicacao_completa_carrega_os_dois_campos(tmp_path: Path) -> None:
+    pergunta = _pergunta_minima("B1.01")
+    pergunta["explicacao"] = {"o_que_e": "O que é.", "onde_encontrar": "Onde encontrar."}
+
+    registro = _carregar_uma(tmp_path, pergunta)
+
+    assert registro.explicacao is not None
+    assert registro.explicacao.o_que_e == "O que é."
+    assert registro.explicacao.onde_encontrar == "Onde encontrar."
+
+
+def test_t668_sem_explicacao_carrega_none(tmp_path: Path) -> None:
+    registro = _carregar_uma(tmp_path, _pergunta_minima("B1.01"))
+
+    assert registro.explicacao is None
+
+
+def test_t668_explicacao_sem_onde_encontrar_e_recusada(tmp_path: Path) -> None:
+    pergunta = _pergunta_minima("B1.01")
+    pergunta["explicacao"] = {"o_que_e": "O que é."}
+
+    assert "B1.01" in _recusa(tmp_path, pergunta)
