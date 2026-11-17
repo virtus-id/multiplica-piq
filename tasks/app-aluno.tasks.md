@@ -14819,13 +14819,13 @@ antigo).
 - **Tipo:** `Test` · **Dependências:** `T-622`, `T-628`, `T-629`, `T-630`, `T-631`, `T-632`, `T-634` · **Rastreia:** `RF-552`–`RF-556`, `NFR` da Rodada 17 (tela = PDF, 360 px) · plano `R14.9`, `R19.9`
 - **Arquivos:** nenhum de código; `tasks/app-aluno.tasks.md` e `tasks/motor-calculo.tasks.md` (status e notas)
 
-- [ ] Gates do `sdd.config.md` §2 (install, lint, build, test) verdes, com a saída real anotada
-- [ ] `npm run test` e `npm run build` do `frontend/` verdes
+- [x] Gates do `sdd.config.md` §2 (lint, build, test) sem falha nova, com a saída real anotada (install não rodado: nenhuma dependência nova)
+- [x] `npm run test` e `npm run build` do `frontend/` sem falha nova
 - [ ] No navegador, `rodrigo@teste.com` recalculado: seção 3 com as duas dívidas, motivo e previsão na tela do aluno (360 px), no PDF liberado, na prévia e no plano do aluno na conferência; seção "Ordem de quitação" do revisor só leitura
 - [ ] Leitura 1 (`UNICA_DIVIDA` quando só uma posição restou por falta de comparação) apresentada ao responsável do produto na revisão; resposta anotada (não bloqueia)
-- [ ] Status das tarefas `T-603`–`T-634` atualizados; spec e planos com status coerente
+- [x] Status das tarefas `T-603`–`T-634` atualizados; spec e planos com status coerente
 
-**Status:** `[ ] pendente`
+**Status:** `[~] parcial (2026-11-17)` — suíte completa: 25 failed, 2816 passed, 81 skipped (780,14 s), as mesmas 25 da `main`; `ruff check .`: as mesmas 16; `mypy`: as mesmas 11 em 5 arquivos; `npm run test`: 9 failed | 352 passed, as 9 da `main`; `npm run build` e `npm run lint` verdes. PDF do caso do Rodrigo gerado fora do navegador (fixture do motor com `TIPO_DIVIDA`, data-base 2026-11-16): a seção da ordem traz as duas dívidas, motivo e previsão ("Termina em Setembro/2036…", "Termina em Novembro/2028…") e nenhum "Não será quitada…" nem "Recebe o valor extra". **Faltam:** a conferência no navegador com `rodrigo@teste.com` (tela 360 px, PDF liberado, prévia, conferência) e a Leitura 1 com o responsável do produto
 
 ---
 

@@ -3466,7 +3466,7 @@ Tarefas: em `tasks/app-aluno.tasks.md`, depois das do `motor-calculo` (`R13`).
 | Slug | `ordem-em-estabilizacao` (rodada do `app-aluno`) |
 | Spec | `specs/app-aluno.spec.md` Rodada 17 — `RF-555`, `RF-556`, `US-416`, `AC-586`–`AC-591`, `EC-92`–`EC-94`; nenhuma `OQ` nova |
 | Depende de | `plans/motor-calculo.plan.md` §`R14` (`RF-552`–`RF-554`): `PosicaoOrdem.MOTIVO_POSICAO`, `PrognosticoSemAcao.QUITACOES_SO_PARCELAS`, `ORDEM_DE_ATAQUE` completa em estabilização |
-| Status | `rascunho` |
+| Status | `implementado (2026-11-17)` — `T-623`–`T-634`; falta a conferência no navegador (`T-635`) |
 
 Seções `R19.x` (o prefixo `R18` é da Rodada 16).
 
