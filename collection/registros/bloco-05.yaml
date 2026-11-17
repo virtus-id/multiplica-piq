@@ -3,7 +3,7 @@
 # (RF-03, RF-04, RF-09, AC-04, AC-36). 55 das 58 perguntas são REP por
 # DIVIDA_ID (cada dívida é uma ficha) — só B5.00, B5.00A e B5.FIM02 não são
 # repetíveis (são perguntas de caso, não de ficha de dívida).
-QUESTIONARIO_VERSION: "1.5.0"
+QUESTIONARIO_VERSION: "1.6.0"
 perguntas:
   - ID: B5.00
     bloco: 5
@@ -167,25 +167,6 @@ perguntas:
     validacoes_cruzadas: []
     origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
     admite_nao_sei: true
-    salto_consequencia: null
-
-  # `T-525` (RF-533, OQ-85): o pagamento mínimo, ao lado do habitual (`B5.C02`).
-  # `OPT`: caso antigo não tem a resposta e não trava por ela. Enunciado
-  # aprovado (`T-532`).
-  - ID: B5.C02C
-    bloco: 5
-    enunciado: "Qual é o pagamento mínimo que esta dívida exige por mês?"
-    tipo: MOEDA
-    obrigatoriedade: [OPT, REP]
-    escopo_repeticao: DIVIDA_ID
-    opcoes:
-      - {rotulo: "R$ ______", valor_interno: null}
-    VARIAVEL_GRAVADA: PAGAMENTO_MINIMO_DIVIDA
-    condicao_exibicao: null
-    interpolacoes: []
-    validacoes_cruzadas: []
-    origem_opcoes: {fonte: REGISTRO, campo_do_snapshot: null}
-    admite_nao_sei: true  # nunca gravado como 0
     salto_consequencia: null
 
   # `T-493` (RF-523; revoga `T-465`/RF-510): o sistema é perguntado em toda

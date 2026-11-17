@@ -14851,3 +14851,84 @@ antigo).
 14 frases (validação do especialista; já registradas em
 `docs/perguntas-marcelo-calculo-de-divida.md`) e o layout em 360 px / PDF
 (conferência visual, `T-635`).
+
+---
+
+## Rodada 18 — Cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha (2026-11-17, `RF-557`–`RF-563`)
+
+> Spec: `specs/app-aluno.spec.md` Rodada 18 (`RF-557`–`RF-563`, `US-417`–
+> `US-419`, `AC-592`–`AC-602`, `EC-95`–`EC-99`; substitui `RF-86`/`RF-87` da
+> Rodada 9 e `RF-425` de `enxugamento-questionario.spec.md`; deixa `RF-110`
+> sem efeito; revoga parcialmente `RF-533`/`RF-534`/`AC-545` de
+> `calculo-de-divida.spec.md`; atende `RF-407` de `enxugamento-questionario`).
+> Plano: `plans/app-aluno.plan.md` `R20.1`–`R20.11`. **Sem dependência do
+> motor** — nenhum arquivo de `engine/` ou `persistencia/` é tocado nesta
+> rodada; nenhuma `OQ` nova.
+>
+> **Três frentes independentes, em ordem de risco crescente** (Entregas A, B
+> e C abaixo): (A) remoção de `B5.C02C` (pagamento mínimo, nunca lido por
+> nada) — a mais isolada; (B) cadastro de dívidas sem a pergunta de
+> quantidade (`B5.00` sai, `B5.FIM02` nunca aparece isolada) — a de mais
+> superfície, toca os três pontos de entrada da coleta e o inventário; (C)
+> ícone ⓘ nos quatro campos numéricos da ficha — frente nova, sem tocar
+> nenhum mecanismo existente. Dentro da frente B, a produção que remove
+> `B5.00` (`T-649`) quebra deliberadamente os testes que postavam `B5.00`
+> direto — corrigidos nas tarefas imediatamente seguintes (`T-651`–`T-655`).
+> O gate dessas tarefas intermediárias reporta a saída real, no mesmo padrão
+> já usado em `T-624`/`T-625` (comparar com a baseline conhecida, não exigir
+> verde absoluto a cada commit isolado dentro da mesma frente).
+>
+> **Regras desta rodada.**
+> 1. Nenhum arquivo de `engine/` ou `persistencia/` muda;
+>    `hashes_congelados.json` não é tocado.
+> 2. `QUESTIONARIO_VERSION` é **uma única** idêntica em todos os arquivos de
+>    `collection/registros/` — `collection/carga.py::_verificar_versao_unica`
+>    recusa qualquer divergência, inclusive no arquivo de casos de prova
+>    quando carregado com `incluir_casos_de_prova=True`
+>    (`test_os_casos_de_prova_do_gerador_ficam_fora_da_coleta`). Sobe de
+>    `"1.5.0"` para `"1.6.0"` em **todos** os sete arquivos na primeira
+>    tarefa que edita `bloco-05.yaml` nesta rodada (`T-637`); as edições
+>    seguintes a `bloco-05.yaml` (`T-649`, `T-669`) não bumpam de novo —
+>    `AC-598` exige só "acima da versão anterior à rodada", não um bump por
+>    mudança.
+> 3. `ID` de pergunta nunca é reaproveitado (`sdd.config.md` §6): `B5.00` e
+>    `B5.C02C` saem, seus `ID`s nunca voltam.
+> 4. Textos novos ao aluno (o ⓘ, a redação de `SEM_DIVIDAS`) são "sugestão,
+>    a validar com o especialista" — mesmo padrão de `RF-551`/`RF-555`/
+>    `RF-556`.
+> 5. Gates do `sdd.config.md` §2 (`lint`, `build`, `test`) ao fim de cada
+>    tarefa; nas de frontend, também `npm run test`, `npm run build` e
+>    `npm run lint` em `frontend/`.
+> 6. Valor esperado divergente do da spec/plano → parar e reportar, não
+>    ajustar o teste para combinar com o código.
+
+---
+
+## Entrega A — Frente 1: remoção de `B5.C02C` (pagamento mínimo, nunca lido)
+
+### `T-637` — Remover `B5.C02C` do questionário e subir `QUESTIONARIO_VERSION`
+
+- **Tipo:** `Data` · **Dependências:** nenhuma · **Rastreia:** `RF-561` · plano `R20.3`
+- **Arquivos:** `collection/registros/bloco-05.yaml`, `collection/registros/bloco-01.yaml`, `collection/registros/bloco-02.yaml`, `collection/registros/bloco-03.yaml`, `collection/registros/bloco-04.yaml`, `collection/registros/bloco-09.yaml`, `collection/registros/bloco-12-casos-de-prova.yaml`
+
+**Descrição.** Remove o registro `B5.C02C` (pagamento mínimo) de
+`bloco-05.yaml` — ele é gravado (`PAGAMENTO_MINIMO_DIVIDA`) mas nunca lido
+por motor, relatório, inventário ou tela (`RF-533`/`RF-534` já diziam isso).
+`QUESTIONARIO_VERSION` sobe de `"1.5.0"` para `"1.6.0"` nos **sete**
+arquivos de registro — a versão precisa ser idêntica em todos eles.
+
+**Critérios de aceite**
+
+- [ ] `B5.C02C` não existe mais em nenhum arquivo de `collection/registros/`
+- [ ] Os sete arquivos (`bloco-01` a `bloco-05`, `bloco-09`,
+      `bloco-12-casos-de-prova`) têm `QUESTIONARIO_VERSION: "1.6.0"`
+- [ ] `collection.carga.carregar_registros()` e
+      `carregar_registros(incluir_casos_de_prova=True)` carregam sem
+      `ErroDeCarga`
+- [ ] Gates: lint, build (suíte ainda não ajustada — falhas esperadas em
+      `test_registro_calculo_divida.py` e `test_contagem_de_coleta.py`,
+      corrigidas em `T-640`/`T-641`)
+
+**Status:** `[x] concluída (2026-11-17)`; carga sem `ErroDeCarga` (57 registros sem casos de prova, 60 com); além dos sete arquivos listados, `test_carga.py::test_t224_...` também fixava `QUESTIONARIO_VERSION` em `"1.5.0"` — renomeado/ajustado para `1.6.0` na mesma leva (consequência direta do bump, não listada nos Arquivos desta tarefa)
+
+---
