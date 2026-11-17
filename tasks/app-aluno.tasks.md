@@ -15524,7 +15524,7 @@ resposta" só aparece quando `pendencia.ID_PARA_CORRIGIR` não é `null`.
 - [ ] `npm run build` verde
 - [ ] Gates: lint, build (teste do componente ajustado em `T-661`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `npm run build`/`npm run lint`: só os dois erros esperados em `AlertaInventario.test.tsx` (`dividas`), adiados para `T-661`; `npm run lint:oxlint` sobre o arquivo: o mesmo aviso pré-existente (contexto exportado do mesmo arquivo do componente), sem novidade
 
 ---
 
