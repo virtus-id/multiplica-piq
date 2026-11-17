@@ -122,6 +122,15 @@ def serializar_pergunta(
         "enunciado": contexto.enunciado,
         "apoio": registro.apoio,
         "apresentacao": registro.apresentacao,
+        # RF-562: o conteúdo do ícone ⓘ, quando o registro o declara.
+        "explicacao": (
+            None
+            if registro.explicacao is None
+            else {
+                "o_que_e": registro.explicacao.o_que_e,
+                "onde_encontrar": registro.explicacao.onde_encontrar,
+            }
+        ),
         "opcoes": [serializar_opcao(opcao) for opcao in contexto.opcoes],
         "escopo_repeticao": registro.escopo_repeticao.value,
         "item_id": item_id,

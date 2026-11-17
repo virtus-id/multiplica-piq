@@ -15826,12 +15826,15 @@ registro.explicacao.onde_encontrar}`.
 
 **Critérios de aceite**
 
-- [ ] Pergunta com `explicacao` no registro serializa o objeto `{o_que_e,
+- [x] Pergunta com `explicacao` no registro serializa o objeto `{o_que_e,
       onde_encontrar}`
-- [ ] Pergunta sem `explicacao` serializa `"explicacao": null`
+- [x] Pergunta sem `explicacao` serializa `"explicacao": null`
 - [ ] Gates: lint, build (teste em `T-671`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — suítes que exercitam `serializar_pergunta`
+(`test_serializacao_posicao.py`, `test_renderizacao.py`,
+`test_materialidade.py`, `test_sem_condicional_no_javascript.py`) continuam
+passando (71 passed); gates completos ainda pendentes.
 
 ---
 
