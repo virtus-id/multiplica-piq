@@ -293,3 +293,35 @@ def test_ac591_teste3_e_plano_normal_sem_nenhuma_mudanca() -> None:
         assert all(
             (p.motivo_da_posicao, p.previsao_so_parcelas) == ("", "") for p in contexto.ordem
         )
+
+
+# --- T-631: EC-93, EC-94 -----------------------------------------------------
+
+
+def test_ec93_divida_que_cresce_mantem_os_itens_de_hoje() -> None:
+    """Emenda de 2026-11-16: na estabilização por dívida que cresce o valor
+    extra existe de fato — sem motivo nem previsão; "Não será quitada…" e
+    "Recebe o valor extra" ficam."""
+    snapshot = _teste3()
+    contexto = montar_contexto_plano(snapshot, _TEXTOS)
+    assert contexto.ESTABILIZACAO_POR_DIVIDA
+
+    assert all((p.motivo_da_posicao, p.previsao_so_parcelas) == ("", "") for p in contexto.ordem)
+    assert [bool(p.fora_do_horizonte) for p in contexto.ordem] == [True, True, False, False]
+    assert all(p.fatos[-1][0] == _RECEBE_EXTRA for p in contexto.ordem)
+    secao = _secao_3(_html(contexto))
+    assert "se você mantiver as parcelas em dia" not in secao
+    assert "Só com as parcelas de hoje" not in secao
+    assert not any(_E[f"motivo_{m.value}"] in secao for m in MOTIVO_POSICAO)
+
+
+def test_ec94_uma_divida_traz_a_frase_de_unica_e_a_previsao() -> None:
+    estado = _estado_rodrigo()
+    snapshot = calcular_plano(replace(estado, dividas=estado.dividas[:1]), _parametros())
+
+    (unica,) = montar_contexto_plano(snapshot, _TEXTOS).ordem
+
+    assert unica.motivo_da_posicao == _E["motivo_UNICA_DIVIDA"]
+    assert unica.previsao_so_parcelas == (
+        f"Termina em {rotulo_do_mes(118)}, se você mantiver as parcelas em dia."
+    )

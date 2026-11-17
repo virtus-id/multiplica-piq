@@ -14753,11 +14753,11 @@ revisor (`para_revisor=True`). Nenhuma rota muda.
 - **Tipo:** `Test` · **Dependências:** `T-626` · **Rastreia:** `EC-93`, `EC-94` · `RF-555`, `RF-556`, `RF-548` · plano `R19.5`, `R19.9`
 - **Arquivos:** `tests/app_aluno/test_plano_ordem_em_estabilizacao.py`
 
-- [ ] `EC-93` (emenda de 2026-11-16): `estabilizacao_por_divida` com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` → nenhuma frase do motivo nem previsão; "Não será quitada…" e "Recebe o valor extra" como hoje
-- [ ] `EC-94`: uma dívida → uma linha com a frase de `UNICA_DIVIDA` e a previsão
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] `EC-93` (emenda de 2026-11-16): `estabilizacao_por_divida` com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` → nenhuma frase do motivo nem previsão; "Não será quitada…" e "Recebe o valor extra" como hoje
+- [x] `EC-94`: uma dívida → uma linha com a frase de `UNICA_DIVIDA` e a previsão
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; `test_plano_ordem_em_estabilizacao.py`: 22 passed
 
 ---
 
