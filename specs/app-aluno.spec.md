@@ -533,8 +533,8 @@ com a redação canônica obrigatória.
 
 | ID | Requisito | Regras / seções / IDs de origem | Prioridade |
 | --- | --- | --- | --- |
-| `RF-555` | **O porquê de cada dívida na ordem provisória.** Na seção 3 do plano deficitário, na tela do aluno, no PDF (liberado e prévia) e no plano do aluno mostrado na conferência (`RF-121`), cada dívida traz **uma frase** que explica a posição, escolhida pelo `MOTIVO_POSICAO` daquela posição (`motor-calculo` `RF-553`) entre chaves novas do bloco `estabilizacao` de `textos-canonicos.yaml` — um texto por valor do domínio, igual para os três métodos (sugestão, a validar com o especialista; redação abaixo). Consequência direta: a preferência declarada e o incômodo só aparecem como motivo quando o motor diz que decidiram (`PREFERENCIA_QUITACAO`, `DESEMPATE_PESO_EMOCIONAL`). Vale para as duas variantes da seção (`estabilizacao` e `estabilizacao_por_divida`, `RF-480`). A etiqueta "Começa por esta" da primeira continua. Snapshot sem `MOTIVO_POSICAO` (anterior à Rodada 8 do motor): sem a frase, como hoje. Sem estabilização, nada muda | Respostas do especialista (2026-11-16), item 2 · `motor-calculo` `RF-553` · `RF-111`, `RF-121`, `RF-468`, `RF-480`, `AC-42`, `GAB-04` | essencial |
-| `RF-556` | **Quando cada dívida termina pagando só as parcelas.** Na mesma seção, cada dívida traz a previsão lida de `prognostico.sem_acao.QUITACOES_SO_PARCELAS` (`motor-calculo` `RF-554`): com mês, "Termina em {mês}, se você mantiver as parcelas em dia." (`{mês}` no mesmo rótulo de mês dos demais "Termina em" do plano); sem a dívida na lista, "Só com as parcelas de hoje, ela não termina." — sem mês, sem conta. Nesta seção, a previsão **substitui** os dois itens que vêm da simulação em déficit e a contradizem: a etiqueta "Não será quitada com os valores de hoje" (`RF-481`, lida de `ORDEM_FORA_DO_HORIZONTE`) e o fato "Recebe o valor extra" (`RF-542`, lido de `MesDoPlano.DIVIDA_ALVO`), já que em estabilização não há valor extra ("não há dinheiro livre", texto da seção). Os demais fatos da dívida (saldo, parcela, taxa) continuam. Snapshot sem `QUITACOES_SO_PARCELAS`: a seção fica como hoje, inclusive os dois itens. Sem estabilização, nada muda | Respostas do especialista (2026-11-16), item 3 · `motor-calculo` `RF-554`, `RF-77` · `RF-481`, `RF-542`, `AC-42`, `GAB-04` | essencial |
+| `RF-555` | **O porquê de cada dívida na ordem provisória.** Na seção 3 do plano deficitário, na tela do aluno, no PDF (liberado e prévia) e no plano do aluno mostrado na conferência (`RF-121`), cada dívida traz **uma frase** que explica a posição, escolhida pelo `MOTIVO_POSICAO` daquela posição (`motor-calculo` `RF-553`) entre chaves novas do bloco `estabilizacao` de `textos-canonicos.yaml` — um texto por valor do domínio, igual para os três métodos (sugestão, a validar com o especialista; redação abaixo). Consequência direta: a preferência declarada e o incômodo só aparecem como motivo quando o motor diz que decidiram (`PREFERENCIA_QUITACAO`, `DESEMPATE_PESO_EMOCIONAL`). Vale **só na estabilização por déficit** (`MOTIVO_ESTABILIZACAO = DEFICIT`, variante `estabilizacao`); na estabilização por dívida que cresce (`estabilizacao_por_divida`, `RF-480`, ex.: `aluno.teste3`) a seção fica como hoje (emenda de 2026-11-16, abaixo). A etiqueta "Começa por esta" da primeira continua. Snapshot sem `MOTIVO_POSICAO` (anterior à Rodada 8 do motor): sem a frase, como hoje. Sem estabilização, nada muda | Respostas do especialista (2026-11-16), item 2 · `motor-calculo` `RF-553` · `RF-111`, `RF-121`, `RF-468`, `RF-480`, `AC-42`, `GAB-04` | essencial |
+| `RF-556` | **Quando cada dívida termina pagando só as parcelas.** Na mesma seção, cada dívida traz a previsão lida de `prognostico.sem_acao.QUITACOES_SO_PARCELAS` (`motor-calculo` `RF-554`): com mês, "Termina em {mês}, se você mantiver as parcelas em dia." (`{mês}` no mesmo rótulo de mês dos demais "Termina em" do plano); sem a dívida na lista, "Só com as parcelas de hoje, ela não termina." — sem mês, sem conta. Nesta seção, a previsão **substitui** os dois itens que vêm da simulação em déficit e a contradizem: a etiqueta "Não será quitada com os valores de hoje" (`RF-481`, lida de `ORDEM_FORA_DO_HORIZONTE`) e o fato "Recebe o valor extra" (`RF-542`, lido de `MesDoPlano.DIVIDA_ALVO`), já que em estabilização não há valor extra ("não há dinheiro livre", texto da seção). Os demais fatos da dívida (saldo, parcela, taxa) continuam. Snapshot sem `QUITACOES_SO_PARCELAS`: a seção fica como hoje, inclusive os dois itens. Como `RF-555`, vale **só na estabilização por déficit**: na por dívida que cresce e sem estabilização, nada muda | Respostas do especialista (2026-11-16), item 3 · `motor-calculo` `RF-554`, `RF-77` · `RF-481`, `RF-542`, `AC-42`, `GAB-04` | essencial |
 
 > **Redação sugerida para `RF-555` e `RF-556`** (equipe técnica, a validar com o
 > especialista; sem "sobra", sem travessão):
@@ -556,6 +556,19 @@ com a redação canônica obrigatória.
 >
 > Previsão: "Termina em {mês}, se você mantiver as parcelas em dia." · "Só
 > com as parcelas de hoje, ela não termina."
+
+> **Emenda de 2026-11-16 (`T-625`): só no déficit.** `RF-555` e `RF-556`
+> (o motivo, a previsão e a troca de "Não será quitada com os valores de
+> hoje" e "Recebe o valor extra") valem só quando `MOTIVO_ESTABILIZACAO`
+> é `DEFICIT`. Na estabilização por dívida que cresce (`DIVIDA_QUE_CRESCE`,
+> `RF-480`) o mês é positivo e o valor extra existe de fato: a simulação
+> ataca as dívidas, e os itens antigos ("Recebe o valor extra", "Não será
+> quitada…") continuam verdadeiros; a premissa de `RF-556` ("não há
+> dinheiro livre") só vale no déficit. O pedido que abriu esta rodada era
+> sobre o mês negativo. A redação anterior chamava o `aluno.teste3` de
+> "fora de estabilização"; ele está em estabilização por dívida que
+> cresce (capacidade de ataque positiva, `motor-calculo` `AC-577`), e por
+> isso fica, com o plano normal, em `AC-591`.
 
 ## 3. User Stories
 
@@ -1252,10 +1265,10 @@ Atende: `RF-555`, `RF-556`
 | --- | --- | --- |
 | `AC-586` | `US-416` | Dado o snapshot do caso de teste `rodrigo@teste.com` calculado depois da Rodada 8 do motor (`motor-calculo` `AC-576`), quando o plano deficitário é montado (tela do aluno, PDF, prévia do PDF e plano do aluno na conferência), então a seção 3 tem **duas** linhas, financiamento imobiliário e depois consignado, pelo nome legível; a primeira traz a frase de `MAIOR_BENEFICIO_MARGINAL` e "Termina em {mês de D001 em `QUITACOES_SO_PARCELAS`}, se você mantiver as parcelas em dia."; a segunda traz a frase de `ULTIMA_RESTANTE` e "Termina em {mês 24}, se você mantiver as parcelas em dia."; e nenhuma linha contém a frase de `PREFERENCIA_QUITACAO`, a de `DESEMPATE_PESO_EMOCIONAL`, "Recebe o valor extra" nem "Não será quitada com os valores de hoje" (`RF-555`, `RF-556`) |
 | `AC-587` | `US-413` | Dado o mesmo caso em `AGUARDANDO_REVISAO`, quando o revisor abre a conferência, então a seção "Ordem de quitação" aparece com as duas dívidas na ordem vigente (a do método), sem subir/descer nem "Recalcular nesta ordem" (estabilização, `RF-548`); e `POST /api/revisao/caso/{id}/ordem` com qualquer lista não vazia continua recusado sem anexar snapshot (`motor-calculo` `AC-557`) |
-| `AC-588` | `US-416` | Dado, para cada valor do domínio de `MOTIVO_POSICAO`, um snapshot em estabilização com uma posição desse motivo, quando a seção 3 é montada, então a linha traz exatamente a frase daquele motivo em `textos-canonicos.yaml`; a frase de `PREFERENCIA_QUITACAO` só aparece em posição com esse motivo e a de `DESEMPATE_PESO_EMOCIONAL` só com esse motivo, mesmo quando a dívida tem `PREFERENCIA_QUITACAO` ou peso emocional alto; todo valor do domínio tem frase cadastrada; e nenhuma frase da seção contém "sobra" (`RF-555`) |
-| `AC-589` | `US-416` | Dada uma dívida em estabilização ausente de `QUITACOES_SO_PARCELAS` (parcela que não cobre os juros, por exemplo), quando a seção 3 é montada, então a linha traz "Só com as parcelas de hoje, ela não termina." e nenhum mês; dada uma dívida presente, o `{mês}` é o mesmo rótulo que o plano usa nos demais "Termina em" para aquele número de mês (`RF-556`) |
+| `AC-588` | `US-416` | Dado, para cada valor do domínio de `MOTIVO_POSICAO`, um snapshot em estabilização por déficit com uma posição desse motivo, quando a seção 3 é montada, então a linha traz exatamente a frase daquele motivo em `textos-canonicos.yaml`; a frase de `PREFERENCIA_QUITACAO` só aparece em posição com esse motivo e a de `DESEMPATE_PESO_EMOCIONAL` só com esse motivo, mesmo quando a dívida tem `PREFERENCIA_QUITACAO` ou peso emocional alto; todo valor do domínio tem frase cadastrada; e nenhuma frase da seção contém "sobra" (`RF-555`) |
+| `AC-589` | `US-416` | Dada uma dívida em estabilização por déficit ausente de `QUITACOES_SO_PARCELAS` (parcela que não cobre os juros, por exemplo), quando a seção 3 é montada, então a linha traz "Só com as parcelas de hoje, ela não termina." e nenhum mês; dada uma dívida presente, o `{mês}` é o mesmo rótulo que o plano usa nos demais "Termina em" para aquele número de mês (`RF-556`) |
 | `AC-590` | `US-416` | Dado um snapshot em estabilização gravado antes da Rodada 8 do motor (sem `MOTIVO_POSICAO` e sem `QUITACOES_SO_PARCELAS`), quando a seção 3 é montada, então ela é idêntica à de antes desta rodada; e, auditado o código de montagem da seção, nenhuma frase ou mês dela vem de soma, subtração, comparação de valores da dívida ou dos sinais da `§16.4` — só da leitura dos dois campos (`AC-42`) (`RF-555`, `RF-556`) |
-| `AC-591` | `US-416` | Dado um plano fora de estabilização — inclusive com o horizonte estourado e `MOTIVO_POSICAO` no snapshot (`aluno.teste3`) —, quando o plano é montado, então a explicação de cada dívida, "Não será quitada com os valores de hoje", "Recebe o valor extra" e os demais textos são exatamente os de antes desta rodada, e nenhuma frase de `RF-555`/`RF-556` aparece (`RF-555`, `RF-556`) |
+| `AC-591` | `US-416` | Dado um plano normal (fora de estabilização) ou em estabilização por dívida que cresce (`MOTIVO_ESTABILIZACAO = DIVIDA_QUE_CRESCE`, ex.: `aluno.teste3`, com o horizonte estourado, `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` no snapshot), quando o plano é montado, então a explicação de cada dívida, "Não será quitada com os valores de hoje", "Recebe o valor extra" e os demais textos são exatamente os de antes desta rodada, e nenhuma frase de `RF-555`/`RF-556` aparece (`RF-555`, `RF-556`) |
 
 ## 5. Non-Functional Requirements
 
@@ -1435,7 +1448,7 @@ Atende: `RF-555`, `RF-556`
 | ID | Situação | Comportamento esperado |
 | --- | --- | --- |
 | `EC-92` | `MOTIVO_POSICAO` com valor sem frase em `textos-canonicos.yaml` (domínio cresceu no motor) | Aparece o código técnico, visível, nunca uma frase genérica que diga outro motivo (mesma regra de `rotulos_de_apoio`); o teste de `AC-588` falha antes de chegar ao aluno |
-| `EC-93` | Estabilização por dívida que cresce (`RF-480`, `estabilizacao_por_divida`) | As mesmas frases por dívida: a previsão sempre; o porquê quando o snapshot traz `MOTIVO_POSICAO` (ordem publicada a partir da ordem de ataque, `motor-calculo` `EC-89`), senão sem ele, como hoje. A dívida que cresce não está em `QUITACOES_SO_PARCELAS` e traz "Só com as parcelas de hoje, ela não termina." |
+| `EC-93` | Estabilização por dívida que cresce (`RF-480`, `estabilizacao_por_divida`, ex.: `aluno.teste3`) | Nada muda (emenda de 2026-11-16): sem a frase do motivo e sem a previsão, mesmo com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` no snapshot; "Não será quitada com os valores de hoje" e "Recebe o valor extra" continuam como hoje. O mês é positivo e o valor extra existe de fato, então esses itens continuam verdadeiros |
 | `EC-94` | Uma só dívida na ordem | Uma linha, com a frase de `UNICA_DIVIDA` e a previsão; a seção "Ordem de quitação" do revisor não aparece (menos de duas dívidas, `RF-548`) |
 
 ## 7. Assumptions
@@ -1803,9 +1816,11 @@ Atende: `RF-555`, `RF-556`
 
 ### Rodada 17 (2026-11-16) — o que fica fora
 
-- **O plano normal** (fora de estabilização): explicação da posição,
+- **O plano normal** (fora de estabilização) **e a estabilização por dívida
+  que cresce** (`RF-480`, ex.: `aluno.teste3`): explicação da posição,
   "Recebe o valor extra" e "Não será quitada com os valores de hoje" não
-  mudam, mesmo com `MOTIVO_POSICAO` no snapshot (`AC-591`).
+  mudam, mesmo com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` no snapshot
+  (`AC-591`, `EC-93`).
 - **Ajustar a ordem em estabilização** pela conferência: continua sem
   edição (`RF-548`, `motor-calculo` `AC-557`).
 - **Qualquer cálculo** de mês, de motivo ou de ordem na aplicação.

@@ -3480,7 +3480,7 @@ destinos que já existem:
 snapshot (motor R14)
   ORDEM_QUITACAO[i].MOTIVO_POSICAO · prognostico.sem_acao.QUITACOES_SO_PARCELAS
         │
-report/plano._montar_contexto_plano — só com diagnostico.MODO_ESTABILIZACAO
+report/plano._montar_contexto_plano — só com MOTIVO_ESTABILIZACAO = DEFICIT (emenda T-625)
   ContextoPosicao.motivo_da_posicao   ← textos.estabilizacao["motivo_{CODIGO}"]   (RF-555; EC-92: o código)
   ContextoPosicao.previsao_so_parcelas ← "Termina em {rotulo_do_mes(m)}, …" | "Só com as parcelas de hoje, …"  (RF-556)
   com QUITACOES_SO_PARCELAS presente: fora_do_horizonte = "" e fatos sem "Recebe o valor extra" (RF-556)
@@ -3498,7 +3498,14 @@ completa; `editavel` já é `False` em estabilização
 quando a lista é a vigente, `OQ-101`; `422` por `ErroOrdemDoRevisor` nas
 demais, `EC-79`). Só teste.
 
-O que **não** muda: o plano normal (`_explicacao_da_posicao`,
+**Emenda de 2026-11-16 (`T-625`): só no déficit.** Tudo desta rodada vale só
+com `diagnostico.MOTIVO_ESTABILIZACAO is DEFICIT`. Na estabilização por
+dívida que cresce (`DIVIDA_QUE_CRESCE`, `RF-480`, ex.: `aluno.teste3`) o mês
+é positivo e o valor extra existe de fato, então "Recebe o valor extra" e
+"Não será quitada…" continuam verdadeiros: a seção fica como hoje
+(`EC-93`, `AC-591`; `test_rf_481` sem edição).
+
+O que **não** muda: o plano normal e a estabilização por dívida que cresce (`_explicacao_da_posicao`,
 `_tem_sinal_de_prioridade`, `_fato_recebe_extra`, `posicao.html`,
 `PlanoDoAluno.tsx` fora de estabilização — `AC-591`), as rotas, a máquina de
 estados, o banco, `OrdemDoRevisor.tsx` e o motor.
@@ -3530,7 +3537,7 @@ previsao_so_parcelas: str = ""   # RF-556: "" fora de estabilização ou com sna
 
 def _quitacoes_so_parcelas(snapshot: SnapshotOrdem) -> Mapping[str, int] | None:
     """RF-556 — {DIVIDA_ID: mês} lido de prognostico.sem_acao.QUITACOES_SO_PARCELAS.
-    None sem MODO_ESTABILIZACAO, sem prognostico ou com o campo None (snapshot
+    None fora da estabilização por déficit (MOTIVO_ESTABILIZACAO ≠ DEFICIT), sem prognostico ou com o campo None (snapshot
     anterior: a seção fica como hoje, AC-590). Leitura pura."""
 
 def _frase_do_motivo(motivo: MOTIVO_POSICAO | None, textos: TextosCanonicosPlano) -> str:
@@ -3546,9 +3553,9 @@ def _previsao_so_parcelas(
     estabilizacao["previsao_nao_termina"]. Sem conta."""
 
 # _montar_contexto_plano — por posição (lookup e condicional, nenhuma aritmética, AC-42):
-#   estab = snapshot.diagnostico.MODO_ESTABILIZACAO
+#   deficit = snapshot.diagnostico.MOTIVO_ESTABILIZACAO is MOTIVO_ESTABILIZACAO.DEFICIT
 #   so_parcelas = _quitacoes_so_parcelas(snapshot)               # uma vez, fora do laço
-#   motivo_da_posicao   = _frase_do_motivo(posicao.MOTIVO_POSICAO, textos) if estab else ""
+#   motivo_da_posicao   = _frase_do_motivo(posicao.MOTIVO_POSICAO, textos) if deficit else ""
 #   previsao_so_parcelas = _previsao_so_parcelas(id, so_parcelas, textos) if so_parcelas is not None else ""
 #   fora_do_horizonte   = como hoje, mas "" quando so_parcelas is not None
 #   fatos               = _fatos_da_divida(...) quando so_parcelas is not None,
@@ -3571,19 +3578,19 @@ motivo_da_posicao?: string     // RF-555, texto pronto do servidor
 previsao_so_parcelas?: string  // RF-556, idem
 ```
 
-As frases valem para as duas variantes da seção (`estabilizacao` e
-`estabilizacao_por_divida`, `EC-93`): o template já usa
-`textos.estabilizacao` nos dois ramos. "Começa por esta" fica.
+As frases valem só na variante `estabilizacao` com `MOTIVO_ESTABILIZACAO =
+DEFICIT` (emenda `T-625`); em `estabilizacao_por_divida` (`EC-93`) os dois
+campos ficam `""` e a linha é a de hoje. "Começa por esta" fica.
 
 ## R19.5. Data Flow
 
 | Snapshot | Seção 3 (tela, PDF, prévia, conferência) |
 | --- | --- |
 | Estabilização, depois da Rodada 8 do motor (Rodrigo, `AC-586`) | todas as dívidas da `ORDEM_DE_ATAQUE`; por linha: nome, frase do motivo, previsão, saldo/parcela/taxa; sem "Recebe o valor extra" nem "Não será quitada…" |
-| Estabilização por dívida que cresce (`EC-93`) | previsão sempre; motivo só se o snapshot o traz (ordem de ataque com estouro ou capacidade ≤ 0, `motor` `EC-89`); a dívida que cresce: "Só com as parcelas de hoje, ela não termina." |
+| Estabilização por dívida que cresce (`EC-93`, ex.: `aluno.teste3`) | idêntica a hoje (emenda `T-625`): sem motivo e sem previsão, com "Não será quitada…" e "Recebe o valor extra" — o mês é positivo e o valor extra existe de fato |
 | Uma só dívida (`EC-94`) | uma linha com a frase de `UNICA_DIVIDA` e a previsão; a seção do revisor não aparece (`< 2`, `RF-548`, sem mudança) |
 | Estabilização gravada antes da Rodada 8 (`AC-590`) | idêntica a hoje: sem motivo (`MOTIVO_POSICAO is None`), sem previsão e com os dois itens antigos (`QUITACOES_SO_PARCELAS is None`) |
-| Fora de estabilização, inclusive `aluno.teste3` com `MOTIVO_POSICAO` (`AC-591`) | idêntica a hoje: os dois campos novos ficam `""`; nada novo aparece |
+| Fora de estabilização, com `MOTIVO_POSICAO` (`AC-591`) | idêntica a hoje: os dois campos novos ficam `""`; nada novo aparece |
 
 ## R19.6. External Interfaces
 
@@ -3634,12 +3641,13 @@ renderiza as strings.
     leem `TAXA_*`, `GARANTIA_*`, `NEGATIVADA`, `PREFERENCIA_QUITACAO`,
     `PESO_EMOCIONAL`. `tests/app_aluno/estatica/test_sem_aritmetica_sobre_snapshot.py`
     segue verde.
-  - `AC-591`: `aluno.teste3` (horizonte estourado, com `MOTIVO_POSICAO`) →
-    `ContextoPlano` igual ao do mesmo snapshot com `MOTIVO_POSICAO` e
-    `QUITACOES_SO_PARCELAS` zerados; `motivo_da_posicao`/`previsao_so_parcelas`
-    vazios em todas as posições.
-  - `EC-92` (motivo sem frase → código), `EC-93` (`estabilizacao_por_divida`
-    com e sem motivo), `EC-94` (uma dívida).
+  - `AC-591`: `aluno.teste3` (estabilização por dívida que cresce, horizonte
+    estourado, com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS`) e um plano
+    normal → `ContextoPlano` igual ao do mesmo snapshot com `MOTIVO_POSICAO`
+    e `QUITACOES_SO_PARCELAS` zerados; `motivo_da_posicao`/`previsao_so_parcelas`
+    vazios em todas as posições (o teste3 não recebe motivo nem previsão).
+  - `EC-92` (motivo sem frase → código), `EC-93` (`estabilizacao_por_divida`:
+    nada muda, emenda `T-625`), `EC-94` (uma dívida).
   - `AC-587`: com os fakes e `dependency_overrides` de
     `tests/app_aluno/test_rotas_ordem_do_revisor.py`, o caso do Rodrigo em
     `AGUARDANDO_REVISAO`: `ordem_do_revisor.vigente` com as duas dívidas na

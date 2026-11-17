@@ -14590,7 +14590,11 @@ quatro variantes (validação do especialista, `T-601`) e o p95 (`T-602`).
 > intocado: `_explicacao_da_posicao`, `_tem_sinal_de_prioridade`,
 > `_fato_recebe_extra`, `posicao.html` e `PlanoDoAluno.tsx` fora de
 > estabilização sem diff (`AC-591`); rotas, máquina de estados, banco e
-> `OrdemDoRevisor.tsx` também. (4) Frases "sugestão, a validar" com o
+> `OrdemDoRevisor.tsx` também. **Emenda de 2026-11-16 (`T-625`): só no
+> déficit** — tudo desta rodada vale só com `MOTIVO_ESTABILIZACAO = DEFICIT`;
+> na estabilização por dívida que cresce (`aluno.teste3`) o mês é positivo e o
+> valor extra existe de fato, então a seção fica como hoje (`test_rf_481` sem
+> edição). (4) Frases "sugestão, a validar" com o
 > especialista — já registradas em `docs/perguntas-marcelo-calculo-de-divida.md`,
 > seção "Textos novos para conferir (2026-11-16)". (5) Valor esperado
 > divergente do da spec/plano (ex.: mês de D001) → parar e reportar, não ajustar
@@ -14646,15 +14650,16 @@ v)`, `""` com `None` (`EC-92`: o código, nunca frase genérica);
 - **Tipo:** `Data` · **Dependências:** `T-624` · **Rastreia:** `RF-555`, `RF-556`, `AC-586`, `AC-590`, `AC-591`, `EC-93` · plano `R19.4` (`_montar_contexto_plano`), `R19.5`
 - **Arquivos:** `report/plano.py`
 
-**Descrição.** Por posição: `estab = snapshot.diagnostico.MODO_ESTABILIZACAO`;
+**Descrição.** Por posição: `deficit = snapshot.diagnostico.MOTIVO_ESTABILIZACAO is DEFICIT`
+(emenda de 2026-11-16; `_quitacoes_so_parcelas` também devolve `None` fora do déficit);
 `so_parcelas = _quitacoes_so_parcelas(snapshot)` (uma vez, fora do laço);
-`motivo_da_posicao` = frase se `estab`, senão `""`; `previsao_so_parcelas` =
+`motivo_da_posicao` = frase se `deficit`, senão `""`; `previsao_so_parcelas` =
 previsão se `so_parcelas is not None`, senão `""`; com `so_parcelas` presente,
 `fora_do_horizonte = ""` e `fatos = _fatos_da_divida(...)` (sem "Recebe o valor
 extra"); senão, os dois como hoje.
 
 - [ ] Fora de estabilização e com snapshot anterior, o `ContextoPosicao` é o de hoje campo a campo (testes atuais de estabilização e do plano normal verdes sem edição)
-- [ ] Vale nas duas variantes (`estabilizacao` e `estabilizacao_por_divida`)
+- [ ] Vale só na estabilização por déficit (`MOTIVO_ESTABILIZACAO = DEFICIT`); em `estabilizacao_por_divida` (`DIVIDA_QUE_CRESCE`) o `ContextoPosicao` é o de hoje (`test_rf_481` verde sem edição)
 - [ ] `test_sem_aritmetica_sobre_snapshot` verde; gates: lint, build, test
 
 **Status:** `[ ] pendente`
@@ -14736,7 +14741,7 @@ revisor (`para_revisor=True`). Nenhuma rota muda.
 
 - [ ] `AC-590`: snapshot de estabilização com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` em `None` → `ContextoPosicao` e HTML da seção iguais aos de hoje (com os dois itens antigos)
 - [ ] `AC-590`: checagem AST de que `_frase_do_motivo` e `_previsao_so_parcelas` não recebem `Divida` nem leem `TAXA_*`, `GARANTIA_*`, `NEGATIVADA`, `PREFERENCIA_QUITACAO`, `PESO_EMOCIONAL`; `test_sem_aritmetica_sobre_snapshot` verde
-- [ ] `AC-591`: `aluno.teste3` (estouro, com `MOTIVO_POSICAO`) → `ContextoPlano` igual ao do mesmo snapshot com os dois campos zerados; `motivo_da_posicao`/`previsao_so_parcelas` vazios em todas as posições
+- [ ] `AC-591`: `aluno.teste3` (estabilização por dívida que cresce, estouro, com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS`) e um plano normal → `ContextoPlano` igual ao do mesmo snapshot com os dois campos zerados; `motivo_da_posicao`/`previsao_so_parcelas` vazios em todas as posições (o teste3 não recebe motivo nem previsão)
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
 
 **Status:** `[ ] pendente`
@@ -14748,7 +14753,7 @@ revisor (`para_revisor=True`). Nenhuma rota muda.
 - **Tipo:** `Test` · **Dependências:** `T-626` · **Rastreia:** `EC-93`, `EC-94` · `RF-555`, `RF-556`, `RF-548` · plano `R19.5`, `R19.9`
 - **Arquivos:** `tests/app_aluno/test_plano_ordem_em_estabilizacao.py`
 
-- [ ] `EC-93`: `estabilizacao_por_divida` com e sem `MOTIVO_POSICAO` → previsão sempre, motivo só com o campo; a dívida que cresce traz "Só com as parcelas de hoje, ela não termina."
+- [ ] `EC-93` (emenda de 2026-11-16): `estabilizacao_por_divida` com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` → nenhuma frase do motivo nem previsão; "Não será quitada…" e "Recebe o valor extra" como hoje
 - [ ] `EC-94`: uma dívida → uma linha com a frase de `UNICA_DIVIDA` e a previsão
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
 
