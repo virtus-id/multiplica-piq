@@ -15585,7 +15585,7 @@ rota, nunca guardado em estado (mesma disciplina de `TITULOS_POR_ESCOPO`).
 - [ ] `npm run build` verde
 - [ ] Gates: lint, build (teste em `T-662`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `npm run build`/`npm run lint`: só os dois erros esperados em `AlertaInventario.test.tsx`, adiados para `T-661`; `npm run lint:oxlint`: os mesmos avisos pré-existentes (linhas deslocadas pelas linhas acrescentadas), sem novidade; `npm run test`: 11 failed (9 da baseline + as duas de `AlertaInventario.test.tsx::T-324` que dependiam do bloco removido em `T-658` — ajuste é o próprio escopo de `T-661`, já previsto)
 
 ---
 

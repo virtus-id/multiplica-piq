@@ -292,7 +292,13 @@ export default function TelaPergunta({
         ? await obterPergunta(casoId, idPergunta, itemId)
         : await obterProximaPergunta(casoId, itemId)
       if (!dados.pergunta) {
-        onColetaCompleta()
+        // `T-660` (`RF-558`, `AC-594`): desvio defensivo — a próxima seria
+        // `B5.FIM02`, e o servidor devolve a lista no lugar da pergunta.
+        if (dados.abrir_fichas?.length) {
+          onAbrirFichas?.(dados.abrir_fichas)
+        } else {
+          onColetaCompleta()
+        }
         return
       }
       if (!corrigindo && abrirFormulario?.(dados.pergunta)) return
@@ -310,7 +316,7 @@ export default function TelaPergunta({
     } finally {
       setCarregando(false)
     }
-  }, [casoId, idPergunta, itemId, onColetaCompleta, corrigindo, abrirFormulario])
+  }, [casoId, idPergunta, itemId, onColetaCompleta, onAbrirFichas, corrigindo, abrirFormulario])
 
   useEffect(() => {
     void carregar()
