@@ -60,9 +60,9 @@ from app.http.mensagens_de_estado import (
 )
 from app.http.rotas_calculo import snapshot_corrente
 from app.http.rotas_coleta import (
+    ID_FIM_DE_CADASTRO,
     _itens_por_escopo,
-    faltam_fichas_de_divida,
-    posterior_a_declaracao_de_dividas,
+    criar_primeira_ficha_de_divida,
 )
 from app.http.rotas_plano import obter_repositorio_snapshots
 from app.http.rotas_revisao import formatar_pendencia_homologacao
@@ -215,6 +215,7 @@ def _proxima_etapa(
     colecao: ColecaoDeRegistros,
     respostas: RespostasCaso,
     itens_por_escopo: Mapping[EscopoRepeticao, tuple[str, ...]],
+    repositorio_itens: RepositorioItens,
 ) -> ProximaEtapa:
     """A única próxima etapa, por fase — a transcrição dos cinco ramos de
     `renderInicio` (protótipo, linha ~917).
@@ -250,18 +251,24 @@ def _proxima_etapa(
                 return ProximaEtapa(
                     destino=DESTINO_DA_ETAPA.CALCULANDO,
                 )
-            # `T-301` (DE-04, RF-87): passada a declaração das dívidas, fora
-            # de uma ficha, e com fichas faltando — o destino é a lista de
-            # fichas, não `B5.FIM02` (cuja regra de exibição não muda).
-            if (
-                pendencia.item_id is None
-                and posterior_a_declaracao_de_dividas(colecao, pendencia.ID)
-                and faltam_fichas_de_divida(colecao, respostas, itens_por_escopo)
-            ):
-                return ProximaEtapa(
-                    destino=DESTINO_DA_ETAPA.INVENTARIO,
-                    abrir_fichas=(EscopoRepeticao.DIVIDA_ID,),
+            # `T-645`/`T-649` (RF-557, RF-558): a própria pendência é
+            # `B5.FIM02` — sem `B5.00` (saiu em `T-649`), este é o ÚNICO
+            # ramo que decide o destino quando a varredura chega até aqui.
+            if pendencia.ID == ID_FIM_DE_CADASTRO:
+                if itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID):
+                    return ProximaEtapa(
+                        destino=DESTINO_DA_ETAPA.INVENTARIO,
+                        abrir_fichas=(EscopoRepeticao.DIVIDA_ID,),
+                    )
+                primeira = criar_primeira_ficha_de_divida(
+                    caso.CASO_ID, colecao, respostas, repositorio_itens
                 )
+                if primeira is not None:
+                    return ProximaEtapa(
+                        destino=DESTINO_DA_ETAPA.PERGUNTA,
+                        ID_PERGUNTA=primeira.ID,
+                        item_id=primeira.item_id,
+                    )
             return ProximaEtapa(
                 destino=DESTINO_DA_ETAPA.PERGUNTA,
                 ID_PERGUNTA=pendencia.ID,
@@ -404,7 +411,7 @@ def inicio_do_caso(
     # `plano`, nunca `acompanhamento` nem "ataque a decidir".
     fase = fase_do_estado(caso.estado)
     contagem = contar_coleta(colecao.registros, respostas, itens_por_escopo)
-    etapa = _proxima_etapa(caso, fase, colecao, respostas, itens_por_escopo)
+    etapa = _proxima_etapa(caso, fase, colecao, respostas, itens_por_escopo, repositorio_itens)
 
     # O valor em destaque existe SÓ na fase `plano`, e sempre como string
     # separada do rótulo — `AC-88`. Nas outras fases é `null`: não há decisão

@@ -487,4 +487,42 @@ describe("CalculadoraDaDivida", () => {
       screen.queryByTestId("hipotese-conservadora"),
     ).not.toBeInTheDocument();
   });
+
+  // ------------------------------------------------------------- T-678 (RF-562)
+
+  const EXPLICACAO = { o_que_e: "O que é.", onde_encontrar: "Onde encontrar." };
+
+  it("RF-562: com `explicacao` nas quatro perguntas, os quatro ícones ⓘ aparecem", async () => {
+    gravado({
+      "B5.B03": { explicacao: EXPLICACAO },
+      "B5.C02": { explicacao: EXPLICACAO },
+      "B5.C02B": { explicacao: EXPLICACAO },
+      "B5.D06": { explicacao: EXPLICACAO },
+    });
+    vi.spyOn(api, "preverCalculadora").mockResolvedValue(previa());
+    montar();
+
+    await screen.findByLabelText("Saldo devedor da dívida?");
+    expect(
+      screen.getByRole("button", { name: "O que é Saldo devedor?" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "O que é Parcela?" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "O que é Taxa?" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "O que é Prazo?" }),
+    ).toBeInTheDocument();
+  });
+
+  it("RF-562: sem `explicacao` nas perguntas, nenhum ícone ⓘ aparece", async () => {
+    gravado();
+    vi.spyOn(api, "preverCalculadora").mockResolvedValue(previa());
+    montar();
+
+    await screen.findByLabelText("Saldo devedor da dívida?");
+    expect(screen.queryByRole("button", { name: /^O que é/ })).toBeNull();
+  });
 });

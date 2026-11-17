@@ -18,6 +18,7 @@ import { useState } from 'react'
 import { aplicarMascara, temMascara } from '../mascaras'
 import { PREFIXO_TEXTO_DO_CAMPO } from '../services/api'
 import type { Pergunta } from '../tipos'
+import Explicacao from './Explicacao'
 
 interface CampoPerguntaProps {
   pergunta: Pergunta
@@ -49,6 +50,14 @@ export default function CampoPergunta({
     <p id={idApoio} className="nota m-0">
       {pergunta.apoio}
     </p>
+  ) : null
+  // RF-562: o ícone ⓘ ao lado do rótulo/legend, só quando o registro o declara.
+  const explicacao = pergunta.explicacao ? (
+    <Explicacao
+      campo={pergunta.enunciado}
+      oQueE={pergunta.explicacao.o_que_e}
+      ondeEncontrar={pergunta.explicacao.onde_encontrar}
+    />
   ) : null
   const grupo = pergunta.tipo === 'SELECAO_UNICA' || pergunta.tipo === 'SIM_NAO_TALVEZ'
   // `T-294`: na seleção única, `[código, R$ digitado]` quando a opção abre
@@ -157,9 +166,12 @@ export default function CampoPergunta({
       {grupo && pergunta.apresentacao === 'MENU' ? (
         // `T-415`: lista longa (as instituições de `B5.A01`) como caixa de seleção.
         <div className="field flex flex-col gap-2">
-          <label htmlFor={id} className="font-serif text-[1.35rem] font-semibold">
-            {pergunta.enunciado}
-          </label>
+          <div className="flex items-center gap-2">
+            <label htmlFor={id} className="font-serif text-[1.35rem] font-semibold">
+              {pergunta.enunciado}
+            </label>
+            {explicacao}
+          </div>
           {apoio}
           <select
             id={id}
@@ -202,6 +214,7 @@ export default function CampoPergunta({
         <fieldset className="flex flex-col gap-2 border-0 p-0" disabled={inerte}>
           <legend className="mb-2 font-serif text-[1.35rem] font-semibold">
             {pergunta.enunciado}
+            {explicacao}
           </legend>
           {apoio}
           {pergunta.opcoes.map((opcao, indice) => {
@@ -295,6 +308,7 @@ export default function CampoPergunta({
         <fieldset className="flex flex-col gap-2 border-0 p-0" disabled={inerte}>
           <legend className="mb-2 font-serif text-[1.35rem] font-semibold">
             {pergunta.enunciado}
+            {explicacao}
           </legend>
           {apoio}
           {pergunta.opcoes.map((opcao, indice) => {
@@ -335,6 +349,7 @@ export default function CampoPergunta({
         <fieldset className="flex flex-col gap-2 border-0 p-0" disabled={inerte}>
           <legend className="mb-2 font-serif text-[1.35rem] font-semibold">
             {pergunta.enunciado}
+            {explicacao}
           </legend>
           {apoio}
           <div className="grid grid-cols-6 gap-2">
@@ -355,9 +370,12 @@ export default function CampoPergunta({
         </fieldset>
       ) : (
         <div className="field flex flex-col gap-2">
-          <label htmlFor={id} className="font-serif text-[1.35rem] font-semibold">
-            {pergunta.enunciado}
-          </label>
+          <div className="flex items-center gap-2">
+            <label htmlFor={id} className="font-serif text-[1.35rem] font-semibold">
+              {pergunta.enunciado}
+            </label>
+            {explicacao}
+          </div>
           {apoio}
 
           {pergunta.tipo === 'MOEDA' ? (

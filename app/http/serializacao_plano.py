@@ -189,14 +189,12 @@ def vocabulario_do_caso(
     }
     # `RF-412`: só respostas, transportadas; o texto e a frase de
     # responsabilidade são montados em `report/`.
-    declaradas = respostas.valor("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL")
     return VocabularioDoCaso(
         rotulos_de_opcao=rotulos,
         credores=credores,
         dividas_com_garantia=frozenset(
             d for d in dividas if respostas.valor_no_item(d, "POSSUI_GARANTIA") == "SIM"
         ),
-        fichas_faltando=isinstance(declaradas, int) and declaradas > len(dividas),
         # as mesmas respostas que o motor leu (`B3.04A` só vale com `B3.04` = Sim)
         resumo_das_despesas=resumo_das_despesas(_respostas_do_calculo(registros, respostas)),
         maiores_gastos=maiores_gastos(registros, respostas, itens),

@@ -364,6 +364,13 @@ com a redação canônica obrigatória.
 | `RF-97` | Se faltar dado indispensável (`RF-93`), o sistema sinaliza, nomeando o dado, que o resultado **não pode ser homologado** — a liberação na fila fica bloqueada até o dado ser confirmado ou corrigido (`RF-93`) — e nunca presume valor | `DE-08` (`q8_1`) · `RF-12` · `GAB-03` · `OQ-62`, `OQ-64` (resolvidas) | essencial |
 | `RF-98` | Recursos extraordinários (`B3.05A–D`): o aluno cadastra **vários**, cada um com tipo, valor, janela e certeza, e a montagem os entrega ao motor **item a item**, nunca somados como se tivessem a mesma certeza. Em Férias/abono, o valor coletado é **só o acréscimo (1/3)**. O plano apresenta o **cenário adicional** (segunda projeção com os `PROVAVEL` e os `POSSIVEL`; nenhum deles entra na projeção-base até ser recebido), separado e rotulado, lido do snapshot. A regra de projeção é do motor (`motor-calculo` `RF-70`–`RF-76`) — esta camada lê e entrega. Restituição de seguro confirmada (`B5.D05R`) cria um item com `ORIGEM_RECURSO_EXTRAORDINARIO = B5.D05R` (nome ratificado na canônica v1.0.4, `E-16`), cujas perguntas abrem mesmo com `B3.05 = Não`; nesse caso o aluno recebe um aviso curto de que a restituição será considerada valor extraordinário (decisão do produto, 2026-09-30, `T-288`). Textos ao aluno: aprovados pelo responsável do produto em 2026-09-30 (`T-289`); a explicação do cenário adicional e o enunciado de Férias/abono ficam pendentes de validação do especialista | `DE-02` (`q2_1`–`q2_3`) · canônica v1.0.2 `E-10` · `RF-39` (fatia 2B) · `OQ-22`(b) (resolvida, `T-208`) · `OQ-24` (tarefa técnica) · `OQ-67` (resolvida) | essencial |
 
+> **Nota de substituição (Rodada 18, 2026-11-17).** `RF-86` e `RF-87`
+> acima ficam **substituídos por `RF-557` a `RF-561`** (Rodada 18): o
+> bloqueio de inventário incompleto por dívida deixa de comparar `B5.00`
+> declarado × fichas cadastradas — a pergunta `B5.00` sai do questionário.
+> `RF-88` (itens declarados: renda extra, vínculo, despesa não mensal) **não
+> muda** e continua valendo como está.
+
 ### Rodada 10 (2026-10-01) — perguntas complementares na mesma tela
 
 > **Decisão do responsável do produto, 2026-10-01.** Quando a opção escolhida
@@ -426,6 +433,12 @@ com a redação canônica obrigatória.
 | --- | --- | --- | --- |
 | `RF-109` | Nas perguntas de valor (`MOEDA`, `TAXA`, `NUMERO`, `DATA`), **todas as alternativas não numéricas do registro, inclusive "Não sei", aparecem no mesmo formato**: um grupo de opções exclusivas (estilo `.opt`) junto ao campo de valor — nada de checkbox à parte. Escolher uma alternativa limpa o campo; digitar um valor desmarca a alternativa. A gravação não muda (`NAO_SEI`, o código da alternativa ou o valor). Vale na tela da pergunta e no formulário de ficha. Nas perguntas de seleção segue `T-207`. Revisa `AC-78` nos tipos de valor: "inerte" passa a ser campo vazio, não travado | Decisão do produto (2026-10-01) · `RF-11`, `RF-48`, `RF-50`, `AC-78` · `T-323` | importante |
 | `RF-110` | O alerta de dívidas faltando (`RF-87`) **diz quais**: abaixo da mensagem de `RF-87` (literal, primeira linha), os **tipos marcados na declaração de tipos (`B5.00A`) que ainda não têm nenhuma ficha** daquele tipo (`TIPO_DIVIDA`, pelo rótulo legível) e as **fichas já cadastradas** (credor e tipo de cada uma), com a ação "Cadastrar a próxima dívida", que reabre a ficha criada e vazia ou cria uma e abre a primeira pergunta (`RF-101`). Como a declaração dá só o total, não há contagem por tipo. Cálculo no servidor (payload de `/inventario`); o cliente só escreve | Decisão do produto (2026-10-01) · `RF-86`, `RF-87`, `RF-101`, `DE-04` · `T-324` | importante |
+
+> **Nota de substituição (Rodada 18, 2026-11-17).** `RF-110` fica **sem
+> efeito pela Rodada 18** (`RF-559`): sem `B5.00`, não há quantidade
+> declarada nem "tipos sem ficha" para listar. A ação de cadastrar a
+> próxima dívida continua existindo, mas pelo convite "Cadastrar outra
+> dívida" de `RF-558`, não por este alerta.
 
 ### Rodada 11 (2026-10-02) — Plano e conferência em linguagem humana
 
@@ -569,6 +582,47 @@ com a redação canônica obrigatória.
 > "fora de estabilização"; ele está em estabilização por dívida que
 > cresce (capacidade de ataque positiva, `motor-calculo` `AC-577`), e por
 > isso fica, com o plano normal, em `AC-591`.
+
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+> **Decisões do usuário, 2026-11-17**, aprovadas em
+> `plans/app-aluno.plan.md` R20.x (briefing completo lá). Três mudanças no
+> Bloco 5: (1) a pergunta `B5.00` ("Quantas dívidas ou operações financeiras
+> diferentes você tem hoje?") sai — o bloco abre direto a primeira ficha de
+> dívida, e ao fim de cada ficha o aluno escolhe entre **"Cadastrar outra
+> dívida"** e **"Não tenho mais, seguir"**; este último grava
+> `CONFIRMACAO_FIM_CADASTRO = SIM` (a resposta de `B5.FIM02`), que deixa de
+> ser apresentada como pergunta isolada — o caminho "ainda falta uma dívida"
+> deixa de existir; (2) a pergunta `B5.C02C` (pagamento mínimo) sai — ela é
+> gravada (`PAGAMENTO_MINIMO_DIVIDA`) mas nunca é lida, nem pelo motor, nem
+> pelo relatório, nem pelas telas; (3) um ícone ⓘ, ao lado dos quatro campos
+> numéricos da ficha de dívida, explica o que é o campo e onde encontrar o
+> dado, acionável por mouse, teclado e toque. Casos antigos com `B5.00` ou
+> `B5.C02C` respondidas têm a resposta ignorada, sem migração — mesmo
+> caminho da remoção de `B5.00A` em `T-389`.
+>
+> **Substitui** `RF-86` e `RF-87` desta spec (nota na Rodada 9, acima) e
+> `RF-425` de `specs/enxugamento-questionario.spec.md` (nota no próprio
+> arquivo). Deixa `RF-110` desta spec **sem efeito** (nota na Rodada 10,
+> acima). `RF-88`, `RF-89` e `RF-90` **não mudam**. **Revoga parcialmente**
+> `RF-533` de `specs/calculo-de-divida.spec.md` e ajusta a frase final de
+> `RF-534` (notas no próprio arquivo). **Atende** `RF-407` de
+> `enxugamento-questionario` (o texto de ajuda da taxa sai do enunciado e
+> passa a viver só no ⓘ).
+>
+> **Numeração global** (último `RF-556`, `AC-591`, `EC-94`, `OQ-104`,
+> `US-416`): esta rodada usa `RF-557` a `RF-563`, `US-417` a `US-419`,
+> `AC-592` a `AC-602` e `EC-95` a `EC-99`. Nenhuma `OQ` nova (ver seção 10).
+
+| ID | Requisito | Regras / seções / IDs de origem | Prioridade |
+| --- | --- | --- | --- |
+| `RF-557` | **O Bloco 5 abre direto na primeira ficha de dívida.** Sem nenhuma ficha de dívida cadastrada, a próxima pergunta em branco do Bloco 5 já é a primeira pergunta da primeira ficha (`B5.A01`, "Para quem você deve nessa primeira dívida?"): o servidor cria a ficha e devolve a pergunta, sem nenhuma pergunta de quantidade antes. **Substitui** `RF-86` (nota na Rodada 9) e `RF-425` de `enxugamento-questionario` (nota no próprio arquivo) | Decisão do usuário (2026-11-17) · `RF-03`, `RF-04`, `RF-09` · mecanismo de criação de ficha já existente (`RF-45`, `RF-101`), reaproveitado | essencial |
+| `RF-558` | **Ao fim de cada ficha, cadastrar outra ou seguir.** Na lista de dívidas (escopo `DIVIDA_ID`) com uma ou mais fichas, os dois botões que hoje fecham o escopo são substituídos por **"Cadastrar outra dívida"** (abre uma ficha nova, vazia, na primeira pergunta) e **"Não tenho mais, seguir"** (grava `SIM` em `B5.FIM02` — `CONFIRMACAO_FIM_CADASTRO` — pela gravação de resposta já existente, e segue para a próxima pergunta em branco fora do Bloco 5). `B5.FIM02` **nunca** é apresentada como pergunta isolada: quando ela seria a próxima em branco, o servidor devolve a lista de dívidas no lugar, do mesmo jeito que já faz ao fechar uma ficha. O caminho "Não, ainda falta pelo menos uma dívida" deixa de ser alcançável pela interface; a semântica de `CONFIRMACAO_FIM_CADASTRO` para `INVENTARIO_COMPLETO` (`RF-15`) não muda | Decisão do usuário (2026-11-17) · `RF-15`, `RF-45`, `RF-101` · `B5.FIM02` | essencial |
+| `RF-559` | **`SEM_DIVIDAS` passa a depender só da existência de ficha.** A pendência que bloqueia o cálculo final passa a valer quando não há **nenhuma** ficha de dívida com ao menos uma resposta (ficha criada e vazia não conta — mesma definição de "cadastrado" de `RF-87`/`RF-88`), e a correção é cadastrar uma (escopo `DIVIDA_ID`), nunca "corrigir a quantidade". As pendências que comparavam declarado e cadastrado (`DIVIDAS_FALTANDO`, `DIVIDAS_ACIMA`, `DIVIDAS_SEM_CONFIRMACAO`) deixam de existir: não há mais quantidade declarada para comparar. Com uma ou mais fichas com resposta, o cálculo não é bloqueado por nenhuma pendência de dívida. **Substitui** `RF-87` (nota na Rodada 9) e deixa `RF-110` sem efeito (nota na Rodada 10) | Decisão do usuário (2026-11-17) · regra atual de inventário, revisada (`RF-86`, `RF-87`, `RF-93`) | essencial |
+| `RF-560` | **Caso antigo com `B5.00` respondida não é afetado.** A resposta de `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` gravada antes desta rodada fica no histórico do caso, mas nenhuma regra volta a lê-la: o caso segue pela regra nova de `RF-559` (bloqueado só sem nenhuma ficha; livre com uma ou mais), igual a um caso que nunca respondeu `B5.00`. Sem migração — mesmo caminho da remoção de `B5.00A` em `T-389` | Decisão do usuário (2026-11-17) · precedente `T-389` | essencial |
+| `RF-561` | **A pergunta do pagamento mínimo (`B5.C02C`) sai do questionário.** Nenhuma dívida nova pergunta o pagamento mínimo; `QUESTIONARIO_VERSION` sobe (`sdd.config.md` §6: ID nunca é reaproveitado). Caso antigo com a resposta gravada (`PAGAMENTO_MINIMO_DIVIDA`) não é afetado: o campo já não era lido por nada — nem motor, nem relatório, nem tela —, e continua não sendo. O que o cálculo usa é a parcela declarada (`B5.C02`), sem mudança nenhuma aí. **Revoga parcialmente** `RF-533` de `calculo-de-divida` e ajusta a frase final de `RF-534` (notas no próprio arquivo) | Decisão do usuário (2026-11-17) · `calculo-de-divida` `RF-533`, `RF-534` | essencial |
+| `RF-562` | **Ícone ⓘ nos quatro campos numéricos da ficha de dívida.** Saldo (`B5.B03`), parcela (`B5.C02`), meses que faltam (`B5.C02B`) e taxa ou CET (`B5.D06`) ganham, ao lado do rótulo, um botão de ajuda que, acionado por mouse (passar por cima), teclado (foco) ou toque, mostra o que é o campo e onde encontrar o dado (DDC, contrato, extrato, fatura, boleto, carnê, app do banco ou Registrato, conforme o campo — textos-sugestão na seção Assumptions). O conteúdo é o mesmo nos dois lugares em que o campo aparece: a tela da pergunta e a calculadora da dívida (`B5.CALC01`). O botão tem rótulo acessível que nomeia o campo ("O que é <campo>?"), o estado aberto/fechado é exposto a leitor de tela, e o balão fecha com Esc ou ao tocar/clicar fora, sem bloquear o preenchimento do campo | Decisão do usuário (2026-11-17) · aula 8 e aula 10.1 do curso SSD (`docs/curso-ssd/`) · `RF-11` (resposta "não sei" de primeira classe, mecanismo irmão) | importante |
+| `RF-563` | **Sem o parêntese de ajuda no enunciado da taxa.** O enunciado de `B5.D06` perde o parêntese final ("No seu contrato, extrato ou aplicativo do banco, esse número pode aparecer escrito como CET ou como taxa de juros. Informe o que encontrar e diga se é ao mês ou ao ano."), que hoje vaza para o rótulo da calculadora da dívida. O conteúdo equivalente passa a viver só na explicação do ⓘ daquele campo (`RF-562`). **Atende** `RF-407` de `enxugamento-questionario` (um só valor de custo, com texto de ajuda) | Decisão do usuário (2026-11-17) · `enxugamento-questionario` `RF-407` · `B5.D06` | importante |
 
 ## 3. User Stories
 
@@ -887,6 +941,33 @@ Atende: `RF-549`, `RF-550`, `RF-551`
 > saber o que acontece com cada dívida enquanto eu ajusto o mês**.
 
 Atende: `RF-555`, `RF-556`
+
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+### `US-417` — Cadastrar as dívidas sem dizer antes quantas são
+
+> Como **aluno**, quero **começar direto pela primeira dívida e, ao terminar
+> cada uma, escolher entre cadastrar outra ou seguir**, para **não travar o
+> cálculo por um número que eu disse antes e que não bate com o que
+> cadastrei**.
+
+Atende: `RF-557`, `RF-558`, `RF-559`, `RF-560`
+
+### `US-418` — Saber o que cada número da dívida é e onde encontrá-lo
+
+> Como **aluno**, quero **ver, ao lado do saldo, da parcela, dos meses que
+> faltam e da taxa, o que cada campo significa e onde encontrar esse dado**,
+> para **preencher a ficha sem travar por não saber de onde tirar o
+> número**.
+
+Atende: `RF-562`, `RF-563`
+
+### `US-419` — Não responder o que o plano não usa
+
+> Como **aluno**, quero **não ser perguntado sobre o pagamento mínimo da
+> dívida, que o plano nunca usa**, para **ter uma ficha mais curta**.
+
+Atende: `RF-561`
 
 ## 4. Acceptance Criteria
 
@@ -1270,6 +1351,27 @@ Atende: `RF-555`, `RF-556`
 | `AC-590` | `US-416` | Dado um snapshot em estabilização gravado antes da Rodada 8 do motor (sem `MOTIVO_POSICAO` e sem `QUITACOES_SO_PARCELAS`), quando a seção 3 é montada, então ela é idêntica à de antes desta rodada; e, auditado o código de montagem da seção, nenhuma frase ou mês dela vem de soma, subtração, comparação de valores da dívida ou dos sinais da `§16.4` — só da leitura dos dois campos (`AC-42`) (`RF-555`, `RF-556`) |
 | `AC-591` | `US-416` | Dado um plano normal (fora de estabilização) ou em estabilização por dívida que cresce (`MOTIVO_ESTABILIZACAO = DIVIDA_QUE_CRESCE`, ex.: `aluno.teste3`, com o horizonte estourado, `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` no snapshot), quando o plano é montado, então a explicação de cada dívida, "Não será quitada com os valores de hoje", "Recebe o valor extra" e os demais textos são exatamente os de antes desta rodada, e nenhuma frase de `RF-555`/`RF-556` aparece (`RF-555`, `RF-556`) |
 
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+> **Rastreabilidade `RF` → `AC`.** `RF-557` → `AC-592` · `RF-558` →
+> `AC-593`, `AC-594` · `RF-559` → `AC-595`, `AC-596` · `RF-560` → `AC-597` ·
+> `RF-561` → `AC-598`, `AC-599` · `RF-562` → `AC-600`, `AC-601` · `RF-563`
+> → `AC-602`.
+
+| ID | Story | Critério (verificável) |
+| --- | --- | --- |
+| `AC-592` | `US-417` | Dado um caso que terminou o Bloco 4 e não tem nenhuma ficha de dívida, quando o aluno avança para o Bloco 5, então a primeira tela que ele vê é a primeira pergunta da primeira ficha de dívida (`B5.A01`, "Para quem você deve nessa primeira dívida?"), sem nenhuma pergunta de quantidade antes dela (`RF-557`) |
+| `AC-593` | `US-417` | Dado um caso com uma ficha de dívida já fechada, quando a lista de dívidas é aberta, então aparecem os botões "Cadastrar outra dívida" e "Não tenho mais, seguir" no lugar de "Continuar" e "+ Adicionar outra dívida"; clicar em "Cadastrar outra dívida" abre uma ficha nova, vazia, na primeira pergunta; clicar em "Não tenho mais, seguir" grava `SIM` em `B5.FIM02` (`CONFIRMACAO_FIM_CADASTRO`) e leva à próxima pergunta em branco fora do Bloco 5 (`RF-558`) |
+| `AC-594` | `US-417` | Dado qualquer caso, novo ou com fichas já fechadas, quando o servidor calcula a próxima pergunta em branco e ela seria `B5.FIM02`, então a resposta é a lista de dívidas (escopo `DIVIDA_ID`), nunca a pergunta isolada "Pelo que você sabe hoje, todas as suas dívidas e operações financeiras foram cadastradas?" (`RF-558`) |
+| `AC-595` | `US-417` | Dado um caso sem nenhuma ficha de dívida com resposta (nenhuma ficha, ou só fichas criadas e vazias), quando o cálculo é solicitado, então ele é bloqueado pela pendência `SEM_DIVIDAS`, com orientação para cadastrar ao menos uma dívida, sem nenhuma menção a corrigir quantidade (`RF-559`) |
+| `AC-596` | `US-417` | Dado um caso com uma ficha de dívida com ao menos uma resposta, quando o cálculo é solicitado, então ele não é bloqueado por `SEM_DIVIDAS`, `DIVIDAS_FALTANDO`, `DIVIDAS_ACIMA` nem `DIVIDAS_SEM_CONFIRMACAO` — as três últimas não aparecem mais em nenhuma resposta de inventário (`RF-559`) |
+| `AC-597` | `US-417` | Dado um caso antigo com `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL = 3` respondida e 2 fichas de dívida com resposta, quando o cálculo é solicitado, então ele não é bloqueado pela divergência entre declarado e cadastrado (essa comparação não existe mais); dado o mesmo caso com 0 fichas, ele é bloqueado só por `SEM_DIVIDAS` (`RF-560`) |
+| `AC-598` | `US-419` | Dado o questionário vigente, quando uma ficha de dívida nova é respondida do início ao fim, então `B5.C02C` não é apresentada em nenhum momento, e `QUESTIONARIO_VERSION` está acima da versão anterior a esta rodada (`RF-561`) |
+| `AC-599` | `US-419` | Dado um caso antigo com `B5.C02C` respondida (`PAGAMENTO_MINIMO_DIVIDA` gravado), quando o cálculo é executado, então a ordem, o custo e o prazo do plano são idênticos aos de um caso igual sem aquela resposta (`RF-561`) |
+| `AC-600` | `US-418` | Dado o campo de saldo (`B5.B03`) na tela de pergunta, quando o aluno passa o mouse sobre o ⓘ, então abre um balão com o que é o campo e onde encontrar o dado; quando ele chega ao botão só pelo teclado (Tab) e o foca, o balão abre e fecha com Esc; quando ele toca no botão num dispositivo sem mouse, o balão abre. O mesmo vale, na tela de pergunta e na calculadora da dívida (`B5.CALC01`), para parcela (`B5.C02`), meses que faltam (`B5.C02B`) e taxa ou CET (`B5.D06`) (`RF-562`) |
+| `AC-601` | `US-418` | Dado o botão ⓘ de qualquer um dos quatro campos, quando inspecionado por leitor de tela, então ele expõe um rótulo que nomeia o campo ("O que é <campo>?") e o estado aberto ou fechado do balão (`RF-562`) |
+| `AC-602` | `US-418` | Dado o enunciado de `B5.D06` exibido na tela de pergunta e na calculadora da dívida, então ele não contém o parêntese "(No seu contrato, extrato ou aplicativo do banco, esse número pode aparecer escrito como CET ou como taxa de juros. Informe o que encontrar e diga se é ao mês ou ao ano.)" nem parte dele no rótulo da calculadora; o mesmo conteúdo continua acessível pelo ⓘ do campo de taxa (`RF-563`) |
+
 ## 5. Non-Functional Requirements
 
 - **Performance:** cada transição de pergunta responde em p95 < 500 ms. A
@@ -1365,6 +1467,23 @@ Atende: `RF-555`, `RF-556`
 - **Lei nº 3 (`AC-42`).** Só leitura de `MOTIVO_POSICAO` e
   `QUITACOES_SO_PARCELAS`; nenhum cálculo nem inferência na aplicação.
 
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+- **Acessibilidade.** O botão ⓘ é operável só por teclado (Tab para
+  alcançar, Enter/Espaço ou o próprio foco para abrir, Esc para fechar) e
+  expõe `aria-label`, estado aberto/fechado e `aria-describedby` para o
+  balão, como já exigido para outros controles desta spec (`RF-109`). Os
+  dois botões ao fim da ficha ("Cadastrar outra dívida" / "Não tenho mais,
+  seguir") têm rótulo que não depende de posição na tela.
+- **Responsividade.** O balão do ⓘ cabe em 360 px sem rolagem lateral e não
+  cobre o campo que está sendo preenchido.
+- **Performance.** Abrir e fechar o balão do ⓘ não faz requisição ao
+  servidor — o texto já vem com a pergunta.
+- **Observabilidade.** A gravação de `B5.FIM02` pelo botão "Não tenho mais,
+  seguir" segue exatamente a mesma rota e o mesmo registro de progresso de
+  qualquer outra resposta (`RF-10`, `RF-31`); nenhum evento novo é criado
+  para isso.
+
 ## 6. Edge Cases
 
 | ID | Situação | Comportamento esperado |
@@ -1450,6 +1569,16 @@ Atende: `RF-555`, `RF-556`
 | `EC-92` | `MOTIVO_POSICAO` com valor sem frase em `textos-canonicos.yaml` (domínio cresceu no motor) | Aparece o código técnico, visível, nunca uma frase genérica que diga outro motivo (mesma regra de `rotulos_de_apoio`); o teste de `AC-588` falha antes de chegar ao aluno |
 | `EC-93` | Estabilização por dívida que cresce (`RF-480`, `estabilizacao_por_divida`, ex.: `aluno.teste3`) | Nada muda (emenda de 2026-11-16): sem a frase do motivo e sem a previsão, mesmo com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` no snapshot; "Não será quitada com os valores de hoje" e "Recebe o valor extra" continuam como hoje. O mês é positivo e o valor extra existe de fato, então esses itens continuam verdadeiros |
 | `EC-94` | Uma só dívida na ordem | Uma linha, com a frase de `UNICA_DIVIDA` e a previsão; a seção "Ordem de quitação" do revisor não aparece (menos de duas dívidas, `RF-548`) |
+
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+| ID | Situação | Comportamento esperado |
+| --- | --- | --- |
+| `EC-95` | Caso antigo com `B5.00` respondida (ex.: declarou 5, cadastrou 2) | `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` fica gravada no histórico, mas nenhuma regra volta a lê-la: o caso segue pela regra nova de `SEM_DIVIDAS` (bloqueado só sem nenhuma ficha; livre com uma ou mais), independente do número declarado (`RF-560`) |
+| `EC-96` | Caso antigo com `B5.C02C` respondida | `PAGAMENTO_MINIMO_DIVIDA` permanece gravado no histórico da dívida, mas nenhuma leitura (motor, relatório, inventário, telas) o usa; o cálculo roda normalmente, igual a um caso sem essa resposta (`RF-561`) |
+| `EC-97` | Aluno termina o Bloco 4 e não cadastra nenhuma dívida | Sem nenhuma ficha de dívida com resposta, o cálculo fica bloqueado por `SEM_DIVIDAS`; não existe opção "não tenho dívida" na lista de fichas nem caminho para pular o Bloco 5 (`RF-559`) |
+| `EC-98` | Gravação de `B5.FIM02 = SIM` chegando ao servidor com zero fichas de dívida cadastradas (o botão "Não tenho mais, seguir" não aparece nessa condição pela interface, `RF-558`) | A gravação é aceita, como qualquer resposta — mas não desbloqueia o cálculo: `SEM_DIVIDAS` (`RF-559`) depende só da existência de ficha com resposta, nunca de `CONFIRMACAO_FIM_CADASTRO`. O cálculo continua bloqueado até existir ao menos uma ficha |
+| `EC-99` | Ativação do ⓘ por teclado e por toque | Foco por Tab abre o balão e Esc fecha, devolvendo o foco ao botão; toque fora de um mouse abre o balão, e um toque fora dele fecha. Em nenhum dispositivo o balão é modal: ele nunca impede o preenchimento do campo ao lado (`RF-562`) |
 
 ## 7. Assumptions
 
@@ -1639,6 +1768,38 @@ Atende: `RF-555`, `RF-556`
 - **Os textos são sugestão** a validar com o especialista (lista em
   `docs/perguntas-marcelo-calculo-de-divida.md`), como em `RF-551`.
 
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+- **`B5.FIM02` continua no registro do questionário.** Ela não é removida
+  (diferente de `B5.00` e `B5.C02C`): a variável `CONFIRMACAO_FIM_CADASTRO`
+  continua necessária para derivar `INVENTARIO_COMPLETO` (`RF-15`). O que
+  muda é só a forma de capturá-la — pelo botão "Não tenho mais, seguir", não
+  por uma pergunta isolada.
+- **"Ficha com resposta"** segue a mesma definição já usada pelo inventário:
+  item ativo com ao menos uma resposta; ficha criada e vazia não conta.
+- **Botão "Não tenho mais, seguir" só existe com uma ou mais fichas.** Por
+  isso `EC-98` (gravação de `B5.FIM02` com zero fichas) só ocorre por
+  caminho que não passa pela interface do aluno (ex.: chamada direta à
+  rota); a defesa real contra calcular sem dívida é `SEM_DIVIDAS`
+  (`RF-559`), não a ausência do botão.
+- **Os textos do ⓘ são sugestão**, a validar com o especialista (Marcelo),
+  como os demais textos de apoio desta spec (`RF-551`, Rodada 16). Rascunho,
+  fiel ao material do curso (aulas 8 e 10.1 de `docs/curso-ssd/`):
+
+  | Campo | O que é | Onde encontrar |
+  | --- | --- | --- |
+  | Saldo devedor (`B5.B03`) | "Quanto você deve hoje nesta dívida, não o valor que pegou emprestado." | "No DDC (Documento Descritivo de Crédito), que você pede no aplicativo do seu banco. O Registrato, do Banco Central (entrada pelo gov.br), também mostra quanto você deve em cada banco." |
+  | Parcela (`B5.C02`) | "Quanto você paga por mês nesta dívida." | "No DDC, no contrato, no boleto, no carnê ou na fatura." |
+  | Meses que faltam (`B5.C02B`) | "Quantas parcelas ainda faltam pagar." | "No DDC ou no aplicativo do banco." |
+  | Taxa ou CET (`B5.D06`) | "Quanto a dívida cobra de juros, ao mês ou ao ano. Se encontrar o CET (Custo Efetivo Total), prefira ele, porque inclui juros e outros custos da operação." | "No DDC, que mostra a taxa de juros e o custo efetivo, ou no contrato e no aplicativo do banco." |
+
+  Linha comum aos quatro: "Não encontrou? Peça ao banco pelo aplicativo, ao
+  gerente ou à ouvidoria." A frase sobre o CET não vem literalmente do
+  curso, que só cita "custo efetivo total" — fica marcada para validação
+  junto com o resto.
+- **O nome "DDC" é o nome do curso**, não um termo inventado: o curso chama
+  o Documento Descritivo de Crédito assim na aula 10.1.
+
 ## 8. Risks
 
 | Risco | Impacto | Mitigação |
@@ -1695,6 +1856,14 @@ Atende: `RF-555`, `RF-556`
 | O aluno lê "Termina em {mês}" como promessa, embora o mês feche no negativo e as parcelas possam atrasar | **médio** — expectativa errada sobre a dívida | Frase condicional ("se você mantiver as parcelas em dia") e os avisos já existentes da seção ("Isto ainda não é uma instrução de pagamento") |
 | As frases chegam ao aluno sem validação do especialista | **médio** — texto ao aluno é conteúdo de método | Sugestão registrada em `docs/perguntas-marcelo-calculo-de-divida.md`; validar antes de liberar o próximo plano deficitário |
 | A seção 3 mostrar ao mesmo tempo a previsão e os itens da simulação em déficit ("Não será quitada…", "Recebe o valor extra") | **alto** — a mesma dívida "termina em" e "não será quitada" na mesma linha | `RF-556` substitui os dois itens na seção 3; `AC-586` verifica a ausência deles |
+
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+| Risco | Impacto | Mitigação |
+| --- | --- | --- |
+| Os textos do ⓘ chegam ao aluno sem validação do especialista | **médio** — texto ao aluno é conteúdo de método (onde buscar o dado, nome do DDC) | Marcados "sugestão, a validar" (`RF-562`), como `RF-551`/`RF-555`/`RF-556`; validar antes do primeiro deploy desta rodada |
+| Sem a pergunta de quantidade, o aluno perde a referência de "quantas dívidas ainda faltam cadastrar" que `B5.00` dava | **baixo** — pode cadastrar menos dívidas do que tem, sem perceber | O convite "Você tem outra dívida?" ao fim de cada ficha é explícito; o aluno pode voltar e cadastrar mais depois, como hoje |
+| `PAGAMENTO_MINIMO_DIVIDA` e `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` ficam como campos mortos no histórico de casos antigos, sem nenhuma leitura | **baixo** — nenhum dado é perdido, só deixa de ser usado | Mesmo padrão já aceito na remoção de `B5.00A` (`T-389`); nenhuma migração necessária |
 
 ## 9. Out of Scope
 
@@ -1826,6 +1995,28 @@ Atende: `RF-555`, `RF-556`
 - **Qualquer cálculo** de mês, de motivo ou de ordem na aplicação.
 - **Completar a ordem com dívidas que o motor não consegue comparar**
   (`motor-calculo` `OQ-103`).
+
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+- **Migrar respostas antigas** de `B5.00` ou `B5.C02C`. Ficam gravadas e
+  sem efeito, sem nenhuma conversão (`RF-560`, `RF-561`).
+- **Mudar qualquer outra pergunta do Bloco 5**, de posição ou de redação,
+  fora do que esta rodada pede: só `B5.00` e `B5.C02C` saem, e `B5.D06`
+  perde unicamente o parêntese de ajuda (`RF-563`).
+- **Ícone ⓘ em qualquer campo fora dos quatro numéricos da ficha de dívida**
+  (saldo, parcela, meses que faltam, taxa/CET). Outros blocos e outras
+  perguntas não ganham ajuda nesta rodada.
+- **Qualquer mudança no motor ou na calculadora da dívida** (`B5.CALC01`),
+  além de deixar de exibir o parêntese de `RF-563` e de passar a exibir o
+  ⓘ: a lógica de cálculo e os quatro campos que ela lê continuam os mesmos.
+- **Validar os textos do ⓘ com o especialista.** Ficam marcados "sugestão"
+  (seção Assumptions); a validação é condição para liberar esta rodada ao
+  piloto, não parte do trabalho de especificação.
+- **Um limite de dívidas cadastráveis.** A faixa de `B5.00` (0 a 50) validava
+  só o número declarado, nunca impediu cadastrar mais fichas do que ele —
+  quem cadastrava acima já contornava pelo fluxo de `DIVIDAS_ACIMA`. Sem
+  `B5.00`, nada muda nesse ponto: não havia, e continua não havendo, um
+  teto real de fichas criadas.
 
 ## 10. Open Questions
 
@@ -1964,3 +2155,12 @@ passaram a bloquear trabalho concreto.
 > desta correção são do motor: `OQ-103` (completar a ordem com dívidas sem
 > comparação) e `OQ-104` (`D*` do Híbrido em estabilização), em
 > `specs/motor-calculo.spec.md`; nenhuma bloqueia `RF-555`/`RF-556`.
+
+### Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem e ajuda (ⓘ) nos campos da ficha
+
+> Nenhuma questão nova bloqueia esta rodada: o usuário aprovou o plano
+> inteiro (`plans/app-aluno.plan.md` R20.x) e autorizou seguir até o
+> deploy. Os textos do ⓘ são sugestão a validar (seção Assumptions), não
+> questão aberta — mesmo tratamento de `RF-551`/`RF-555`/`RF-556`. Nada aqui
+> é hipótese razoável registrada por falta de resposta: é o desenho que o
+> usuário decidiu.

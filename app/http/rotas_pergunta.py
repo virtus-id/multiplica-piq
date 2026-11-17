@@ -54,8 +54,10 @@ from app.http.isolamento import exigir_caso_da_sessao
 from app.http.jornada import anexar_ao_payload
 from app.http.renderizacao import ErroPerguntaNaoExibivel
 from app.http.rotas_coleta import (
+    ID_FIM_DE_CADASTRO,
     _itens_e_rotulos,
     _primeira_exibivel,
+    criar_primeira_ficha_de_divida,
     obter_colecao_de_registros,
     obter_repositorio_itens,
     obter_repositorio_respostas,
@@ -156,6 +158,25 @@ def proxima_pergunta(
         return _coleta_completa(request, CASO_ID)
 
     registro, pendencia = encontrada
+    # `T-644` (RF-558, AC-594) — caminho defensivo (R20.10): `B5.FIM02` nunca
+    # é servida como pergunta isolada. Com ficha(s) de `DIVIDA_ID` já
+    # existentes, devolve a lista no lugar da pergunta; sem nenhuma, cria a
+    # ficha 1 e renderiza a pergunta dela. Raramente alcançado no fluxo
+    # normal — `POST /resposta` (`T-642`) já devolve a próxima pergunta
+    # dentro da própria resposta —, mas `AC-594` é incondicional.
+    if registro.ID == ID_FIM_DE_CADASTRO:
+        if itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID):
+            return JSONResponse(
+                {
+                    "pergunta": None,
+                    "coleta_completa": False,
+                    "abrir_fichas": [EscopoRepeticao.DIVIDA_ID.value],
+                    "CASO_ID": CASO_ID,
+                }
+            )
+        primeira = criar_primeira_ficha_de_divida(CASO_ID, colecao, respostas, repositorio_itens)
+        if primeira is not None:
+            registro, pendencia = _localizar_registro(colecao, primeira.ID), primeira
     return _renderizar_pergunta(
         request,
         CASO_ID,

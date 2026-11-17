@@ -632,17 +632,17 @@ def test_t223_faixa_nao_numerica_e_recusada(tmp_path: Path) -> None:
     assert "B1.01" in _recusa(tmp_path, pergunta)
 
 
-def test_t224_questionario_na_versao_1_5_0_e_b3_c00_com_painel() -> None:
+def test_t224_questionario_na_versao_1_6_0_e_b3_c00_com_painel() -> None:
     """RF-03/AC-38 (T-224, `OQ-52`): a versão única de todos os registros é a
     1.2.0 (1.0.3 da canônica; 1.1.0 em `T-389` com as 87 perguntas retiradas, RF-402;
     1.2.0 na publicação do enxugamento (T-390 a T-397); 1.3.0 em `T-400`, RF-413;
     1.4.0 em `T-494`, RF-523/RF-526: calculadora da dívida; 1.5.0 em `T-525`,
-    RF-533: pagamento mínimo, `B5.C02C`).
+    RF-533: pagamento mínimo, `B5.C02C`; 1.6.0 em `T-637`, RF-561: `B5.C02C` sai).
     `B3.C00` declara o painel da fotografia do mês e é o único registro que
     o faz (`T-408`: `B3.C02C`, o painel de comparação, saiu)."""
     colecao = carregar_registros(incluir_casos_de_prova=True)
 
-    assert colecao.QUESTIONARIO_VERSION == "1.5.0"
+    assert colecao.QUESTIONARIO_VERSION == "1.6.0"
     assert [r.ID for r in colecao.registros if r.painel is not None] == ["B3.C00"]
     assert next(r for r in colecao.registros if r.ID == "B3.C00").painel == "FOTOGRAFIA_DO_MES"
 
@@ -705,3 +705,30 @@ def test_t491_calculo_divida_mal_formada_e_recusada_nomeando_o_registro(
     tmp_path: Path, mudanca: dict[str, object]
 ) -> None:
     assert "B5.CALC01" in _recusa(tmp_path, _calculo_divida(**mudanca))
+
+
+# ------------------------------------------------------------ T-668 (RF-562)
+
+
+def test_t668_explicacao_completa_carrega_os_dois_campos(tmp_path: Path) -> None:
+    pergunta = _pergunta_minima("B1.01")
+    pergunta["explicacao"] = {"o_que_e": "O que é.", "onde_encontrar": "Onde encontrar."}
+
+    registro = _carregar_uma(tmp_path, pergunta)
+
+    assert registro.explicacao is not None
+    assert registro.explicacao.o_que_e == "O que é."
+    assert registro.explicacao.onde_encontrar == "Onde encontrar."
+
+
+def test_t668_sem_explicacao_carrega_none(tmp_path: Path) -> None:
+    registro = _carregar_uma(tmp_path, _pergunta_minima("B1.01"))
+
+    assert registro.explicacao is None
+
+
+def test_t668_explicacao_sem_onde_encontrar_e_recusada(tmp_path: Path) -> None:
+    pergunta = _pergunta_minima("B1.01")
+    pergunta["explicacao"] = {"o_que_e": "O que é."}
+
+    assert "B1.01" in _recusa(tmp_path, pergunta)

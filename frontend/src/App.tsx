@@ -555,6 +555,18 @@ export default function App() {
                 : { tela: 'pergunta' },
             )
           }
+          // `T-660` (`RF-558`): derivado da rota, nunca guardado em estado —
+          // mesma disciplina de `TITULOS_POR_ESCOPO`. Só `DIVIDA_ID` ganha
+          // os dois botões do fim de cadastro.
+          fimDeCadastro={
+            escopo === 'DIVIDA_ID'
+              ? {
+                  idPergunta: 'B5.FIM02',
+                  rotuloAdicionar: 'Cadastrar outra dívida',
+                  rotuloConcluir: 'Não tenho mais, seguir',
+                }
+              : undefined
+          }
         />
       )
     }

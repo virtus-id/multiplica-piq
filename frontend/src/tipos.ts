@@ -30,6 +30,12 @@ export type TipoResposta =
 /** O sentinela de "não sei" na fronteira HTTP — nunca `null`, nunca `0`. */
 export const VALOR_NAO_SEI = 'NAO_SEI'
 
+/** `RF-562`: o conteúdo do ícone ⓘ — o que o campo é e onde encontrar o dado. */
+export interface ExplicacaoDoCampo {
+  o_que_e: string
+  onde_encontrar: string
+}
+
 export interface Opcao {
   rotulo: string
   valor_interno: string | null
@@ -49,6 +55,8 @@ export interface Pergunta {
   enunciado: string
   /** Instrução de preenchimento, em destaque menor abaixo do enunciado. */
   apoio?: string | null
+  /** `RF-562`: o conteúdo do ícone ⓘ ao lado do rótulo. Ausente nas perguntas sem ajuda. */
+  explicacao?: ExplicacaoDoCampo | null
   /** `MENU` = a escolha vira uma caixa de seleção (lista longa). Ausente = botões. */
   apresentacao?: 'MENU' | null
   opcoes: Opcao[]
@@ -152,6 +160,10 @@ export interface RespostaPergunta {
   avanco_permitido?: boolean
   total_pendencias?: number
   CASO_ID?: string
+  /** `T-657` (`RF-558`) — presente só quando a próxima pendência seria
+   *  `B5.FIM02`: a lista de fichas a abrir no lugar da pergunta isolada
+   *  (desvio defensivo de `GET /pergunta` sem `ID`, `AC-594`). */
+  abrir_fichas?: string[]
 }
 
 export interface Ficha {

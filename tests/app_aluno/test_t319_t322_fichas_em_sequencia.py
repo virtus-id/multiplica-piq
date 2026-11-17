@@ -254,7 +254,6 @@ def test_ac171_formulario_de_ficha_curta_so_tem_perguntas_do_proprio_escopo(
     cliente = _cliente_real(monkeypatch, tmp_path)
     for ID, valor in (("B3.03", "SIM"), ("B3.05", "SIM"), ("B3.NM01", "SIM")):
         _responder(cliente, ID, valor)
-    _responder(cliente, "B5.00", "2")
     _checklist_de_moradia(cliente)
     item = cliente.get(f"/caso/{_CASO_ID}/fichas/{escopo}").json()["fichas"][0]["item_id"]
 

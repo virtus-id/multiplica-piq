@@ -295,8 +295,8 @@ class TextosCanonicosPlano:
     prognostico: Mapping[str, str] = field(default_factory=dict)
     incomodo: Mapping[str, str] = field(default_factory=dict)
     sem_valor_extra: str = ""
-    #: `RF-412` — avisos de `B5.F01` (`garantia`) e `B5.00`
-    #: (`fichas_faltando`) e a frase `responsabilidade`, que fecha todos eles.
+    #: `RF-412` — avisos de `B5.F01` (`garantia`) e a frase
+    #: `responsabilidade`, que fecha todos eles.
     avisos: Mapping[str, str] = field(default_factory=dict)
     graficos: Mapping[str, str] = field(default_factory=dict)
     #: `T-549` (devolução do especialista, 2026-11-13): por `METODO`, a
@@ -343,10 +343,8 @@ class VocabularioDoCaso:
     rotulos_de_opcao: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
     credores: Mapping[str, str] = field(default_factory=dict)
     #: `RF-412` — respostas lidas pela aplicação, só transportadas: dívidas
-    #: com garantia (`B5.F01`), se há ficha declarada em `B5.00` sem
-    #: cadastro e o resumo das despesas. Nenhuma regra de ordem.
+    #: com garantia (`B5.F01`) e o resumo das despesas. Nenhuma regra de ordem.
     dividas_com_garantia: frozenset[str] = frozenset()
-    fichas_faltando: bool = False
     resumo_das_despesas: ResumoDasDespesas | None = None
     #: `RF-469`: os maiores gastos que o aluno informou, (nome do item, valor),
     #: do maior para o menor, já cortados no tamanho do bloco. Vazio sem itens.
@@ -1345,7 +1343,7 @@ class ContextoPlano:
     FALTA_TOTAL_DE_JUROS: str = ""
     #: (nome, parcela, juros do mês, falta), um por dívida que cresce.
     dividas_que_crescem: tuple[tuple[str, str, str, str], ...] = ()
-    #: `RF-412` — avisos do plano inteiro (`B5.00`: faltam fichas declaradas).
+    #: `RF-412` — avisos do plano inteiro (garantia, estabilização, pagamento).
     avisos_gerais: tuple[str, ...] = ()
     #: `T-549` (devolução do especialista, 2026-11-13): alguma dívida do
     #: caso tem sinal da `§16.4` (garantia essencial, negativada, garantia
@@ -2256,14 +2254,10 @@ def _avisos_gerais(
     textos: TextosCanonicosPlano,
     nomes: Mapping[str, str],
 ) -> tuple[str, ...]:
-    """`RF-412` (`B5.00`) — faltam fichas de dívida declaradas; não bloqueia.
-    Em estabilização não há cartão por dívida (sem ordem), então os avisos de
-    garantia (`B5.F01`) sobe para cá, um por dívida, com o
+    """`RF-412`. Em estabilização não há cartão por dívida (sem ordem), então
+    os avisos de garantia (`B5.F01`) sobe para cá, um por dívida, com o
     nome dela; sem cronograma e sem tocar o motor (`RF-416`)."""
     avisos: list[str] = []
-    aviso = textos.avisos.get("fichas_faltando")
-    if vocabulario and vocabulario.fichas_faltando and aviso:
-        avisos.append(f"{aviso} {textos.avisos.get('responsabilidade', '')}".strip())
     if vocabulario and snapshot.diagnostico.MODO_ESTABILIZACAO:
         for divida in snapshot.estado_inputs.dividas:
             avisos.extend(

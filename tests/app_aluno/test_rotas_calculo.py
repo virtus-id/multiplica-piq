@@ -27,6 +27,7 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import Final
 
 import pytest
 from fastapi import Request
@@ -68,12 +69,34 @@ from persistencia.app_aluno.eventos import EventoCaso
 from persistencia.app_aluno.itens import ItemRepetido
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from tests.app_aluno.fixtures.caso_completo import (
+    DIVIDA_ID_UNICA,
     PARAMETROS_EXTERNOS_PADRAO,
     caso_completo,
 )
 
 _CHAVE_TESTE = "chave-de-teste-para-assinatura-de-sessao-nao-usar-em-producao"
 _VERSAO_PARAMETROS_REAL = "1.0.1"
+
+# `T-654` (`RF-559`): sem `B5.00`, `SEM_DIVIDAS` passa a valer sempre que não
+# há ficha de `DIVIDA_ID` com resposta — o que agora bloqueia, com `400`
+# ANTES de qualquer outra coisa, todo teste desta suíte que nunca tratou de
+# inventário (`T-197`/`T-210`/`T-217`, que testam a guarda `OBR` e a
+# montagem, não dívidas). Item e respostas "padrão" — a MESMA ficha de
+# `caso_completo()`, sem `faltas` para `dividas_pendentes` (`T-499`) — default
+# de `itens`/`respostas` em `_montar_aplicacao_de_teste`: quem não precisa de
+# um cenário de dívida específico nem percebe que ele existe.
+_ITEM_DIVIDA_PADRAO: Final[tuple[ItemRepetido, ...]] = (
+    ItemRepetido(
+        item_id=DIVIDA_ID_UNICA,
+        CASO_ID="CASO-CALCULO-1",
+        escopo=EscopoRepeticao.DIVIDA_ID,
+        removido_em=None,
+        criado_em=datetime(2026, 1, 1, tzinfo=UTC),
+    ),
+)
+_RESPOSTA_DIVIDA_PADRAO: Final[tuple[Resposta, ...]] = tuple(
+    r for r in caso_completo().respostas.respostas if r.item_id == DIVIDA_ID_UNICA
+)
 
 
 # ---------------------------------------------------------------------------
@@ -264,8 +287,13 @@ def _montar_aplicacao_de_teste(
     *,
     repositorio_casos: _RepositorioCasosDublê,
     colecao: ColecaoDeRegistros,
-    respostas: tuple[Resposta, ...] = (),
-    itens: tuple[ItemRepetido, ...] = (),
+    # `T-654`: o padrão é UMA ficha de `DIVIDA_ID` com resposta — sem ela,
+    # `SEM_DIVIDAS` (`RF-559`) bloquearia com `400` todo teste que não passa
+    # `itens`/`respostas` própria (o foco desta suíte é `RF-16`/`AC-12`,
+    # nunca inventário). Quem passa a sua própria `itens`/`respostas`
+    # (`_caso_com_dividas_declaradas`, abaixo) não usa este padrão.
+    respostas: tuple[Resposta, ...] = _RESPOSTA_DIVIDA_PADRAO,
+    itens: tuple[ItemRepetido, ...] = _ITEM_DIVIDA_PADRAO,
     repositorio_snapshots: _RepositorioSnapshotsDublê | None = None,
     parametros_externos: ParametrosExternosDoBloco6 | None = None,
 ) -> tuple[TestClient, _RepositorioSnapshotsDublê]:
@@ -741,10 +769,16 @@ def _respostas_vistas_pela_montagem(
     monkeypatch: pytest.MonkeyPatch,
     IDs: tuple[str, ...],
     respostas: tuple[Resposta, ...],
-    itens: tuple[ItemRepetido, ...] = (),
+    itens: tuple[ItemRepetido, ...] = _ITEM_DIVIDA_PADRAO,
 ) -> tuple[Resposta, ...]:
     """Dispara a rota com os registros REAIS `IDs` e devolve as respostas que
-    `_montar_estado_financeiro_do_caso` recebeu."""
+    `_montar_estado_financeiro_do_caso` recebeu.
+
+    `itens` por padrão é a mesma ficha "padrão" de `_montar_aplicacao_de_
+    teste` (`T-654`) — sem ela, `SEM_DIVIDAS` bloquearia antes da montagem
+    que este helper espiona. Quem passa a própria `itens` (`test_t217_
+    ficha_de_divida_filtra_por_item`, com `D001`/`D002` completas) já cuida
+    de não ficar pendente, e não ganha a resposta padrão de novo."""
     vistas: list[RespostasCaso] = []
 
     def _montagem_que_espia(_caso: object, respostas: RespostasCaso, *_args: object) -> object:
@@ -754,16 +788,19 @@ def _respostas_vistas_pela_montagem(
     monkeypatch.setattr(rotas_calculo, "_montar_estado_financeiro_do_caso", _montagem_que_espia)
     registros = tuple(r for r in carregar_registros().registros if r.ID in IDs)
     repositorio_casos = _RepositorioCasosDublê(_caso_fabricado(), conta_id_da_sessao="CONTA-1")
+    todas_as_respostas = (
+        (*respostas, *_RESPOSTA_DIVIDA_PADRAO) if itens is _ITEM_DIVIDA_PADRAO else respostas
+    )
     cliente, _ = _montar_aplicacao_de_teste(
         monkeypatch,
         repositorio_casos=repositorio_casos,
         colecao=ColecaoDeRegistros(QUESTIONARIO_VERSION="1.0.0", registros=registros),
-        respostas=respostas,
+        respostas=todas_as_respostas,
         itens=itens,
     )
 
     assert cliente.post("/caso/CASO-CALCULO-1/calculo").status_code == 422
-    return vistas[0].respostas
+    return tuple(r for r in vistas[0].respostas if r not in _RESPOSTA_DIVIDA_PADRAO)
 
 
 def test_t217_resposta_de_pergunta_fechada_nao_chega_a_montagem(
@@ -845,44 +882,30 @@ def test_t217_ficha_de_divida_filtra_por_item(
 # ---------------------------------------------------------------------------
 
 
-_VARIAVEL_DECLARADAS = "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL"
-
-
-def _caso_com_dividas_declaradas(
-    monkeypatch: pytest.MonkeyPatch, declaradas: int
+def _caso_com_fichas(
+    monkeypatch: pytest.MonkeyPatch, *, com_ficha: bool
 ) -> tuple[
     TestClient, _RepositorioCasosDublê, _RepositorioSnapshotsDublê, _RepositorioEventosDublê
 ]:
-    """`caso_completo` (uma ficha de dívida preenchida) com `B5.00` =
-    `declaradas`. A coleção só tem a declaração — o bastante para a guarda
-    saber qual pergunta corrigir, sem outra pendência de `OBR`."""
+    """`caso_completo` (uma ficha de dívida preenchida), cadastrada
+    (`com_ficha=True`) ou não (`com_ficha=False`) — sem `B5.00` (`T-649`),
+    zero fichas basta para bloquear por `SEM_DIVIDAS` (`RF-559`), sem
+    nenhuma outra pendência de `OBR` no caminho."""
     caso = caso_completo()
     itens = (
-        ItemRepetido(
-            item_id=caso.DIVIDA_ID,
-            CASO_ID="CASO-CALCULO-1",
-            escopo=EscopoRepeticao.DIVIDA_ID,
-            removido_em=None,
-            criado_em=datetime.now(UTC),
-        ),
-    )
-    respostas = tuple(
-        Resposta(
-            CASO_ID="CASO-CALCULO-1",
-            ID_PERGUNTA=r.ID_PERGUNTA,
-            item_id=r.item_id,
-            valor=declaradas if r.ID_PERGUNTA == _VARIAVEL_DECLARADAS else r.valor,
-            QUESTIONARIO_VERSION=r.QUESTIONARIO_VERSION,
-            respondida_em=r.respondida_em,
+        (
+            ItemRepetido(
+                item_id=caso.DIVIDA_ID,
+                CASO_ID="CASO-CALCULO-1",
+                escopo=EscopoRepeticao.DIVIDA_ID,
+                removido_em=None,
+                criado_em=datetime.now(UTC),
+            ),
         )
-        for r in caso.respostas.respostas
+        if com_ficha
+        else ()
     )
-    colecao = ColecaoDeRegistros(
-        QUESTIONARIO_VERSION="1.0.0",
-        registros=(
-            _registro_obrigatorio_sintetico("B5.00", _VARIAVEL_DECLARADAS),
-        ),
-    )
+    colecao = ColecaoDeRegistros(QUESTIONARIO_VERSION="1.0.0", registros=())
     repositorio_casos = _RepositorioCasosDublê(
         _caso_fabricado(ESTADO_CASO.COLETA_INICIAL), conta_id_da_sessao="CONTA-1"
     )
@@ -890,7 +913,7 @@ def _caso_com_dividas_declaradas(
         monkeypatch,
         repositorio_casos=repositorio_casos,
         colecao=colecao,
-        respostas=respostas,
+        respostas=caso.respostas.respostas,
         itens=itens,
     )
     eventos = _RepositorioEventosDublê()
@@ -905,15 +928,15 @@ def test_t249_ac134_inventario_incompleto_nao_invoca_o_motor_nem_prende_o_caso(
     monkeypatch.setattr(
         "app.motor.executor.calcular_plano", lambda *a, **k: chamadas.append(a)
     )
-    cliente, repositorio_casos, snapshots, eventos = _caso_com_dividas_declaradas(monkeypatch, 3)
+    cliente, repositorio_casos, snapshots, eventos = _caso_com_fichas(monkeypatch, com_ficha=False)
 
     resposta = cliente.post("/caso/CASO-CALCULO-1/calculo")
 
     assert resposta.status_code == 400
     (pendencia,) = resposta.json()["pendencias"]
     assert pendencia["tipo"] == "INVENTARIO"
-    assert pendencia["ID"] == "B5.00"
-    assert pendencia["enunciado"] == "Você declarou 3 dívidas e cadastrou 1. Faltam 2 fichas."
+    assert pendencia["codigo"] == "SEM_DIVIDAS"
+    assert pendencia["ID"] is None
     assert chamadas == []
     assert snapshots.snapshots == []
     assert repositorio_casos.chamadas_transicionar_estado_se == []
@@ -923,12 +946,12 @@ def test_t249_ac134_inventario_incompleto_nao_invoca_o_motor_nem_prende_o_caso(
     (evento,) = eventos.eventos
     assert (evento.tipo_evento, evento.detalhe) == (
         "calculo_bloqueado_inventario",
-        "DIVIDAS_FALTANDO",
+        "SEM_DIVIDAS",
     )
 
 
 def test_t249_inventario_completo_segue_para_o_calculo(monkeypatch: pytest.MonkeyPatch) -> None:
-    cliente, repositorio_casos, _snapshots, _eventos = _caso_com_dividas_declaradas(monkeypatch, 1)
+    cliente, repositorio_casos, _snapshots, _eventos = _caso_com_fichas(monkeypatch, com_ficha=True)
 
     resposta = cliente.post("/caso/CASO-CALCULO-1/calculo")
 

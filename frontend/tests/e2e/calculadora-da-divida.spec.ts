@@ -49,11 +49,17 @@ const PERGUNTAS: Record<string, Record<string, unknown>> = {
   },
   "B5.D06": {
     tipo: "SELECAO_UNICA",
+    // `T-679` (RF-563): sem o parêntese de ajuda — o conteúdo equivalente
+    // vive só no ⓘ (`explicacao` abaixo, RF-562).
     enunciado: "Taxa de juros da dívida",
     opcoes: [
       { rotulo: "ao mês", valor_interno: "MENSAL", admite_nao_sei: false },
       { rotulo: "ao ano", valor_interno: "ANUAL", admite_nao_sei: false },
     ],
+    explicacao: {
+      o_que_e: "Quanto a dívida cobra de juros.",
+      onde_encontrar: "No DDC ou no aplicativo do banco.",
+    },
   },
   "B5.C02A": {
     tipo: "SELECAO_UNICA",
@@ -318,5 +324,27 @@ test.describe("calculadora da dívida", () => {
       page.getByRole("button", { name: "Continuar" }),
     ).toBeDisabled();
     expect(rede.confirmacoes).toHaveLength(0);
+  });
+
+  test("RF-562/RF-563: o rótulo da taxa não traz o parêntese, e o ⓘ abre a mesma ajuda do registro", async ({
+    page,
+  }) => {
+    await preparar(page, () => ({ estado: "PENDENTE" }));
+    await abrir(page);
+
+    // `AC-602`: o rótulo do campo de taxa não traz mais o parêntese de ajuda.
+    await expect(
+      page.getByText("No seu contrato, extrato ou aplicativo do banco"),
+    ).toHaveCount(0);
+
+    const botaoDaAjuda = page.getByRole("button", { name: "O que é Taxa?" });
+    await expect(botaoDaAjuda).toBeVisible();
+    await botaoDaAjuda.hover();
+    await expect(page.getByRole("tooltip")).toContainText(
+      "Quanto a dívida cobra de juros.",
+    );
+    await expect(page.getByRole("tooltip")).toContainText(
+      "No DDC ou no aplicativo do banco.",
+    );
   });
 });

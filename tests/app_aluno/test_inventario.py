@@ -1,7 +1,7 @@
-"""Pendências de inventário — `RF-87`, `RF-88` (`T-247`).
+"""Pendências de inventário — `RF-88`, `RF-559` (`T-247`, `T-647`).
 
-`AC-133`, `AC-135`, `AC-153`, `AC-154`, `EC-32`, `EC-33`, `EC-34`, sobre os
-registros REAIS (a pergunta a corrigir é resolvida pela variável no YAML).
+`AC-135`, `AC-595`, `AC-596`, `EC-34`, `EC-97`, sobre os registros REAIS (a
+pergunta a corrigir é resolvida pela variável no YAML).
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from app.casos.inventario import (
 )
 from collection.carga import carregar_registros
 from collection.registro import EscopoRepeticao, RegistroPergunta
-from collection.respostas import NAO_SEI, Resposta, RespostasCaso
+from collection.respostas import Resposta, RespostasCaso
 
 _T = TIPO_PENDENCIA_INVENTARIO
 
@@ -54,82 +54,39 @@ def _fichas_preenchidas(ids: tuple[str, ...]) -> tuple[Resposta, ...]:
     return tuple(_resposta("TIPO_DIVIDA", "PESSOAL", item_id=i) for i in ids)
 
 
-def test_ac133_sete_declaradas_cinco_fichas_mensagem_exata() -> None:
-    fichas = _dividas(5)
-    (pendencia,) = _pendencias(
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 7),
-        *_fichas_preenchidas(fichas),
-        itens={EscopoRepeticao.DIVIDA_ID: fichas},
-    )
+def test_ac595_zero_fichas_bloqueia_sem_dividas() -> None:
+    """`RF-559`: nenhuma ficha de `DIVIDA_ID` — `SEM_DIVIDAS`, sem pergunta a
+    corrigir (não existe mais quantidade declarada para apontar)."""
+    (pendencia,) = _pendencias()
 
-    assert pendencia.tipo is _T.DIVIDAS_FALTANDO
-    assert pendencia.ID_PARA_CORRIGIR == "B5.00"
-    assert mensagem_da_pendencia(pendencia) == (
-        "Você declarou 7 dívidas e cadastrou 5. Faltam 2 fichas."
-    )
+    assert pendencia.tipo is _T.SEM_DIVIDAS
+    assert pendencia.ID_PARA_CORRIGIR is None
+    assert pendencia.escopo is EscopoRepeticao.DIVIDA_ID
+    assert "quantidade" not in mensagem_da_pendencia(pendencia)
 
 
-def test_ac134_setima_ficha_remove_a_pendencia() -> None:
-    fichas = _dividas(7)
-    assert (
-        _pendencias(
-            _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 7),
-            *_fichas_preenchidas(fichas),
-            itens={EscopoRepeticao.DIVIDA_ID: fichas},
-        )
-        == ()
-    )
+def test_ac595_ficha_criada_e_vazia_nao_conta_como_cadastrada() -> None:
+    """Ficha criada sem nenhuma resposta não "cadastra" — mesma definição de
+    `RF-87`/`RF-88` de sempre."""
+    (pendencia,) = _pendencias(itens={EscopoRepeticao.DIVIDA_ID: _dividas(1)})
+
+    assert pendencia.tipo is _T.SEM_DIVIDAS
 
 
-def test_ac154_ec33_seis_fichas_para_cinco_declaradas_pede_atualizar_b5_00() -> None:
-    fichas = _dividas(6)
-    (pendencia,) = _pendencias(
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 5),
-        *_fichas_preenchidas(fichas),
-        itens={EscopoRepeticao.DIVIDA_ID: fichas},
-    )
-
-    assert pendencia.tipo is _T.DIVIDAS_ACIMA
-    assert pendencia.ID_PARA_CORRIGIR == "B5.00"
-    assert (pendencia.declaradas, pendencia.cadastradas) == (5, 6)
-
-    igualado = _pendencias(
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 6),
-        *_fichas_preenchidas(fichas),
-        itens={EscopoRepeticao.DIVIDA_ID: fichas},
-    )
-    assert igualado == ()
-
-
-def test_ac153_ec32_nao_sei_quantas_bloqueia_ate_confirmar_a_ultima() -> None:
-    fichas = _dividas(2)
-    base = (
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", NAO_SEI),
-        *_fichas_preenchidas(fichas),
-    )
-
-    (pendencia,) = _pendencias(*base, itens={EscopoRepeticao.DIVIDA_ID: fichas})
-    assert pendencia.tipo is _T.DIVIDAS_SEM_CONFIRMACAO
-    # A ação direta: cadastrar/confirmar nas fichas, ou dar um número em B5.00.
-    assert (pendencia.ID_PARA_CORRIGIR, pendencia.escopo) == ("B5.00", EscopoRepeticao.DIVIDA_ID)
-    assert "Faltam" not in mensagem_da_pendencia(pendencia)
-
-    confirmado = _pendencias(
-        *base,
-        _resposta("SYS (loop)", "NAO_ESTA_FOI_A_ULTIMA", item_id="D002"),
-        itens={EscopoRepeticao.DIVIDA_ID: fichas},
-    )
-    assert confirmado == ()
-
-
-def test_ac153_nao_tenho_certeza_nao_confirma() -> None:
+def test_ac596_uma_ficha_com_resposta_libera_o_calculo() -> None:
     fichas = _dividas(1)
-    (pendencia,) = _pendencias(
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", NAO_SEI),
-        _resposta("SYS (loop)", NAO_SEI, item_id="D001"),
-        itens={EscopoRepeticao.DIVIDA_ID: fichas},
+
+    assert (
+        _pendencias(*_fichas_preenchidas(fichas), itens={EscopoRepeticao.DIVIDA_ID: fichas}) == ()
     )
-    assert pendencia.tipo is _T.DIVIDAS_SEM_CONFIRMACAO
+
+
+def test_resposta_de_item_removido_nao_conta() -> None:
+    """Item removido não está em `itens_por_escopo` (só ativos): mesmo com
+    resposta gravada, não conta como cadastrado — `SEM_DIVIDAS` persiste."""
+    (pendencia,) = _pendencias(*_fichas_preenchidas(("D001",)), itens={})
+
+    assert pendencia.tipo is _T.SEM_DIVIDAS
 
 
 @pytest.mark.parametrize(
@@ -158,43 +115,30 @@ def test_ac135_sim_sem_item_bloqueia_e_nao_remove(
     ID: str,
     mensagem: str | None,
 ) -> None:
-    (pendencia,) = _pendencias(_resposta(variavel, "SIM"))
+    # Uma ficha de dívida com resposta, em toda chamada: sem ela, `SEM_
+    # DIVIDAS` apareceria ao lado da pendência testada aqui.
+    fichas = _dividas(1)
+    base = _fichas_preenchidas(fichas)
+
+    (pendencia,) = _pendencias(
+        *base, _resposta(variavel, "SIM"), itens={EscopoRepeticao.DIVIDA_ID: fichas}
+    )
     assert (pendencia.tipo, pendencia.ID_PARA_CORRIGIR, pendencia.escopo) == (tipo, ID, escopo)
     texto = mensagem_da_pendencia(pendencia)
     assert texto.startswith("Você informou que possui")
     if mensagem is not None:
         assert texto == mensagem
 
-    assert _pendencias(_resposta(variavel, "NAO")) == ()
+    assert (
+        _pendencias(*base, _resposta(variavel, "NAO"), itens={EscopoRepeticao.DIVIDA_ID: fichas})
+        == ()
+    )
     assert (
         _pendencias(
+            *base,
             _resposta(variavel, "SIM"),
             _resposta("QUALQUER", "X", item_id="X001"),
-            itens={escopo: ("X001",)},
+            itens={EscopoRepeticao.DIVIDA_ID: fichas, escopo: ("X001",)},
         )
         == ()
     )
-
-
-def test_ficha_criada_e_vazia_nao_conta_como_cadastrada() -> None:
-    fichas = _dividas(2)
-    (pendencia,) = _pendencias(
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 2),
-        *_fichas_preenchidas(fichas[:1]),
-        itens={EscopoRepeticao.DIVIDA_ID: fichas},
-    )
-    assert (pendencia.tipo, pendencia.cadastradas) == (_T.DIVIDAS_FALTANDO, 1)
-    assert mensagem_da_pendencia(pendencia) == (
-        "Você declarou 2 dívidas e cadastrou 1. Falta 1 ficha."
-    )
-
-
-def test_resposta_de_item_removido_nao_conta() -> None:
-    """Item removido não está em `itens_por_escopo` (só ativos): mesmo com
-    resposta gravada, não conta como cadastrado."""
-    (pendencia,) = _pendencias(
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 1),
-        *_fichas_preenchidas(("D001",)),
-        itens={},
-    )
-    assert pendencia.tipo is _T.DIVIDAS_FALTANDO

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 /**
  * `AlertaInventario` — o alerta permanente de inventário incompleto
- * (`RF-86`, `RF-87`, `AC-133`, `AC-154`, T-251).
+ * (`RF-86`, `RF-87`, `AC-133`, `AC-154`, T-251, `T-658`/`T-661` — `RF-559`).
  *
  * O componente só mostra o que o servidor devolveu: mensagem e ações por
  * pendência; sem pendência, nada no DOM.
@@ -14,21 +14,35 @@ import AlertaInventario, {
   ContextoDoAlerta,
 } from "../../../src/componentes/AlertaInventario";
 import * as api from "../../../src/services/api";
-import type { Ficha, RespostaPergunta } from "../../../src/tipos";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const FALTANDO: api.PendenciaDeInventario = {
+// `RENDA_EXTRA_SEM_ITEM` — escopo e `ID_PARA_CORRIGIR` presentes, para
+// exercitar os dois botões juntos (`AC-133`).
+const RENDA_SEM_ITEM: api.PendenciaDeInventario = {
   tipo: "INVENTARIO",
-  codigo: "DIVIDAS_FALTANDO",
-  ID: "B5.00",
-  ID_PARA_CORRIGIR: "B5.00",
+  codigo: "RENDA_EXTRA_SEM_ITEM",
+  ID: "B3.03",
+  ID_PARA_CORRIGIR: "B3.03",
+  item_id: null,
+  escopo: "RENDA_ADICIONAL_ID",
+  enunciado: "Você informou que possui renda extra, mas ainda não cadastrou nenhuma.",
+  mensagem: "Você informou que possui renda extra, mas ainda não cadastrou nenhuma.",
+};
+
+// `T-647`/`T-657` (`RF-559`): `SEM_DIVIDAS` — escopo `DIVIDA_ID`,
+// `ID_PARA_CORRIGIR` nulo (não há mais pergunta de quantidade a corrigir).
+const SEM_DIVIDAS: api.PendenciaDeInventario = {
+  tipo: "INVENTARIO",
+  codigo: "SEM_DIVIDAS",
+  ID: null,
+  ID_PARA_CORRIGIR: null,
   item_id: null,
   escopo: "DIVIDA_ID",
-  enunciado: "Você declarou 7 dívidas e cadastrou 5. Faltam 2 fichas.",
-  mensagem: "Você declarou 7 dívidas e cadastrou 5. Faltam 2 fichas.",
+  enunciado: "Você ainda não cadastrou nenhuma dívida.",
+  mensagem: "Você ainda não cadastrou nenhuma dívida.",
 };
 
 function montar(pendencias: api.PendenciaDeInventario[], irPara = vi.fn()) {
@@ -47,21 +61,19 @@ function montar(pendencias: api.PendenciaDeInventario[], irPara = vi.fn()) {
 
 describe("AlertaInventario", () => {
   it("AC-133: anuncia a mensagem do servidor, com uma ação por pendência", async () => {
-    const { irPara } = montar([FALTANDO]);
+    const { irPara } = montar([RENDA_SEM_ITEM]);
 
     const alerta = await screen.findByRole("alert");
-    expect(alerta).toHaveTextContent(
-      "Você declarou 7 dívidas e cadastrou 5. Faltam 2 fichas.",
-    );
+    expect(alerta).toHaveTextContent(RENDA_SEM_ITEM.mensagem);
 
     const cadastrar = screen.getByRole("button", {
       name: "Cadastrar as fichas",
     });
-    expect(cadastrar).toHaveAccessibleDescription(FALTANDO.mensagem);
+    expect(cadastrar).toHaveAccessibleDescription(RENDA_SEM_ITEM.mensagem);
     await userEvent.click(cadastrar);
     expect(irPara).toHaveBeenCalledWith({
       tela: "fichas",
-      escopo: "DIVIDA_ID",
+      escopo: "RENDA_ADICIONAL_ID",
     });
 
     await userEvent.click(
@@ -69,19 +81,12 @@ describe("AlertaInventario", () => {
     );
     expect(irPara).toHaveBeenCalledWith({
       tela: "respostas",
-      idPergunta: "B5.00",
+      idPergunta: "B3.03",
     });
   });
 
   it("AC-154: pendência sem escopo oferece só a correção da declaração", async () => {
-    montar([
-      {
-        ...FALTANDO,
-        codigo: "DIVIDAS_ACIMA",
-        escopo: null,
-        mensagem: "Acima.",
-      },
-    ]);
+    montar([{ ...RENDA_SEM_ITEM, escopo: null, mensagem: "Sem escopo." }]);
 
     await screen.findByRole("alert");
     expect(
@@ -99,78 +104,25 @@ describe("AlertaInventario", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("T-324: diz os tipos sem ficha e as fichas cadastradas; cadastra a próxima", async () => {
-    const criar = vi.spyOn(api, "criarFicha").mockResolvedValue({
-      CASO_ID: "CASO-1",
-      escopo: "DIVIDA_ID",
-      ficha: { item_id: "D003" } as Ficha,
-    });
-    vi.spyOn(api, "obterProximaPergunta").mockResolvedValue({
-      pergunta: { ID: "B5.A01" },
-    } as RespostaPergunta);
-    const mensagem =
-      "Você declarou 12 dívidas e cadastrou 2. Faltam 10 fichas.";
-    const { irPara } = montar([
-      {
-        ...FALTANDO,
-        mensagem,
-        dividas: {
-          fichas: [
-            { item_id: "D001", credor: "Banco X", tipo: "Empréstimo pessoal" },
-            { item_id: "D002", credor: null, tipo: null },
-          ],
-          ficha_vazia: null,
-        },
-      },
-    ]);
+  it("T-661 (RF-559): SEM_DIVIDAS mostra só 'Cadastrar as fichas'", async () => {
+    const { irPara } = montar([SEM_DIVIDAS]);
 
     const alerta = await screen.findByRole("alert");
-    // A mensagem de `RF-87` continua literal, antes do detalhe.
-    expect(alerta.querySelector("li")?.firstElementChild).toHaveTextContent(
-      mensagem,
-    );
-    expect(alerta).toHaveTextContent("Banco X — Empréstimo pessoal");
-    expect(alerta).toHaveTextContent("Ficha sem credor e tipo informados");
-    expect(
-      screen.queryByRole("button", { name: "Cadastrar as fichas" }),
-    ).toBeNull();
+    expect(alerta).toHaveTextContent(SEM_DIVIDAS.mensagem);
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Cadastrar a próxima dívida" }),
+      screen.getByRole("button", { name: "Cadastrar as fichas" }),
     );
-    await waitFor(() =>
-      expect(irPara).toHaveBeenCalledWith({
-        tela: "pergunta",
-        idPergunta: "B5.A01",
-        itemId: "D003",
-      }),
-    );
-    expect(criar).toHaveBeenCalledWith("CASO-1", "DIVIDA_ID");
+    expect(irPara).toHaveBeenCalledWith({ tela: "fichas", escopo: "DIVIDA_ID" });
   });
 
-  it("T-324: com ficha criada e vazia, reabre essa em vez de criar outra", async () => {
-    const criar = vi.spyOn(api, "criarFicha");
-    vi.spyOn(api, "obterProximaPergunta").mockResolvedValue({
-      pergunta: { ID: "B5.A01" },
-    } as RespostaPergunta);
-    const { irPara } = montar([
-      {
-        ...FALTANDO,
-        dividas: { fichas: [], ficha_vazia: "D006" },
-      },
-    ]);
+  it("T-661 (RF-559): ID_PARA_CORRIGIR nulo não mostra 'Corrigir a resposta'", async () => {
+    montar([SEM_DIVIDAS]);
 
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Cadastrar a próxima dívida" }),
-    );
-    await waitFor(() =>
-      expect(irPara).toHaveBeenCalledWith({
-        tela: "pergunta",
-        idPergunta: "B5.A01",
-        itemId: "D006",
-      }),
-    );
-    expect(criar).not.toHaveBeenCalled();
+    await screen.findByRole("alert");
+    expect(
+      screen.queryByRole("button", { name: "Corrigir a resposta" }),
+    ).toBeNull();
   });
 
   it("fora do contexto de um caso (tela da equipe, testes da casca), nada", () => {

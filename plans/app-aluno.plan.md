@@ -3682,3 +3682,540 @@ renderiza as strings.
 | `NFR` da Rodada 17 (tela = PDF, 360 px, acessibilidade, `AC-42`) | `R19.3`, `R19.4`, `R19.9` |
 
 Tarefas: em `tasks/app-aluno.tasks.md`, depois das do `motor-calculo` (`R14`).
+
+# Rodada 18 (2026-11-17) — cadastro de dívidas sem contagem, ajuda (ⓘ) nos campos da ficha e remoção do pagamento mínimo (`RF-557`–`RF-563`)
+
+| Campo | Valor |
+| --- | --- |
+| Slug | `app-aluno` (rodada da feature) |
+| Spec | `specs/app-aluno.spec.md` Rodada 18 — `RF-557`–`RF-563`, `US-417`–`US-419`, `AC-592`–`AC-602`, `EC-95`–`EC-99`; substitui `RF-86`/`RF-87` (nota Rodada 9) e `RF-425` de `enxugamento-questionario`; deixa `RF-110` sem efeito (nota Rodada 10); revoga parcialmente `RF-533`/`RF-534`/`AC-545` de `calculo-de-divida`; atende `RF-407` de `enxugamento-questionario`; nenhuma `OQ` nova |
+| Depende de | nada do motor — zero mudança de regra de cálculo (`sdd.config.md` restrição do briefing); só `collection/`, `app/casos/`, `app/http/`, `app/montagem/`, `report/` e `frontend/` |
+| Status | `rascunho` |
+
+Seções `R20.x` (o prefixo `R19` é da Rodada 17).
+
+## R20.1. Architecture Overview
+
+Três mudanças independentes, todas em coleta/inventário/relatório/frontend —
+nenhuma toca `engine/` nem `persistencia/`.
+
+```text
+### A. Cadastro sem contagem — B5.00 sai, B5.FIM02 nunca aparece isolada
+
+Hoje: B5.00 respondida → _abre_fichas_de_divida() cria a ficha 1 (gatilho:
+VARIAVEL_GRAVADA == QUANTIDADE_DIVIDAS_DECLARADA_INICIAL). Esse gatilho
+desaparece com a pergunta. Sem B5.00, B5.A01 (cabeça de DIVIDA_ID) não tem
+condição — escopos_abertos_pela_resposta() nunca a aponta (ela só lê
+cabeças CONDICIONAIS) — e, com zero fichas, a varredura de
+app/casos/progresso.py salta direto as perguntas REP de DIVIDA_ID (nenhum
+item para iterar) até B5.FIM02, o único registro NENHUM-escopo que resta
+no Bloco 5. B5.FIM02 torna-se, ela mesma, o sinal de "entrando no Bloco 5"
+ou "fechei a ficha corrente":
+
+  proxima_pergunta_nao_respondida() / _primeira_exibivel()   (inalterados)
+          │  acham B5.FIM02 (ID == "B5.FIM02")
+          ▼
+  NOVO — mesma checagem (ID_FIM_DE_CADASTRO) em três pontos de entrada:
+   ┌─ POST /caso/{id}/resposta        (rotas_coleta.py::responder_pergunta)
+   ├─ GET  /caso/{id}/pergunta (sem ID) (rotas_pergunta.py::proxima_pergunta)
+   └─ GET  /caso/{id}/inicio          (rotas_inicio.py::_proxima_etapa)
+          │
+          ├─ 0 fichas DIVIDA_ID → criar_primeira_ficha_de_divida()  (RF-557)
+          │     repositorio_itens.proximo_identificador + proxima_pergunta_do_item
+          │     — o MESMO mecanismo de RF-101/_FICHAS_QUE_NASCEM_COM_ITEM,
+          │     só que disparado pelo ACHADO (B5.FIM02), não por uma RESPOSTA
+          │     → devolve B5.A01 direto; nunca lista, nunca B5.FIM02 (AC-592)
+          └─ 1+ fichas → abrir_fichas = (DIVIDA_ID,)                (RF-558)
+                → frontend abre TelaFichas; nunca a pergunta isolada (AC-594)
+
+  TelaFichas (escopo=DIVIDA_ID, 1+ fichas) — dois botões (RF-558, AC-593):
+    "Cadastrar outra dívida" → aoAdicionar() [existente, T-311]
+    "Não tenho mais, seguir" → POST resposta B5.FIM02=SIM → onContinuar()
+
+  app/casos/inventario.py::pendencias_de_inventario            (RF-559)
+    SEM_DIVIDAS ⟺ not cadastrados(DIVIDA_ID)  — substitui a comparação
+    declarado × cadastrado (DIVIDAS_FALTANDO/ACIMA/SEM_CONFIRMACAO somem)
+    → bloqueia rotas_calculo.py (guarda inalterada) e aparece em
+      AlertaInventario.tsx (botão "Cadastrar as fichas", já existente)
+
+### A2. Sem o pagamento mínimo — B5.C02C sai
+
+collection/registros/bloco-05.yaml (B5.C02C removida)
+  → app/montagem/premissas.py (_pagamento_minimo, _VARIAVEL_MINIMO,
+    PremissasDaDivida.pagamento_minimo removidos — nunca lido por
+    motor/relatório/tela, RF-533/RF-534 já diziam isso)         (RF-561)
+
+### B. Ajuda ⓘ — campo novo no registro, componente novo no frontend
+
+collection/registros/bloco-05.yaml (explicacao: {o_que_e, onde_encontrar}
+  em B5.B03, B5.C02, B5.C02B, B5.D06; parêntese de ajuda sai de B5.D06)
+  → collection/registro.py (RegistroPergunta.explicacao: Explicacao | None)
+  → collection/carga.py (_converter_explicacao)
+  → collection/esquema-registros.json (propriedade nova)
+  → app/http/serializacao.py (serializar_pergunta: chave "explicacao")
+  → frontend/src/tipos.ts (Pergunta.explicacao?: ExplicacaoDoCampo | null)
+  → frontend/src/componentes/Explicacao.tsx (botão ⓘ + balão, NOVO)
+  → usado em CampoPergunta.tsx (tela de pergunta) e
+    CalculadoraDaDivida.tsx (mesmo conteúdo, RF-562)
+```
+
+## R20.2. Tech Stack
+
+| Escolha | Uso | Justificativa (ancorada em `RF-NN`) |
+| --- | --- | --- |
+| Reusar `_FICHAS_QUE_NASCEM_COM_ITEM`/`_primeiro_item_ou_lista`/`_proxima_do_item` (`app/http/rotas_coleta.py`) | Criar a ficha 1 de `DIVIDA_ID` sem pergunta de quantidade | `RF-557` exige exatamente o mecanismo que `RF-101` já usa para as outras fichas que nascem com o primeiro item; escrever um segundo caminho de criação duplicaria a regra "ficha nasce com item" |
+| Comparar pelo literal `"B5.FIM02"` (constante `ID_FIM_DE_CADASTRO`), não por `VARIAVEL_GRAVADA` | Detectar "a próxima pendência é `B5.FIM02`" nos três pontos de entrada | Mesmo padrão de `DESPESA_NAO_LISTADA` (`app/casos/itens_despesa.py:41`); em `rotas_inicio.py` só o `PendenciaObrigatoria.ID` (string) está disponível, sem o `RegistroPergunta` |
+| Dataclass Python simples para `Explicacao` (sem `pydantic`) | Carregar `{o_que_e, onde_encontrar}` do YAML | Mesmo padrão de todo campo opcional de `RegistroPergunta` (`apoio`, `faixa`); `pydantic` não está no projeto e seria dependência nova para dois campos de texto |
+| Componente React próprio (`Explicacao.tsx`), sem biblioteca de tooltip | O balão do ícone ⓘ | `RF-562` pede hover + foco + toque + Esc — poucas linhas de `useState`/`onMouseEnter`/`onFocus`/`onKeyDown`; nenhuma biblioteca do projeto hoje traz isso, e as oito usadas em `Icone.tsx` já documentam a política de não trazer pacote para o que são "poucas linhas" (`Icone.tsx` cabeçalho) |
+| Reusar o ícone `duvida` de `Icone.tsx:88` | O glifo do botão ⓘ | Já existe, decorativo (`aria-hidden`), e o nome ("Dúvidas comuns") já carrega a semântica certa; desenhar um ícone novo violaria a mesma política de `Icone.tsx` ("são oito `path`, escritos aqui" — não nove por capricho) |
+
+Nenhuma dependência nova. Nenhum arquivo de `engine/` ou `persistencia/` é tocado.
+
+## R20.3. Project Structure
+
+| Caminho | Mudança | Requisito |
+| --- | --- | --- |
+| `collection/registros/bloco-05.yaml` | Remove `B5.00` e `B5.C02C`; adiciona `explicacao: {o_que_e, onde_encontrar}` em `B5.B03`, `B5.C02`, `B5.C02B`, `B5.D06`; remove o parêntese de ajuda do enunciado de `B5.D06`; `B5.FIM02` **não muda** (continua `OBR`, `NENHUM`, com as duas opções); `QUESTIONARIO_VERSION` sobe de `"1.5.0"` para `"1.6.0"` | `RF-557`, `RF-561`, `RF-562`, `RF-563` |
+| `collection/registro.py` | `RegistroPergunta` ganha `explicacao: Explicacao \| None = None`; novo dataclass `Explicacao` (`o_que_e: str`, `onde_encontrar: str`) | `RF-562` |
+| `collection/carga.py` | `_converter_explicacao(bruta)`; chamada em `_converter_registro` | `RF-562` |
+| `collection/esquema-registros.json` | Propriedade `explicacao` em `$defs.registroPergunta` (objeto `{o_que_e, onde_encontrar}`, ambos obrigatórios e `minLength: 1`) | `RF-562` |
+| `app/http/serializacao.py` | `serializar_pergunta` ganha a chave `"explicacao"` (objeto ou `null`) | `RF-562` |
+| `app/http/rotas_coleta.py` | Remove `_DECLARACAO_DE_DIVIDAS`, `_abre_fichas_de_divida`, `faltam_fichas_de_divida`, `posterior_a_declaracao_de_dividas`; adiciona `ID_FIM_DE_CADASTRO` e `criar_primeira_ficha_de_divida`; `responder_pergunta` troca o gatilho de `abrir_fichas` | `RF-557`, `RF-558`, `RF-559` |
+| `app/http/rotas_pergunta.py` | `proxima_pergunta` (GET sem ID) ganha o mesmo desvio de `B5.FIM02` (defensivo — ver `R20.10`); resposta JSON ganha `"abrir_fichas"` só nesse ramo novo | `RF-558` |
+| `app/http/rotas_inicio.py` | `_proxima_etapa` ganha parâmetro `repositorio_itens`; remove o ramo `posterior_a_declaracao_de_dividas`/`faltam_fichas_de_divida`; usa `ID_FIM_DE_CADASTRO`/`criar_primeira_ficha_de_divida` importados de `rotas_coleta.py` | `RF-557`, `RF-558` |
+| `app/casos/inventario.py` | Remove `DIVIDAS_FALTANDO`/`DIVIDAS_ACIMA`/`DIVIDAS_SEM_CONFIRMACAO` do enum, `_detalhe_das_dividas`, `DetalheDasDividas`, `FichaDeDivida`, `_rotulos`, `_TIPO_DA_FICHA`, `_QUANTIDADE_DECLARADA`, `_FIM_DO_CADASTRO`, `_ESTA_FOI_A_ULTIMA`, o ramo correspondente de `mensagem_da_pendencia`, e o campo `PendenciaInventario.dividas`; `SEM_DIVIDAS` passa a ter `escopo=DIVIDA_ID` e `ID_PARA_CORRIGIR=None`; `ID_PARA_CORRIGIR` vira `str \| None` | `RF-559` |
+| `app/casos/textos/inventario.yaml` | Remove `DIVIDAS_FALTANDO*`, `DIVIDAS_ACIMA`, `DIVIDAS_SEM_CONFIRMACAO`; reescreve `SEM_DIVIDAS` sem "corrija a quantidade" | `RF-559` |
+| `app/http/rotas_calculo.py` | `formatar_pendencia_inventario` para de serializar a chave `"dividas"` | `RF-559` |
+| `app/montagem/premissas.py` | Remove `_VARIAVEL_MINIMO`, `_pagamento_minimo`, `PremissasDaDivida.pagamento_minimo` e o `kwarg` correspondente | `RF-561` |
+| `app/http/serializacao_plano.py` | `vocabulario_do_caso` para de ler `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` e de montar `fichas_faltando` | `RF-559` |
+| `report/plano.py` | Remove `VocabularioDoCaso.fichas_faltando` e o bloco correspondente em `_avisos_gerais` | `RF-559` |
+| `report/templates/plano/textos-canonicos.yaml` | Remove a chave `avisos.fichas_faltando` | `RF-559` |
+| `frontend/src/componentes/Explicacao.tsx` | **Novo.** Botão ⓘ + balão (hover, foco, toque, Esc) | `RF-562` |
+| `frontend/src/componentes/CampoPergunta.tsx` | Renderiza `<Explicacao>` ao lado do rótulo/legend quando `pergunta.explicacao` existe | `RF-562` |
+| `frontend/src/componentes/CalculadoraDaDivida.tsx` | `Inicial.explicacoes` (por `CampoDaDivida`), lido de `carregarInicial`; `<Explicacao>` ao lado de cada rótulo | `RF-562` |
+| `frontend/src/componentes/AlertaInventario.tsx` | Remove `cadastrarProxima`, o bloco "Fichas já cadastradas" e o tipo `dividas`; colapsa o botão de ação para `pendencia.escopo && …`; condiciona "Corrigir a resposta" a `pendencia.ID_PARA_CORRIGIR` | `RF-559` |
+| `frontend/src/telas/TelaFichas.tsx` | Prop nova `fimDeCadastro?: {idPergunta, rotuloAdicionar, rotuloConcluir}`; troca "Continuar"/"+ Adicionar outra dívida" pelos dois botões quando presente e `fichas.length > 0` | `RF-558` |
+| `frontend/src/telas/TelaPergunta.tsx` | `carregar()` trata `abrir_fichas` da resposta de `obterProximaPergunta` (chama `onAbrirFichas`) | `RF-558` |
+| `frontend/src/App.tsx` | Passa `fimDeCadastro` ao instanciar `<TelaFichas>` quando `escopo === 'DIVIDA_ID'` | `RF-558` |
+| `frontend/src/tipos.ts` | `Pergunta.explicacao?`; `ExplicacaoDoCampo`; `RespostaPergunta.abrir_fichas?: string[]`; `PendenciaDoCalculo.ID: string \| null`; `PendenciaDeInventario.ID_PARA_CORRIGIR: string \| null`; remove `PendenciaDeInventario.dividas` | `RF-558`, `RF-559`, `RF-562` |
+| `frontend/src/services/api.ts` | Nenhuma rota nova; tipos ajustados conforme acima | `RF-558`, `RF-559` |
+
+## R20.4. Data Model — contratos
+
+```python
+# collection/registro.py — RF-562
+@dataclass(frozen=True, slots=True)
+class Explicacao:
+    """O conteúdo do ícone ⓘ (RF-562): o que o campo é e onde encontrar o
+    dado. Opcional — registro sem `explicacao` não ganha ícone."""
+    o_que_e: str
+    onde_encontrar: str
+
+# RegistroPergunta ganha, junto dos demais campos opcionais com padrão neutro:
+    explicacao: Explicacao | None = None
+```
+
+```python
+# collection/carga.py — RF-562
+def _converter_explicacao(bruta: dict[str, Any] | None) -> Explicacao | None:
+    if bruta is None:
+        return None
+    return Explicacao(o_que_e=bruta["o_que_e"], onde_encontrar=bruta["onde_encontrar"])
+
+# em _converter_registro(...):
+    explicacao=_converter_explicacao(pergunta.get("explicacao")),
+```
+
+```jsonc
+// collection/esquema-registros.json — RF-562, em $defs.registroPergunta.properties
+"explicacao": {
+  "type": "object",
+  "required": ["o_que_e", "onde_encontrar"],
+  "additionalProperties": false,
+  "properties": {
+    "o_que_e": { "type": "string", "minLength": 1 },
+    "onde_encontrar": { "type": "string", "minLength": 1 }
+  }
+}
+```
+
+```python
+# app/http/serializacao.py::serializar_pergunta — RF-562
+"explicacao": (
+    None
+    if registro.explicacao is None
+    else {"o_que_e": registro.explicacao.o_que_e, "onde_encontrar": registro.explicacao.onde_encontrar}
+),
+```
+
+```python
+# app/http/rotas_coleta.py — RF-557, RF-558
+# Substitui `_DECLARACAO_DE_DIVIDAS`/`_abre_fichas_de_divida`, ligados a
+# `B5.00` (removida). Sem ela, a cabeça de DIVIDA_ID (B5.A01) não tem
+# condição — `escopos_abertos_pela_resposta` nunca a aponta — então o
+# único sinal que resta é a PRÓPRIA B5.FIM02 virando a pendência.
+ID_FIM_DE_CADASTRO: Final[str] = "B5.FIM02"
+
+
+def criar_primeira_ficha_de_divida(
+    CASO_ID: str,
+    colecao: ColecaoDeRegistros,
+    respostas: RespostasCaso,
+    repositorio_itens: RepositorioItens,
+) -> PendenciaObrigatoria | None:
+    """RF-557 — cria a ficha 1 de `DIVIDA_ID` (mesmo mecanismo de `RF-101`/
+    `_FICHAS_QUE_NASCEM_COM_ITEM`: `proximo_identificador` + a MESMA busca
+    de `_proxima_do_item`, aqui como `PendenciaObrigatoria` pura, sem
+    serialização) e devolve a primeira pergunta aberta dela. `None` só se a
+    ficha nascer sem pergunta aberta (defensivo — `B5.A01` não tem
+    condição, não deveria ocorrer). Chamada pelas três entradas do Bloco 5
+    (POST de resposta, `GET /pergunta` sem ID, `rotas_inicio.py`)."""
+
+
+# Em `responder_pergunta`, no lugar do antigo `if _abre_fichas_de_divida(...)`:
+    # RF-557: a próxima pendência virou B5.FIM02 e não há ficha nenhuma — o
+    # "criar" de `_primeiro_item_ou_lista`, abaixo, cria a ficha 1 (ela já
+    # sabe criar qualquer escopo de `_FICHAS_QUE_NASCEM_COM_ITEM`). Com
+    # ficha(s) já existente(s), fechar a última pergunta do item já
+    # adicionou DIVIDA_ID a `abrir_fichas` pelo caso "b" da mesma função —
+    # RF-558 sai de graça, sem código novo aqui.
+    if (
+        (proxima.get("pergunta") or {}).get("ID") == ID_FIM_DE_CADASTRO
+        and not itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID)
+    ):
+        abrir_fichas = (*abrir_fichas, EscopoRepeticao.DIVIDA_ID)
+```
+
+```python
+# app/http/rotas_pergunta.py::proxima_pergunta — RF-558 (defensivo, R20.10)
+    encontrada = _primeira_exibivel(colecao, respostas, itens_por_escopo)
+    if encontrada is None:
+        return _coleta_completa(request, CASO_ID)
+    registro, pendencia = encontrada
+    if registro.ID == ID_FIM_DE_CADASTRO:
+        if itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID):
+            return JSONResponse({
+                "pergunta": None, "coleta_completa": False,
+                "abrir_fichas": [EscopoRepeticao.DIVIDA_ID.value], "CASO_ID": CASO_ID,
+            })
+        primeira = criar_primeira_ficha_de_divida(CASO_ID, colecao, respostas, repositorio_itens)
+        if primeira is not None:
+            registro, pendencia = _localizar_registro(colecao, primeira.ID), primeira
+    return _renderizar_pergunta(request, CASO_ID, registro, respostas, colecao, itens_por_escopo, pendencia.item_id, rotulos)
+```
+
+```python
+# app/http/rotas_inicio.py::_proxima_etapa — RF-557, RF-558
+# (ganha o parâmetro `repositorio_itens: RepositorioItens`)
+    pendencia = proxima_pergunta_nao_respondida(colecao.registros, respostas, itens_por_escopo)
+    if pendencia is None:
+        ...  # inalterado (inventário / calculando) — ID_PARA_CORRIGIR agora pode ser None
+    if pendencia.ID == ID_FIM_DE_CADASTRO:
+        if itens_por_escopo.get(EscopoRepeticao.DIVIDA_ID):
+            return ProximaEtapa(
+                destino=DESTINO_DA_ETAPA.INVENTARIO,
+                abrir_fichas=(EscopoRepeticao.DIVIDA_ID,),
+            )
+        primeira = criar_primeira_ficha_de_divida(caso.CASO_ID, colecao, respostas, repositorio_itens)
+        if primeira is not None:
+            return ProximaEtapa(
+                destino=DESTINO_DA_ETAPA.PERGUNTA,
+                ID_PERGUNTA=primeira.ID,
+                item_id=primeira.item_id,
+            )
+    return ProximaEtapa(destino=DESTINO_DA_ETAPA.PERGUNTA, ID_PERGUNTA=pendencia.ID, item_id=pendencia.item_id)
+    # — o ramo antigo `posterior_a_declaracao_de_dividas`/`faltam_fichas_de_divida` É REMOVIDO
+```
+
+```python
+# app/casos/inventario.py — RF-559
+class TIPO_PENDENCIA_INVENTARIO(Enum):
+    SEM_DIVIDAS = "SEM_DIVIDAS"
+    RENDA_EXTRA_SEM_ITEM = "RENDA_EXTRA_SEM_ITEM"
+    NAO_MENSAL_SEM_ITEM = "NAO_MENSAL_SEM_ITEM"
+    # DIVIDAS_FALTANDO / DIVIDAS_ACIMA / DIVIDAS_SEM_CONFIRMACAO: REMOVIDOS
+
+
+@dataclass(frozen=True, slots=True)
+class PendenciaInventario:
+    tipo: TIPO_PENDENCIA_INVENTARIO
+    declaradas: int | None
+    cadastradas: int | None
+    ID_PARA_CORRIGIR: str | None  # RF-559: None em SEM_DIVIDAS — não há mais o que corrigir
+    escopo: EscopoRepeticao | None
+    # campo `dividas` REMOVIDO (DetalheDasDividas/FichaDeDivida saem com ele)
+
+
+# em pendencias_de_inventario(...), no lugar do bloco de comparação declarado×cadastrado:
+    dividas = cadastrados(EscopoRepeticao.DIVIDA_ID)
+    if not dividas:
+        pendencias.append(PendenciaInventario(
+            tipo=TIPO_PENDENCIA_INVENTARIO.SEM_DIVIDAS,
+            declaradas=None,
+            cadastradas=0,
+            ID_PARA_CORRIGIR=None,
+            escopo=EscopoRepeticao.DIVIDA_ID,
+        ))
+    # ... bloco de RENDA_EXTRA_SEM_ITEM / NAO_MENSAL_SEM_ITEM: sem mudança
+```
+
+```python
+# app/montagem/premissas.py — RF-561: REMOVIDOS
+_VARIAVEL_MINIMO: Final[str] = "PAGAMENTO_MINIMO_DIVIDA"   # linha 75
+    pagamento_minimo: Dinheiro | None = None               # campo de PremissasDaDivida, linha 141
+        pagamento_minimo=_pagamento_minimo(respostas, DIVIDA_ID),  # kwarg, linha 439
+def _pagamento_minimo(respostas: RespostasCaso, DIVIDA_ID: str) -> Dinheiro | None: ...  # linhas 469-472
+```
+
+```ts
+// frontend/src/tipos.ts
+export interface ExplicacaoDoCampo {       // RF-562
+  o_que_e: string
+  onde_encontrar: string
+}
+// em Pergunta, ao lado de `apoio`:
+  explicacao?: ExplicacaoDoCampo | null
+
+// RF-558 — o GET /pergunta sem ID também pode devolver abrir_fichas (defensivo)
+export interface RespostaPergunta {
+  pergunta: Pergunta | null
+  coleta_completa?: boolean
+  avanco_permitido?: boolean
+  total_pendencias?: number
+  CASO_ID?: string
+  abrir_fichas?: string[]
+}
+```
+
+```ts
+// frontend/src/services/api.ts — RF-559 (ID_PARA_CORRIGIR agora pode ser null)
+export interface PendenciaDoCalculo {
+  ID: string | null
+  item_id: string | null
+  enunciado: string
+}
+export interface PendenciaDeInventario extends PendenciaDoCalculo {
+  tipo: 'INVENTARIO'
+  codigo: string
+  ID_PARA_CORRIGIR: string | null
+  escopo: string | null
+  mensagem: string
+  // campo `dividas` REMOVIDO
+}
+```
+
+```ts
+// frontend/src/telas/TelaFichas.tsx — RF-558
+interface TelaFichasProps {
+  // ...props existentes...
+  /** Só `DIVIDA_ID`. Troca "Continuar" por "Não tenho mais, seguir" (grava
+   * `idPergunta = SIM` antes de chamar `onContinuar`) e "+ Adicionar outra
+   * dívida" por `rotuloAdicionar`. Ausente: comportamento de hoje. */
+  fimDeCadastro?: {
+    idPergunta: string        // "B5.FIM02"
+    rotuloAdicionar: string   // "Cadastrar outra dívida"
+    rotuloConcluir: string    // "Não tenho mais, seguir"
+  }
+}
+```
+
+```tsx
+// frontend/src/componentes/Explicacao.tsx — RF-562 (contrato; NOVO arquivo)
+interface ExplicacaoProps {
+  campo: string         // para o aria-label: "O que é <campo>?"
+  oQueE: string
+  ondeEncontrar: string
+}
+export default function Explicacao({ campo, oQueE, ondeEncontrar }: ExplicacaoProps): JSX.Element
+```
+
+## R20.5. Data Flow
+
+**A. Entrada no Bloco 5 / fim de ficha (`RF-557`, `RF-558`).**
+
+1. Aluno responde a última pergunta do Bloco 4 (`POST /resposta`) **ou**
+   abre o app depois de um tempo (`GET /inicio`) **ou** (defensivo)
+   `GET /pergunta` sem ID.
+2. O servidor acha a próxima pendência pela varredura de sempre
+   (`proxima_pergunta_nao_respondida`/`_primeira_exibivel` — nenhuma regra
+   nova aqui). Ela é `B5.FIM02` (único registro `NENHUM`-escopo que resta
+   no Bloco 5, agora que `B5.00` saiu).
+3. Checagem nova: `registro.ID == "B5.FIM02"` (ou, no POST, o `ID` já
+   serializado em `proxima`).
+   - **Sem ficha de `DIVIDA_ID`:** `criar_primeira_ficha_de_divida` cria o
+     item 1 e devolve `B5.A01` — o aluno nunca vê `B5.FIM02` nem uma lista
+     vazia (`AC-592`).
+   - **Com 1+ fichas:** `abrir_fichas = (DIVIDA_ID,)` — o cliente abre
+     `TelaFichas`, nunca a pergunta isolada (`AC-594`).
+4. Na lista (`TelaFichas`, escopo `DIVIDA_ID`, 1+ fichas): "Cadastrar outra
+   dívida" chama `aoAdicionar()` (existente); "Não tenho mais, seguir"
+   grava `B5.FIM02 = SIM` pela rota de resposta de sempre e só então chama
+   `onContinuar()` — que pode, por sua vez, acabar no `GET /pergunta` sem
+   ID (passo 1 de novo, agora com `B5.FIM02` já respondida, então a
+   varredura naturalmente passa para o que vem depois do Bloco 5).
+5. Falha em qualquer passo (rede, `503` de gravação): a tela de fichas ou
+   de pergunta mostra o erro existente ("Não foi possível salvar."/"Não foi
+   possível adicionar."); nenhuma ficha é criada pela metade — a criação do
+   item (passo 3) e a gravação da resposta (passo 4) são chamadas
+   separadas, cada uma com sua própria falha tratada no padrão já usado
+   por `aoAdicionar`/`gravarResposta`.
+
+**B. Cálculo bloqueado por `SEM_DIVIDAS` (`RF-559`).**
+
+1. `rotas_calculo.py` chama `exigir_inventario_completo(pendencias_de_inventario(...))`
+   (inalterado).
+2. `pendencias_de_inventario` devolve `SEM_DIVIDAS` sempre que
+   `cadastrados(DIVIDA_ID)` é vazio — nenhuma leitura de quantidade
+   declarada.
+3. `AlertaInventario.tsx` (em toda tela) e a tela `respostas` (quando o
+   `Início` aponta para lá) oferecem "Cadastrar as fichas", que abre
+   `TelaFichas` no escopo `DIVIDA_ID` — o mesmo botão que já existe para
+   `RENDA_EXTRA_SEM_ITEM`/`NAO_MENSAL_SEM_ITEM`.
+
+**C. Ícone ⓘ (`RF-562`, `RF-563`).**
+
+1. O registro YAML carrega `explicacao` (passo de carga, uma vez por
+   processo — `collection/carga.py`).
+2. `serializar_pergunta`/`serializar_pergunta_do_caso` entregam
+   `explicacao` dentro de toda pergunta — tela de pergunta
+   (`GET /pergunta`, `POST /resposta`) e perguntas individuais que a
+   calculadora busca (`GET /pergunta/{ID}`).
+3. `CampoPergunta.tsx` e `CalculadoraDaDivida.tsx` renderizam
+   `<Explicacao>` quando o campo existe; sem rede nova — o texto já veio
+   com a pergunta (`NFR` de performance da Rodada 18).
+4. Interação (hover, foco, toque, Esc) é só estado local de React
+   (`useState` dentro de `Explicacao.tsx`); nada é persistido, nada é
+   enviado ao servidor.
+
+## R20.6. External Interfaces
+
+| Rota | Contrato | Mudança nesta rodada |
+| --- | --- | --- |
+| `POST /caso/{CASO_ID}/resposta` | Igual (`ID_PERGUNTA`, `valor`/`nao_sei`, `item_id`) | Nenhuma mudança de forma; `abrir_fichas` passa a poder conter `DIVIDA_ID` por um gatilho novo (`RF-557`/`RF-558`) |
+| `GET /caso/{CASO_ID}/pergunta` (sem ID) | `{pergunta, coleta_completa}` | Ganha `abrir_fichas?: string[]`, presente só quando a próxima seria `B5.FIM02` (`RF-558`) |
+| `GET /caso/{CASO_ID}/pergunta/{ID_PERGUNTA}` | Igual | `pergunta.explicacao` novo, em qualquer pergunta com o campo no registro (`RF-562`) |
+| `GET /caso/{CASO_ID}/inicio` | `{proxima_etapa: {destino, ID_PERGUNTA, item_id, abrir_fichas}, ...}` | Mesma forma; o ramo `destino=inventario` deixa de depender de quantidade declarada (`RF-557`/`RF-558`); pode criar a ficha 1 como efeito colateral de um `GET` (ver `R20.10`) |
+| `GET /caso/{CASO_ID}/inventario` | `{pendencias: [...]}` | `ID_PARA_CORRIGIR` pode vir `null`; chave `"dividas"` sai do payload (`RF-559`) |
+| `POST /caso/{CASO_ID}/fichas/{escopo}` | Igual (`criarFicha`) | Nenhuma mudança — reusada por "Cadastrar outra dívida" |
+| `GET /caso/{CASO_ID}/fichas/{escopo}` | Igual (`listarFichas`) | Nenhuma mudança |
+
+Autenticação, isolamento por caso e limites: inalterados (mesma
+`exigir_caso_da_sessao`, mesmas `401`/`404`).
+
+## R20.7. State Management
+
+- **Servidor:** nada novo persistido. `abrir_fichas`/`ProximaEtapa` são
+  sempre derivados a cada requisição (como hoje); a única escrita nova é a
+  criação da ficha 1 (`repositorio_itens.proximo_identificador`), que é
+  **idempotente por construção**: uma vez criada, `itens_por_escopo` deixa
+  de estar vazio e o ramo de criação nunca mais executa para aquele caso.
+- **`TelaFichas`:** o prop `fimDeCadastro` é derivado da rota (`escopo ===
+  'DIVIDA_ID'`) em `App.tsx`, nunca guardado em estado — a mesma disciplina
+  de `TITULOS_POR_ESCOPO`.
+- **`Explicacao.tsx`:** `aberto` é estado local, por instância do
+  componente — cada ícone tem o seu, nunca compartilhado, nunca
+  sincronizado com o servidor.
+
+## R20.8. Error Handling Strategy
+
+| Situação | Detecção | Resposta ao usuário | Recuperação |
+| --- | --- | --- | --- |
+| Falha ao criar a ficha 1 (`criar_primeira_ficha_de_divida`) | exceção de `repositorio_itens` | Mesma mensagem genérica de falha de gravação já usada em `responder_pergunta`/`proxima_pergunta` (`503`) | Aluno tenta de novo; nada foi criado pela metade (escrita única) |
+| `primeira is None` (defensivo — ficha sem pergunta aberta) | `criar_primeira_ficha_de_divida` devolve `None` | Cai no comportamento anterior ao gatilho (serve a pendência original, `B5.FIM02`) — nunca `500` | `# pragma: no cover` como o padrão já usado em `_proxima_do_item` |
+| "Não tenho mais, seguir" falha ao gravar | `gravarResposta` rejeita | "Não foi possível salvar." na lista; o aluno continua na lista | Tentar de novo; nenhuma ficha nem resposta parcial |
+| `SEM_DIVIDAS` com cálculo solicitado | `pendencias_de_inventario` não vazio | `400` com `mensagem`/`pendencias` (já existente); "Cadastrar as fichas" leva à lista | Cadastrar ao menos uma dívida |
+| `EC-98`: `B5.FIM02 = SIM` chega com 0 fichas (fora da interface) | nenhuma — a gravação é aceita como qualquer resposta | — | `SEM_DIVIDAS` continua bloqueando o cálculo independente da confirmação (`RF-559`) |
+| Explicação ausente no registro | `registro.explicacao is None` | Nenhum ícone ⓘ é desenhado — não é erro, é ausência válida | — |
+| `vazio`: `TelaFichas` para `DIVIDA_ID` com 0 fichas (só alcançável fora da interface, `EC-98`/retomada rara) | `fichas.length === 0` | "Nenhuma ficha cadastrada ainda." + só o botão de adicionar (comportamento já existente do componente); nem "Não tenho mais, seguir" nem "Continuar" aparecem | Cadastrar a primeira |
+
+## R20.9. Testing Strategy
+
+- **Unitários (pytest):**
+  - `app/casos/inventario.py`: `SEM_DIVIDAS` depende só de ficha com
+    resposta; `DIVIDAS_FALTANDO`/`ACIMA`/`SEM_CONFIRMACAO` nunca mais
+    aparecem; `ID_PARA_CORRIGIR is None` em `SEM_DIVIDAS`.
+  - `app/montagem/premissas.py`: `PremissasDaDivida` não tem mais
+    `pagamento_minimo`; `tests/app_aluno/test_premissas_da_divida.py`
+    perde as asserções do campo.
+  - `collection/carga.py`/`registro.py`: registro com `explicacao` carrega
+    os dois campos; registro sem `explicacao` carrega `None`;
+    `esquema-registros.json` recusa `explicacao` sem `onde_encontrar`.
+- **Integração (pytest, rotas):**
+  - `tests/app_aluno/test_coleta_fichas_de_divida.py`,
+    `test_t319_t322_fichas_em_sequencia.py`: fim de Bloco 4 sem nenhuma
+    resposta de quantidade já abre `B5.A01` com um `item_id` novo; fechar a
+    única ficha devolve `abrir_fichas=["DIVIDA_ID"]` e nunca serve
+    `B5.FIM02`.
+  - `test_rotas_inventario.py`, `test_inventario.py`: `SEM_DIVIDAS` com 0
+    fichas; sem bloqueio com 1+; caso antigo com
+    `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` respondida e divergente não
+    bloqueia mais por divergência (só por `SEM_DIVIDAS` se 0 fichas) —
+    inclui atualizar a chamada direta a `_proxima_etapa` em
+    `test_rotas_inventario.py:162` (novo parâmetro `repositorio_itens`).
+  - `test_rotas_inicio.py`: `_proxima_etapa` cria a ficha 1 quando chamada
+    com 0 fichas e `B5.FIM02` pendente; aponta a lista com 1+.
+  - `test_rotas_calculo.py`, `test_rotas_coleta_conversao.py`,
+    `test_progresso.py`, `test_t415_credor_em_lista.py`: ajustados onde
+    citam `B5.00`/`QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` como pré-condição
+    de fixture, não como asserção de regra.
+  - `test_registro_calculo_divida.py`, `test_carga.py`,
+    `test_remocao_sem_efeito.py`, `test_contagem_de_coleta.py`: contagem de
+    perguntas/variáveis ajustada (−2 perguntas: `B5.00`, `B5.C02C`); caso
+    antigo com `B5.C02C` respondida calcula igual a um caso sem ela.
+  - `tests/app_aluno/fixtures/caso_completo.py`: para de responder `B5.00`;
+    a primeira ficha nasce do próprio fluxo (igual ao que o aluno real
+    passa a ver) — isso corrige, de graça, qualquer teste que a importe.
+  - **Novo:** `tests/app_aluno/test_bloco5_sem_contagem.py` — cobre
+    ponta a ponta `RF-557`–`RF-560`: Bloco 5 abre em `B5.A01` sem pergunta
+    antes; `B5.FIM02` nunca é a pergunta de uma resposta de `GET`/`POST`;
+    `SEM_DIVIDAS` com 0 fichas; caso antigo (`B5.00 = 3`, 2 fichas) livre do
+    bloqueio por divergência.
+- **Frontend (vitest):**
+  - `AlertaInventario.test.tsx`: sem o bloco de "fichas já cadastradas";
+    `SEM_DIVIDAS` mostra "Cadastrar as fichas"; pendência sem
+    `ID_PARA_CORRIGIR` não mostra "Corrigir a resposta".
+  - `TelaFichas.test.tsx`: com `fimDeCadastro` e 1+ fichas, os dois botões
+    novos aparecem e substituem os antigos; "Não tenho mais, seguir" grava
+    `B5.FIM02=SIM` antes de chamar `onContinuar`; com 0 fichas, nenhum dos
+    dois aparece.
+  - `CampoPergunta.test.tsx`, `CalculadoraDaDivida.test.tsx`: com
+    `explicacao`, o ícone ⓘ aparece ao lado do rótulo/legend; sem,
+    não aparece.
+  - **Novo:** `Explicacao.test.tsx` — hover abre, `mouseleave` fecha; `Tab`
+    foca e abre, `Escape` fecha e mantém o foco no botão; clique/toque
+    abre; clique fora fecha; `aria-label`, `aria-expanded` e
+    `aria-describedby` corretos.
+- **E2E (Playwright):** `coleta.spec.ts` ajustado para o Bloco 5 abrir sem
+  `B5.00`; `inventario.spec.ts` ajustado para `SEM_DIVIDAS`;
+  `calculadora-da-divida.spec.ts` conferido quanto ao rótulo da taxa sem o
+  parêntese.
+- **Fora de teste automatizado:** a redação dos textos do ⓘ (seção
+  Assumptions da spec, "sugestão, a validar" com o especialista) e a
+  redação nova de `SEM_DIVIDAS` em `inventario.yaml`.
+
+## R20.10. Risks & Trade-offs
+
+| Decisão | Alternativa descartada | Por quê | Risco assumido |
+| --- | --- | --- | --- |
+| `GET /caso/{id}/inicio` pode criar a ficha 1 como efeito colateral (`_proxima_etapa` ganha `repositorio_itens`) | Cliente auto-chamar `criarFicha` ao ver a lista vazia (sem escrita no `GET`) | Uma só regra ("ficha nasce com o primeiro item") em vez de duas (servidor no POST, cliente no `GET`); sem viagem de rede extra nem flash de lista vazia | O módulo que a própria docstring descreve como "LÊ e COMPÕE — não decide nada de método" ganha UMA escrita condicional e idempotente; documentado aqui para não surpreender quem ler o cabeçalho de `rotas_inicio.py` depois |
+| Checar `B5.FIM02` em **três** pontos (`POST`/`GET pergunta`/`Início`) | Só nos dois pontos citados no briefing (`POST` e `Início`) | `AC-594` é incondicional ("dado QUALQUER caso... nunca a pergunta isolada"); o `GET /pergunta` sem ID é alcançado de verdade quando `TelaFichas.onContinuar` não tem mais "seguintes" na fila (`App.tsx:551-557`), hoje para QUALQUER escopo — mesmo sendo inofensivo no fluxo normal (`B5.FIM02` já estaria respondida a essa altura pela ordem das chamadas), um acesso direto à rota (ou um futuro refactor da ordem) quebraria a garantia sem este terceiro ponto | Mais um lugar com a mesma checagem de 2 linhas; mitigado por reusar a MESMA constante/função nos três |
+| Identificar `B5.FIM02` pelo `ID` literal (`ID_FIM_DE_CADASTRO`) | Identificar pela `VARIAVEL_GRAVADA` (`CONFIRMACAO_FIM_CADASTRO`), como o resto do inventário faz | Em `rotas_inicio.py`/`rotas_pergunta.py` só o `PendenciaObrigatoria`/`RegistroPergunta.ID` está à mão sem buscar o registro de novo; `DESPESA_NAO_LISTADA` já é precedente de constante por `ID` neste mesmo arquivo | Se o `ID` de `B5.FIM02` mudar um dia (não deveria — IDs não são reaproveitados, `sdd.config.md` §6), a constante precisa acompanhar — risco baixo, mesmo risco que `DESPESA_NAO_LISTADA` já corre hoje |
+| `PendenciaInventario.ID_PARA_CORRIGIR`/`PendenciaDoCalculo.ID` viram `str \| None` | Inventar um ID de pergunta "morto" (ex.: `B5.A01`) só para preencher o campo | `RF-559`: "a correção é cadastrar uma, nunca corrigir a quantidade" — devolver um `ID_PARA_CORRIGIR` sugeriria que existe uma pergunta a corrigir, quando não existe mais | Tipo mais permissivo nos dois lados (Python e TS); mitigado porque `AlertaInventario.tsx` já tinha que tratar `escopo` como opcional |
+| `Explicacao.tsx` sem biblioteca — hover/foco/clique controlam o mesmo `aberto`, nunca um "toggle" que hover e clique possam desfazer um ao outro | `role="tooltip"` com biblioteca (`@radix-ui`, `floating-ui`) | `RF-562` cabe em um componente pequeno; nenhuma dependência nova se justifica para 4 ícones (mesma política do cabeçalho de `Icone.tsx`) | A combinação hover+foco+toque+clique-fora é escrita e testada à mão (`Explicacao.test.tsx` cobre os quatro) em vez de herdar os testes de uma lib madura |
+| Textos do ⓘ e da nova `SEM_DIVIDAS` em `inventario.yaml` ficam "sugestão, a validar" | Esperar a aprovação do especialista antes de implementar | Mesmo padrão de `RF-551`/`RF-555`/`RF-556`; não bloqueia o trabalho técnico | Validar antes do primeiro deploy desta rodada (já registrado na spec, seção Risks) |
+
+## R20.11. Traceability
+
+| Requisito | Coberto por |
+| --- | --- |
+| `RF-557` | `R20.1`, `R20.3` (`rotas_coleta.py`, `rotas_pergunta.py`, `rotas_inicio.py`), `R20.4` (`ID_FIM_DE_CADASTRO`, `criar_primeira_ficha_de_divida`), `R20.5` (fluxo A) · `AC-592` |
+| `RF-558` | `R20.1`, `R20.3` (idem + `TelaFichas.tsx`, `TelaPergunta.tsx`, `App.tsx`), `R20.4`, `R20.5` (fluxo A) · `AC-593`, `AC-594`, `EC-98` |
+| `RF-559` | `R20.1`, `R20.3` (`inventario.py`, `textos/inventario.yaml`, `rotas_calculo.py`, `serializacao_plano.py`, `report/plano.py`, `AlertaInventario.tsx`), `R20.4`, `R20.5` (fluxo B) · `AC-595`, `AC-596`, `EC-97` |
+| `RF-560` | `R20.4` (`PendenciaInventario`/`criar_primeira_ficha_de_divida` ignoram `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL`), `R20.9` (teste novo) · `AC-597`, `EC-95` |
+| `RF-561` | `R20.3` (`bloco-05.yaml`, `premissas.py`), `R20.4` · `AC-598`, `AC-599`, `EC-96` |
+| `RF-562` | `R20.1` (bloco B), `R20.3` (`registro.py`, `carga.py`, `esquema-registros.json`, `serializacao.py`, `tipos.ts`, `Explicacao.tsx`, `CampoPergunta.tsx`, `CalculadoraDaDivida.tsx`), `R20.4`, `R20.5` (fluxo C) · `AC-600`, `AC-601`, `EC-99` |
+| `RF-563` | `R20.3` (`bloco-05.yaml`) · `AC-602` |
+| `NFR` da Rodada 18 (acessibilidade do ⓘ, 360 px, sem requisição para abrir/fechar, `B5.FIM02` pela mesma rota de sempre) | `R20.6`, `R20.7`, `R20.8`, `R20.9` |
+
+Tarefas: em `tasks/app-aluno.tasks.md`, a partir de `T-637` (numeração global
+do briefing).

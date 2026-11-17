@@ -22,6 +22,7 @@ import Tela from '../componentes/Tela'
 import LateralDaColeta from '../componentes/LateralDaColeta'
 import {
   criarFicha,
+  gravarResposta,
   listarFichas,
   nomearFicha,
   obterProximaPergunta,
@@ -119,6 +120,19 @@ interface TelaFichasProps {
    * obrigatório ainda é questão aberta para o especialista.
    */
   onContinuar?: () => void
+  /**
+   * `T-659` (`RF-558`). Só `DIVIDA_ID`. Com `fichas.length > 0`, troca
+   * "Continuar"/"+ Adicionar outra dívida" por `rotuloAdicionar` (chama
+   * `aoAdicionar()`, já existente) e `rotuloConcluir` (grava
+   * `idPergunta = "SIM"` e só então chama `onContinuar`). Ausente, ou com
+   * zero fichas, o comportamento de hoje continua intocado — o componente é
+   * reaproveitado por outros escopos que não usam a prop.
+   */
+  fimDeCadastro?: {
+    idPergunta: string
+    rotuloAdicionar: string
+    rotuloConcluir: string
+  }
 }
 
 export default function TelaFichas({
@@ -134,6 +148,7 @@ export default function TelaFichas({
   onAbrirFicha,
   onAbrirFormulario,
   onContinuar,
+  fimDeCadastro,
 }: TelaFichasProps) {
   const [fichas, setFichas] = useState<Ficha[]>([])
   const [total, setTotal] = useState<Pick<ListaDeFichas, 'total' | 'total_parcial'>>({})
@@ -185,6 +200,18 @@ export default function TelaFichas({
     }
   }
 
+  // `T-659` (`RF-558`): "Não tenho mais, seguir" — grava a resposta antes de
+  // avançar; falha de gravação mostra o erro existente e NÃO avança.
+  async function aoConcluir() {
+    if (!fimDeCadastro) return
+    try {
+      await gravarResposta(casoId, { idPergunta: fimDeCadastro.idPergunta, valor: 'SIM' })
+      onContinuar?.()
+    } catch {
+      setErro('Não foi possível salvar.')
+    }
+  }
+
   async function aoAbrir(itemId: string, escopoDoItem = escopo) {
     if (onAbrirFormulario) {
       onAbrirFormulario(escopoDoItem, itemId)
@@ -232,18 +259,31 @@ export default function TelaFichas({
       lateral={<LateralDaColeta trilha={trilha} />}
       onde={fichas.length > 0 ? `${fichas.length} cadastrada${fichas.length === 1 ? '' : 's'}` : undefined}
       acoes={
-        <>
-          {onContinuar && <Botao onClick={onContinuar}>Continuar</Botao>}
-          {/* A ficha com pai (a margem) só nasce dentro dele (`AC-137`). */}
-          {!escopoPai && (
-            <Botao variante="secundario" onClick={() => void aoAdicionar()}>
-              {/* `T-311`: com a primeira já criada, o convite é para outra. */}
-              + Adicionar{' '}
-              {fichas.length > 0 ? `${feminino ? 'outra' : 'outro'} ` : ''}
-              {titulo.toLowerCase()}
-            </Botao>
-          )}
-        </>
+        fimDeCadastro && fichas.length > 0 ? (
+          <>
+            {/* `T-659` (`RF-558`): os dois botões do fim de cadastro trocam
+                "Continuar"/"+ Adicionar outra dívida" — só com 1+ fichas. */}
+            {!escopoPai && (
+              <Botao variante="secundario" onClick={() => void aoAdicionar()}>
+                {fimDeCadastro.rotuloAdicionar}
+              </Botao>
+            )}
+            <Botao onClick={() => void aoConcluir()}>{fimDeCadastro.rotuloConcluir}</Botao>
+          </>
+        ) : (
+          <>
+            {onContinuar && <Botao onClick={onContinuar}>Continuar</Botao>}
+            {/* A ficha com pai (a margem) só nasce dentro dele (`AC-137`). */}
+            {!escopoPai && (
+              <Botao variante="secundario" onClick={() => void aoAdicionar()}>
+                {/* `T-311`: com a primeira já criada, o convite é para outra. */}
+                + Adicionar{' '}
+                {fichas.length > 0 ? `${feminino ? 'outra' : 'outro'} ` : ''}
+                {titulo.toLowerCase()}
+              </Botao>
+            )}
+          </>
+        )
       }
     >
       <p className="lead">Uma ficha para cada item. Toque em uma para completar.</p>

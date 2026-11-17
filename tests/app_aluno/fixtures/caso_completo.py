@@ -199,7 +199,8 @@ _VALORES_CASO: Final[dict[str, object]] = {
     "DESPESA_EXTRA_EXISTE": "NAO",  # B3.D11
     "DESPESAS_NAO_MENSAIS_EXISTE": "SIM",  # B3.NM01 — a ficha NM já existe
     "CONFIRMACAO_MAPEAMENTO_DESPESAS": "SIM",  # B3.C00
-    "QUANTIDADE_DIVIDAS_DECLARADA_INICIAL": 1,  # B5.00 — NUMERO grava int
+    # `T-655` (`RF-557`): `B5.00` saiu do questionário em `T-649` — a ficha
+    # de dívida (`DIVIDA_ID_UNICA`) já existe independente dessa resposta.
 }
 
 # ---------------------------------------------------------------------------

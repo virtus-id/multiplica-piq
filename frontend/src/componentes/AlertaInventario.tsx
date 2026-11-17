@@ -15,19 +15,16 @@
  * botão aponta, por `aria-describedby`, para a mensagem que o originou (NFR
  * de acessibilidade da Rodada 9).
  *
- * `T-324`: dívidas faltando dizem QUAIS — os tipos marcados que ainda não
- * têm ficha e as fichas já cadastradas, como o servidor relacionou —, e
- * "Cadastrar a próxima dívida" abre a ficha vazia ou cria uma (`T-311`).
+ * `T-658` (`RF-559`): `SEM_DIVIDAS` não traz mais quantidade declarada nem
+ * fichas já cadastradas (o servidor nunca mais as lista) — só "Cadastrar as
+ * fichas" (`escopo`), o mesmo botão que `RENDA_EXTRA_SEM_ITEM`/
+ * `NAO_MENSAL_SEM_ITEM` já usam; "Corrigir a resposta" só aparece quando há
+ * `ID_PARA_CORRIGIR` (não há mais pergunta de quantidade a corrigir).
  */
 import { createContext, useContext, useEffect, useId, useState } from 'react'
 
 import { type Rota } from '../navegacao'
-import {
-  criarFicha,
-  obterInventario,
-  obterProximaPergunta,
-  type PendenciaDeInventario,
-} from '../services/api'
+import { obterInventario, type PendenciaDeInventario } from '../services/api'
 import Botao from './Botao'
 
 export interface AlertaDoCaso {
@@ -42,7 +39,6 @@ export const ContextoDoAlerta = createContext<AlertaDoCaso | null>(null)
 export default function AlertaInventario() {
   const contexto = useContext(ContextoDoAlerta)
   const [pendencias, setPendencias] = useState<readonly PendenciaDeInventario[]>([])
-  const [erro, setErro] = useState<string | null>(null)
   const base = useId()
   const casoId = contexto?.casoId ?? ''
   const navegacao = contexto?.navegacao
@@ -68,51 +64,18 @@ export default function AlertaInventario() {
   if (contexto.navegacao.tela === 'pergunta' && contexto.navegacao.itemId) return null
   const { irPara } = contexto
 
-  async function cadastrarProxima(fichaVazia: string | null) {
-    setErro(null)
-    try {
-      const itemId = fichaVazia ?? (await criarFicha(casoId, 'DIVIDA_ID')).ficha.item_id
-      const dados = await obterProximaPergunta(casoId, itemId)
-      if (!dados.pergunta) throw new Error('ficha sem pergunta')
-      irPara({ tela: 'pergunta', idPergunta: dados.pergunta.ID, itemId })
-    } catch {
-      setErro('Não foi possível abrir a ficha.')
-    }
-  }
-
   return (
     <div role="alert" className="aviso-atencao flex-col">
       <strong>Inventário incompleto</strong>
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {pendencias.map((pendencia, indice) => {
           const idMensagem = `${base}-${indice}`
-          const dividas = pendencia.dividas
+          const idParaCorrigir = pendencia.ID_PARA_CORRIGIR
           return (
             <li key={pendencia.codigo} className="flex flex-col gap-2">
               <span id={idMensagem}>{pendencia.mensagem}</span>
-              {dividas && dividas.fichas.length > 0 && (
-                <div>
-                  Fichas já cadastradas:
-                  <ul className="m-0 pl-5">
-                    {dividas.fichas.map((ficha) => (
-                      <li key={ficha.item_id}>
-                        {[ficha.credor, ficha.tipo].filter(Boolean).join(' — ') ||
-                          'Ficha sem credor e tipo informados'}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
               <div className="flex flex-wrap gap-2">
-                {dividas ? (
-                  <Botao
-                    variante="secundario"
-                    aria-describedby={idMensagem}
-                    onClick={() => void cadastrarProxima(dividas.ficha_vazia)}
-                  >
-                    Cadastrar a próxima dívida
-                  </Botao>
-                ) : pendencia.escopo && (
+                {pendencia.escopo && (
                   <Botao
                     variante="secundario"
                     aria-describedby={idMensagem}
@@ -123,21 +86,22 @@ export default function AlertaInventario() {
                     Cadastrar as fichas
                   </Botao>
                 )}
-                <Botao
-                  variante="discreto"
-                  aria-describedby={idMensagem}
-                  onClick={() =>
-                    irPara({ tela: 'respostas', idPergunta: pendencia.ID_PARA_CORRIGIR })
-                  }
-                >
-                  Corrigir a resposta
-                </Botao>
+                {/* `T-658` (`RF-559`): `SEM_DIVIDAS` não tem mais pergunta a
+                    corrigir — `ID_PARA_CORRIGIR` nulo, nada a fazer aqui. */}
+                {idParaCorrigir && (
+                  <Botao
+                    variante="discreto"
+                    aria-describedby={idMensagem}
+                    onClick={() => irPara({ tela: 'respostas', idPergunta: idParaCorrigir })}
+                  >
+                    Corrigir a resposta
+                  </Botao>
+                )}
               </div>
             </li>
           )
         })}
       </ul>
-      {erro && <p className="aviso-erro">{erro}</p>}
     </div>
   )
 }

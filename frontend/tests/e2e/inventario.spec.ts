@@ -12,12 +12,15 @@ import { expect, test } from '@playwright/test'
 import { abrirTela, acaoPrincipal, interceptarBase } from './apoio/navegacao'
 
 const CASO = 'CASO-INVENTARIO-E2E'
-const MENSAGEM = 'Você declarou 7 dívidas e cadastrou 5. Faltam 2 fichas.'
+// `T-663` (`RF-559`, Rodada 18): sem `B5.00`, `SEM_DIVIDAS` substitui
+// `DIVIDAS_FALTANDO` — nenhuma quantidade declarada, `ID_PARA_CORRIGIR`
+// nulo (não há mais pergunta de quantidade a corrigir, só cadastrar ficha).
+const MENSAGEM = 'Você ainda não cadastrou nenhuma dívida.'
 const PENDENCIA = {
   tipo: 'INVENTARIO',
-  codigo: 'DIVIDAS_FALTANDO',
-  ID: 'B5.00',
-  ID_PARA_CORRIGIR: 'B5.00',
+  codigo: 'SEM_DIVIDAS',
+  ID: null,
+  ID_PARA_CORRIGIR: null,
   item_id: null,
   escopo: 'DIVIDA_ID',
   enunciado: MENSAGEM,
@@ -76,7 +79,7 @@ test('AC-133: igualadas as fichas, o alerta some na navegação seguinte', async
   await expect(page.getByText(MENSAGEM)).toHaveCount(0)
 })
 
-test('T-301: com fichas de dívida faltando, o Início abre a lista de fichas', async ({ page }) => {
+test('T-301/T-663: sem nenhuma ficha de dívida, o Início abre a lista de fichas', async ({ page }) => {
   await interceptarBase(page, CASO, {
     inventario: [PENDENCIA],
     inicio: {

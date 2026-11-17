@@ -21,6 +21,7 @@ REGRAS: `RF-49`, `AC-79`, `EC-21`
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Final
@@ -38,7 +39,7 @@ from app.http.rotas_coleta import (
     obter_repositorio_respostas,
 )
 from app.http.sessao import iniciar_sessao_conta
-from collection.carga import ColecaoDeRegistros
+from collection.carga import ColecaoDeRegistros, carregar_registros
 from collection.opcoes_do_motor import OrigemOpcoes
 from collection.registro import (
     EscopoRepeticao,
@@ -98,7 +99,12 @@ def _colecao_de_um_campo() -> ColecaoDeRegistros:
     )
 
 
-def _montar_cliente(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> TestClient:
+def _montar_cliente(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    colecao: Callable[[], ColecaoDeRegistros] = _colecao_de_um_campo,
+) -> TestClient:
     monkeypatch.setenv("CHAVE_ASSINATURA_SESSAO", _CHAVE_TESTE)
 
     caso = Caso(
@@ -120,7 +126,7 @@ def _montar_cliente(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> TestClie
     aplicacao.dependency_overrides[obter_repositorio_casos] = lambda: _RepositorioCasosDublê(
         caso, _CONTA_ID
     )
-    aplicacao.dependency_overrides[obter_colecao_de_registros] = _colecao_de_um_campo
+    aplicacao.dependency_overrides[obter_colecao_de_registros] = colecao
     aplicacao.dependency_overrides[obter_repositorio_respostas] = (
         lambda: RepositorioRespostasArquivo(
             caminho_arquivo=tmp_path / "respostas.jsonl",
@@ -218,3 +224,34 @@ def test_a_gravacao_e_identica_nos_dois_formatos(
     gravadas = repositorio.listar_do_caso(_CASO_ID)
     assert len(gravadas) == 1
     assert gravadas[0].valor == Decimal("1234.56")
+
+
+# ------------------------------------------------------------------- T-671
+# `RF-562`: `explicacao` no payload JSON de `GET /pergunta/{ID}` — presente
+# nos quatro campos que a declaram no registro, ausente (`null`) nos demais.
+
+
+@pytest.mark.parametrize("ID", ["B5.B03", "B5.C02", "B5.C02B", "B5.D06"])
+def test_explicacao_presente_nos_quatro_campos_com_icone(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, ID: str
+) -> None:
+    cliente = _montar_cliente(monkeypatch, tmp_path, colecao=carregar_registros)
+
+    pergunta = cliente.get(f"/caso/{_CASO_ID}/pergunta/{ID}").json()["pergunta"]
+
+    assert pergunta["explicacao"] is not None
+    assert set(pergunta["explicacao"]) == {"o_que_e", "onde_encontrar"}
+    assert pergunta["explicacao"]["o_que_e"]
+    assert pergunta["explicacao"]["onde_encontrar"]
+
+
+def test_explicacao_ausente_em_pergunta_sem_icone(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`Q1` (`_colecao_de_um_campo`) não declara `explicacao` no registro —
+    o padrão neutro é `null`, nunca um objeto vazio."""
+    cliente = _montar_cliente(monkeypatch, tmp_path)
+
+    pergunta = cliente.get(f"/caso/{_CASO_ID}/pergunta/Q1").json()["pergunta"]
+
+    assert pergunta["explicacao"] is None

@@ -92,29 +92,37 @@ def _ficha(item_id: str) -> ItemRepetido:
     )
 
 
-def test_t250_ac133_devolve_a_pendencia_com_a_mensagem_exata(
+def test_ac595_zero_fichas_devolve_sem_dividas(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    fichas = tuple(_ficha(f"D00{i}") for i in range(1, 6))
-    respostas = (
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 7),
-        *(_resposta("TIPO_DIVIDA", "PESSOAL", item_id=f.item_id) for f in fichas),
-    )
-
-    resposta = _cliente(monkeypatch, respostas, fichas).get(f"/caso/{_CASO_ID}/inventario")
+    """`AC-595`, `RF-559`: nenhuma ficha de `DIVIDA_ID` — só `SEM_DIVIDAS`,
+    com `ID_PARA_CORRIGIR` nulo (não há mais pergunta de quantidade a
+    corrigir) e mensagem sem menção a "quantidade"."""
+    resposta = _cliente(monkeypatch, ()).get(f"/caso/{_CASO_ID}/inventario")
 
     assert resposta.status_code == 200
     (pendencia,) = resposta.json()["pendencias"]
-    assert pendencia["mensagem"] == "Você declarou 7 dívidas e cadastrou 5. Faltam 2 fichas."
-    assert pendencia["ID_PARA_CORRIGIR"] == "B5.00"
     assert pendencia["tipo"] == "INVENTARIO"
+    assert pendencia["codigo"] == "SEM_DIVIDAS"
+    assert pendencia["ID_PARA_CORRIGIR"] is None
+    assert pendencia["escopo"] == "DIVIDA_ID"
+    assert "quantidade" not in pendencia["mensagem"]
 
 
-def test_t250_inventario_completo_devolve_lista_vazia(monkeypatch: pytest.MonkeyPatch) -> None:
-    respostas = (
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 1),
-        _resposta("TIPO_DIVIDA", "PESSOAL", item_id="D001"),
-    )
+def test_ac595_ficha_criada_e_vazia_nao_conta_como_cadastrada(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ficha criada sem nenhuma resposta não "cadastra" — `SEM_DIVIDAS`
+    persiste."""
+    resposta = _cliente(monkeypatch, (), (_ficha("D001"),)).get(f"/caso/{_CASO_ID}/inventario")
+
+    (pendencia,) = resposta.json()["pendencias"]
+    assert pendencia["codigo"] == "SEM_DIVIDAS"
+
+
+def test_ac596_inventario_completo_devolve_lista_vazia(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`AC-596`: uma ficha com ao menos uma resposta não bloqueia mais."""
+    respostas = (_resposta("TIPO_DIVIDA", "PESSOAL", item_id="D001"),)
 
     resposta = _cliente(monkeypatch, respostas, (_ficha("D001"),)).get(
         f"/caso/{_CASO_ID}/inventario"
@@ -123,15 +131,16 @@ def test_t250_inventario_completo_devolve_lista_vazia(monkeypatch: pytest.Monkey
     assert resposta.json() == {"pendencias": []}
 
 
-def test_t414_nenhuma_divida_nao_segue_para_o_calculo(monkeypatch: pytest.MonkeyPatch) -> None:
-    """`T-414`: "Nenhuma dívida" é pendência de inventário com a mensagem própria."""
-    respostas = (_resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 0),)
-
-    (pendencia,) = _cliente(monkeypatch, respostas).get(f"/caso/{_CASO_ID}/inventario").json()[
+def test_ec97_sem_nenhuma_ficha_o_calculo_fica_bloqueado(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`EC-97`: sem nenhuma ficha de dívida, o cálculo fica bloqueado por
+    `SEM_DIVIDAS`; não há opção "não tenho dívida" na resposta — só a
+    orientação de cadastrar uma ficha (`escopo`)."""
+    (pendencia,) = _cliente(monkeypatch, ()).get(f"/caso/{_CASO_ID}/inventario").json()[
         "pendencias"
     ]
 
-    assert pendencia["ID_PARA_CORRIGIR"] == "B5.00"
+    assert pendencia["codigo"] == "SEM_DIVIDAS"
+    assert pendencia["escopo"] == "DIVIDA_ID"
     assert "não há plano de quitação" in pendencia["mensagem"]
 
 
@@ -143,51 +152,30 @@ def test_t250_ac03_isolamento_por_caso(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_t251_inicio_troca_montar_o_plano_pela_pendencia() -> None:
-    """`/inicio` (`T-251`): coleta completa com inventário incompleto → a
-    etapa é `inventario`, apontando a declaração a corrigir; completo →
-    `calculando`, como antes."""
+    """`/inicio` (`T-251`): coleta completa (sem `B5.00`, que saiu em
+    `T-649`, não há mais o que perguntar) com inventário incompleto → a
+    etapa é `inventario`; sem nenhuma ficha de dívida, `SEM_DIVIDAS` (`RF-
+    559`) não aponta mais pergunta nenhuma (`ID_PERGUNTA` nulo — não há mais
+    quantidade declarada a corrigir)."""
     from app.casos.fases import FASE_INICIO
     from app.http.rotas_inicio import DESTINO_DA_ETAPA, _proxima_etapa
     from collection.carga import ColecaoDeRegistros
     from collection.respostas import RespostasCaso
 
-    b5_00 = next(r for r in _colecao_real().registros if r.ID == "B5.00")
-    colecao = ColecaoDeRegistros(QUESTIONARIO_VERSION="1.0.3", registros=(b5_00,))
+    colecao = ColecaoDeRegistros(QUESTIONARIO_VERSION="1.6.0", registros=())
     caso = _caso(ESTADO_CASO.COLETA_INICIAL)
 
-    def etapa(declaradas: int) -> tuple[DESTINO_DA_ETAPA, str | None]:
-        respostas = RespostasCaso(
-            respostas=(_resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", declaradas),)
+    def etapa() -> tuple[DESTINO_DA_ETAPA, str | None]:
+        proxima = _proxima_etapa(
+            caso,
+            FASE_INICIO.COLETA,
+            colecao,
+            RespostasCaso(respostas=()),
+            {},
+            _RepositorioItensDublê(()),
         )
-        proxima = _proxima_etapa(caso, FASE_INICIO.COLETA, colecao, respostas, {})
         return proxima.destino, proxima.ID_PERGUNTA
 
-    assert etapa(3) == (DESTINO_DA_ETAPA.INVENTARIO, "B5.00")
-    assert etapa(0) == (DESTINO_DA_ETAPA.INVENTARIO, "B5.00")  # `T-414`: sem dívidas, sem plano
-
-
-def test_t324_dividas_faltando_diz_quais_fichas(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """`T-324` (`AC-173`): 12 declaradas, 2 cadastradas e uma criada vazia →
-    a mensagem de `RF-87` segue literal e o payload relaciona as fichas.
-    `T-389`: `B5.00A` (tipos declarados) saiu; não há "tipos sem ficha"."""
-    fichas = (_ficha("D001"), _ficha("D002"), _ficha("D003"))
-    respostas = (
-        _resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", 12),
-        _resposta("TIPO_DIVIDA", "PESSOAL", item_id="D001"),
-        _resposta("CREDOR", "Banco X", item_id="D001"),
-        _resposta("CREDOR", "Loja Y", item_id="D002"),
-    )
-
-    resposta = _cliente(monkeypatch, respostas, fichas).get(f"/caso/{_CASO_ID}/inventario")
-
-    (pendencia,) = resposta.json()["pendencias"]
-    assert pendencia["mensagem"] == "Você declarou 12 dívidas e cadastrou 2. Faltam 10 fichas."
-    assert pendencia["dividas"] == {
-        "fichas": [
-            {"item_id": "D001", "credor": "Banco X", "tipo": "Empréstimo pessoal"},
-            {"item_id": "D002", "credor": "Loja Y", "tipo": None},
-        ],
-        "ficha_vazia": "D003",
-    }
+    # Zero fichas: `SEM_DIVIDAS` (`RF-559`) bloqueia sem apontar pergunta —
+    # não há mais quantidade declarada para divergir (`AC-597`).
+    assert etapa() == (DESTINO_DA_ETAPA.INVENTARIO, None)

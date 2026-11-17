@@ -29,9 +29,11 @@ import type {
 } from '../tipos'
 
 /** Uma pergunta que falta para calcular (`T-210`): o texto para o aluno ler
- *  e o endereço para abri-la. `item_id` é `null` fora de ficha. */
+ *  e o endereço para abri-la. `item_id` é `null` fora de ficha. `ID` é
+ *  `null` em `SEM_DIVIDAS` (`T-657`, `RF-559`) — não há mais pergunta de
+ *  quantidade a corrigir, só fichas a cadastrar. */
 export interface PendenciaDoCalculo {
-  ID: string
+  ID: string | null
   item_id: string | null
   enunciado: string
 }
@@ -302,24 +304,18 @@ export function removerFicha(
  * fase para escolher destino: ela entrega o que veio, e `TelaInicio` desenha.
  */
 /**
- * Uma pendência de inventário — `RF-86`–`RF-88` (T-250). Mesma forma das
- * pendências do `400` do cálculo, mais a mensagem e o escopo das fichas a
- * abrir (`null` quando a correção é só a resposta declarada).
+ * Uma pendência de inventário — `RF-86`–`RF-88`, `RF-559` (T-250, `T-657`).
+ * Mesma forma das pendências do `400` do cálculo, mais a mensagem e o
+ * escopo das fichas a abrir. `ID_PARA_CORRIGIR` é `null` em `SEM_DIVIDAS`
+ * (`RF-559`): não há mais quantidade declarada a corrigir, só cadastrar
+ * uma ficha (`escopo`).
  */
 export interface PendenciaDeInventario extends PendenciaDoCalculo {
   tipo: 'INVENTARIO'
   codigo: string
-  ID_PARA_CORRIGIR: string
+  ID_PARA_CORRIGIR: string | null
   escopo: string | null
   mensagem: string
-  /**
-   * `T-324`: só em dívidas faltando — as fichas já cadastradas e a ficha
-   * criada e ainda vazia.
-   */
-  dividas?: {
-    fichas: { item_id: string; credor: string | null; tipo: string | null }[]
-    ficha_vazia: string | null
-  } | null
 }
 
 export function obterInventario(
