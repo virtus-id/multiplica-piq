@@ -15006,3 +15006,26 @@ arquivo. `test_registro_calculo_divida.py` perde
 **Status:** `[x] concluída (2026-11-17)`; `test_remocao_sem_efeito.py` `test_registro_calculo_divida.py`: 1 failed, 178 passed — a falha (`test_perguntas_removidas_nao_existem_e_as_mantidas_continuam`, `B3.C02`/`B3.C02A`) já existe na `main`, sem relação com `B5.C02C`; também ajustado `test_versao_unica_1_5_0` → `_1_6_0` no mesmo arquivo (consequência direta do bump de `T-637`, não listada na AC)
 
 ---
+
+### `T-641` — Ajustar a contagem de perguntas (`test_contagem_de_coleta.py`) para a remoção de `B5.C02C`
+
+- **Tipo:** `Test` · **Dependências:** `T-637` · **Rastreia:** `RF-561` · plano `R20.9`
+- **Arquivos:** `tests/app_aluno/test_contagem_de_coleta.py`
+
+**Descrição.** A âncora `test_a_colecao_real_tem_58_registros` cai para 57
+— renomeia a função, atualiza a asserção para `57` e acrescenta uma linha
+na cadeia histórica do docstring ("`T-637` (`RF-561`): `-1`, `B5.C02C` (58 →
+57)"), no mesmo formato de toda entrada anterior da lista.
+
+**Critérios de aceite**
+
+- [ ] Função renomeada para `test_a_colecao_real_tem_57_registros`,
+      `assert len(_registros_reais()) == 57`
+- [ ] Nova linha na cadeia histórica do docstring, formato idêntico às
+      anteriores
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_contagem_de_coleta.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[x] concluída (2026-11-17)`; `test_contagem_de_coleta.py`: 19 passed; suíte completa ao fim das 5 tarefas: 25 failed (as mesmas da `main`), 2815 passed, 81 skipped (777,45 s); `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
+
+---
