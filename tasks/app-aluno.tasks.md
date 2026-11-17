@@ -15312,7 +15312,7 @@ comportamento observável.
       `_avisos_gerais` continuam idênticos)
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `ruff check .`: as mesmas 16 (nenhum erro novo); `mypy` sobre os dois arquivos: sem erro. **Achado não previsto em nenhuma tarefa** (reportado no fim, não resolvido aqui, mesmo padrão do achado de `T-648`): `tests/app_aluno/test_regras_confirmadas_plano.py::test_ac_fichas_declaradas_faltando_avisa_sem_bloquear` testa exatamente o aviso removido aqui — `vocabulario_do_caso` lia `QUANTIDADE_DIVIDAS_DECLARADA_INICIAL` direto da resposta, independente de `B5.00` estar no registro, então a remoção TEM efeito observável (contradiz a própria descrição desta tarefa, "remoção de código morto, não mudança de comportamento"); nenhuma tarefa de `T-647` a `T-656` lista esse arquivo de teste — deixado para a comparação com a baseline ao fim de B.3
 
 ---
 
