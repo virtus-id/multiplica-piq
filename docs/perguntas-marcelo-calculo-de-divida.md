@@ -167,3 +167,26 @@ E a previsão, logo abaixo:
 Nessa lista deixam de aparecer "Recebe o valor extra" e "Não será quitada com os valores de hoje", que vinham da conta com o mês no negativo e contradiziam a previsão.
 
 Todos os textos são sugestão. Se algum não estiver bom, basta mandar a redação que prefere.
+
+---
+
+# Textos novos para conferir (2026-11-17)
+
+Sugestão para o conteúdo do ícone ⓘ que passa a aparecer ao lado de quatro
+campos numéricos da ficha de dívida (saldo, parcela, meses que faltam, taxa
+ou CET), rascunhada a partir do material do curso (aulas 8 e 10.1 de
+`docs/curso-ssd/`):
+
+| Campo | O que é | Onde encontrar |
+| --- | --- | --- |
+| Saldo devedor (`B5.B03`) | "Quanto você deve hoje nesta dívida, não o valor que pegou emprestado." | "No DDC (Documento Descritivo de Crédito), que você pede no aplicativo do seu banco. O Registrato, do Banco Central (entrada pelo gov.br), também mostra quanto você deve em cada banco." |
+| Parcela (`B5.C02`) | "Quanto você paga por mês nesta dívida." | "No DDC, no contrato, no boleto, no carnê ou na fatura." |
+| Meses que faltam (`B5.C02B`) | "Quantas parcelas ainda faltam pagar." | "No DDC ou no aplicativo do banco." |
+| Taxa ou CET (`B5.D06`) | "Quanto a dívida cobra de juros, ao mês ou ao ano. Se encontrar o CET (Custo Efetivo Total), prefira ele, porque inclui juros e outros custos da operação." | "No DDC, que mostra a taxa de juros e o custo efetivo, ou no contrato e no aplicativo do banco." |
+
+Linha comum aos quatro: "Não encontrou? Peça ao banco pelo aplicativo, ao
+gerente ou à ouvidoria."
+
+Sugestão, a validar com o especialista (Marcelo) — a frase sobre o CET em
+particular, que não vem literalmente do curso, que só cita "custo efetivo
+total".

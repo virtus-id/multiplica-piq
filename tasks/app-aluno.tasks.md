@@ -15680,12 +15680,14 @@ literalmente do curso.
 
 **Critérios de aceite**
 
-- [ ] Seção nova, com a tabela de 4 linhas + linha comum, idêntica
+- [x] Seção nova, com a tabela de 4 linhas + linha comum, idêntica
       caractere por caractere à da spec
-- [ ] Marcação explícita de "a validar" / "sugestão"
-- [ ] Nenhum conteúdo de seção anterior do arquivo é alterado
+- [x] Marcação explícita de "a validar" / "sugestão"
+- [x] Nenhum conteúdo de seção anterior do arquivo é alterado
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída` — seção "Textos novos para conferir (2026-11-17)"
+acrescentada ao fim de `docs/perguntas-marcelo-calculo-de-divida.md`, sem
+tocar nas seções anteriores.
 
 ---
 
