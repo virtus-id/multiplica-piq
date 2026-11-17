@@ -15802,13 +15802,15 @@ rodada").
 
 **Critérios de aceite**
 
-- [ ] Os quatro campos têm `explicacao` com os textos de `T-664`,
+- [x] Os quatro campos têm `explicacao` com os textos de `T-664`,
       caractere por caractere
-- [ ] O enunciado de `B5.D06` não contém o parêntese nem parte dele
-- [ ] `QUESTIONARIO_VERSION` continua `"1.6.0"` (sem novo bump)
+- [x] O enunciado de `B5.D06` não contém o parêntese nem parte dele
+- [x] `QUESTIONARIO_VERSION` continua `"1.6.0"` (sem novo bump)
 - [ ] Gates: lint, build (teste em `T-671`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — carga verificada manualmente
+(`carregar_registros()`); `QUESTIONARIO_VERSION` continua `"1.6.0"`; lint/build
+completos ainda pendentes.
 
 ---
 

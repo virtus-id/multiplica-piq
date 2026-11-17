@@ -104,6 +104,14 @@ perguntas:
       - {rotulo: "R$ ______", valor_interno: null}
     VARIAVEL_GRAVADA: SALDO_DEVEDOR_ATUAL
     indispensavel: true  # RF-93 (`T-261`, `R9-8`)
+    # `T-669` (RF-562) — ícone ⓘ, texto copiado de
+    # `docs/perguntas-marcelo-calculo-de-divida.md` (sugestão, a validar).
+    explicacao:
+      o_que_e: "Quanto você deve hoje nesta dívida, não o valor que pegou emprestado."
+      onde_encontrar: >-
+        No DDC (Documento Descritivo de Crédito), que você pede no aplicativo
+        do seu banco. O Registrato, do Banco Central (entrada pelo gov.br),
+        também mostra quanto você deve em cada banco.
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
@@ -122,6 +130,11 @@ perguntas:
       - {rotulo: "R$ ______", valor_interno: null}
     VARIAVEL_GRAVADA: "PARCELA_CONTRATUAL (= PAGAMENTO_MENSAL_DEVIDO_VIGENTE)"
     indispensavel: true  # RF-93 (`T-261`, `R9-8`)
+    # `T-669` (RF-562) — ícone ⓘ, texto copiado de
+    # `docs/perguntas-marcelo-calculo-de-divida.md` (sugestão, a validar).
+    explicacao:
+      o_que_e: "Quanto você paga por mês nesta dívida."
+      onde_encontrar: "No DDC, no contrato, no boleto, no carnê ou na fatura."
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
@@ -140,6 +153,11 @@ perguntas:
     opcoes:
       - {rotulo: "______ meses", valor_interno: null}
     VARIAVEL_GRAVADA: PRAZO_RESTANTE_MESES
+    # `T-669` (RF-562) — ícone ⓘ, texto copiado de
+    # `docs/perguntas-marcelo-calculo-de-divida.md` (sugestão, a validar).
+    explicacao:
+      o_que_e: "Quantas parcelas ainda faltam pagar."
+      onde_encontrar: "No DDC ou no aplicativo do banco."
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
@@ -180,11 +198,11 @@ perguntas:
   # `OBR` + `REP`: sem o valor, o cálculo não libera (`pendencias_obrigatorias`).
   - ID: B5.D06
     bloco: 5
+    # `T-669` (RF-563): o parêntese de ajuda saiu daqui — o conteúdo
+    # equivalente passa a viver só na `explicacao` abaixo (RF-562).
     enunciado: >-
       Qual é o Custo Efetivo Total (CET) desta operação? Se não souber, informe
-      a taxa de juros. (No seu contrato, extrato ou aplicativo do banco, esse
-      número pode aparecer escrito como CET ou como taxa de juros. Informe o
-      que encontrar e diga se é ao mês ou ao ano.)
+      a taxa de juros.
     tipo: SELECAO_UNICA
     obrigatoriedade: [OBR, REP]
     escopo_repeticao: DIVIDA_ID
@@ -194,6 +212,16 @@ perguntas:
       - {rotulo: Não sei a taxa, valor_interno: DESCONHECIDA, admite_nao_sei: true}
     VARIAVEL_GRAVADA: PERIODICIDADE_TAXA_DIVIDA
     indispensavel: true
+    # `T-669` (RF-562) — ícone ⓘ, texto copiado de
+    # `docs/perguntas-marcelo-calculo-de-divida.md` (sugestão, a validar).
+    explicacao:
+      o_que_e: >-
+        Quanto a dívida cobra de juros, ao mês ou ao ano. Se encontrar o CET
+        (Custo Efetivo Total), prefira ele, porque inclui juros e outros
+        custos da operação.
+      onde_encontrar: >-
+        No DDC, que mostra a taxa de juros e o custo efetivo, ou no contrato e
+        no aplicativo do banco.
     condicao_exibicao: null
     interpolacoes: []
     validacoes_cruzadas: []
