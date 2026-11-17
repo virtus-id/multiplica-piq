@@ -15374,7 +15374,7 @@ responde `B5.00` antes de abrir a sequência de fichas.
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_coleta_fichas_de_divida.py tests/app_aluno/test_t319_t322_fichas_em_sequencia.py`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `test_t319_t322_fichas_em_sequencia.py` só precisava remover a linha `_responder(cliente, "B5.00", "2")` (pré-condição sem relação com a asserção). `test_coleta_fichas_de_divida.py` reescrito com DUAS novas: "fim da coleta inicial" usa `caso_completo()` inteiro menos a ficha de dívida/`B5.00`/`B5.FIM02`, mais `DESEJA_PLANO_ACELERADO` (`B3.C02`, `OPT`) postada por último — essa variável falta na fixture por um drift pré-existente já documentado em `T-640` (a mesma causa de `test_perguntas_removidas_nao_existem_e_as_mantidas_continuam` falhar), sem o qual a varredura nunca alcançaria o Bloco 5; "fechar a única ficha" preenche as 15 perguntas `REP` reais de `DIVIDA_ID` (`B5.CALC01`/`CONFERENCIA_DA_DIVIDA` gravada direto no repositório, como já faz `test_registro_calculo_divida.py`, porque não passa por `POST /resposta`) e posta a última (`B5.H04`) via HTTP; `test_coleta_fichas_de_divida.py`/`test_t319_t322_fichas_em_sequencia.py`: 20 passed; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 
