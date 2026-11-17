@@ -15446,11 +15446,7 @@ do dicionário de respostas simuladas. A ficha de dívida da fixture
 - [ ] Verificação: suíte completa (`test` da seção 2 do `sdd.config.md`)
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
-
----
-
-### `T-656` — Novo `test_bloco5_sem_contagem.py`: ponta a ponta de `RF-557`–`RF-560`
+**Status:** `[x] concluída (2026-11-17)`; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos. Os 13 arquivos tocados por esta rodada (`T-642`–`T-655`), rodados juntos: 368 passed, 4 failed — 2 já reportadas em `T-648` (`test_t293_*`, consequência de `T-647`), 1 pré-existente (`test_perguntas_removidas_nao_existem_e_as_mantidas_continuam`, `B3.C02`/`B3.C02A`, já em `T-640`/`T-651`) e 1 nova encontrada agora: `tests/app_aluno/test_rotas_inventario.py::test_t251_inicio_troca_montar_o_plano_pela_pendencia` também procurava `B5.00` em `_colecao_real()` (`StopIteration`) — **corrigida aqui** (fora do escopo literal desta tarefa, mas mecânica — mesma categoria de ajuste de `T-654`, não uma decisão de design): trocada para `registros=()`, já que a parametrização por "declarado" não tem mais efeito nenhum (`RF-559`); `test_rotas_inventario.py`: 6 passed. Suíte completa (`pytest -q`) disparada para a comparação final ao fim de `T-656`
 
 - **Tipo:** `Test` · **Dependências:** `T-652`, `T-653`, `T-655` · **Rastreia:** `RF-557`, `RF-558`, `RF-559`, `RF-560` · `AC-592`–`AC-597` · `EC-95`, `EC-97`, `EC-98` · plano `R20.9`
 - **Arquivos:** `tests/app_aluno/test_bloco5_sem_contagem.py` (novo)

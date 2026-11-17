@@ -152,7 +152,8 @@ def test_t250_ac03_isolamento_por_caso(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_t251_inicio_troca_montar_o_plano_pela_pendencia() -> None:
-    """`/inicio` (`T-251`): coleta completa com inventário incompleto → a
+    """`/inicio` (`T-251`): coleta completa (sem `B5.00`, que saiu em
+    `T-649`, não há mais o que perguntar) com inventário incompleto → a
     etapa é `inventario`; sem nenhuma ficha de dívida, `SEM_DIVIDAS` (`RF-
     559`) não aponta mais pergunta nenhuma (`ID_PERGUNTA` nulo — não há mais
     quantidade declarada a corrigir)."""
@@ -161,18 +162,20 @@ def test_t251_inicio_troca_montar_o_plano_pela_pendencia() -> None:
     from collection.carga import ColecaoDeRegistros
     from collection.respostas import RespostasCaso
 
-    b5_00 = next(r for r in _colecao_real().registros if r.ID == "B5.00")
-    colecao = ColecaoDeRegistros(QUESTIONARIO_VERSION="1.0.3", registros=(b5_00,))
+    colecao = ColecaoDeRegistros(QUESTIONARIO_VERSION="1.6.0", registros=())
     caso = _caso(ESTADO_CASO.COLETA_INICIAL)
 
-    def etapa(declaradas: int) -> tuple[DESTINO_DA_ETAPA, str | None]:
-        respostas = RespostasCaso(
-            respostas=(_resposta("QUANTIDADE_DIVIDAS_DECLARADA_INICIAL", declaradas),)
-        )
+    def etapa() -> tuple[DESTINO_DA_ETAPA, str | None]:
         proxima = _proxima_etapa(
-            caso, FASE_INICIO.COLETA, colecao, respostas, {}, _RepositorioItensDublê(())
+            caso,
+            FASE_INICIO.COLETA,
+            colecao,
+            RespostasCaso(respostas=()),
+            {},
+            _RepositorioItensDublê(()),
         )
         return proxima.destino, proxima.ID_PERGUNTA
 
-    assert etapa(3) == (DESTINO_DA_ETAPA.INVENTARIO, None)
-    assert etapa(0) == (DESTINO_DA_ETAPA.INVENTARIO, None)  # `T-414`: sem dívidas, sem plano
+    # Zero fichas: `SEM_DIVIDAS` (`RF-559`) bloqueia sem apontar pergunta —
+    # não há mais quantidade declarada para divergir (`AC-597`).
+    assert etapa() == (DESTINO_DA_ETAPA.INVENTARIO, None)
