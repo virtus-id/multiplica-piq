@@ -16036,11 +16036,14 @@ edição.
 
 **Critérios de aceite**
 
-- [ ] Os dois cenários cobertos para os quatro campos
-- [ ] Verificação: `npm run test` em `frontend/`
+- [x] Os dois cenários cobertos para os quatro campos
+- [x] Verificação: `npx vitest run tests/unit/componentes/CalculadoraDaDivida.test.tsx`
+      — 15 passed
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — arquivo roda e passa (15 passed, 13
+anteriores + 2 novos); `npm run test`/lint/build completos da suíte do
+`frontend/` ainda pendentes.
 
 ---
 
