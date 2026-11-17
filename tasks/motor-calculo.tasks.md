@@ -8069,11 +8069,11 @@ mudar ("só `ORDEM_QUITACAO` publicada, `ORDEM_DE_ATAQUE`,
 `PROXIMA_DIVIDA`, com a razão: são as posições 1 e 2 da ordem publicada e mudam
 com ela por consequência de `RF-552`, não regressão.
 
-- [ ] Só o texto do `AC-577` muda; nenhum outro `AC`/`RF` é editado
-- [ ] Os valores de `AC-05` continuam fora da lista do que pode mudar
-- [ ] Verificação: `git diff specs/motor-calculo.spec.md` mostra só a frase do `AC-577`
+- [x] Só o texto do `AC-577` muda; nenhum outro `AC`/`RF` é editado
+- [x] Os valores de `AC-05` continuam fora da lista do que pode mudar
+- [x] Verificação: `git diff specs/motor-calculo.spec.md` mostra só a frase do `AC-577`
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 
