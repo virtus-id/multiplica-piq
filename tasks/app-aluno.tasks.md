@@ -15652,7 +15652,12 @@ status de toda suíte Playwright no projeto.
 - [ ] Execução manual registrada no status da tarefa (comando real e
       resultado), não assumida
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`. `inventario.spec.ts`: `PENDENCIA` (`DIVIDAS_FALTANDO`/`B5.00`, tipos extintos) virou `SEM_DIVIDAS` (`ID`/`ID_PARA_CORRIGIR` nulos); título do teste `T-301` atualizado. `coleta.spec.ts`: novo `describe` "Bloco 5 sem contagem (T-663)" — `B5.A01` (`SELECAO_UNICA`/`MENU`, `<select>`) respondida, fecha a ficha (`abrir_fichas: ['DIVIDA_ID']`), "Não tenho mais, seguir" grava `B5.FIM02=SIM` e chega a `#calculando`, sem nenhuma pergunta de quantidade no meio.
+
+**Execução real** (`cd frontend && npx playwright test`, Chromium local, servidor `npm run dev` auto-iniciado pelo Playwright):
+- `coleta.spec.ts` sozinho: 28 passed.
+- `inventario.spec.ts` sozinho: 10 passed.
+- Suíte completa (`npx playwright test`, todos os `*.spec.ts`): **achado fora do escopo literal, corrigido aqui** (mecânico, mesma causa de todo B.4) — `tests/e2e/navegacao.spec.ts::"T-311: na lista com uma ficha, 'Adicionar outra' abre a pergunta do item novo"` também esperava `"Continuar"`/`"+ Adicionar outra dívida"` em `DIVIDA_ID` com 1 ficha — agora `fimDeCadastro` (`T-659`/`T-660`) troca os dois; ajustado para `"Não tenho mais, seguir"`/`"Cadastrar outra dívida"`. Depois do ajuste: **175 passed, 6 failed** (3 testes × 2 projetos: `navegacao.spec.ts::"AC-83 + AC-29: a fila abre a conferência do caso"`, `navegacao.spec.ts::"AC-103: gravada a correção..."`, `plano.spec.ts::"AC-109: o resumo do plano vem antes da ordem de quitação"`) — **não corrigidos**: os três mockam a API inteira no próprio arquivo (sem tocar o backend desta rodada), tratam de fila de conferência/correção de resposta/layout do plano, nenhum toca `DIVIDA_ID`/`SEM_DIVIDAS`/Bloco 5; não há baseline Playwright registrada para confirmar se já falhavam antes desta rodada — reportado, não investigado a fundo (fora do gate automático, `e2e: —`)
 
 ---
 

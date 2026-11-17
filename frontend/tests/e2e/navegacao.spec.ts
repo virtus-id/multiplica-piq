@@ -1974,7 +1974,10 @@ test('T-311: na lista com uma ficha, "Adicionar outra" abre a pergunta do item n
   })
 
   await abrirTela(page, CASO_REVISAO, 'fichas')
-  await expect(acaoPrincipal(page, 'Continuar')).toBeVisible()
-  await acaoPrincipal(page, '+ Adicionar outra dívida').click()
+  // `T-659`/`T-660` (`RF-558`): com 1+ fichas, `DIVIDA_ID` troca
+  // "Continuar"/"+ Adicionar outra dívida" pelos dois botões do fim de
+  // cadastro.
+  await expect(acaoPrincipal(page, 'Não tenho mais, seguir')).toBeVisible()
+  await acaoPrincipal(page, 'Cadastrar outra dívida').click()
   await expect(page).toHaveURL(/#pergunta\/B5\.B03\/D002/)
 })

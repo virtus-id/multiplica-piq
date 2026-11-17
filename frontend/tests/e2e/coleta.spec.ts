@@ -156,7 +156,9 @@ test.describe('fichas repetíveis', () => {
 
     await expect(page.getByRole('button', { name: 'Dívida D001', exact: true })).toBeVisible()
 
-    await acaoPrincipal(page, /Adicionar outra dívida/).click()
+    // `T-659`/`T-660` (`RF-558`): com 1+ fichas, `DIVIDA_ID` troca
+    // "+ Adicionar outra dívida" por "Cadastrar outra dívida".
+    await acaoPrincipal(page, 'Cadastrar outra dívida').click()
     await expect(page).toHaveURL(/#pergunta\/B5\.B03\/D002/)
   })
 })
@@ -436,6 +438,103 @@ test.describe('fichas curtas: na mesma tela e em sequência', () => {
     await expect(page).toHaveURL(/#fichas\/ITEM_DESPESA/)
   })
 })
+
+/**
+ * `T-663` (`RF-557`–`RF-560`, Rodada 18): sem `B5.00`, o Bloco 5 abre direto
+ * em `B5.A01` e termina em "Não tenho mais, seguir" — nunca uma pergunta de
+ * quantidade, nunca `B5.FIM02` isolada.
+ */
+test.describe('Bloco 5 sem contagem (T-663)', () => {
+  test('de B5.A01 a "Não tenho mais, seguir", sem erro de seletor', async ({ page }) => {
+    const CREDOR = ENUNCIADO_B5_A01()
+    let fim02Respondida = false
+
+    await interceptarBase(page, CASO)
+    await page.route(`**/caso/${CASO}/pergunta`, async (rota) => {
+      // Segunda chamada (sem `item_id`, depois de "Não tenho mais, seguir"):
+      // coleta completa, fora do Bloco 5 — nunca `B5.FIM02` de novo.
+      if (fim02Respondida) {
+        await rota.fulfill({ json: { pergunta: null, coleta_completa: true } })
+        return
+      }
+      await rota.fulfill({
+        json: { pergunta: CREDOR, avanco_permitido: false, total_pendencias: 1 },
+      })
+    })
+    await page.route(`**/caso/${CASO}/resposta`, async (rota) => {
+      const corpo = new URLSearchParams(rota.request().postData() ?? '')
+      if (corpo.get('ID_PERGUNTA') === 'B5.FIM02') {
+        fim02Respondida = true
+        await rota.fulfill({
+          json: {
+            ID_PERGUNTA: 'B5.FIM02',
+            aviso: null,
+            avanco_permitido: true,
+            total_pendencias: 0,
+            proxima: { pergunta: null, coleta_completa: true },
+            abrir_fichas: [],
+            avisos: [],
+          },
+        })
+        return
+      }
+      // `AC-593`/`AC-594`: fechou a única ficha — a lista reabre, nunca
+      // `B5.FIM02` isolada.
+      await rota.fulfill({
+        json: {
+          ID_PERGUNTA: 'B5.A01',
+          aviso: null,
+          avanco_permitido: false,
+          total_pendencias: 1,
+          proxima: { pergunta: null },
+          abrir_fichas: ['DIVIDA_ID'],
+          avisos: [],
+        },
+      })
+    })
+    await page.route(`**/caso/${CASO}/fichas/DIVIDA_ID`, async (rota) => {
+      await rota.fulfill({
+        json: {
+          CASO_ID: CASO,
+          escopo: 'DIVIDA_ID',
+          fichas: [{ item_id: 'D001', rotulo: 'Nubank', completa: true, campos: [] }],
+        },
+      })
+    })
+
+    // `AC-592`: zero fichas, o Bloco 5 já abre em `B5.A01` — nenhuma
+    // pergunta de quantidade antes.
+    await abrirTela(page, CASO, 'pergunta')
+    await page.getByLabel(CREDOR.enunciado).selectOption('Nubank')
+    await acaoPrincipal(page, 'Continuar').click()
+
+    await expect(page).toHaveURL(/#fichas\/DIVIDA_ID/)
+    await acaoPrincipal(page, 'Não tenho mais, seguir').click()
+
+    await expect(page).toHaveURL(/#calculando/)
+  })
+})
+
+function ENUNCIADO_B5_A01() {
+  return {
+    CASO_ID: CASO,
+    ID: 'B5.A01',
+    bloco: 5,
+    tipo: 'SELECAO_UNICA',
+    apresentacao: 'MENU',
+    enunciado: 'Para quem você deve nessa primeira dívida?',
+    opcoes: [{ rotulo: 'Nubank', valor_interno: 'Nubank', admite_nao_sei: false }],
+    escopo_repeticao: 'DIVIDA_ID',
+    item_id: 'D001',
+    posicao: 1,
+    total_na_ficha: 1,
+    admite_nao_sei: false,
+    valor_atual: null,
+    respondida_como_nao_sei: false,
+    valores_marcados: [],
+    aviso: null,
+  }
+}
 
 test.describe('360px — a persona responde no celular', () => {
   test.use({ viewport: { width: 360, height: 740 } })
