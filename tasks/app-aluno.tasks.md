@@ -15475,7 +15475,7 @@ fichas, é aceito mas não desbloqueia o cálculo (`SEM_DIVIDAS` persiste).
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_bloco5_sem_contagem.py`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; mesmo arranjo de `test_coleta_fichas_de_divida.py`, reusando os helpers já escritos nas tarefas anteriores (`_cliente`/`_respostas_quase_completas`/`_respostas_da_ficha_exceto_a_ultima` de `T-652`, `_montar_cliente`/`_no_caso_id` de `T-653`, `_caso_com_fichas`/`_montar_aplicacao_de_teste` de `T-654`). `test_bloco5_sem_contagem.py`: 9 passed; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 
