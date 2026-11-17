@@ -14692,10 +14692,10 @@ por esta" fica.
 `"previsao_so_parcelas"` (strings, `""` quando não se aplicam), para aluno e
 revisor (`para_revisor=True`). Nenhuma rota muda.
 
-- [ ] Demais chaves do payload inalteradas
-- [ ] Gates: lint, build, test
+- [x] Demais chaves do payload inalteradas
+- [x] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`
 
 ---
 
