@@ -15959,13 +15959,17 @@ a pergunta (`GET /pergunta`/`POST /resposta`).
 
 **Critérios de aceite**
 
-- [ ] Pergunta com `explicacao` mostra o ícone ⓘ ao lado do
+- [x] Pergunta com `explicacao` mostra o ícone ⓘ ao lado do
       rótulo/legend, nos quatro tipos de campo do componente
-- [ ] Pergunta sem `explicacao` não mostra nenhum ícone novo
+- [x] Pergunta sem `explicacao` não mostra nenhum ícone novo
 - [ ] `npm run build` verde
 - [ ] Gates: lint, build (teste em `T-676`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — `CampoPergunta` ganhou `const explicacao`
+(mesmo padrão de `apoio`) inserido nos cinco pontos em que o componente
+renderiza `<label>`/`<legend>{pergunta.enunciado}</legend>`; suíte atual
+(`CampoPergunta.test.tsx`, sem `explicacao` nos fixtures) continua passando
+sem edição (35 passed). `npm run build`/lint completos ainda pendentes.
 
 ---
 
