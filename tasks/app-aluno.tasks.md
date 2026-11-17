@@ -15607,7 +15607,7 @@ resposta".
 - [ ] Verificação: `npm run test` em `frontend/`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; removidos os dois testes de "Fichas já cadastradas" (`T-324`); `FALTANDO` (`DIVIDAS_FALTANDO`, tipo extinto) virou `RENDA_SEM_ITEM` (`RENDA_EXTRA_SEM_ITEM`, ainda existe, com escopo e `ID_PARA_CORRIGIR`) para `AC-133` continuar exercitando os dois botões juntos; dois novos para `SEM_DIVIDAS`. `npm run build`/`npm run lint`: limpo; `npm run test`: 352 passed, 9 failed — de volta à baseline exata; `AlertaInventario.test.tsx` isolado: 6 passed
 
 ---
 
