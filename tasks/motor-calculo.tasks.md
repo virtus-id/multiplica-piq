@@ -8023,12 +8023,12 @@ com as chaves `MOTIVO_POSICAO` (de cada posição) e `QUITACOES_SO_PARCELAS` (de
 removendo também `ORDEM_QUITACAO`, `DIVIDA_ALVO_ATUAL`, `PROXIMA_DIVIDA` e, em
 cada cenário, `ORDEM_DE_ATAQUE`/`ORDEM_FORA_DO_HORIZONTE` (Leitura 2).
 
-- [ ] Um caso parametrizado por estado; os digests são lidos da execução na branch antes de `T-606`–`T-615`, nunca escritos à mão
-- [ ] Remoção das chaves feita sobre o dicionário serializado (o teste passa hoje e depois da mudança sem edição)
-- [ ] `GAB-A/B/C`, invariantes, `AC-05` e `test_ordem_do_revisor_identidade.py` existentes não são editados
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao_identidade.py`; gates: lint, build, test
+- [x] Um caso parametrizado por estado; os digests são lidos da execução na branch antes de `T-606`–`T-615`, nunca escritos à mão
+- [x] Remoção das chaves feita sobre o dicionário serializado (o teste passa hoje e depois da mudança sem edição)
+- [x] `GAB-A/B/C`, invariantes, `AC-05` e `test_ordem_do_revisor_identidade.py` existentes não são editados
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao_identidade.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — 20 estados congelados. `GAB-04` entra com `GAB-A` no digest sem a ordem: `AC-577` o lista entre os de capacidade positiva, mas o estado está em `MODO_ESTABILIZACAO` com `CAPACIDADE_ATAQUE_CONSERVADORA` = −1.000 (caso de `RF-552` item 2).
 
 ---
 
