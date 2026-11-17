@@ -13,8 +13,10 @@ definidos aqui para os nomes de `AC-586`.
 
 from __future__ import annotations
 
+import ast
 from dataclasses import replace
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -23,7 +25,7 @@ from engine.estado import TIPO_DIVIDA
 from engine.motor import calcular_plano
 from engine.parametros import Parametros
 from engine.snapshot import SnapshotOrdem
-from engine.tipos import MOTIVO_POSICAO
+from engine.tipos import MOTIVO_ESTABILIZACAO, MOTIVO_POSICAO
 from persistencia.arquivo.fonte_parametros import FonteParametrosArquivo
 from report.pdf import renderizar_html_do_plano
 from report.plano import (
@@ -33,6 +35,8 @@ from report.plano import (
     montar_contexto_plano,
     rotulo_do_mes,
 )
+from tests.fixtures.carregar import carregar_gab_c
+from tests.regras.test_ordem_com_todas_as_dividas import _caso_teste3
 from tests.regras.test_ordem_em_estabilizacao import _estado_rodrigo
 
 _TEXTOS = carregar_textos_canonicos()
@@ -203,3 +207,89 @@ def test_ec92_motivo_sem_frase_mostra_o_codigo() -> None:
 
     assert contexto.ordem[0].motivo_da_posicao == "MAIOR_BENEFICIO_MARGINAL"
     assert contexto.ordem[1].motivo_da_posicao == _E["motivo_ULTIMA_RESTANTE"]
+
+
+# --- T-630: AC-590, AC-591 ---------------------------------------------------
+
+
+def _sem_os_campos_novos(snapshot: SnapshotOrdem) -> SnapshotOrdem:
+    """O snapshot como era gravado antes da Rodada 8 do motor: sem
+    `MOTIVO_POSICAO` e sem `QUITACOES_SO_PARCELAS`."""
+    assert snapshot.prognostico is not None
+    sem_acao = replace(snapshot.prognostico.sem_acao, QUITACOES_SO_PARCELAS=None)
+    return replace(
+        snapshot,
+        ORDEM_QUITACAO=tuple(replace(p, MOTIVO_POSICAO=None) for p in snapshot.ORDEM_QUITACAO),
+        prognostico=replace(snapshot.prognostico, sem_acao=sem_acao),
+    )
+
+
+def test_ac590_snapshot_anterior_fica_como_era() -> None:
+    snapshot = _sem_os_campos_novos(_rodrigo())
+    contexto = montar_contexto_plano(snapshot, _TEXTOS)
+    cenario = snapshot.cenarios[snapshot.METODO_RECOMENDADO_PIQ]
+
+    assert all((p.motivo_da_posicao, p.previsao_so_parcelas) == ("", "") for p in contexto.ordem)
+    # os dois itens antigos voltam: "Não será quitada…" e "Recebe o valor extra"
+    assert [bool(p.fora_do_horizonte) for p in contexto.ordem] == [
+        p.DIVIDA_ID in cenario.ORDEM_FORA_DO_HORIZONTE for p in contexto.ordem
+    ]
+    assert cenario.ORDEM_FORA_DO_HORIZONTE == ("D001",)
+    assert all(p.fatos[-1][0] == _RECEBE_EXTRA for p in contexto.ordem)
+    secao = _secao_3(_html(contexto))
+    assert _NAO_SERA_QUITADA in secao and _RECEBE_EXTRA in secao
+    assert "se você mantiver as parcelas em dia" not in secao
+    assert not any(_E[f"motivo_{m.value}"] in secao for m in MOTIVO_POSICAO)
+
+
+_SINAIS_DA_DIVIDA = ("TAXA_", "GARANTIA_", "NEGATIVADA", "PREFERENCIA_QUITACAO", "PESO_EMOCIONAL")
+
+
+def test_ac590_frase_e_previsao_so_leem_os_dois_campos() -> None:
+    """`AC-42`: as funções da seção não recebem `Divida`, não leem os sinais
+    da `§16.4` nem fazem conta."""
+    arvore = ast.parse(Path("report/plano.py").read_text(encoding="utf-8"))
+    funcoes = {
+        no.name: no
+        for no in ast.walk(arvore)
+        if isinstance(no, ast.FunctionDef)
+        and no.name in ("_frase_do_motivo", "_previsao_so_parcelas", "_quitacoes_so_parcelas")
+    }
+    assert len(funcoes) == 3
+    for nome, funcao in funcoes.items():
+        anotacoes = " ".join(ast.unparse(a.annotation) for a in funcao.args.args if a.annotation)
+        assert "Divida" not in anotacoes, nome
+        # o corpo, sem as anotações (`X | None` é `BinOp` só de tipo)
+        corpo = [n for instrucao in funcao.body for n in ast.walk(instrucao)]
+        nomes = {
+            n.attr if isinstance(n, ast.Attribute) else n.id
+            for n in corpo
+            if isinstance(n, ast.Attribute | ast.Name)
+        }
+        assert not [n for n in nomes if n.startswith(_SINAIS_DA_DIVIDA)], nome
+        assert not any(isinstance(n, ast.BinOp | ast.AugAssign) for n in corpo), nome
+
+
+def _teste3() -> SnapshotOrdem:
+    return calcular_plano(_caso_teste3(), _parametros())
+
+
+def test_ac591_teste3_e_plano_normal_sem_nenhuma_mudanca() -> None:
+    """O `aluno.teste3` está em estabilização por dívida que cresce (mês
+    positivo, horizonte estourado, com `MOTIVO_POSICAO` e
+    `QUITACOES_SO_PARCELAS`); `GAB-C` é um plano normal. Os dois montam
+    exatamente o que montariam sem os campos novos."""
+    teste3 = _teste3()
+    assert teste3.diagnostico.MOTIVO_ESTABILIZACAO is MOTIVO_ESTABILIZACAO.DIVIDA_QUE_CRESCE
+    assert all(p.MOTIVO_POSICAO is not None for p in teste3.ORDEM_QUITACAO)
+    normal = calcular_plano(carregar_gab_c(), _parametros())
+    assert not normal.diagnostico.MODO_ESTABILIZACAO
+
+    for snapshot in (teste3, normal):
+        assert snapshot.prognostico is not None
+        assert snapshot.prognostico.sem_acao.QUITACOES_SO_PARCELAS
+        contexto = montar_contexto_plano(snapshot, _TEXTOS)
+        assert contexto == montar_contexto_plano(_sem_os_campos_novos(snapshot), _TEXTOS)
+        assert all(
+            (p.motivo_da_posicao, p.previsao_so_parcelas) == ("", "") for p in contexto.ordem
+        )

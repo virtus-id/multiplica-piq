@@ -14739,12 +14739,12 @@ revisor (`para_revisor=True`). Nenhuma rota muda.
 - **Tipo:** `Test` · **Dependências:** `T-626`, `T-627` · **Rastreia:** `AC-590`, `AC-591` · `AC-42` · plano `R19.9`
 - **Arquivos:** `tests/app_aluno/test_plano_ordem_em_estabilizacao.py`
 
-- [ ] `AC-590`: snapshot de estabilização com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` em `None` → `ContextoPosicao` e HTML da seção iguais aos de hoje (com os dois itens antigos)
-- [ ] `AC-590`: checagem AST de que `_frase_do_motivo` e `_previsao_so_parcelas` não recebem `Divida` nem leem `TAXA_*`, `GARANTIA_*`, `NEGATIVADA`, `PREFERENCIA_QUITACAO`, `PESO_EMOCIONAL`; `test_sem_aritmetica_sobre_snapshot` verde
-- [ ] `AC-591`: `aluno.teste3` (estabilização por dívida que cresce, estouro, com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS`) e um plano normal → `ContextoPlano` igual ao do mesmo snapshot com os dois campos zerados; `motivo_da_posicao`/`previsao_so_parcelas` vazios em todas as posições (o teste3 não recebe motivo nem previsão)
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] `AC-590`: snapshot de estabilização com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS` em `None` → `ContextoPosicao` e HTML da seção iguais aos de hoje (com os dois itens antigos)
+- [x] `AC-590`: checagem AST de que `_frase_do_motivo` e `_previsao_so_parcelas` não recebem `Divida` nem leem `TAXA_*`, `GARANTIA_*`, `NEGATIVADA`, `PREFERENCIA_QUITACAO`, `PESO_EMOCIONAL`; `test_sem_aritmetica_sobre_snapshot` verde
+- [x] `AC-591`: `aluno.teste3` (estabilização por dívida que cresce, estouro, com `MOTIVO_POSICAO` e `QUITACOES_SO_PARCELAS`) e um plano normal → `ContextoPlano` igual ao do mesmo snapshot com os dois campos zerados; `motivo_da_posicao`/`previsao_so_parcelas` vazios em todas as posições (o teste3 não recebe motivo nem previsão)
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_plano_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; `test_sem_aritmetica_sobre_snapshot` segue falhando só pela violação da `main` em `app/http/rotas_api_plano.py:181` (nenhuma em `report/plano.py`)
 
 ---
 
