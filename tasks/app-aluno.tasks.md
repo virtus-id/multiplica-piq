@@ -15557,7 +15557,7 @@ que não usam a prop.
 - [ ] `npm run build` verde
 - [ ] Gates: lint, build (teste em `T-662`)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `npm run build`/`npm run lint`: só os dois erros esperados em `AlertaInventario.test.tsx`, adiados para `T-661`; `npm run lint:oxlint` sobre o arquivo: os mesmos três avisos pré-existentes, sem novidade
 
 ---
 
