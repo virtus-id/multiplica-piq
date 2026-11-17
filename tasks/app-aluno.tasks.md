@@ -14658,11 +14658,11 @@ previsão se `so_parcelas is not None`, senão `""`; com `so_parcelas` presente,
 `fora_do_horizonte = ""` e `fatos = _fatos_da_divida(...)` (sem "Recebe o valor
 extra"); senão, os dois como hoje.
 
-- [ ] Fora de estabilização e com snapshot anterior, o `ContextoPosicao` é o de hoje campo a campo (testes atuais de estabilização e do plano normal verdes sem edição)
-- [ ] Vale só na estabilização por déficit (`MOTIVO_ESTABILIZACAO = DEFICIT`); em `estabilizacao_por_divida` (`DIVIDA_QUE_CRESCE`) o `ContextoPosicao` é o de hoje (`test_rf_481` verde sem edição)
-- [ ] `test_sem_aritmetica_sobre_snapshot` verde; gates: lint, build, test
+- [x] Fora de estabilização e com snapshot anterior, o `ContextoPosicao` é o de hoje campo a campo (testes atuais de estabilização e do plano normal verdes sem edição)
+- [x] Vale só na estabilização por déficit (`MOTIVO_ESTABILIZACAO = DEFICIT`); em `estabilizacao_por_divida` (`DIVIDA_QUE_CRESCE`) o `ContextoPosicao` é o de hoje (`test_rf_481` verde sem edição)
+- [x] `test_sem_aritmetica_sobre_snapshot` verde; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; só com `MOTIVO_ESTABILIZACAO = DEFICIT` (emenda); suíte completa: 25 failed (as mesmas da `main`), 2794 passed, 81 skipped; `test_rf_481` verde sem edição
 
 ---
 
