@@ -8108,11 +8108,11 @@ com ela por consequência de `RF-552`, não regressão.
 valor relevante ou benefício `DESCONHECIDO` (`RF-16`). O seletor passa a montar
 `beneficios` com ela; ordenação `(-benefício, DIVIDA_ID)` inalterada.
 
-- [ ] Extração estritamente equivalente: `tests/regras/test_avalanche.py`, gabaritos, `T-603` e `T-604` verdes sem edição
-- [ ] Nenhuma cópia da regra `§11.1` fora de `avalanche.py`
-- [ ] Rehash só de `engine/metodos/avalanche.py`; gates: lint, build, test
+- [x] Extração estritamente equivalente: `tests/regras/test_avalanche.py`, gabaritos, `T-603` e `T-604` verdes sem edição
+- [x] Nenhuma cópia da regra `§11.1` fora de `avalanche.py`
+- [x] Rehash só de `engine/metodos/avalanche.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)`
 
 ---
 

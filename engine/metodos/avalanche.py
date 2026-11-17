@@ -60,7 +60,7 @@ from collections.abc import Mapping
 from decimal import Decimal
 from typing import Final
 
-from engine.beneficio_marginal import calcular_beneficio_marginal
+from engine.beneficio_marginal import BeneficioMarginal, calcular_beneficio_marginal
 from engine.ciclo_mensal import EstadoSimulacao, SelecionarAlvo
 from engine.estado import Divida
 from engine.parametros import Parametros
@@ -83,6 +83,32 @@ def _ordenar_por_beneficio(
     """
     candidatos = sorted(beneficios.keys())
     return sorted(candidatos, key=lambda divida_id: -beneficios[divida_id])
+
+
+def beneficio_de_ranqueamento(
+    divida: Divida, delta: Dinheiro, p: Parametros
+) -> BeneficioMarginal | None:
+    """`§11.1` · `O-01` · `RF-553` — o benefício com que o seletor ranqueia
+    `divida`: `DELTA_TESTE_AVALANCHE = MIN(delta, VALOR_RELEVANTE_PARA_QUITACAO)`.
+    Uma fonte só: o seletor abaixo e o motivo da posição (`engine/ordem.py`)
+    leem daqui.
+
+    `None` quando não há como comparar a dívida nesta rodada (`RF-16`): sem
+    `VALOR_RELEVANTE_PARA_QUITACAO` não há como compor o delta de teste (MIN
+    exige os dois operandos conhecidos) — a triagem formal desse dado ausente
+    (Gate 1, `INFORMACAO_PENDENTE`) é de quem monta `dividas`; e sem número
+    algum para o benefício (nem simulação, nem fallback de taxa/CET —
+    origem="INDISPONIVEL", ou divisão por zero sem divisor válido), `§11.1`
+    "Não criar benefício marginal artificial".
+    """
+    resultado_valor_relevante = compor_VALOR_RELEVANTE_PARA_QUITACAO(divida)
+    valor_relevante = resultado_valor_relevante.VALOR_RELEVANTE_PARA_QUITACAO
+    if valor_relevante is DESCONHECIDO:
+        return None
+    resultado = calcular_beneficio_marginal(divida, min(delta, valor_relevante), p)
+    if resultado.BENEFICIO_MARGINAL_AMORTIZACAO is DESCONHECIDO:
+        return None
+    return resultado
 
 
 def criar_selecionar_alvo_avalanche(
@@ -142,24 +168,10 @@ def criar_selecionar_alvo_avalanche(
 
         beneficios: dict[str, Decimal] = {}
         for divida_id, divida in elegiveis.items():
-            resultado_valor_relevante = compor_VALOR_RELEVANTE_PARA_QUITACAO(divida)
-            valor_relevante = resultado_valor_relevante.VALOR_RELEVANTE_PARA_QUITACAO
-            if valor_relevante is DESCONHECIDO:
-                # RF-16: sem VALOR_RELEVANTE_PARA_QUITACAO não há como
-                # compor o delta de teste (MIN exige os dois operandos
-                # conhecidos) — a dívida fica fora do ranqueamento desta
-                # rodada, sem inventar um benefício marginal fabricado. A
-                # triagem formal desse dado ausente (Gate 1,
-                # INFORMACAO_PENDENTE) é responsabilidade de quem monta
-                # `dividas` antes de chegar aqui, não desta função.
-                continue
-            delta_teste = min(delta, valor_relevante)
-            resultado = calcular_beneficio_marginal(divida, delta_teste, p)
-            if resultado.BENEFICIO_MARGINAL_AMORTIZACAO is DESCONHECIDO:
-                # RF-16/§11.1 "Não criar benefício marginal artificial": sem
-                # número algum (nem simulação, nem fallback de taxa/CET —
-                # origem="INDISPONIVEL", ou divisão por zero sem divisor
-                # válido), a dívida não pode ser comparada nesta rodada.
+            resultado = beneficio_de_ranqueamento(divida, delta, p)
+            if resultado is None or resultado.BENEFICIO_MARGINAL_AMORTIZACAO is DESCONHECIDO:
+                # RF-16: sem benefício comparável a dívida fica fora do
+                # ranqueamento desta rodada (ver beneficio_de_ranqueamento).
                 continue
             beneficios[divida_id] = resultado.BENEFICIO_MARGINAL_AMORTIZACAO
 
