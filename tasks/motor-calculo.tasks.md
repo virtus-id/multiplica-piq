@@ -8256,11 +8256,11 @@ já feita, lida sem o corte em `horizonte` (ela já para em
 `P_HORIZONTE_MAXIMO_SIMULACAO`). `()` = calculado e nenhuma termina; `None` só
 em snapshot anterior.
 
-- [ ] Nenhuma simulação nova; os demais campos de `sem_acao` idênticos (`T-603`, `T-604` verdes)
-- [ ] Preenchido em todo prognóstico novo, em qualquer modo
-- [ ] Rehash só de `engine/prognostico.py`; gates: lint, build, test
+- [x] Nenhuma simulação nova; os demais campos de `sem_acao` idênticos (`T-603`, `T-604` verdes)
+- [x] Preenchido em todo prognóstico novo, em qualquer modo
+- [x] Rehash só de `engine/prognostico.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — entre este commit e o de `T-615` sete testes de ida e volta na persistência (`test_prognostico.py`, `test_repositorio_snapshots.py::test_T164_projecao_round_trip_arquivo`) ficam vermelhos porque o leitor ainda devolve `None`; verdes de novo com `T-615`.
 
 ---
 

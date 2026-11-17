@@ -97,6 +97,10 @@ class PrognosticoSemAcao:
     MESES_PRIMEIRA_VITORIA: Meses | None = None
     #: (DIVIDA_ID, mês) de cada dívida que se quita sozinha no horizonte (T-175).
     QUITACOES: tuple[tuple[str, Meses], ...] = ()
+    #: RF-554: (DIVIDA_ID, mês) de cada dívida que a mesma projeção quita, até
+    #: `P_HORIZONTE_MAXIMO_SIMULACAO` (sem o corte em `HORIZONTE_MESES`). `()` =
+    #: nenhuma termina; `None` só em snapshot anterior a RF-554.
+    QUITACOES_SO_PARCELAS: tuple[tuple[str, Meses], ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -234,6 +238,9 @@ def calcular_prognostico(
                 else None
             ),
             QUITACOES=_quitacoes(sem_acao, horizonte),
+            # RF-554: a mesma simulação, lida até o fim dela (que já para no
+            # horizonte máximo); dívida que cresce ou sem pagamento não quita.
+            QUITACOES_SO_PARCELAS=_quitacoes(sem_acao, sem_acao.PRAZO_TOTAL),
         )
     )
 
