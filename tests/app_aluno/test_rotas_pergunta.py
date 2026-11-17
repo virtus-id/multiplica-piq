@@ -81,6 +81,8 @@ def _registro(
     variavel: str,
     condicao: Condicao | None = None,
     tipo: TipoResposta = TipoResposta.TEXTO_CURTO,
+    obrigatoriedade: frozenset[Obrigatoriedade] = frozenset({Obrigatoriedade.OBR}),
+    escopo_repeticao: EscopoRepeticao = EscopoRepeticao.NENHUM,
 ) -> RegistroPergunta:
     """Registro fabricado — enunciado curto de propósito (`AC-37`: nenhum
     conteúdo real de questionário em `.py`)."""
@@ -89,8 +91,8 @@ def _registro(
         bloco=1,
         enunciado=f"Campo {identificador}",
         tipo=tipo,
-        obrigatoriedade=frozenset({Obrigatoriedade.OBR}),
-        escopo_repeticao=EscopoRepeticao.NENHUM,
+        obrigatoriedade=obrigatoriedade,
+        escopo_repeticao=escopo_repeticao,
         opcoes=(),
         VARIAVEL_GRAVADA=variavel,
         condicao_exibicao=condicao,
@@ -151,11 +153,11 @@ def _montar_cliente(
     return cliente
 
 
-def _resposta(variavel: str, valor: str) -> Resposta:
+def _resposta(variavel: str, valor: str, item_id: str | None = None) -> Resposta:
     return Resposta(
         CASO_ID=_CASO_ID,
         ID_PERGUNTA=variavel,
-        item_id=None,
+        item_id=item_id,
         valor=valor,
         QUESTIONARIO_VERSION="1.0.0",
         respondida_em=datetime(2026, 1, 1, tzinfo=UTC),
@@ -427,3 +429,63 @@ def test_t203_item_inexistente_devolve_404(
     resposta = cliente.get(f"/caso/{_CASO_ID}/pergunta", params={"item_id": "D009"})
 
     assert resposta.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# `T-646` (`RF-557`, `RF-558`) — `B5.FIM02` nunca é servida isolada, mesma
+# técnica de coleção reduzida de `T-643` (aqui FABRICADA, não a real — ver a
+# nota do cabeçalho do arquivo).
+# ---------------------------------------------------------------------------
+
+
+def _colecao_sem_b5_00() -> ColecaoDeRegistros:
+    return ColecaoDeRegistros(
+        QUESTIONARIO_VERSION="1.0.0",
+        registros=(
+            _registro(
+                "B5.A01",
+                variavel="CREDOR",
+                obrigatoriedade=frozenset({Obrigatoriedade.REP}),
+                escopo_repeticao=EscopoRepeticao.DIVIDA_ID,
+            ),
+            _registro("B5.FIM02", variavel="CONFIRMACAO_FIM_CADASTRO"),
+        ),
+    )
+
+
+def test_t646_zero_fichas_devolve_b5_a01_de_um_item_novo(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`AC-592`, `AC-594`: sem nenhuma ficha de `DIVIDA_ID`, `GET /pergunta`
+    sem `ID` cria a ficha 1 e devolve a pergunta dela — nunca `B5.FIM02`."""
+    cliente = _montar_cliente(monkeypatch, tmp_path, colecao=_colecao_sem_b5_00())
+
+    resposta = cliente.get(f"/caso/{_CASO_ID}/pergunta")
+
+    assert resposta.status_code == 200
+    pergunta = resposta.json()["pergunta"]
+    assert pergunta is not None
+    assert pergunta["ID"] == "B5.A01"
+    assert pergunta["item_id"] == "D001"
+
+
+def test_t646_uma_ficha_fechada_devolve_a_lista_nunca_fim02(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`AC-593`, `AC-594`: com a única ficha já fechada, `GET /pergunta`
+    sem `ID` aponta a lista (`abrir_fichas`), nunca a pergunta isolada."""
+    itens = RepositorioItensArquivo(caminho_arquivo=tmp_path / "itens.jsonl")
+    item_id = itens.proximo_identificador(_CASO_ID, EscopoRepeticao.DIVIDA_ID)
+    cliente = _montar_cliente(
+        monkeypatch,
+        tmp_path,
+        colecao=_colecao_sem_b5_00(),
+        respostas_iniciais=(_resposta("CREDOR", "Itaú", item_id),),
+    )
+
+    resposta = cliente.get(f"/caso/{_CASO_ID}/pergunta")
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["pergunta"] is None
+    assert corpo["abrir_fichas"] == ["DIVIDA_ID"]

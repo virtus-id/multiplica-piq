@@ -173,7 +173,21 @@ class _RepositorioItensDublê:
         self._itens = itens
 
     def proximo_identificador(self, CASO_ID: str, escopo: EscopoRepeticao) -> str:
-        raise NotImplementedError  # pragma: no cover — a rota só lê
+        """`T-646` (`R20.10`): `GET /inicio` pode criar a ficha 1 como
+        efeito colateral — autoincremento simples, mesmo padrão de
+        `tests/app_aluno/test_coleta_fichas_de_divida.py::_Itens`."""
+        item_id = f"D{len(self._itens) + 1:03d}"
+        self._itens = (
+            *self._itens,
+            ItemRepetido(
+                item_id=item_id,
+                CASO_ID=CASO_ID,
+                escopo=escopo,
+                removido_em=None,
+                criado_em=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+        return item_id
 
     def remover(self, caso_id, item_id, agora=None):  # type: ignore[no-untyped-def]
         raise NotImplementedError  # pragma: no cover — a rota só lê
@@ -985,3 +999,72 @@ def test_t301_ficha_aberta_em_branco_segue_para_a_pergunta_da_ficha(
     assert etapa["destino"] == "pergunta"
     assert etapa["item_id"] == "D001"
     assert etapa["abrir_fichas"] == []
+
+
+# ---------------------------------------------------------------------------
+# `T-646` (`RF-557`, `RF-558`) — o mecanismo novo (`T-645`), numa coleção
+# reduzida SEM `B5.00` (mesma técnica de `T-643`, sobre os registros reais).
+# ---------------------------------------------------------------------------
+
+
+def _trecho_sem_b5_00() -> ColecaoDeRegistros:
+    reais = {r.ID: r for r in _colecao_real().registros}
+    return ColecaoDeRegistros(
+        QUESTIONARIO_VERSION="1.0.0",
+        registros=tuple(reais[i] for i in ("B5.A01", "B5.FIM02")),
+    )
+
+
+def test_t646_get_inicio_zero_fichas_aponta_b5_a01_de_um_item_novo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`AC-592`: sem `B5.00` na coleção e zero fichas, `GET /inicio` cria a
+    ficha 1 e aponta `B5.A01` dela — nunca `B5.FIM02` isolada."""
+    cliente = _montar_cliente(monkeypatch, casos=(_caso(ESTADO_CASO.COLETA_INICIAL),))
+    cliente.app.dependency_overrides[obter_colecao_de_registros_do_inicio] = (  # type: ignore[attr-defined]
+        _trecho_sem_b5_00
+    )
+
+    etapa = cliente.get(f"/caso/{_CASO_ID}/inicio").json()["proxima_etapa"]
+
+    assert etapa["destino"] == "pergunta"
+    assert etapa["ID_PERGUNTA"] == "B5.A01"
+    assert etapa["item_id"] == "D001"
+
+
+def test_t646_get_inicio_uma_ficha_fechada_aponta_a_lista(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`AC-593`, `AC-594`: com a única ficha já fechada, `GET /inicio`
+    aponta a lista (`abrir_fichas`), nunca `B5.FIM02`."""
+    item = ItemRepetido(
+        item_id="D001",
+        CASO_ID=_CASO_ID,
+        escopo=EscopoRepeticao.DIVIDA_ID,
+        removido_em=None,
+        criado_em=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    respostas = (
+        Resposta(
+            CASO_ID=_CASO_ID,
+            ID_PERGUNTA="CREDOR",
+            item_id="D001",
+            valor="Itaú",
+            QUESTIONARIO_VERSION="1.0.0",
+            respondida_em=datetime(2026, 1, 1, tzinfo=UTC),
+        ),
+    )
+    cliente = _montar_cliente(
+        monkeypatch,
+        casos=(_caso(ESTADO_CASO.COLETA_INICIAL),),
+        respostas=respostas,
+        itens=(item,),
+    )
+    cliente.app.dependency_overrides[obter_colecao_de_registros_do_inicio] = (  # type: ignore[attr-defined]
+        _trecho_sem_b5_00
+    )
+
+    etapa = cliente.get(f"/caso/{_CASO_ID}/inicio").json()["proxima_etapa"]
+
+    assert etapa["destino"] == "inventario"
+    assert etapa["abrir_fichas"] == ["DIVIDA_ID"]

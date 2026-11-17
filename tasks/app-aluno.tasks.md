@@ -15180,7 +15180,7 @@ dois outros pontos de entrada: `GET /caso/{id}/pergunta` sem `ID` e `GET
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_pergunta.py tests/app_aluno/test_rotas_inicio.py`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `_RepositorioItensDublê.proximo_identificador` (`test_rotas_inicio.py`), antes `NotImplementedError` ("a rota só lê"), ganhou implementação real (autoincremento, mesmo padrão de `test_coleta_fichas_de_divida.py::_Itens`) — consequência direta de `T-645` passar a poder escrever a partir do `GET`, não listada nos Arquivos desta tarefa; `test_rotas_pergunta.py`: 14 passed; `test_rotas_inicio.py`: 39 passed; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 
