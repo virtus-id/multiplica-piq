@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`69/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (10): `T-539` (backlog, sem spec) e `T-681` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
+`70/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (9): `T-539` (backlog, sem spec) e `T-682` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1430,16 +1430,16 @@ Decidido (2026-11-10, opção recomendada): a parcela estimada é o devido e o p
 Seção nova no fim do arquivo, "Textos novos para conferir (2026-11-17) — popup da divergência", separada da seção do ícone ⓘ do mesmo dia. Leva a tabela da redação sugerida (spec §2) e as duas perguntas de produto em linguagem simples, com o exemplo saldo R$ 10.000,00 / 2% ao mês / 24 meses / parcela R$ 400,00.
 
 **Critérios de aceite**
-- [ ] Tabela com: título ("Os valores desta dívida não batem"), frase do valor teórico ("Com esse saldo, taxa e prazo, a parcela seria R$ 528,72. Você informou R$ 400,00."), as cinco opções, o formato do valor recalculado (os quatro exemplos da spec), os dois botões e as linhas "Calculado: R$ 528,72", "Calculado: 2,00% a.m.", "Calculado: 24 meses" e "Estimada: R$ 528,72 (hipótese de 24 meses)" — texto idêntico ao da spec §2
-- [ ] Pergunta do `OQ-105`: qual opção vem marcada ao abrir ("Manter", hipótese adotada) e por que "Manter" não é lembrado ao reabrir; cita a alternativa (nada marcado, "Confirmar" indisponível até escolher)
-- [ ] Pergunta do `OQ-107`: a explicação longa da hipótese de 24 meses sai da tela e fica só "(hipótese de 24 meses)" — basta?
-- [ ] `OQ-106` **não** aparece (decisão da equipe/usuário, spec §10)
-- [ ] Marca "Sugestão, a validar com o especialista (Marcelo)"
-- [ ] Nenhum termo técnico (nome de componente, estado do servidor, `<dialog>`, "prévia")
+- [x] Tabela com: título ("Os valores desta dívida não batem"), frase do valor teórico ("Com esse saldo, taxa e prazo, a parcela seria R$ 528,72. Você informou R$ 400,00."), as cinco opções, o formato do valor recalculado (os quatro exemplos da spec), os dois botões e as linhas "Calculado: R$ 528,72", "Calculado: 2,00% a.m.", "Calculado: 24 meses" e "Estimada: R$ 528,72 (hipótese de 24 meses)" — texto idêntico ao da spec §2
+- [x] Pergunta do `OQ-105`: qual opção vem marcada ao abrir ("Manter", hipótese adotada) e por que "Manter" não é lembrado ao reabrir; cita a alternativa (nada marcado, "Confirmar" indisponível até escolher)
+- [x] Pergunta do `OQ-107`: a explicação longa da hipótese de 24 meses sai da tela e fica só "(hipótese de 24 meses)" — basta?
+- [x] `OQ-106` **não** aparece (decisão da equipe/usuário, spec §10)
+- [x] Marca "Sugestão, a validar com o especialista (Marcelo)"
+- [x] Nenhum termo técnico (nome de componente, estado do servidor, `<dialog>`, "prévia")
 
 **Verificação:** leitura; `grep -c "Os valores desta dívida não batem" docs/perguntas-marcelo-calculo-de-divida.md` ≥ 1
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)` — seção "Textos novos para conferir (2026-11-17) — popup da divergência" no fim de `docs/perguntas-marcelo-calculo-de-divida.md`; `grep -c` = 1
 
 ---
 
