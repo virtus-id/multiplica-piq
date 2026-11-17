@@ -14954,3 +14954,22 @@ e a função `_pagamento_minimo`. Remoção pura — nada mais lê este campo ho
 **Status:** `[x] concluída (2026-11-17)`; `mypy --strict` sobre `app/` sem erro novo
 
 ---
+
+### `T-639` — Ajustar `test_premissas_da_divida.py` para a remoção de `pagamento_minimo`
+
+- **Tipo:** `Test` · **Dependências:** `T-638` · **Rastreia:** `RF-561`
+- **Arquivos:** `tests/app_aluno/test_premissas_da_divida.py`
+
+**Descrição.** Remove as três asserções sobre `.pagamento_minimo` (sem
+resposta → `None`; "não sei" → `None`; valor respondido → o valor). Sem
+outro ajuste no arquivo.
+
+**Critérios de aceite**
+
+- [ ] Nenhuma asserção sobre `.pagamento_minimo` resta no arquivo
+- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_premissas_da_divida.py`
+- [ ] Gates: lint, build, test
+
+**Status:** `[x] concluída (2026-11-17)`; `test_premissas_da_divida.py`: 60 passed
+
+---

@@ -492,9 +492,3 @@ def test_ac544_e_ec73_habitual_zero_volta_aos_24_meses_sem_virar_estimado_no_cam
 def test_estimada_exige_saldo_e_taxa_conhecidos() -> None:
     assert _resolver(_ficha(saldo=NAO_SEI, parcela=NAO_SEI, prazo=NAO_SEI)).parcela_estimada is None
     assert _resolver(_ficha(taxa=NAO_SEI, parcela=NAO_SEI, prazo=NAO_SEI)).parcela_estimada is None
-
-
-def test_minimo_nao_sei_ou_ausente_e_none_nunca_zero() -> None:
-    assert _resolver(_ficha()).pagamento_minimo is None
-    assert _resolver({**_ficha(), "PAGAMENTO_MINIMO_DIVIDA": NAO_SEI}).pagamento_minimo is None
-    assert _resolver({**_ficha(), "PAGAMENTO_MINIMO_DIVIDA": d("80")}).pagamento_minimo == d("80")
