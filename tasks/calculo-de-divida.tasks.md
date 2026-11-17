@@ -10,7 +10,7 @@
 
 ## Progresso
 
-`73/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (6): `T-539` (backlog, sem spec) e `T-685` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
+`74/80 tarefas concluídas` — Fase 1: 50 tarefas (`T-473` a `T-522`) · Fase 2: 11 (`T-523` a `T-533`) · Fase 3: 5 (`T-534` a `T-538`) · correções de 2026-11-10: 4 (`T-540` a `T-543`) · Fase 4 (Rodada 2, 2026-11-17): 9 (`T-681` a `T-689`). `T-521` cancelada (sem testes novos, decisão do produto, 2026-11-06). Pendentes (5): `T-539` (backlog, sem spec) e `T-686` a `T-689` (`T-689` a cargo do usuário). `T-527`/`T-528` revertidas em 2026-11-06.
 
 ## Convenções deste backlog
 
@@ -1533,19 +1533,19 @@ Docblock `// @vitest-environment happy-dom`; API simulada com `vi.spyOn(api, …
 Sai o bloco `role="status"` inteiro (valores repetidos, mensagem de estado, "Calculando…", estimada longa, hipótese conservadora, valor teórico, resumo) e o `fieldset` "Qual informação recalcular?"; saem os estados `recalcular` e `opcoesDeRecalculo` (o `corpo` leva `recalcular: null` fixo). Entra `linhaDoCampo` com a regra da linha marcada de R2.4 (`PD-24`). `TEXTOS` perde e ganha as chaves listadas em R2.3.
 
 **Critérios de aceite**
-- [ ] Nenhum `role="status"` na página; nenhum "Calculando…" abaixo dos campos (`TEXTOS.calculando` fica só no carregamento inicial das perguntas, `OQ-106`); sem "Resumo do cálculo" nem total de juros (`RF-529`)
-- [ ] Sem `fieldset` de recálculo na página; o corpo da prévia sempre com `recalcular: null`
-- [ ] Linha "Calculado: {textoDoValor}" só com `estado === "CALCULADO"` e `campo_calculado === campo`; "Estimada: {parcela_estimada.texto} (hipótese de 24 meses)" só abaixo da parcela; nenhuma linha em qualquer outro caso (inclusive `ERRO`, `CONFERIDO`, `INCOMPATIVEL`, prévia ausente)
-- [ ] O texto longo `parcela_estimada.hipotese` não é exibido (`OQ-107`)
-- [ ] A linha é derivada da prévia do `corpo` atual: some no mesmo render de qualquer edição, troca de Price/SAC ou de periodicidade, e não volta em `ERRO` (`AC-616`)
-- [ ] O `<input>` do campo nunca recebe o valor calculado; "Não sei" continua marcado
-- [ ] `<p id="calculadora-<CAMPO>-linha" className="nota m-0">` depois do "Não sei"; o id entra no `aria-describedby` do input, junto do id do erro quando houver
-- [ ] Linha de erro `role="alert"` (`RF-518`, `RF-519`, falha de rede) e erro ao salvar inalterados
-- [ ] `typecheck` sem erro (os testes de painel e radios de `CalculadoraDaDivida.test.tsx` ficam vermelhos até `T-687`; esperado)
+- [x] Nenhum `role="status"` na página; nenhum "Calculando…" abaixo dos campos (`TEXTOS.calculando` fica só no carregamento inicial das perguntas, `OQ-106`); sem "Resumo do cálculo" nem total de juros (`RF-529`)
+- [x] Sem `fieldset` de recálculo na página; o corpo da prévia sempre com `recalcular: null`
+- [x] Linha "Calculado: {textoDoValor}" só com `estado === "CALCULADO"` e `campo_calculado === campo`; "Estimada: {parcela_estimada.texto} (hipótese de 24 meses)" só abaixo da parcela; nenhuma linha em qualquer outro caso (inclusive `ERRO`, `CONFERIDO`, `INCOMPATIVEL`, prévia ausente)
+- [x] O texto longo `parcela_estimada.hipotese` não é exibido (`OQ-107`)
+- [x] A linha é derivada da prévia do `corpo` atual: some no mesmo render de qualquer edição, troca de Price/SAC ou de periodicidade, e não volta em `ERRO` (`AC-616`)
+- [x] O `<input>` do campo nunca recebe o valor calculado; "Não sei" continua marcado
+- [x] `<p id="calculadora-<CAMPO>-linha" className="nota m-0">` depois do "Não sei"; o id entra no `aria-describedby` do input, junto do id do erro quando houver
+- [x] Linha de erro `role="alert"` (`RF-518`, `RF-519`, falha de rede) e erro ao salvar inalterados
+- [x] `typecheck` sem erro (os testes de painel e radios de `CalculadoraDaDivida.test.tsx` ficam vermelhos até `T-687`; esperado)
 
 **Verificação:** `npm --prefix frontend run typecheck`
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)` — `typecheck` sem erro; testes da página reescritos em `T-687`
 
 ---
 
