@@ -15125,7 +15125,7 @@ isolada"), mesmo que este ponto raramente seja alcançado no fluxo normal
 - [ ] Gates: lint, build, test (ainda inatingível em produção — `B5.00`
       segue no questionário)
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`; `test_rotas_pergunta.py`: 12 passed; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 
