@@ -30,6 +30,12 @@ export type TipoResposta =
 /** O sentinela de "não sei" na fronteira HTTP — nunca `null`, nunca `0`. */
 export const VALOR_NAO_SEI = 'NAO_SEI'
 
+/** `RF-562`: o conteúdo do ícone ⓘ — o que o campo é e onde encontrar o dado. */
+export interface ExplicacaoDoCampo {
+  o_que_e: string
+  onde_encontrar: string
+}
+
 export interface Opcao {
   rotulo: string
   valor_interno: string | null
@@ -49,6 +55,8 @@ export interface Pergunta {
   enunciado: string
   /** Instrução de preenchimento, em destaque menor abaixo do enunciado. */
   apoio?: string | null
+  /** `RF-562`: o conteúdo do ícone ⓘ ao lado do rótulo. Ausente nas perguntas sem ajuda. */
+  explicacao?: ExplicacaoDoCampo | null
   /** `MENU` = a escolha vira uma caixa de seleção (lista longa). Ausente = botões. */
   apresentacao?: 'MENU' | null
   opcoes: Opcao[]

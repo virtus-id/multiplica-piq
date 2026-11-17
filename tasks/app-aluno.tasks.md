@@ -15877,11 +15877,12 @@ ao lado de `apoio`.
 
 **Critérios de aceite**
 
-- [ ] `ExplicacaoDoCampo` existe com os dois campos `string`
-- [ ] `Pergunta.explicacao` aceita `undefined`, `null` e o objeto
+- [x] `ExplicacaoDoCampo` existe com os dois campos `string`
+- [x] `Pergunta.explicacao` aceita `undefined`, `null` e o objeto
 - [ ] `npm run build` verde
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada` — `npm run build`/lint completos ainda
+pendentes (não rodados nesta rodada a pedido do usuário).
 
 ---
 
