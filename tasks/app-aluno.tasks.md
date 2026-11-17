@@ -14932,3 +14932,25 @@ arquivos de registro — a versão precisa ser idêntica em todos eles.
 **Status:** `[x] concluída (2026-11-17)`; carga sem `ErroDeCarga` (57 registros sem casos de prova, 60 com); além dos sete arquivos listados, `test_carga.py::test_t224_...` também fixava `QUESTIONARIO_VERSION` em `"1.5.0"` — renomeado/ajustado para `1.6.0` na mesma leva (consequência direta do bump, não listada nos Arquivos desta tarefa)
 
 ---
+
+### `T-638` — Remover `PremissasDaDivida.pagamento_minimo` de `app/montagem/premissas.py`
+
+- **Tipo:** `Data` · **Dependências:** nenhuma · **Rastreia:** `RF-561` · plano `R20.3`, `R20.4`
+- **Arquivos:** `app/montagem/premissas.py`
+
+**Descrição.** Remove `_VARIAVEL_MINIMO` (`"PAGAMENTO_MINIMO_DIVIDA"`), o
+campo `PremissasDaDivida.pagamento_minimo`, o `kwarg`
+`pagamento_minimo=_pagamento_minimo(...)` na construção de `PremissasDaDivida`
+e a função `_pagamento_minimo`. Remoção pura — nada mais lê este campo hoje.
+
+**Critérios de aceite**
+
+- [ ] `PremissasDaDivida` não tem mais o atributo `pagamento_minimo`
+- [ ] Nenhuma referência a `PAGAMENTO_MINIMO_DIVIDA` resta em
+      `app/montagem/premissas.py`
+- [ ] `mypy --strict` sobre `app/` não aponta nada novo
+- [ ] Gates: lint, build (teste ainda não ajustado, ver `T-639`)
+
+**Status:** `[x] concluída (2026-11-17)`; `mypy --strict` sobre `app/` sem erro novo
+
+---

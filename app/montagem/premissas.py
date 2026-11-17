@@ -72,7 +72,6 @@ _VARIAVEL_DO_CAMPO: Final[Mapping[CAMPO_DA_DIVIDA, str]] = {
     CAMPO_DA_DIVIDA.PRAZO: "PRAZO_RESTANTE_MESES",
 }
 _VARIAVEL_PERIODICIDADE: Final[str] = "PERIODICIDADE_TAXA_DIVIDA"
-_VARIAVEL_MINIMO: Final[str] = "PAGAMENTO_MINIMO_DIVIDA"  # `B5.C02C` (`RF-533`)
 _VARIAVEL_SISTEMA: Final[str] = "SISTEMA_AMORTIZACAO"
 _VARIAVEL_ESCOLHA: Final[str] = "INFORMACAO_A_RECALCULAR"
 _SEM_ESCOLHA: Final[str] = "NENHUMA"
@@ -138,7 +137,6 @@ class PremissasDaDivida:
     parcela_teorica: Dinheiro | None  # só INCOMPATIVEL
     recalcular_escolhido: CAMPO_DA_DIVIDA | None
     parcela_estimada: ParcelaEstimada | None = None  # `RF-532`
-    pagamento_minimo: Dinheiro | None = None  # `B5.C02C`; None = não informado
     # `RF-538`/`RF-539`: INCOMPATIVEL sem escolha válida. Saldo e taxa daqui já estão em
     # `valores` (marca HIPOTESE); parcela e prazo são só referência exibida.
     hipotese_conservadora: HipoteseConservadora | None = None
@@ -436,7 +434,6 @@ def resolver_divida(respostas: RespostasCaso, DIVIDA_ID: str) -> PremissasDaDivi
         parcela_teorica=teorica,
         recalcular_escolhido=escolhido,
         parcela_estimada=estimada,
-        pagamento_minimo=_pagamento_minimo(respostas, DIVIDA_ID),
         hipotese_conservadora=hipotese,
     )
 
@@ -464,12 +461,6 @@ def _estimar_parcela(
     except ErroDeCalculo:
         return None  # sem solução: fica `PENDENTE`, nunca valor inventado
     return ParcelaEstimada(valor, PRAZO_BASE_ESTIMATIVA_MESES, habitual is None)
-
-
-def _pagamento_minimo(respostas: RespostasCaso, DIVIDA_ID: str) -> Dinheiro | None:
-    """`B5.C02C` (`RF-533`): "não sei", ausente ou ilegível ⇒ `None`, nunca `0`."""
-    minimo = _decimal(respostas.valor_no_item(DIVIDA_ID, _VARIAVEL_MINIMO))
-    return minimo if minimo is not None and minimo >= _ZERO else None
 
 
 def _entrada(
