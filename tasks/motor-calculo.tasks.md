@@ -8290,14 +8290,14 @@ Supabase reaproveita esse leitor (`dados_completos`), sem diff e sem migração.
 - **Tipo:** `Test` · **Dependências:** `T-613`, `T-614` · **Rastreia:** `AC-576`, `AC-585`, `EC-90` · `RF-552`, `RF-553`, `RF-554` · plano `R14.9`, `R14.10` (valores esperados)
 - **Arquivos:** `tests/regras/test_ordem_em_estabilizacao.py`
 
-- [ ] `AC-576`: `ORDEM_DE_ATAQUE == ("D001", "D002")`; `ORDEM_QUITACAO` com as duas nessa ordem; motivos `MAIOR_BENEFICIO_MARGINAL`, `ULTIMA_RESTANTE`; `ORDEM_FORA_DO_HORIZONTE` = as dessa ordem que a simulação não quita; digest de `T-604` igual
-- [ ] `AC-585`: `QUITACOES_SO_PARCELAS` contém `("D002", 24)` e `("D001", 118)` (Price: −ln(1 − 0,0158 × 120.000 / 2.256) / ln(1,0158) ≈ 117,07 → mês 118, dentro de 120)
-- [ ] `AC-585`: estado em que o plano termina antes do mês "só parcelas" de uma dívida → ela está em `QUITACOES_SO_PARCELAS` e não em `sem_acao.QUITACOES`; demais campos de `sem_acao` idênticos aos de antes
-- [ ] `EC-90`: parcela que não cobre os juros e pagamento efetivo zero → ausentes da lista
-- [ ] **Se a primeira execução der outra ordem, outro motivo ou outro mês (ex.: D001 fora de 118), parar e reportar com a saída real — não ajustar o valor esperado**
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
+- [x] `AC-576`: `ORDEM_DE_ATAQUE == ("D001", "D002")`; `ORDEM_QUITACAO` com as duas nessa ordem; motivos `MAIOR_BENEFICIO_MARGINAL`, `ULTIMA_RESTANTE`; `ORDEM_FORA_DO_HORIZONTE` = as dessa ordem que a simulação não quita; digest de `T-604` igual
+- [x] `AC-585`: `QUITACOES_SO_PARCELAS` contém `("D002", 24)` e `("D001", 118)` (Price: −ln(1 − 0,0158 × 120.000 / 2.256) / ln(1,0158) ≈ 117,07 → mês 118, dentro de 120)
+- [x] `AC-585`: estado em que o plano termina antes do mês "só parcelas" de uma dívida → ela está em `QUITACOES_SO_PARCELAS` e não em `sem_acao.QUITACOES`; demais campos de `sem_acao` idênticos aos de antes
+- [x] `EC-90`: parcela que não cobre os juros e pagamento efetivo zero → ausentes da lista
+- [x] **Se a primeira execução der outra ordem, outro motivo ou outro mês (ex.: D001 fora de 118), parar e reportar com a saída real — não ajustar o valor esperado**
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/regras/test_ordem_em_estabilizacao.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — primeira execução já com os valores da spec: (`D001`, `D002`), motivos `MAIOR_BENEFICIO_MARGINAL`/`ULTIMA_RESTANTE`, `(D002, 24)` e `(D001, 118)`; caso do plano que termina antes = `GAB-C` (D003 no mês 10, D002 no 17, D001 no 30, Price).
 
 ---
 
