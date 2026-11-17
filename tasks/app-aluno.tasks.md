@@ -14791,11 +14791,11 @@ revisor (`para_revisor=True`). Nenhuma rota muda.
 depois previsão, como texto; `?? ""` e nada renderizado quando vazio (payload
 antigo).
 
-- [ ] Ordem de leitura nome → motivo → previsão; sem colunas novas, sem rolagem lateral em 360 px
-- [ ] `PlanoDoAluno.tsx` sem diff
-- [ ] Verificação: `npm run build` em `frontend/` verde
+- [x] Ordem de leitura nome → motivo → previsão; sem colunas novas, sem rolagem lateral em 360 px
+- [x] `PlanoDoAluno.tsx` sem diff
+- [x] Verificação: `npm run build` em `frontend/` verde
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-16)`; `npm run build` e `npm run lint` verdes; `oxlint` com as mesmas 27 linhas da `main`; texto em `<p>` dentro do item, sem colunas (360 px conferido em `T-635`)
 
 ---
 
