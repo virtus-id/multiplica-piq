@@ -8383,11 +8383,11 @@ déficit (candidatas do Híbrido, verde, "sem ação"). Variante da carteira de 
 dívidas em `MODO_ESTABILIZACAO` com capacidade ≤ 0, mesmo orçamento do teste
 atual.
 
-- [ ] Teste atual verde sem edição; variante em déficit dentro do mesmo orçamento
-- [ ] Estouro do orçamento → parar e reportar com a medição, não afrouxar o limite
-- [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/desempenho/test_orcamento_30_dividas.py`; gates: lint, build, test
+- [x] Teste atual verde sem edição; variante em déficit dentro do mesmo orçamento
+- [x] Estouro do orçamento → parar e reportar com a medição, não afrouxar o limite
+- [x] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/desempenho/test_orcamento_30_dividas.py`; gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] implementada (2026-11-16)` — variante com renda 19.000 (resultado −5.375): 0,223 s contra 0,203 s da carteira original (orçamento 10 s); as 30 dívidas na `ORDEM_DE_ATAQUE`. Renda 20.000 (a primeira tentada) dispara um `ErroInvariante` que já existe na `main` — registrado como `T-636`.
 
 ---
 
@@ -8403,6 +8403,31 @@ atual.
 - [ ] Gates do `sdd.config.md` §2 (lint, build, test) verdes, saída real anotada
 
 **Status:** `[ ] pendente`
+
+---
+
+### `T-636` — `ErroInvariante` de conservação do ataque por arredondamento em carteiras em déficit (descoberta em `T-621`)
+
+- **Tipo:** `Bug` · **Dependências:** nenhuma · **Rastreia:** `A-04` (invariante de conservação), `NFR` de precisão · **fora do escopo da Rodada 8**
+- **Arquivos:** a definir (`engine/ciclo_mensal.py::executar_mes`, checagem de conservação)
+
+**Descrição.** Descoberta ao montar a variante em déficit de `T-621`: a
+carteira sintética de 30 dívidas de `tests/desempenho/test_orcamento_30_dividas.py`
+com `RENDA_TOTAL_RECORRENTE` = 18.000, 21.000, 22.000 ou 23.000 faz
+`calcular_plano` levantar `ErroInvariante` ("conservação do ataque do mês
+não fechou (A-04/TRAVA): aplicado=2930,0873… + nao_utilizado=2144,9126… =
+5075,000000000000000000000000000001, esperado CAPACIDADE_ATAQUE_M=5075
+(mes=27)", renda 20.000). Reproduz **igual na `main`** (antes da Rodada 8):
+não vem de `RF-552`. A diferença está na 33ª casa decimal — arredondamento
+do contexto do motor na cascata do resíduo, não perda de dinheiro. Um aluno
+com essa carteira não recebe plano. `T-621` usa renda 19.000 (que não
+dispara o erro) para medir o orçamento.
+
+- [ ] Reproduzir em teste com a carteira e a renda acima
+- [ ] Decidir com a spec (`A-04`, `G-01`) se a checagem compara com tolerância de precisão interna ou se a soma deve fechar exata; não afrouxar sem registro
+- [ ] Gates do `sdd.config.md` §2
+
+**Status:** `[ ] não agendada — descoberta em T-621, fora do escopo da Rodada 8`
 
 ---
 

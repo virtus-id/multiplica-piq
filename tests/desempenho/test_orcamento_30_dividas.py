@@ -46,6 +46,7 @@ REGRAS: RF-05, RF-07
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
@@ -229,6 +230,33 @@ def test_orcamento_30_dividas_120_meses() -> None:
     assert snapshot.ORDEM_QUITACAO, (
         "carteira sintética de 30 dívidas não deveria produzir ORDEM_QUITACAO vazia"
     )
+
+
+@pytest.mark.desempenho
+def test_orcamento_30_dividas_120_meses_em_deficit() -> None:
+    """`RF-552` item 2 (`T-621`): em `MODO_ESTABILIZACAO` com capacidade ≤ 0
+    o laço da `ORDEM_DE_ATAQUE` roda em toda `simular_cenario` (candidatas do
+    Híbrido, verde, "sem ação"). A mesma carteira de 30 dívidas com a renda
+    reduzida a 19.000 (resultado −5.375) cabe no mesmo orçamento."""
+    estado = replace(_carteira_sintetica_30_dividas(), RENDA_TOTAL_RECORRENTE=dinheiro("19000"))
+    parametros = FonteParametrosArquivo().carregar("1.0.1")
+
+    inicio = time.perf_counter()
+    snapshot = calcular_plano(estado, parametros)
+    tempo_decorrido = Decimal(str(time.perf_counter() - inicio))
+
+    print(
+        f"\n[T-621] 30 dívidas × 120 meses em déficit: {tempo_decorrido:.3f}s "
+        f"(orçamento {ORCAMENTO_SEGUNDOS}s)"
+    )
+    assert tempo_decorrido <= ORCAMENTO_SEGUNDOS, (
+        f"orçamento de desempenho estourado em déficit: {tempo_decorrido:.3f}s, "
+        f"orçamento declarado é {ORCAMENTO_SEGUNDOS}s"
+    )
+    assert snapshot.diagnostico.MODO_ESTABILIZACAO
+    assert snapshot.diagnostico.CAPACIDADE_ATAQUE_CONSERVADORA <= 0
+    # o laço da ordem de fato rodou sobre a carteira inteira
+    assert len(snapshot.cenarios[snapshot.METODO_RECOMENDADO_PIQ].ORDEM_DE_ATAQUE) == 30
 
 
 @pytest.mark.desempenho
