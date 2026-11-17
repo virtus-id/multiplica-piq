@@ -404,13 +404,15 @@ def test_t200_coleta_inicial_com_uma_divida_nunca_oferece_bloco_7() -> None:
 
 
 def test_t202_ficha_percorrida_item_a_item_e_o_resto_na_ordem_do_registro() -> None:
-    """Reproduz C6: a ordem era `A01/D001, A01/D002, A02/D001…`."""
-    registros = _reais_por_id("B5.00", "B5.A01", "B5.A02", "B5.FIM02")
+    """Reproduz C6: a ordem era `A01/D001, A01/D002, A02/D001…`. `B4.02`
+    (NENHUM-escopo) faz o papel de "algo antes da ficha" — `B5.00`, que
+    tinha esse papel, saiu em `T-649`."""
+    registros = _reais_por_id("B4.02", "B5.A01", "B5.A02", "B5.FIM02")
 
     percurso = _percurso(registros, {EscopoRepeticao.DIVIDA_ID: ("D001", "D002")})
 
     assert percurso == [
-        ("B5.00", None),
+        ("B4.02", None),
         ("B5.A01", "D001"),
         ("B5.A02", "D001"),
         ("B5.A01", "D002"),

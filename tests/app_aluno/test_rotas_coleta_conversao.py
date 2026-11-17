@@ -174,7 +174,8 @@ _REGISTRO_SELECAO_COM_DATA = _registro(
     ),
 )
 # `T-299`: `MOEDA`/`NUMERO` com alternativas ao campo, como `B3.01`
-# (`RENDA_VARIAVEL`), `B3.C01` (`0`) e `B5.00`/`B4.03A` ("Não sei").
+# (`RENDA_VARIAVEL`), `B3.C01` (`0`) e `B4.03A` ("Não sei"). `T-649`: `B5.00`,
+# que também era exemplo aqui, saiu do questionário.
 _REGISTRO_MOEDA_COM_OPCOES = _registro(
     "T299.MOEDA",
     TipoResposta.MOEDA,

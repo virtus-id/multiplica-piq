@@ -15422,7 +15422,7 @@ passar por `B5.00`), sem mudar o que cada teste de fato verifica.
 - [ ] Verificação: `.venv/Scripts/python.exe -m pytest -q tests/app_aluno/test_rotas_calculo.py tests/app_aluno/test_rotas_coleta_conversao.py tests/app_aluno/test_progresso.py tests/app_aluno/test_t415_credor_em_lista.py`
 - [ ] Gates: lint, build, test
 
-**Status:** `[ ] pendente`
+**Status:** `[x] concluída (2026-11-17)`. **Achado maior do que o literal da tarefa**: sem `B5.00`, `SEM_DIVIDAS` (`RF-559`, `T-647`) bloqueia com `400` TODO teste de `test_rotas_calculo.py` que não cadastra uma ficha de `DIVIDA_ID` — não só `_caso_com_dividas_declaradas` (agora `_caso_com_fichas`), mas também 12 variações de `test_t197_*`, 3 de `test_t210_*` e 2 de `test_t217_*`, que testam a guarda `OBR` e a montagem, nunca dívidas. Resolvido na raiz: `_montar_aplicacao_de_teste`/`_respostas_vistas_pela_montagem` ganham `itens`/`respostas` "padrão" (a MESMA ficha de `caso_completo()`, sem `faltas` para `dividas_pendentes`) como default — quem não passa a própria ficha ganha essa de graça; quem passa (`test_t217_ficha_de_divida_filtra_por_item`) não é afetado. `_caso_com_dividas_declaradas` virou `_caso_com_fichas(com_ficha: bool)`: 0 fichas bloqueia por `SEM_DIVIDAS` (não mais `DIVIDAS_FALTANDO`), 1 ficha libera, igual a antes. `test_rotas_coleta_conversao.py`/`test_t415_credor_em_lista.py`: só pré-condição/comentário (sem código afetado — `test_t415` cria a ficha direto por `POST /fichas/DIVIDA_ID`, sem passar por `B5.00`). `test_progresso.py`: `B4.02` no lugar de `B5.00` como "algo antes da ficha" no percurso. Os quatro arquivos: 96 passed; `ruff check .`: as mesmas 16; `mypy`: os mesmos 11 erros em 5 arquivos
 
 ---
 

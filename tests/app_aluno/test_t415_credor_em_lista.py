@@ -70,8 +70,7 @@ def test_servidor_grava_banco_ou_outra_com_nome_valido(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, corpo: list[tuple[str, str]], esperado: int
 ) -> None:
     cliente = _cliente_real(monkeypatch, tmp_path)
-    cliente.post(f"/caso/{_CASO_ID}/resposta", data={"ID_PERGUNTA": "B5.00", "valor": "1"})
-    item = cliente.get(f"/caso/{_CASO_ID}/fichas/DIVIDA_ID").json()["fichas"][0]["item_id"]
+    item = cliente.post(f"/caso/{_CASO_ID}/fichas/DIVIDA_ID").json()["ficha"]["item_id"]
 
     resposta = cliente.post(
         f"/caso/{_CASO_ID}/resposta",
