@@ -18,11 +18,13 @@ from __future__ import annotations
 
 import uuid
 
+import psycopg
 import pytest
 
 from persistencia.app_aluno.contas import (
     ErroContaInexistente,
     ErroEmailDuplicado,
+    ErroSenhaExigida,
     RepositorioContasSupabase,
     listar_revisores,
     promover_a_revisor,
@@ -108,26 +110,100 @@ def test_duas_contas_com_a_mesma_senha_tem_hashes_diferentes_e_ambas_autenticam(
 
 
 # ---------------------------------------------------------------------------
-# Critério 3 — conta inexistente e senha errada são indistinguíveis.
+# `acesso-sem-senha` (T-692) — `autenticar` por papel: aluno entra só com o
+# e-mail, revisor só com a senha correta, bloqueado e inexistente nunca.
+# Substitui o antigo "conta inexistente e senha errada são indistinguíveis"
+# (`RF-02`), que para o aluno deixou de valer (`RF-701`).
 # ---------------------------------------------------------------------------
 
 
-def test_autenticar_com_conta_inexistente_e_senha_errada_devolve_o_mesmo_resultado() -> None:
-    """`RF-02`: `autenticar` devolve `None` tanto para e-mail que não existe
-    quanto para e-mail existente com senha errada — o MESMO valor de
-    retorno, sem exceção que permita ao chamador diferenciar os dois casos."""
+def _revisor_com_senha(senha: str) -> tuple[str, str]:
     repositorio = RepositorioContasSupabase()
-    email_existente = _email_novo()
-    repositorio.criar(f"TESTE_T28_CONTA_{uuid.uuid4().hex}", email_existente, "senhaCorreta")
+    email = _email_novo()
+    conta_id = f"TESTE_T692_CONTA_{uuid.uuid4().hex}"
+    repositorio.criar(conta_id, email, senha)
+    promover_a_revisor(email)
+    return conta_id, email
 
-    resultado_conta_inexistente = repositorio.autenticar(
-        "email-que-nunca-foi-cadastrado@teste.invalido", "qualquer-coisa"
+
+def test_ac702_aluno_com_senha_errada_devolve_a_conta() -> None:
+    repositorio = RepositorioContasSupabase()
+    email = _email_novo()
+    conta_id = f"TESTE_T692_CONTA_{uuid.uuid4().hex}"
+    repositorio.criar(conta_id, email, "senhaCorreta")
+
+    conta = repositorio.autenticar(email, "senhaErrada")
+
+    assert conta is not None
+    assert conta.conta_id == conta_id
+
+
+def test_ac703_aluno_da_compra_sem_senha_entra_so_com_o_email() -> None:
+    from persistencia.app_aluno.cadastro import provisionar_conta_e_caso
+
+    conta_provisionada, _caso = provisionar_conta_e_caso(_email_novo())
+
+    conta = RepositorioContasSupabase().autenticar(conta_provisionada.email, "")
+
+    assert conta is not None
+    assert conta.conta_id == conta_provisionada.conta_id
+
+
+def test_ac706_revisor_com_senha_errada_levanta_erro_senha_exigida() -> None:
+    _conta_id, email = _revisor_com_senha("senhaCorretaDoRevisor")
+
+    with pytest.raises(ErroSenhaExigida) as excecao:
+        RepositorioContasSupabase().autenticar(email, "senhaErradaDoPedido")
+
+    # A mensagem não carrega o e-mail nem a senha do pedido.
+    assert email not in str(excecao.value)
+    assert "senhaErradaDoPedido" not in str(excecao.value)
+
+
+def test_ac704_revisor_sem_senha_no_pedido_levanta_erro_senha_exigida() -> None:
+    _conta_id, email = _revisor_com_senha("senhaCorretaDoRevisor")
+
+    with pytest.raises(ErroSenhaExigida):
+        RepositorioContasSupabase().autenticar(email, "")
+
+
+def test_revisor_com_senha_correta_devolve_a_conta() -> None:
+    conta_id, email = _revisor_com_senha("senhaCorretaDoRevisor")
+
+    conta = RepositorioContasSupabase().autenticar(email, "senhaCorretaDoRevisor")
+
+    assert conta is not None
+    assert conta.conta_id == conta_id
+    assert conta.e_revisor is True
+
+
+@pytest.mark.parametrize("senha", ["", "qualquerSenha"])
+def test_ac707_ec701_revisor_promovido_sem_senha_levanta_erro_senha_exigida(senha: str) -> None:
+    from persistencia.app_aluno.cadastro import provisionar_conta_e_caso
+
+    conta, _caso = provisionar_conta_e_caso(_email_novo())
+    promover_a_revisor(conta.email)
+
+    with pytest.raises(ErroSenhaExigida):
+        RepositorioContasSupabase().autenticar(conta.email, senha)
+
+
+@pytest.mark.parametrize("senha", ["", "senhaCorretaDoRevisor"])
+def test_ac710_revisor_bloqueado_devolve_none_sem_levantar(senha: str) -> None:
+    repositorio = RepositorioContasSupabase()
+    conta_id, email = _revisor_com_senha("senhaCorretaDoRevisor")
+    repositorio.bloquear(conta_id)
+
+    assert repositorio.autenticar(email, senha) is None
+
+
+@pytest.mark.parametrize("senha", ["", "qualquer-coisa"])
+def test_autenticar_conta_inexistente_devolve_none(senha: str) -> None:
+    resultado = RepositorioContasSupabase().autenticar(
+        "email-que-nunca-foi-cadastrado@teste.invalido", senha
     )
-    resultado_senha_errada = repositorio.autenticar(email_existente, "senhaErrada")
 
-    assert resultado_conta_inexistente is None
-    assert resultado_senha_errada is None
-    assert resultado_conta_inexistente == resultado_senha_errada
+    assert resultado is None
 
 
 def test_autenticar_com_email_e_senha_corretos_devolve_a_conta() -> None:
@@ -375,3 +451,130 @@ def test_completar_nome_grava_so_em_conta_sem_nome_e_painel_le_em_lote() -> None
     contas = repositorio.contas_dos_casos(caso_ids)
     assert contas[caso_sem.CASO_ID].nome == "João Souza"
     assert contas[caso_com.CASO_ID].nome == "Maria da Silva"
+
+
+# ---------------------------------------------------------------------------
+# `acesso-sem-senha` (T-690) — `RF-704`: a busca por e-mail ignora
+# maiúsculas/minúsculas e espaços nas pontas; a gravação normaliza.
+# ---------------------------------------------------------------------------
+
+
+def _inserir_conta_por_sql(conta_id: str, email: str) -> None:
+    """Grava a linha SEM passar pelo adaptador — que agora normaliza —, para
+    reproduzir um e-mail legado com maiúsculas (cadastro público antigo)."""
+    with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash, criado_em) "
+            "VALUES (%s, %s, NULL, now())",
+            (conta_id, email),
+        )
+
+
+def _email_gravado(conta_id: str) -> str:
+    with psycopg.connect(_database_url()) as conexao, conexao.cursor() as cursor:
+        cursor.execute("SELECT email FROM piq_app_aluno.contas WHERE conta_id = %s", (conta_id,))
+        linha = cursor.fetchone()
+    assert linha is not None
+    return str(linha[0])
+
+
+def test_ac711_buscar_por_email_ignora_maiusculas_e_espacos_no_informado() -> None:
+    repositorio = RepositorioContasSupabase()
+    sufixo = uuid.uuid4().hex
+    conta_id = f"TESTE_T690_CONTA_{sufixo}"
+    repositorio.criar(conta_id, f"aluno-{sufixo}@exemplo.com", "senhaQualquer")
+
+    conta = repositorio.buscar_por_email(f"  Aluno-{sufixo}@Exemplo.COM ")
+
+    assert conta is not None
+    assert conta.conta_id == conta_id
+
+
+def test_ac712_buscar_por_email_encontra_conta_gravada_com_maiusculas() -> None:
+    sufixo = uuid.uuid4().hex
+    conta_id = f"TESTE_T690_CONTA_{sufixo}"
+    _inserir_conta_por_sql(conta_id, f"Fulano-{sufixo}@Exemplo.com")
+
+    conta = RepositorioContasSupabase().buscar_por_email(f"fulano-{sufixo}@exemplo.com")
+
+    assert conta is not None
+    assert conta.conta_id == conta_id
+
+
+def test_criar_grava_o_email_normalizado() -> None:
+    sufixo = uuid.uuid4().hex
+    conta_id = f"TESTE_T690_CONTA_{sufixo}"
+
+    RepositorioContasSupabase().criar(conta_id, f" Novo-{sufixo}@Ex.com ", "senhaQualquer")
+
+    assert _email_gravado(conta_id) == f"novo-{sufixo}@ex.com"
+
+
+# ---------------------------------------------------------------------------
+# `acesso-sem-senha` (T-691) — `RF-704`, `EC-713`: o cadastro público e a
+# compra gravam e devolvem o e-mail normalizado.
+# ---------------------------------------------------------------------------
+
+
+def test_cadastrar_conta_e_caso_grava_e_devolve_email_normalizado() -> None:
+    from persistencia.app_aluno.cadastro import cadastrar_conta_e_caso
+
+    sufixo = uuid.uuid4().hex
+
+    conta, _caso = cadastrar_conta_e_caso(f" Novo-{sufixo}@Ex.com ", "senhaQualquer")
+
+    assert conta.email == f"novo-{sufixo}@ex.com"
+    assert _email_gravado(conta.conta_id) == f"novo-{sufixo}@ex.com"
+
+
+def test_provisionar_conta_e_caso_grava_e_devolve_email_normalizado() -> None:
+    from persistencia.app_aluno.cadastro import provisionar_conta_e_caso
+
+    sufixo = uuid.uuid4().hex
+
+    conta, _caso = provisionar_conta_e_caso(f" Outro-{sufixo}@Ex.com ")
+
+    assert conta.email == f"outro-{sufixo}@ex.com"
+    assert _email_gravado(conta.conta_id) == f"outro-{sufixo}@ex.com"
+
+
+def test_ec713_cadastro_que_so_difere_em_maiuscula_e_duplicado() -> None:
+    from persistencia.app_aluno.cadastro import cadastrar_conta_e_caso
+
+    sufixo = uuid.uuid4().hex
+    cadastrar_conta_e_caso(f"a-{sufixo}@ex.com", "senhaQualquer")
+
+    with pytest.raises(ErroEmailDuplicado):
+        cadastrar_conta_e_caso(f"A-{sufixo}@Ex.com", "senhaQualquer")
+
+
+# ---------------------------------------------------------------------------
+# `acesso-sem-senha` (revisão) — `RF-701`, `RF-704`: com login só por e-mail,
+# a busca falha fechado em vez de abrir a conta errada.
+# ---------------------------------------------------------------------------
+
+
+def test_rf704_email_ambiguo_nao_encontra_nenhuma_conta() -> None:
+    """Duas linhas com o mesmo `lower(trim(email))` (legado por SQL):
+    `buscar_por_email` devolve `None`, nunca uma das duas ao acaso."""
+    sufixo = uuid.uuid4().hex
+    _inserir_conta_por_sql(f"TESTE_REV_A_{sufixo}", f"dup-{sufixo}@ex.com")
+    _inserir_conta_por_sql(f"TESTE_REV_B_{sufixo}", f"Dup-{sufixo}@Ex.com")
+
+    assert RepositorioContasSupabase().buscar_por_email(f"dup-{sufixo}@ex.com") is None
+
+
+def test_rf701_email_vazio_nao_encontra_nenhuma_conta() -> None:
+    """Mesmo que exista uma linha com e-mail vazio, `""` e `"   "` não a
+    encontram — o login sem senha não abre essa conta (`EC-710`)."""
+    sufixo = uuid.uuid4().hex
+    with psycopg.connect(_database_url()) as conexao:
+        existe = conexao.execute(
+            "SELECT 1 FROM piq_app_aluno.contas WHERE email = ''"
+        ).fetchone()
+    if existe is None:
+        _inserir_conta_por_sql(f"TESTE_REV_VAZIO_{sufixo}", "")
+
+    repositorio = RepositorioContasSupabase()
+    assert repositorio.buscar_por_email("") is None
+    assert repositorio.buscar_por_email("   ") is None

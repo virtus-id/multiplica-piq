@@ -361,7 +361,13 @@ export function obterSessao(): Promise<SessaoDaConta> {
   return pedir<SessaoDaConta>('/api/conta/eu')
 }
 
-export function entrar(email: string, senha: string): Promise<Response> {
+/**
+ * Login — `POST /api/conta/login` (`RF-705`, `RF-706`).
+ *
+ * `senha` é opcional: a etapa de e-mail envia `senha` vazia. Aluno entra
+ * assim; revisor recebe `401` com `exige_senha` e a tela pede a senha.
+ */
+export function entrar(email: string, senha = ''): Promise<Response> {
   const corpo = new URLSearchParams({ email, senha })
   // `/api/conta/login`, não `/conta/login`: a rota JSON é a do frontend.
   // A HTML existia para o formulário Jinja2, que deixou de existir.
@@ -411,6 +417,23 @@ export function sair(): Promise<void> {
 export function definirSenha(token: string, senha: string): Promise<Response> {
   const corpo = new URLSearchParams({ token, senha })
   return fetch('/api/provisionamento/senha', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: corpo.toString(),
+  })
+}
+
+/**
+ * Pede o link de nova senha — `POST /api/provisionamento/recuperacao`
+ * (`RF-707`).
+ *
+ * O servidor responde sempre `200 {"pedido_registrado": true}`; só emite e
+ * envia o link para conta de revisor (`RF-708`). Mesmo molde de
+ * `definirSenha`: não instala sessão.
+ */
+export function pedirRecuperacao(email: string): Promise<Response> {
+  const corpo = new URLSearchParams({ email })
+  return fetch('/api/provisionamento/recuperacao', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: corpo.toString(),

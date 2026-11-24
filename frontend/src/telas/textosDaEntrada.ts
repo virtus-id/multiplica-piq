@@ -69,6 +69,14 @@ export const FORMULARIO = {
   rotuloSenha: 'Sua senha',
   entrar: 'Entrar',
   entrando: 'Entrando…',
+  /** Só aparece na etapa de senha, a do revisor (`RF-707`). Rascunho de `OQ-702`. */
+  esqueciSenha: 'Esqueci minha senha',
+}
+
+/** A confirmação depois de "Esqueci minha senha" (`RF-707`). Rascunho de `OQ-702`. */
+export const RECUPERACAO = {
+  enviada: (email: string) =>
+    `Enviamos um link para criar uma nova senha. Confira a caixa de entrada de ${email}.`,
 }
 
 /**

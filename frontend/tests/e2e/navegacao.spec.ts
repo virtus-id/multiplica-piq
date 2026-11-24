@@ -34,7 +34,7 @@ import {
 // O texto da entrada é redação revisada pelo especialista (`T-185`) — o
 // teste aponta para a fonte, nunca para um literal que divergiria a cada
 // revisão de copy. Mesma disciplina de `TelaLogin.test.tsx`.
-import { TITULO } from '../../src/telas/textosDaEntrada'
+import { ERROS, FORMULARIO, TITULO } from '../../src/telas/textosDaEntrada'
 
 const CASO = 'CASO-NAV-E2E'
 
@@ -632,8 +632,14 @@ test('AC-83 + AC-29: a fila abre a conferência do caso', async ({ page }) => {
       },
     }),
   )
+  // Revisor em duas etapas (`RF-702`): sem senha, `401` com `exige_senha`.
   await page.route('**/api/conta/login', (r) =>
-    r.fulfill({ json: { email: 'revisor@exemplo.gov.br', conta_id: 'C1', e_revisor: true } }),
+    new URLSearchParams(r.request().postData() ?? '').get('senha')
+      ? r.fulfill({ json: { email: 'revisor@exemplo.gov.br', conta_id: 'C1', e_revisor: true } })
+      : r.fulfill({
+          status: 401,
+          json: { erro: 'E-mail ou senha inválidos.', exige_senha: true },
+        }),
   )
   await page.route('**/api/revisao/fila', (r) =>
     r.fulfill({
@@ -677,9 +683,10 @@ test('AC-83 + AC-29: a fila abre a conferência do caso', async ({ page }) => {
 
   await page.goto(`/?caso=${CASO_ACESSO}#entrada`)
   await page.getByLabel('Seu e-mail').fill('revisor@exemplo.gov.br')
-  await page.getByLabel('Sua senha').fill('senha-de-teste')
   // Não é `acaoPrincipal`: `AC-82` isenta a entrada da casca `Tela`
   // (T-185), e o botão é filho direto do `<form>`, não do rodapé `.acoes`.
+  await page.getByRole('button', { name: 'Entrar' }).click()
+  await page.getByLabel('Sua senha').fill('senha-de-teste')
   await page.getByRole('button', { name: 'Entrar' }).click()
 
   // `T-186`: o revisor cai DIRETO na fila — nunca no Início do aluno. Não
@@ -866,7 +873,9 @@ test('T-331: a fila abre o Painel de usuários, em tabela sem rolagem lateral', 
 
 const CASO_SESSAO = 'CASO-SESSAO'
 
-test('T-154: entrar SEM `?caso=` na URL alcança o Início', async ({ page }) => {
+test('T-154 + AC-715: entrar SEM `?caso=` na URL, só com o e-mail, alcança o Início', async ({
+  page,
+}) => {
   // O ciclo de vida REAL da sessão: `401` antes do login, `200` depois. Um
   // mock que responda `200` desde o início não testa nada — ele descreve um
   // navegador que já tinha sessão, e aí o login nem deveria aparecer.
@@ -904,15 +913,61 @@ test('T-154: entrar SEM `?caso=` na URL alcança o Início', async ({ page }) =>
     `${TITULO.antes}${TITULO.destaque}${TITULO.depois}`,
   )
 
+  // `AC-715`: o aluno entra só com o e-mail e nunca vê campo de senha.
+  await expect(page.getByLabel('Sua senha')).toHaveCount(0)
   await page.getByLabel('Seu e-mail').fill('maria@exemplo.gov.br')
-  await page.getByLabel('Sua senha').fill('senha-de-teste')
   // Não é `acaoPrincipal`: `AC-82` isenta a entrada da casca `Tela`
   // (T-185), e o botão é filho direto do `<form>`, não do rodapé `.acoes`.
   await page.getByRole('button', { name: 'Entrar' }).click()
 
   await expect(page.locator('h1')).toHaveText('Início')
+  await expect(page.getByLabel('Sua senha')).toHaveCount(0)
   // A prova de que o caso veio da SESSÃO, não da URL.
   expect(await page.evaluate(() => window.location.search)).not.toContain('caso=')
+})
+
+/**
+ * `AC-716`, `AC-719` — o revisor entra em duas etapas (`RF-705`, `RF-706`).
+ *
+ * O login aqui é mais estrito que o de `interceptarBase`: só a senha certa
+ * entra, a errada recebe o mesmo `401` com `exige_senha` do servidor.
+ */
+test('AC-716/AC-719: revisor vê a senha depois do e-mail, e a senha errada não o tira da etapa', async ({
+  page,
+}) => {
+  await interceptarBase(page, CASO, { eRevisor: true })
+  await page.route('**/api/revisao/fila', (r) => r.fulfill({ json: { itens: [] } }))
+  // Registrada depois de `interceptarBase`: a última rota vence.
+  await page.route('**/api/conta/login', (r) =>
+    new URLSearchParams(r.request().postData() ?? '').get('senha') === 'senha-certa'
+      ? r.fulfill({ json: { email: 'revisor@exemplo.gov.br', conta_id: 'C1', e_revisor: true } })
+      : r.fulfill({
+          status: 401,
+          json: { erro: 'E-mail ou senha inválidos.', exige_senha: true },
+        }),
+  )
+
+  await abrirTela(page, CASO, 'entrada')
+  await page.getByLabel('Seu e-mail').fill('revisor@exemplo.gov.br')
+  await page.getByRole('button', { name: 'Entrar' }).click()
+
+  // `AC-716`: a senha aparece com foco, e não como erro.
+  await expect(page.getByLabel('Sua senha')).toBeFocused()
+  await expect(page.getByRole('button', { name: FORMULARIO.esqueciSenha })).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+
+  // `AC-719`: senha errada ⇒ mensagem genérica, a etapa continua.
+  await page.getByLabel('Sua senha').fill('senha-errada')
+  await page.getByRole('button', { name: 'Entrar' }).click()
+  await expect(page.getByRole('alert')).toHaveText(ERROS.credenciais)
+  await expect(page.getByLabel('Sua senha')).toBeVisible()
+
+  // `AC-719`: senha certa ⇒ a fila.
+  await page.getByLabel('Sua senha').fill('senha-certa')
+  await page.getByRole('button', { name: 'Entrar' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Planos aguardando conferência' }),
+  ).toBeVisible()
 })
 
 test('T-154: sessão válida na carga da página não mostra login', async ({ page }) => {

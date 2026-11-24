@@ -33,6 +33,7 @@ from app.notificacao.mensagens import (
 
 _URL_TESTE = "https://piq.exemplo.br"
 _TOKEN = "token-de-teste-abc123"
+_EMAIL = "aluno@exemplo.com"
 
 
 @pytest.fixture(autouse=True)
@@ -102,11 +103,16 @@ def test_url_base_nao_definida_levanta(monkeypatch: pytest.MonkeyPatch) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_primeiro_acesso_carrega_o_link_de_senha(url_base: str) -> None:
-    mensagem = primeiro_acesso(_TOKEN)
+def test_ac725_primeiro_acesso_orienta_o_acesso_sem_token_nem_prazo(url_base: str) -> None:
+    """`acesso-sem-senha`, `RF-709`: a URL base e o e-mail de login; nada de
+    link de criar senha, token ou prazo. Não afirma a redação (`OQ-702`)."""
+    mensagem = primeiro_acesso(_EMAIL)
 
     assert mensagem.assunto.strip()
-    assert link_de_senha(_TOKEN) in mensagem.corpo
+    assert _URL_TESTE in mensagem.corpo
+    assert _EMAIL in mensagem.corpo
+    for proibido in ("#definir-senha", "token", "48 horas", "horas"):
+        assert proibido not in mensagem.corpo.lower(), proibido
 
 
 def test_recuperacao_carrega_o_link_de_senha(url_base: str) -> None:
@@ -141,10 +147,11 @@ def test_nenhuma_mensagem_deixa_placeholder_por_substituir(url_base: str) -> Non
     ao aluno é um e-mail inútil que o sistema conta como entregue — e
     ninguém descobre, porque o envio retorna sucesso."""
     for mensagem in (
-        primeiro_acesso(_TOKEN),
+        primeiro_acesso(_EMAIL),
         recuperacao_de_senha(_TOKEN),
         plano_liberado(),
     ):
+        assert "{email}" not in mensagem.corpo, mensagem.assunto
         assert "{" not in mensagem.corpo, mensagem.assunto
         assert "}" not in mensagem.corpo, mensagem.assunto
 
@@ -153,7 +160,7 @@ def test_corpo_e_texto_puro_sem_html(url_base: str) -> None:
     """Texto puro chega mais íntegro: não depende de cliente que renderize
     CSS e não cai em filtro por imagem remota. A persona é um servidor
     público lendo no celular."""
-    for mensagem in (primeiro_acesso(_TOKEN), recuperacao_de_senha(_TOKEN), plano_liberado()):
+    for mensagem in (primeiro_acesso(_EMAIL), recuperacao_de_senha(_TOKEN), plano_liberado()):
         assert "<" not in mensagem.corpo
         assert "&nbsp;" not in mensagem.corpo
 
@@ -170,7 +177,7 @@ def test_corpo_nao_termina_em_quebra_de_linha(url_base: str) -> None:
 def test_paragrafos_do_yaml_sobrevivem_a_carga(url_base: str) -> None:
     """`.strip()` tira só as bordas. Se tocasse no miolo, os parágrafos
     virariam um bloco único ilegível no celular."""
-    assert "\n\n" in primeiro_acesso(_TOKEN).corpo
+    assert "\n\n" in primeiro_acesso(_EMAIL).corpo
 
 
 # ---------------------------------------------------------------------------

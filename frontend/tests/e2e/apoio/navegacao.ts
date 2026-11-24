@@ -77,7 +77,8 @@ interface OpcoesDaBase {
   /**
    * `true` faz `POST /api/conta/login` devolver `e_revisor: true` — `AC-80`,
    * `AC-87`. Sem isso a interface trata a conta como não-revisora, que é o
-   * lado seguro de `App.tsx`.
+   * lado seguro de `App.tsx`. Revisor sem senha no pedido recebe o `401` com
+   * `exige_senha` (`RF-702`), como no servidor.
    */
   eRevisor?: boolean
   /**
@@ -111,6 +112,14 @@ export async function interceptarBase(
   })
 
   await page.route('**/api/conta/login', async (rota) => {
+    const senha = new URLSearchParams(rota.request().postData() ?? '').get('senha')
+    if (opcoes.eRevisor === true && !senha) {
+      await rota.fulfill({
+        status: 401,
+        json: { erro: 'E-mail ou senha inválidos.', exige_senha: true },
+      })
+      return
+    }
     await rota.fulfill({
       json: {
         email: 'aluno@exemplo.gov.br',
@@ -271,6 +280,9 @@ export async function interceptarRespostas(
  * decide o destino pelo papel — depois do login a rota vira `#equipe-fila`
  * direto, sem passar pelo Início do aluno.
  *
+ * **Duas etapas** (`RF-705`, `RF-706`): o e-mail primeiro; a senha só depois
+ * que o servidor responde `exige_senha`.
+ *
  * **O botão não vive em `.acoes`.** `AC-82` isenta a tela de entrada da
  * casca `Tela` (T-185): ela tem layout próprio, e o botão "Entrar" é filho
  * direto do `<form>`, não do rodapé sticky que `acaoPrincipal` busca. Por
@@ -279,6 +291,7 @@ export async function interceptarRespostas(
 export async function entrarComoRevisor(page: Page, caso: string): Promise<void> {
   await abrirTela(page, caso, 'entrada')
   await page.getByLabel('Seu e-mail').fill('revisor@exemplo.gov.br')
+  await page.getByRole('button', { name: 'Entrar' }).click()
   await page.getByLabel('Sua senha').fill('senha-de-teste')
   await page.getByRole('button', { name: 'Entrar' }).click()
   await expect(

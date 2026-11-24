@@ -6,6 +6,11 @@
  * sessão (`piq_sessao`, `Secure`+`HttpOnly`) que essa resposta instala — o
  * cliente nunca guarda credencial nem decide a quem um caso pertence.
  *
+ * **Duas etapas** (`RF-705`–`RF-707`). A tela abre só com o e-mail: o aluno
+ * entra com ele. O servidor responde `401` com `exige_senha` quando a conta é
+ * de revisor — só então aparecem o campo de senha e "Esqueci minha senha". O
+ * estado é local e nada fica guardado no navegador.
+ *
  * **O `e_revisor` da resposta sobe para o App** (`RF-59`, `AC-80`). É dica de
  * interface, não autorização: serve para não oferecer ao aluno o caminho da
  * fila e do painel. Quem autoriza é o servidor, a cada requisição.
@@ -38,11 +43,12 @@
  */
 import { type FormEvent, useState } from 'react'
 
-import { entrar, type SessaoDaConta } from '../services/api'
+import { entrar, pedirRecuperacao, type SessaoDaConta } from '../services/api'
 import {
   ERROS,
   FORMULARIO,
   PROVAS,
+  RECUPERACAO,
   RODAPE_SEGURANCA,
   SELO,
   SUBTITULO,
@@ -51,6 +57,19 @@ import {
 
 interface TelaLoginProps {
   onEntrou: (sessao: SessaoDaConta | null) => void
+}
+
+/**
+ * O `401` pede a etapa de senha? Corpo ilegível conta como "não": cair na
+ * mensagem genérica é o lado seguro — não revela que a conta é de revisor.
+ */
+async function exigeSenha(resposta: Response): Promise<boolean> {
+  try {
+    const corpo = (await resposta.json()) as { exige_senha?: unknown }
+    return corpo.exige_senha === true
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -98,17 +117,31 @@ function CurvasDeQuitacao() {
 }
 
 export default function TelaLogin({ onEntrou }: TelaLoginProps) {
+  const [etapa, setEtapa] = useState<'email' | 'senha'>('email')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [recuperacaoEnviada, setRecuperacaoEnviada] = useState(false)
   const [enviando, setEnviando] = useState(false)
+
+  // `AC-718`: o campo de senha nunca fica ao lado de um e-mail que não foi
+  // checado — editar o e-mail volta à primeira etapa.
+  function aoEditarEmail(valor: string) {
+    setEmail(valor)
+    setErro(null)
+    if (etapa === 'senha') {
+      setEtapa('email')
+      setSenha('')
+      setRecuperacaoEnviada(false)
+    }
+  }
 
   async function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
     setErro(null)
     setEnviando(true)
     try {
-      const resposta = await entrar(email, senha)
+      const resposta = etapa === 'senha' ? await entrar(email, senha) : await entrar(email)
       if (resposta.ok) {
         // `entrar` devolve a `Response` crua — o corpo é lido aqui porque é
         // esta tela que conhece o contrato do login. Corpo ilegível não
@@ -121,10 +154,32 @@ export default function TelaLogin({ onEntrou }: TelaLoginProps) {
           /* sem corpo JSON: entra sem o papel */
         }
         onEntrou(sessao)
+      } else if (etapa === 'email' && (await exigeSenha(resposta))) {
+        // Revisor: pede a senha, sem mensagem de erro (`AC-716`).
+        setEtapa('senha')
       } else {
         // O servidor devolve 401 sem dizer se o e-mail existe — não vazar
         // essa diferença é deliberado, e a mensagem aqui respeita isso.
         setErro(ERROS.credenciais)
+      }
+    } catch {
+      setErro(ERROS.indisponivel)
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  // `RF-707`: só pede o link; nunca abre sessão. O servidor responde `200`
+  // para qualquer e-mail — `!ok` aqui é proxy ou infraestrutura.
+  async function aoPedirRecuperacao() {
+    setErro(null)
+    setEnviando(true)
+    try {
+      const resposta = await pedirRecuperacao(email)
+      if (resposta.ok) {
+        setRecuperacaoEnviada(true)
+      } else {
+        setErro(ERROS.indisponivel)
       }
     } catch {
       setErro(ERROS.indisponivel)
@@ -206,27 +261,39 @@ export default function TelaLogin({ onEntrou }: TelaLoginProps) {
                 autoComplete="username"
                 className="campo-texto"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => aoEditarEmail(e.target.value)}
+                disabled={enviando}
                 required
               />
             </div>
 
-            <div className="field">
-              <label htmlFor="senha">{FORMULARIO.rotuloSenha}</label>
-              <input
-                id="senha"
-                type="password"
-                autoComplete="current-password"
-                className="campo-texto"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                required
-              />
-            </div>
+            {etapa === 'senha' && (
+              <div className="field">
+                <label htmlFor="senha">{FORMULARIO.rotuloSenha}</label>
+                {/* `autoFocus`: quem usa leitor de tela precisa saber que a
+                    etapa mudou — o foco no campo novo é o anúncio. */}
+                <input
+                  id="senha"
+                  type="password"
+                  autoComplete="current-password"
+                  className="campo-texto"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+            )}
 
             {erro && (
               <p role="alert" className="aviso-erro">
                 {erro}
+              </p>
+            )}
+
+            {recuperacaoEnviada && (
+              <p role="status" className="aviso-ok">
+                {RECUPERACAO.enviada(email)}
               </p>
             )}
 
@@ -240,6 +307,19 @@ export default function TelaLogin({ onEntrou }: TelaLoginProps) {
             <button type="submit" className="btn btn-primario w-full" disabled={enviando}>
               {enviando ? FORMULARIO.entrando : FORMULARIO.entrar}
             </button>
+
+            {/* `type="button"`: dentro do form, mas fora do submit — o Enter
+                continua enviando a etapa atual. */}
+            {etapa === 'senha' && (
+              <button
+                type="button"
+                className="btn btn-discreto"
+                onClick={aoPedirRecuperacao}
+                disabled={enviando}
+              >
+                {FORMULARIO.esqueciSenha}
+              </button>
+            )}
           </form>
 
           <p className="m-0 flex items-center gap-2 border-t border-line pt-4 text-[0.8rem] text-muted">

@@ -25,10 +25,10 @@ deploy em porta aberta para criar contas.
 
 **E-mail já provisionado NÃO é erro** (decisão do especialista,
 2026-09-21). Uma compra repetida do mesmo aluno é normal: ele perdeu o
-link, comprou de novo, renovou. A rota emite um token novo para a conta
-existente e responde exatamente como no caso novo — o chamador não
-distingue "criei agora" de "já existia", pela mesma razão que o login não
-distingue "conta inexistente" de "senha errada" (`RF-02`).
+e-mail, comprou de novo, renovou. `/conta` emite um token novo para a conta
+existente; o webhook da Hotmart reenvia as orientações de acesso, sem token
+(`acesso-sem-senha`, `RF-710`). Os dois respondem exatamente como no caso
+novo — o chamador não distingue "criei agora" de "já existia".
 
 **O caso nasce em `CADASTRADO`, nunca em `COLETA_INICIAL`.** É o
 consentimento que abre a coleta (`RF-30`, `T-173`): provisionar não é
@@ -137,8 +137,9 @@ def provisionar(
     """Cria conta + caso a partir de uma compra aprovada e devolve o token
     de primeiro acesso.
 
-    **Não instala sessão.** Quem chama é uma máquina; o aluno autentica
-    depois, pelo link, com a senha que ele mesmo definir.
+    **Não instala sessão.** Quem chama é uma máquina; o aluno entra depois
+    só com o e-mail (RF-701) — o token devolvido aqui deixou de ser
+    necessário a ele e continua no corpo só por compatibilidade (AC-729).
 
     O token volta no corpo em CLARO — é a única vez em que ele existe assim
     (o banco guarda só o hash). Quem chama é responsável por entregá-lo ao
@@ -184,7 +185,7 @@ def provisionar(
     # `email_enviado` diz o que aconteceu, sem esconder nem travar.
     email_enviado = True
     try:
-        mensagem = primeiro_acesso(token.valor)
+        mensagem = primeiro_acesso(email)
         enviador.enviar(email, mensagem.assunto, mensagem.corpo)
     except (ErroConfiguracaoEmail, ErroEnvioEmail, ErroUrlBaseAusente):
         # O erro já não carrega o destinatário (ver `email.py`); aqui nem a
@@ -244,16 +245,13 @@ async def receber_webhook_hotmart(
     repositorio_contas: Annotated[
         RepositorioContas, Depends(obter_repositorio_contas_provisionamento)
     ],
-    repositorio_tokens: Annotated[
-        RepositorioTokensAcesso, Depends(obter_repositorio_tokens)
-    ],
     enviador: Annotated[EnviadorDeEmail, Depends(obter_enviador)],
     hottok_header: Annotated[str | None, Header(alias=_NOME_HEADER_HOTTOK)] = None,
 ) -> JSONResponse:
     """Traduz dois webhooks da Hotmart. `PURCHASE_APPROVED` segue o mesmo
     caminho de `provisionar` acima — mesma criação de conta+caso, mesmo
-    e-mail de primeiro acesso, sem reimplementar nada daquela rota, só
-    trocando de onde vem o `email`. `PURCHASE_REFUNDED` bloqueia a conta
+    e-mail de orientações de acesso — mas sem emitir token (`RF-710`): o
+    aluno entra só com o e-mail. `PURCHASE_REFUNDED` bloqueia a conta
     (`RepositorioContas.bloquear`, migração `005`) — `autenticar` passa a
     recusá-la; a conta e o histórico continuam no banco, só o acesso é
     cortado.
@@ -290,7 +288,6 @@ async def receber_webhook_hotmart(
         confere,
         provisionamento,
         repositorio_contas,
-        repositorio_tokens,
         enviador,
     )
 
@@ -300,7 +297,6 @@ def _processar_webhook_hotmart(
     confere: bool | None,
     provisionamento: ProvisionaContaECaso,
     repositorio_contas: RepositorioContas,
-    repositorio_tokens: RepositorioTokensAcesso,
     enviador: EnviadorDeEmail,
 ) -> JSONResponse:
     """A parte síncrona e bloqueante de `receber_webhook_hotmart` — `T-187`.
@@ -353,32 +349,28 @@ def _processar_webhook_hotmart(
     nome = str(comprador.get("name") or "").strip() or None
 
     try:
-        conta, _caso = provisionamento(email, nome)
-        conta_id = conta.conta_id
+        provisionamento(email, nome)
     except ErroEmailDuplicado:
-        # Mesma disciplina de `provisionar`: compra repetida reemite o
-        # link, nunca é erro.
+        # Mesma disciplina de `provisionar`: compra repetida reenvia as
+        # orientações, nunca é erro.
         existente = repositorio_contas.buscar_por_email(email)
         if existente is None:  # pragma: no cover — defensivo: o UNIQUE acusou
             return JSONResponse({"erro": _MENSAGEM_NAO_AUTORIZADO}, status_code=401)
-        conta_id = existente.conta_id
         # Conta de antes da `009` (ou sem nome na primeira compra) ganha o
         # nome agora; nome já gravado fica — ver `completar_nome`.
         if nome is not None:
-            repositorio_contas.completar_nome(conta_id, nome)
+            repositorio_contas.completar_nome(existente.conta_id, nome)
 
-    token: TokenEmitido = repositorio_tokens.emitir(conta_id)
-
+    # **Sem token** (`acesso-sem-senha`, `RF-710`): o aluno entra só com o
+    # e-mail. Falha de envio vira `email_enviado: false` — a conta existe e
+    # o login funciona mesmo sem o e-mail (`AC-728`).
     email_enviado = True
     try:
-        mensagem = primeiro_acesso(token.valor)
+        mensagem = primeiro_acesso(email)
         enviador.enviar(email, mensagem.assunto, mensagem.corpo)
     except (ErroConfiguracaoEmail, ErroEnvioEmail, ErroUrlBaseAusente):
         email_enviado = False
 
-    # Diferente de `/conta`: o token NÃO volta no corpo. Quem chama é a
-    # Hotmart, não um sistema que precise repassá-lo — o único caminho de
-    # entrega ao aluno é o e-mail que acabou de sair.
     return JSONResponse({"provisionado": True, "email_enviado": email_enviado}, status_code=200)
 
 
@@ -465,8 +457,11 @@ def pedir_recuperacao(
     login, que não distingue "conta inexistente" de "senha errada"
     (`RF-02`) — e aqui importa mais, porque a rota é pública e sem segredo.
 
-    Quem tem conta recebe o link; quem não tem, não recebe nada. Os dois
-    veem a mesma resposta.
+    **Só revisor recebe o link** (`acesso-sem-senha`, `RF-708`): o aluno
+    entra só com o e-mail e não tem senha a recuperar. Aluno, conta
+    inexistente e e-mail vazio não recebem nada. A condição é só o papel —
+    revisor bloqueado ainda recebe o link, e o login continua recusando
+    (`EC-702`). Todos veem a mesma resposta.
 
     **Sem rate limiting ainda** (`BLOQUEIA-8` da auditoria): esta rota
     dispara envio de e-mail a cada chamada, então é um amplificador. Entra
@@ -478,14 +473,14 @@ def pedir_recuperacao(
     email = dados.get("email", "").strip().lower()
 
     conta = repositorio_contas.buscar_por_email(email) if email else None
-    if conta is not None:
+    if conta is not None and conta.e_revisor:
         token = repositorio_tokens.emitir(conta.conta_id)
         try:
             mensagem = recuperacao_de_senha(token.valor)
             enviador.enviar(conta.email, mensagem.assunto, mensagem.corpo)
         except (ErroConfiguracaoEmail, ErroEnvioEmail, ErroUrlBaseAusente):
             # Falha de envio não muda a resposta — ver a nota acima. O
-            # aluno tentaria de novo, e um erro aqui diria a um atacante
+            # revisor tentaria de novo, e um erro aqui diria a um atacante
             # que o e-mail existe.
             pass
 
