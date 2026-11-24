@@ -30,6 +30,8 @@ from app.http.rotas_provisionamento import (
     obter_repositorio_contas_provisionamento,
     obter_repositorio_tokens,
 )
+from app.notificacao.email import EnviadorEmMemoria, ErroEnvioEmail, obter_enviador
+from app.notificacao.mensagens import primeiro_acesso
 from persistencia.app_aluno.contas import Conta, ErroEmailDuplicado
 from persistencia.app_aluno.tokens_acesso import ErroTokenInvalido, TokenEmitido
 
@@ -37,6 +39,7 @@ _CHAVE_TESTE: Final[str] = "chave-de-teste-para-assinatura-de-sessao-nao-usar-em
 _SEGREDO: Final[str] = "segredo-de-teste-do-provisionamento"
 _NOME_HEADER: Final[str] = "X-PIQ-Provisionamento"
 _EMAIL: Final[str] = "comprador@exemplo.gov.br"
+_URL_BASE: Final[str] = "https://piq.exemplo.br"
 
 #: O que a fixture `ambiente` entrega a cada teste.
 type Ambiente = tuple[
@@ -71,6 +74,8 @@ class _RepositorioContasDublê:
         self._provisionamento = provisionamento
         self.senhas_definidas: list[tuple[str, str]] = []
         self.bloqueadas: list[str] = []
+        #: E-mails cujas contas são de revisor (`acesso-sem-senha`, `RF-708`).
+        self.revisores: set[str] = set()
 
     def criar(self, conta_id: str, email: str, senha: str) -> None:  # pragma: no cover
         raise NotImplementedError
@@ -91,6 +96,7 @@ class _RepositorioContasDublê:
             email=email,
             senha_hash=None,
             criado_em=datetime.now(UTC),
+            e_revisor=email in self.revisores,
             bloqueado_em=datetime.now(UTC) if conta_id in self.bloqueadas else None,
         )
 
@@ -133,8 +139,14 @@ class _RepositorioTokensDublê:
 
 
 @pytest.fixture
+def enviador() -> EnviadorEmMemoria:
+    """O que as rotas teriam enviado — nenhum teste fala SMTP de verdade."""
+    return EnviadorEmMemoria()
+
+
+@pytest.fixture
 def ambiente(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, enviador: EnviadorEmMemoria
 ) -> Iterator[Ambiente]:
     monkeypatch.setenv("CHAVE_ASSINATURA_SESSAO", _CHAVE_TESTE)
     monkeypatch.setenv("SEGREDO_PROVISIONAMENTO", _SEGREDO)
@@ -147,6 +159,7 @@ def ambiente(
     aplicacao.dependency_overrides[obter_provisionamento] = lambda: provisionamento
     aplicacao.dependency_overrides[obter_repositorio_contas_provisionamento] = lambda: contas
     aplicacao.dependency_overrides[obter_repositorio_tokens] = lambda: tokens
+    aplicacao.dependency_overrides[obter_enviador] = lambda: enviador
 
     with TestClient(aplicacao) as cliente:
         yield cliente, provisionamento, contas, tokens
@@ -227,6 +240,32 @@ def test_provisiona_conta_e_devolve_token(ambiente: Ambiente) -> None:
     assert corpo["expira_em"]
     assert provisionamento.emails == [_EMAIL]
     assert tokens.emitidos == ["CONTA_1"]
+
+
+def test_ac729_conta_n8n_devolve_token_e_envia_as_orientacoes_sem_token(
+    ambiente: Ambiente, enviador: EnviadorEmMemoria, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`acesso-sem-senha`, `AC-729`: `/conta` mantém o contrato (`201` com
+    `token`, `expira_em`, `email_enviado`), mas o e-mail é o de `AC-725`."""
+    monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+    cliente, _provisionamento, _contas, tokens = ambiente
+
+    resposta = cliente.post(
+        "/api/provisionamento/conta",
+        data={"email": _EMAIL},
+        headers={_NOME_HEADER: _SEGREDO},
+    )
+
+    assert resposta.status_code == 201
+    assert set(resposta.json()) == {"token", "expira_em", "email_enviado"}
+    assert resposta.json()["email_enviado"] is True
+    assert tokens.emitidos == ["CONTA_1"]
+    ((destinatario, _assunto, corpo),) = enviador.enviados
+    assert destinatario == _EMAIL
+    assert _URL_BASE in corpo
+    assert _EMAIL in corpo
+    assert "#definir-senha" not in corpo
+    assert resposta.json()["token"] not in corpo
 
 
 def test_a_rota_nao_instala_sessao(ambiente: Ambiente) -> None:
@@ -375,7 +414,9 @@ def _payload_hotmart(
 
 
 @pytest.fixture
-def ambiente_hotmart(monkeypatch: pytest.MonkeyPatch) -> Iterator[Ambiente]:
+def ambiente_hotmart(
+    monkeypatch: pytest.MonkeyPatch, enviador: EnviadorEmMemoria
+) -> Iterator[Ambiente]:
     monkeypatch.setenv("CHAVE_ASSINATURA_SESSAO", _CHAVE_TESTE)
     monkeypatch.setenv("HOTMART_HOTTOK", _HOTTOK)
     monkeypatch.setenv("HOTMART_PRODUTO_ID", _PRODUTO_ID)
@@ -388,6 +429,7 @@ def ambiente_hotmart(monkeypatch: pytest.MonkeyPatch) -> Iterator[Ambiente]:
     aplicacao.dependency_overrides[obter_provisionamento] = lambda: provisionamento
     aplicacao.dependency_overrides[obter_repositorio_contas_provisionamento] = lambda: contas
     aplicacao.dependency_overrides[obter_repositorio_tokens] = lambda: tokens
+    aplicacao.dependency_overrides[obter_enviador] = lambda: enviador
 
     with TestClient(aplicacao) as cliente:
         yield cliente, provisionamento, contas, tokens
@@ -484,8 +526,8 @@ def test_hotmart_produto_diferente_e_ignorado(ambiente_hotmart: Ambiente) -> Non
 def test_hotmart_compra_aprovada_provisiona_e_nao_devolve_token(
     ambiente_hotmart: Ambiente,
 ) -> None:
-    """Diferente de `/conta`: o token não volta no corpo — quem chama é a
-    Hotmart, o único caminho de entrega ao aluno é o e-mail."""
+    """Diferente de `/conta`: nenhum token é emitido nem volta no corpo
+    (`acesso-sem-senha`, `RF-710`) — o aluno entra só com o e-mail."""
     cliente, provisionamento, _contas, tokens = ambiente_hotmart
 
     resposta = cliente.post(
@@ -499,7 +541,7 @@ def test_hotmart_compra_aprovada_provisiona_e_nao_devolve_token(
     assert corpo["provisionado"] is True
     assert "token" not in corpo
     assert provisionamento.emails == [_EMAIL]
-    assert tokens.emitidos == ["CONTA_1"]
+    assert tokens.emitidos == []
 
 
 def test_hotmart_compra_repetida_reprovisiona_sem_erro(ambiente_hotmart: Ambiente) -> None:
@@ -513,7 +555,81 @@ def test_hotmart_compra_repetida_reprovisiona_sem_erro(ambiente_hotmart: Ambient
         )
         assert resposta.status_code == 200
 
-    assert tokens.emitidos == ["CONTA_1", "CONTA_1"]
+    assert tokens.emitidos == []
+
+
+def test_ac726_hotmart_compra_nova_envia_orientacoes_sem_token(
+    ambiente_hotmart: Ambiente, enviador: EnviadorEmMemoria, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+    cliente, provisionamento, _contas, tokens = ambiente_hotmart
+
+    resposta = cliente.post(
+        "/api/provisionamento/hotmart",
+        json=_payload_hotmart(),
+        headers={_NOME_HEADER_HOTTOK: _HOTTOK},
+    )
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {"provisionado": True, "email_enviado": True}
+    assert provisionamento.emails == [_EMAIL]
+    assert tokens.emitidos == []
+    ((destinatario, _assunto, corpo),) = enviador.enviados
+    assert destinatario == _EMAIL
+    assert _URL_BASE in corpo
+    assert "#definir-senha" not in corpo
+
+
+def test_ac727_ec704_hotmart_compra_repetida_reenvia_orientacoes_sem_token(
+    ambiente_hotmart: Ambiente, enviador: EnviadorEmMemoria, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+    cliente, provisionamento, _contas, tokens = ambiente_hotmart
+    provisionamento(_EMAIL)  # conta sem nome, de uma compra anterior
+
+    resposta = cliente.post(
+        "/api/provisionamento/hotmart",
+        json=_payload_hotmart(nome="Maria da Silva"),
+        headers={_NOME_HEADER_HOTTOK: _HOTTOK},
+    )
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {"provisionado": True, "email_enviado": True}
+    assert tokens.emitidos == []
+    assert provisionamento.nomes == ["Maria da Silva"]
+    ((destinatario, _assunto, corpo),) = enviador.enviados
+    assert destinatario == _EMAIL
+    assert corpo == primeiro_acesso(_EMAIL).corpo
+
+
+def _falhar_envio(destinatario: str, assunto: str, corpo: str) -> None:
+    raise ErroEnvioEmail("falha no envio SMTP: teste")
+
+
+@pytest.mark.parametrize("falha", ["smtp", "url_base_ausente"])
+def test_ac728_ec711_hotmart_falha_de_envio_provisiona_com_email_enviado_falso(
+    ambiente_hotmart: Ambiente,
+    enviador: EnviadorEmMemoria,
+    monkeypatch: pytest.MonkeyPatch,
+    falha: str,
+) -> None:
+    if falha == "smtp":
+        monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+        monkeypatch.setattr(enviador, "enviar", _falhar_envio)
+    else:
+        monkeypatch.delenv("URL_BASE_APP", raising=False)
+    cliente, provisionamento, contas, tokens = ambiente_hotmart
+
+    resposta = cliente.post(
+        "/api/provisionamento/hotmart",
+        json=_payload_hotmart(),
+        headers={_NOME_HEADER_HOTTOK: _HOTTOK},
+    )
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {"provisionado": True, "email_enviado": False}
+    assert contas.buscar_por_email(_EMAIL) is not None
+    assert tokens.emitidos == []
 
 
 def test_hotmart_compra_aprovada_grava_nome_do_comprador_aparado(
@@ -660,3 +776,119 @@ def test_hotmart_reembolso_sem_hottok_recusa(ambiente_hotmart: Ambiente) -> None
 
     assert resposta.status_code == 401
     assert contas.bloqueadas == []
+
+
+# ---------------------------------------------------------------------------
+# Recuperação de senha — só revisor (`acesso-sem-senha`, T-697, `RF-708`)
+# ---------------------------------------------------------------------------
+
+_REVISOR: Final[str] = "revisor@exemplo.gov.br"
+_PEDIDO_REGISTRADO: Final[dict[str, bool]] = {"pedido_registrado": True}
+
+
+def _com_revisor(ambiente: Ambiente) -> None:
+    _cliente, provisionamento, contas, _tokens = ambiente
+    provisionamento(_REVISOR)
+    contas.revisores.add(_REVISOR)
+
+
+def test_ac721_revisor_recebe_token_e_link_de_definir_senha(
+    ambiente: Ambiente, enviador: EnviadorEmMemoria, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+    _com_revisor(ambiente)
+    cliente, _provisionamento, _contas, tokens = ambiente
+
+    resposta = cliente.post("/api/provisionamento/recuperacao", data={"email": _REVISOR})
+
+    assert resposta.status_code == 200
+    assert resposta.json() == _PEDIDO_REGISTRADO
+    assert tokens.emitidos == ["CONTA_1"]
+    ((destinatario, _assunto, corpo),) = enviador.enviados
+    assert destinatario == _REVISOR
+    assert f"{_URL_BASE}/#definir-senha/token-de-CONTA_1" in corpo
+
+
+def test_ac722_aluno_nao_recebe_token_nem_email(
+    ambiente: Ambiente, enviador: EnviadorEmMemoria, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+    cliente, provisionamento, _contas, tokens = ambiente
+    provisionamento(_EMAIL)
+
+    resposta = cliente.post("/api/provisionamento/recuperacao", data={"email": _EMAIL})
+
+    assert resposta.status_code == 200
+    assert resposta.json() == _PEDIDO_REGISTRADO
+    assert tokens.emitidos == []
+    assert enviador.enviados == []
+
+
+@pytest.mark.parametrize("email", ["ninguem@exemplo.gov.br", ""])
+def test_ac723_sem_conta_ou_vazio_nao_recebe_token_nem_email(
+    ambiente: Ambiente,
+    enviador: EnviadorEmMemoria,
+    monkeypatch: pytest.MonkeyPatch,
+    email: str,
+) -> None:
+    monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+    cliente, _provisionamento, _contas, tokens = ambiente
+
+    resposta = cliente.post("/api/provisionamento/recuperacao", data={"email": email})
+
+    assert resposta.status_code == 200
+    assert resposta.json() == _PEDIDO_REGISTRADO
+    assert tokens.emitidos == []
+    assert enviador.enviados == []
+
+
+@pytest.mark.parametrize("falha", ["smtp", "url_base_ausente"])
+def test_ac724_falha_de_envio_ao_revisor_mantem_a_resposta(
+    ambiente: Ambiente,
+    enviador: EnviadorEmMemoria,
+    monkeypatch: pytest.MonkeyPatch,
+    falha: str,
+) -> None:
+    if falha == "smtp":
+        monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+        monkeypatch.setattr(enviador, "enviar", _falhar_envio)
+    else:
+        monkeypatch.delenv("URL_BASE_APP", raising=False)
+    _com_revisor(ambiente)
+    cliente, _provisionamento, _contas, _tokens = ambiente
+
+    resposta = cliente.post("/api/provisionamento/recuperacao", data={"email": _REVISOR})
+
+    assert resposta.status_code == 200
+    assert resposta.json() == _PEDIDO_REGISTRADO
+
+
+def test_ac713_revisor_encontrado_com_maiusculas_e_espacos_no_pedido(
+    ambiente: Ambiente, enviador: EnviadorEmMemoria, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+    _com_revisor(ambiente)
+    cliente, _provisionamento, _contas, tokens = ambiente
+
+    resposta = cliente.post(
+        "/api/provisionamento/recuperacao", data={"email": "  Revisor@Exemplo.GOV.br "}
+    )
+
+    assert resposta.json() == _PEDIDO_REGISTRADO
+    assert tokens.emitidos == ["CONTA_1"]
+    assert [destinatario for destinatario, _, _ in enviador.enviados] == [_REVISOR]
+
+
+def test_ec702_revisor_bloqueado_ainda_recebe_o_link(
+    ambiente: Ambiente, enviador: EnviadorEmMemoria, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A condição é só o papel; o bloqueio é verificado no login."""
+    monkeypatch.setenv("URL_BASE_APP", _URL_BASE)
+    _com_revisor(ambiente)
+    cliente, _provisionamento, contas, tokens = ambiente
+    contas.bloquear("CONTA_1")
+
+    cliente.post("/api/provisionamento/recuperacao", data={"email": _REVISOR})
+
+    assert tokens.emitidos == ["CONTA_1"]
+    assert len(enviador.enviados) == 1

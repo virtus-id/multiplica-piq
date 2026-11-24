@@ -19,14 +19,15 @@ exceção deste módulo interpola a senha em sua mensagem (só `email`/`conta_id
 nunca `senha`). A senha em texto claro não sobrevive além do escopo da
 função que a recebe.
 
-**Verificação não distingue "conta inexistente" de "senha errada".**
-`autenticar` devolve `None` para AMBOS os casos — a mesma mensagem/resultado,
-nunca uma exceção que permita ao chamador diferenciá-los. Sobre a decisão de
-NÃO mitigar a diferença de tempo (timing attack) entre os dois casos nesta
-tarefa, ver a justificativa em `app/http/senhas.py` (YAGNI declarado para o
-piloto de 1 a 3 alunos, `OQ-06` — o que é garantido aqui é que a MENSAGEM/
-resultado de erro não vaza qual dos dois casos ocorreu, que é o critério de
-aceite de T-28).
+**Aluno entra só com o e-mail; revisor, só com a senha** (`acesso-sem-senha`,
+`RF-701`–`RF-703`). `autenticar` devolve `None` para conta inexistente ou
+bloqueada, de qualquer papel; devolve a conta de aluno ativa sem olhar a
+senha (risco aceito, `RSK-701`); e, para revisor ativo sem a senha correta,
+levanta `ErroSenhaExigida` — a rota responde `exige_senha` e a tela pede a
+senha. Sobre a decisão de NÃO mitigar a diferença de tempo (timing attack),
+ver a justificativa em `app/http/senhas.py` (YAGNI declarado para o piloto,
+`OQ-06`); com o login por papel, ela só existe no caminho do revisor
+(`RSK-702`).
 
 **`e_revisor` (`RF-23`, `RF-25`, T-100).** Extensão pequena e necessária
 desta tarefa: `piq_app_aluno.contas.e_revisor` (`persistencia/supabase/
@@ -67,7 +68,7 @@ Direção de dependência: este módulo importa de `app.http.senhas` (hash/
 verify puro) e de `psycopg`/stdlib — nunca de `engine/` (escopo desta
 feature não toca o motor).
 
-REGRAS: `RF-02`, `RF-23`, `RF-25`
+REGRAS: `RF-02`, `RF-23`, `RF-25`, `RF-701`, `RF-702`, `RF-703`, `RF-704`
 """
 
 from __future__ import annotations
@@ -83,7 +84,15 @@ import psycopg
 from app.http.senhas import hashear_senha, verificar_senha
 from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
-REGRAS: Final[tuple[str, ...]] = ("RF-02", "RF-23", "RF-25")
+REGRAS: Final[tuple[str, ...]] = (
+    "RF-02",
+    "RF-23",
+    "RF-25",
+    "RF-701",
+    "RF-702",
+    "RF-703",
+    "RF-704",
+)
 
 _SCHEMA: Final[str] = "piq_app_aluno"
 
@@ -98,17 +107,30 @@ class Conta:
 
     conta_id: str
     email: str
-    #: `None` = conta provisionada, senha ainda não definida (`T-179`) — o
-    #: estado de quem comprou e ainda não usou o link de primeiro acesso.
-    #: `autenticar` recusa este caso explicitamente: sem senha definida,
-    #: nenhum login passa.
+    #: `None` = conta sem senha definida (`T-179`) — o estado de quem
+    #: comprou. Para aluno não importa: ele entra só com o e-mail
+    #: (`RF-701`). Para revisor, `autenticar` levanta `ErroSenhaExigida`
+    #: até a senha ser criada pela recuperação (`RF-702`, `EC-701`).
     senha_hash: str | None
     criado_em: datetime
     e_revisor: bool = False
     #: `None` = conta ativa. Timestamp = bloqueada (reembolso da Hotmart,
-    #: migração `005`) — `autenticar` recusa a partir daqui, mesma
-    #: disciplina de `senha_hash is None`, acima.
+    #: migração `005`) — `autenticar` recusa a partir daqui, de qualquer
+    #: papel (`RF-703`).
     bloqueado_em: datetime | None = None
+
+
+def normalizar_email(email: str) -> str:
+    """`RF-704`, `D-05` (`acesso-sem-senha`) — a forma canônica do e-mail:
+    sem espaços nas pontas e em minúsculas. Única implementação da regra:
+    toda busca (`buscar_por_email`) e toda gravação de conta (`criar`,
+    `provisionar`, `persistencia/app_aluno/cadastro.py`) passam por aqui."""
+    return email.strip().lower()
+
+
+class ErroSenhaExigida(Exception):
+    """Conta de revisor ativa e a senha do pedido está vazia, errada, ou a
+    conta ainda não tem senha (`RF-702`). Mensagem sem e-mail e sem senha."""
 
 
 class ErroEmailDuplicado(Exception):
@@ -173,9 +195,9 @@ class RepositorioContas(Protocol):
 
     def provisionar(self, conta_id: str, email: str) -> None:
         """Cria conta SEM senha (`T-179`) — o caminho de quem compra pela
-        Hotmart, que nunca informa senha. `senha_hash` fica `NULL` até o
-        aluno definir a dele; enquanto isso, `autenticar` recusa. Levanta
-        `ErroEmailDuplicado` se `email` já existir."""
+        Hotmart, que nunca informa senha. `senha_hash` fica `NULL`; o aluno
+        entra só com o e-mail (`RF-701`). Levanta `ErroEmailDuplicado` se
+        `email` já existir."""
         ...
 
     def definir_senha(self, conta_id: str, senha: str) -> None:
@@ -186,7 +208,9 @@ class RepositorioContas(Protocol):
 
     def buscar_por_email(self, email: str) -> Conta | None:
         """`None` se `email` não existir — nunca lança para "não
-        encontrado", só para falha de acesso ao banco."""
+        encontrado", só para falha de acesso ao banco. A comparação ignora
+        maiúsculas/minúsculas e espaços nas pontas, no e-mail informado e no
+        gravado (`RF-704`)."""
         ...
 
     def buscar_por_id(self, conta_id: str) -> Conta | None:
@@ -197,10 +221,11 @@ class RepositorioContas(Protocol):
         ...
 
     def autenticar(self, email: str, senha: str) -> Conta | None:
-        """`None` se `email` não existe OU se `senha` está errada — os dois
-        casos são INDISTINGUÍVEIS pelo retorno (mesmo valor, nenhuma
-        exceção diferenciadora). Devolve a `Conta` só quando ambos, e-mail
-        existente e senha correta, se confirmam."""
+        """`None` se `email` não existe OU a conta está bloqueada, de
+        qualquer papel (`RF-703`). Conta de aluno ativa: devolve a `Conta`,
+        senha ignorada (`RF-701`). Conta de revisor ativa: devolve a `Conta`
+        só com a senha correta; senão levanta `ErroSenhaExigida`
+        (`RF-702`)."""
         ...
 
     def bloquear(self, conta_id: str) -> None:
@@ -242,7 +267,7 @@ class RepositorioContasSupabase:
                     INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash, criado_em)
                     VALUES (%s, %s, %s, %s)
                     """,
-                    (conta_id, email, senha_hash, datetime.now(UTC)),
+                    (conta_id, normalizar_email(email), senha_hash, datetime.now(UTC)),
                 )
         except ErroConexaoAusente:
             raise
@@ -258,11 +283,9 @@ class RepositorioContasSupabase:
 
         **O caminho de quem compra, não de quem se cadastra.** O webhook da
         Hotmart traz nome e e-mail; senha, nunca. A conta nasce com
-        `senha_hash = NULL` (migração `004`) e o aluno a define depois, pelo
-        link de primeiro acesso.
-
-        Enquanto `senha_hash` for `NULL`, `autenticar` recusa — conta sem
-        senha não é conta aberta."""
+        `senha_hash = NULL` (migração `004`): o aluno entra só com o e-mail
+        (`RF-701`); se a conta for promovida a revisor, a senha é criada pela
+        recuperação (`EC-701`)."""
         try:
             with _conectar() as conexao, conexao.cursor() as cursor:
                 cursor.execute(
@@ -270,7 +293,7 @@ class RepositorioContasSupabase:
                     INSERT INTO piq_app_aluno.contas (conta_id, email, senha_hash, criado_em)
                     VALUES (%s, %s, NULL, %s)
                     """,
-                    (conta_id, email, datetime.now(UTC)),
+                    (conta_id, normalizar_email(email), datetime.now(UTC)),
                 )
         except ErroConexaoAusente:
             raise
@@ -315,18 +338,28 @@ class RepositorioContasSupabase:
             ) from erro
 
     def buscar_por_email(self, email: str) -> Conta | None:
+        # Com login só por e-mail (RF-701), achar a conta errada abre os
+        # dados de outra pessoa: e-mail vazio e e-mail ambíguo (duas linhas
+        # com o mesmo `lower(trim(email))`, possível porque `UNIQUE(email)`
+        # diferencia maiúsculas) falham fechado, devolvendo `None`.
+        email_normalizado = normalizar_email(email)
+        if not email_normalizado:
+            return None
         with _conectar() as conexao, conexao.cursor() as cursor:
             cursor.execute(
                 """
                 SELECT conta_id, email, senha_hash, criado_em, e_revisor, bloqueado_em
                 FROM piq_app_aluno.contas
-                WHERE email = %s
+                -- RF-704. ponytail: lower(trim(email)) sem índice funcional
+                -- faz varredura sequencial; criar o índice lower(trim(email))
+                -- em migração quando a base crescer.
+                WHERE lower(trim(email)) = %s
                 """,
-                (email,),
+                (email_normalizado,),
             )
-            linha = cursor.fetchone()
+            linhas = cursor.fetchmany(2)
 
-        return _linha_para_conta(linha) if linha is not None else None
+        return _linha_para_conta(linhas[0]) if len(linhas) == 1 else None
 
     def buscar_por_id(self, conta_id: str) -> Conta | None:
         """`RF-23`/`RF-25`, T-100 — mesma disciplina de `RepositorioCasos.
@@ -386,34 +419,29 @@ class RepositorioContasSupabase:
         }
 
     def autenticar(self, email: str, senha: str) -> Conta | None:
-        """`RF-02`: a mensagem/resultado de erro não distingue "conta
-        inexistente" de "senha errada" — ambos os ramos abaixo devolvem
-        `None`, sem exceção. `verificar_senha` (ver `app/http/senhas.py`)
-        nunca levanta para senha errada; qualquer exceção de acesso ao banco
-        (`ErroConexaoAusente`, `psycopg.Error`) continua propagando, pois é
-        uma falha de infraestrutura, não um resultado de autenticação."""
+        """Ordem do plano `acesso-sem-senha` §5. `verificar_senha` (ver
+        `app/http/senhas.py`) nunca levanta para senha errada; qualquer
+        exceção de acesso ao banco (`ErroConexaoAusente`, `psycopg.Error`)
+        continua propagando, pois é uma falha de infraestrutura, não um
+        resultado de autenticação."""
         conta = self.buscar_por_email(email)
         if conta is None:
             return None
-        # **Conta provisionada e sem senha definida NÃO autentica** —
-        # `T-179`. Desde a migração `004`, `senha_hash` aceita `NULL`: é o
-        # estado de quem comprou (webhook da Hotmart criou a conta) e ainda
-        # não definiu a própria senha pelo link de primeiro acesso.
-        #
-        # Sem esta guarda, `verificar_senha(None, ...)` teria comportamento
-        # indefinido — e uma conta sem senha seria uma conta aberta. O
-        # retorno é `None`, indistinguível de "não existe" e de "senha
-        # errada", pela mesma razão dos dois ramos acima (`RF-02`).
-        if conta.senha_hash is None:
-            return None
-        # **Conta bloqueada por reembolso NÃO autentica** (migração `005`).
-        # Mesma disciplina do guard acima: `None`, indistinguível de "não
-        # existe" e de "senha errada" — quem tenta entrar não aprende que a
-        # conta já existiu.
+        # **Bloqueio ANTES do papel** (`RF-703`, `AC-710`): conta bloqueada
+        # por reembolso (migração `005`) devolve `None`, indistinguível de
+        # "não existe" — nem o revisor bloqueado vê `exige_senha`.
         if conta.bloqueado_em is not None:
             return None
-        if not verificar_senha(conta.senha_hash, senha):
-            return None
+        # **Aluno entra só com o e-mail** (`RF-701`, `D-01`): a senha é
+        # ignorada, tenha ou não `senha_hash`. Risco aceito, `RSK-701`.
+        if not conta.e_revisor:
+            return conta
+        # **Revisor só com a senha correta** (`RF-702`). `senha == ""` sai
+        # antes de `verificar_senha`: a primeira etapa da tela não paga
+        # Argon2id. `senha_hash is None` (revisor promovido sem senha,
+        # `EC-701`) nunca chega a `verificar_senha`.
+        if conta.senha_hash is None or senha == "" or not verificar_senha(conta.senha_hash, senha):
+            raise ErroSenhaExigida("senha de revisor exigida")
         return conta
 
     def bloquear(self, conta_id: str) -> None:

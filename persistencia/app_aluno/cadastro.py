@@ -46,7 +46,7 @@ from app.casos.maquina import ESTADO_CASO, Caso
 from app.http.senhas import hashear_senha
 from app.relogio import hoje as hoje_do_app
 from collection.carga import carregar_registros
-from persistencia.app_aluno.contas import Conta, ErroEmailDuplicado
+from persistencia.app_aluno.contas import Conta, ErroEmailDuplicado, normalizar_email
 from persistencia.supabase.conexao import ErroConexaoAusente, obter_pool
 
 REGRAS: Final[tuple[str, ...]] = ("RF-02", "AC-03")
@@ -104,8 +104,8 @@ def provisionar_conta_e_caso(email: str, nome: str | None = None) -> tuple[Conta
 
     **O caminho de quem COMPRA, não de quem se cadastra.** O webhook da
     Hotmart traz e-mail; senha, nunca. A conta nasce com `senha_hash =
-    NULL` (migração `004`) e o aluno a define depois, pelo link de primeiro
-    acesso — até lá, `autenticar` recusa.
+    NULL` (migração `004`); o aluno entra só com o e-mail
+    (`acesso-sem-senha`, `RF-701`).
 
     Mesma atomicidade de `cadastrar_conta_e_caso`: se o `INSERT` do caso
     falhar, o `ROLLBACK` desfaz também o da conta — nunca conta órfã.
@@ -115,7 +115,10 @@ def provisionar_conta_e_caso(email: str, nome: str | None = None) -> tuple[Conta
     não como erro (uma compra repetida do mesmo aluno é normal).
 
     `nome` (`T-332`, migração `009`): o do comprador na Hotmart, já aparado;
-    `None` quando não veio."""
+    `None` quando não veio.
+
+    O e-mail é gravado e devolvido normalizado (`normalizar_email`, `RF-704`)."""
+    email = normalizar_email(email)
     conta_id = f"CONTA_{uuid.uuid4().hex}"
     caso_id = f"CASO_{uuid.uuid4().hex}"
     agora = datetime.now(UTC)
@@ -173,7 +176,10 @@ def cadastrar_conta_e_caso(email: str, senha: str) -> tuple[Conta, Caso]:
     transação: se o `INSERT` do caso falhar, o `ROLLBACK` desfaz também o
     `INSERT` da conta — nunca uma conta órfã sem caso. Levanta
     `ErroEmailDuplicado` se `email` já existir (mesma exceção de
-    `RepositorioContasSupabase.criar`, T-28)."""
+    `RepositorioContasSupabase.criar`, T-28). O e-mail é gravado e
+    devolvido normalizado (`normalizar_email`, `RF-704`): o cadastro público
+    deixa de criar contas que só diferem em maiúsculas (`EC-713`)."""
+    email = normalizar_email(email)
     conta_id = f"CONTA_{uuid.uuid4().hex}"
     caso_id = f"CASO_{uuid.uuid4().hex}"
     senha_hash = hashear_senha(senha)

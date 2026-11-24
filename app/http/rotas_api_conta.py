@@ -6,16 +6,19 @@ rotas entregam os MESMOS dados que `conta/*.html`, `consentimento/*.html` e
 `calculo/*.html` recebiam.
 
 **O que estas rotas NÃO mudam.** A sessão continua sendo instalada pelo
-servidor (`iniciar_sessao_conta`), o cookie continua `Secure`+`HttpOnly`, e
-`RF-02` continua valendo: "conta inexistente" e "senha errada" devolvem a
-MESMA mensagem e o MESMO status. Diferenciá-las diria a um atacante quais
-e-mails existem.
+servidor (`iniciar_sessao_conta`) e o cookie continua `Secure`+`HttpOnly`.
+
+**Login por papel** (`acesso-sem-senha`, `RF-701`–`RF-703`). O aluno entra só
+com o e-mail. O revisor precisa da senha: sem ela, ou com ela errada, o `401`
+traz `exige_senha` e a tela pede a senha. Conta inexistente e conta bloqueada
+devolvem o `401` genérico de sempre, sem `exige_senha` — para o revisor, e só
+para ele, "senha errada" continua sem dizer se a conta existe (`RF-02`).
 
 **Consentimento sem texto continua bloqueando** (`PEND-01`): sem YAML em
 `app/consentimento/textos/`, a resposta é `503` com o motivo nomeado, nunca
 "sem consentimento = pode seguir".
 
-REGRAS: `RF-02`, `RF-30`, `RF-50`, `RF-51`, `AC-39`
+REGRAS: `RF-02`, `RF-30`, `RF-50`, `RF-51`, `AC-39`, `RF-701`, `RF-702`, `RF-703`
 """
 
 from __future__ import annotations
@@ -41,9 +44,22 @@ from app.http.rotas_conta import (
 )
 from app.http.sessao import encerrar_sessao, iniciar_sessao_conta, obter_conta_id
 from persistencia.app_aluno.casos import RepositorioCasosSupabase
-from persistencia.app_aluno.contas import ErroEmailDuplicado, RepositorioContas
+from persistencia.app_aluno.contas import (
+    ErroEmailDuplicado,
+    ErroSenhaExigida,
+    RepositorioContas,
+)
 
-REGRAS: Final[tuple[str, ...]] = ("RF-02", "RF-30", "RF-50", "RF-51", "AC-39")
+REGRAS: Final[tuple[str, ...]] = (
+    "RF-02",
+    "RF-30",
+    "RF-50",
+    "RF-51",
+    "AC-39",
+    "RF-701",
+    "RF-702",
+    "RF-703",
+)
 
 roteador = APIRouter(prefix="/api", tags=["api-conta"])
 
@@ -124,18 +140,22 @@ def entrar(
     dados: Annotated[dict[str, str], Depends(_ler_formulario)],
     repositorio: Annotated[RepositorioContas, Depends(obter_repositorio_contas)],
 ) -> JSONResponse:
-    """`RF-02` — autentica e instala a sessão.
+    """`RF-02`, `RF-701`–`RF-703` — autentica e instala a sessão.
 
     **`def`, não `async def` — `T-187`.** `autenticar` faz uma consulta ao
-    banco E a verificação Argon2id da senha (deliberadamente lenta) — as
-    duas são bloqueantes. Numa rota `async def` isso travaria o loop de
-    eventos do processo inteiro por essa duração, a cada login; `def` faz o
+    banco e, para o revisor, a verificação Argon2id da senha
+    (deliberadamente lenta) — as duas são bloqueantes. Numa rota
+    `async def` isso travaria o loop de eventos do processo inteiro por
+    essa duração, a cada login; `def` faz o
     Starlette rodar o handler numa thread do pool. É a rota mais sensível a
     isto: todo início de sessão passa por aqui.
 
-    Conta inexistente e senha errada devolvem **a mesma** mensagem e o mesmo
-    `401`: `repositorio.autenticar` já devolve `None` para os dois casos, e
-    esta rota não pode (nem deve) diferenciá-los.
+    **Três respostas.** Conta de aluno ativa ⇒ `200`, senha ignorada
+    (`RF-701`). Revisor ativo sem a senha correta ⇒ `401` com
+    `exige_senha: true` (`ErroSenhaExigida`, `RF-702`) — o mesmo corpo sem
+    senha e com senha errada; a tela distingue pelo que enviou. Conta
+    inexistente ou bloqueada ⇒ o `401` genérico, sem `exige_senha`
+    (`RF-703`). Nenhum `401` abre sessão.
 
     **`e_revisor` no payload é dica de interface, não autorização** (`RF-59`,
     `AC-80`, T-148). Ele existe para que a interface não ofereça ao aluno o
@@ -150,7 +170,12 @@ def entrar(
     depois desta tarefa. Um cliente que forje `e_revisor: true` não ganha
     acesso a nada: ganha telas que o servidor recusa. Esconder um botão nunca
     foi segurança, e este código não finge que seja."""
-    conta = repositorio.autenticar(dados.get("email", "").strip(), dados.get("senha", ""))
+    try:
+        conta = repositorio.autenticar(dados.get("email", "").strip(), dados.get("senha", ""))
+    except ErroSenhaExigida:
+        return JSONResponse(
+            {"erro": _MENSAGEM_LOGIN_INVALIDO, "exige_senha": True}, status_code=401
+        )
     if conta is None:
         return JSONResponse({"erro": _MENSAGEM_LOGIN_INVALIDO}, status_code=401)
 

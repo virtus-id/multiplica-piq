@@ -39,7 +39,12 @@ from app.http.rotas_conta import (
     obter_repositorio_contas,
 )
 from app.http.sessao import obter_conta_id
-from persistencia.app_aluno.contas import Conta, ErroEmailDuplicado, RepositorioContas
+from persistencia.app_aluno.contas import (
+    Conta,
+    ErroEmailDuplicado,
+    ErroSenhaExigida,
+    RepositorioContas,
+)
 
 _CHAVE_TESTE = "chave-de-teste-para-assinatura-de-sessao-nao-usar-em-producao"
 
@@ -90,8 +95,9 @@ class _CadastroContaDublê:
 
 class _RepositorioContasDublê(RepositorioContas):
     """Dublê em memória de `RepositorioContas` — `autenticar` reproduz a
-    MESMA garantia de T-28 (mesmo resultado para conta inexistente e senha
-    errada), sem tocar banco."""
+    ordem do plano `acesso-sem-senha` §5 (inexistente/bloqueada ⇒ `None`,
+    aluno ⇒ conta sem olhar a senha, revisor sem a senha correta ⇒
+    `ErroSenhaExigida`), sem tocar banco."""
 
     def __init__(self, cadastro: _CadastroContaDublê) -> None:
         self._cadastro = cadastro
@@ -130,9 +136,13 @@ class _RepositorioContasDublê(RepositorioContas):
         conta = self.buscar_por_email(email)
         if conta is None:
             return None
-        senhas = getattr(self._cadastro, "_senhas", {})
-        if senhas.get(conta.conta_id) != senha:
+        if conta.bloqueado_em is not None:
             return None
+        if not conta.e_revisor:
+            return conta
+        senhas = getattr(self._cadastro, "_senhas", {})
+        if conta.senha_hash is None or senha == "" or senhas.get(conta.conta_id) != senha:
+            raise ErroSenhaExigida("senha de revisor exigida")
         return conta
 
 
@@ -250,39 +260,54 @@ def test_login_com_senha_correta_abre_sessao(cliente: TestClient) -> None:
     assert cliente.get("/_teste/quem-sou").json()["conta_id"] is not None
 
 
-def test_login_com_senha_errada_nao_abre_sessao(cliente: TestClient) -> None:
-    cliente.post(
-        "/api/conta/cadastro", data={"email": "senhaerrada@teste.invalido", "senha": "correta"}
-    )
-    cliente.post("/api/conta/logout")
+_CORPO_LOGIN_GENERICO = {"erro": "E-mail ou senha inválidos."}
+
+
+def _promover(cadastro: _CadastroContaDublê, conta: Conta) -> Conta:
+    """Promoção como no mundo real: manual, fora de qualquer rota HTTP."""
+    revisor = replace(conta, e_revisor=True)
+    cadastro.contas[conta.conta_id] = revisor
+    return revisor
+
+
+def test_ac706_revisor_com_senha_errada_recebe_exige_senha_sem_sessao(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê
+) -> None:
+    """`RF-702`: revisor com senha errada ⇒ `401` com `exige_senha`, sem
+    sessão. Substitui o antigo "senha errada não abre sessão", que para o
+    aluno deixou de valer (`RF-701`)."""
+    conta, _caso = cadastro_dublê("revisor-ac706@teste.invalido", "correta")
+    _promover(cadastro_dublê, conta)
 
     resposta = cliente.post(
-        "/api/conta/login", data={"email": "senhaerrada@teste.invalido", "senha": "errada"}
+        "/api/conta/login", data={"email": "revisor-ac706@teste.invalido", "senha": "errada"}
     )
 
     assert resposta.status_code == 401
+    assert resposta.json() == {**_CORPO_LOGIN_GENERICO, "exige_senha": True}
     assert cliente.get("/_teste/quem-sou").json() == {"conta_id": None}
+    assert cliente.get("/api/conta/eu").status_code == 401
 
 
-def test_mensagem_de_erro_de_login_nao_distingue_conta_inexistente_de_senha_errada(
-    cliente: TestClient,
+def test_ac708_ac709_inexistente_e_aluno_bloqueado_tem_o_mesmo_401_generico(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê
 ) -> None:
-    """RF-02: a mesma mensagem para os dois casos — o HTML de erro é
-    idêntico byte a byte."""
-    cliente.post(
-        "/api/conta/cadastro", data={"email": "existente@teste.invalido", "senha": "correta"}
-    )
-    cliente.post("/api/conta/logout")
+    """`RF-703`: conta inexistente e aluno bloqueado devolvem corpos
+    idênticos byte a byte, exatamente o genérico, sem `exige_senha`."""
+    conta, _caso = cadastro_dublê("bloqueado-ac709@teste.invalido", "correta")
+    cadastro_dublê.contas[conta.conta_id] = replace(conta, bloqueado_em=datetime.now(UTC))
 
-    resposta_senha_errada = cliente.post(
-        "/api/conta/login", data={"email": "existente@teste.invalido", "senha": "errada"}
+    resposta_bloqueado = cliente.post(
+        "/api/conta/login", data={"email": "bloqueado-ac709@teste.invalido"}
     )
-    resposta_conta_inexistente = cliente.post(
+    resposta_inexistente = cliente.post(
         "/api/conta/login", data={"email": "nunca-existiu@teste.invalido", "senha": "qualquer"}
     )
 
-    assert resposta_senha_errada.status_code == resposta_conta_inexistente.status_code == 401
-    assert resposta_senha_errada.text == resposta_conta_inexistente.text
+    assert resposta_bloqueado.status_code == resposta_inexistente.status_code == 401
+    assert resposta_inexistente.json() == _CORPO_LOGIN_GENERICO
+    assert resposta_bloqueado.text == resposta_inexistente.text
+    assert cliente.get("/api/conta/eu").status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -581,3 +606,152 @@ def test_t154_eu_nao_aceita_identificador_do_cliente(
 
     assert resposta.json()["CASO_ID"] == caso_a.CASO_ID
     assert resposta.json()["conta_id"] != conta_b.conta_id
+
+
+# ---------------------------------------------------------------------------
+# `acesso-sem-senha` (T-694) — login por papel: aluno só com o e-mail,
+# revisor com a senha, bloqueado e inexistente com o `401` genérico.
+# ---------------------------------------------------------------------------
+
+
+def test_ac701_aluno_entra_so_com_o_email_e_descobre_o_caso(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê
+) -> None:
+    conta, caso = cadastro_dublê("aluno-ac701@teste.invalido", "senha-de-teste-123")
+
+    resposta = cliente.post("/api/conta/login", data={"email": "aluno-ac701@teste.invalido"})
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {
+        "email": "aluno-ac701@teste.invalido",
+        "conta_id": conta.conta_id,
+        "e_revisor": False,
+    }
+    eu = cliente.get("/api/conta/eu")
+    assert eu.status_code == 200
+    assert eu.json()["CASO_ID"] == caso.CASO_ID
+
+
+def test_ac702_aluno_com_senha_errada_entra_a_senha_e_ignorada(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê
+) -> None:
+    cadastro_dublê("aluno-ac702@teste.invalido", "senhaCorreta")
+
+    resposta = cliente.post(
+        "/api/conta/login", data={"email": "aluno-ac702@teste.invalido", "senha": "errada"}
+    )
+
+    assert resposta.status_code == 200
+    assert cliente.get("/_teste/quem-sou").json()["conta_id"] is not None
+
+
+def test_ac703_aluno_sem_senha_definida_entra_so_com_o_email(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê
+) -> None:
+    conta, _caso = cadastro_dublê("aluno-ac703@teste.invalido", "x")
+    cadastro_dublê.contas[conta.conta_id] = replace(conta, senha_hash=None)
+
+    resposta = cliente.post("/api/conta/login", data={"email": "aluno-ac703@teste.invalido"})
+
+    assert resposta.status_code == 200
+    assert cliente.get("/_teste/quem-sou").json()["conta_id"] == conta.conta_id
+
+
+def test_ac704_revisor_so_com_email_recebe_exige_senha_sem_sessao(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê
+) -> None:
+    conta, _caso = cadastro_dublê("revisor-ac704@teste.invalido", "senha-do-revisor")
+    _promover(cadastro_dublê, conta)
+
+    resposta = cliente.post("/api/conta/login", data={"email": "revisor-ac704@teste.invalido"})
+
+    assert resposta.status_code == 401
+    assert resposta.json() == {"erro": "E-mail ou senha inválidos.", "exige_senha": True}
+    assert cliente.get("/api/conta/eu").status_code == 401
+
+
+def test_ac705_revisor_com_senha_correta_entra_como_revisor(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê
+) -> None:
+    conta, _caso = cadastro_dublê("revisor-ac705@teste.invalido", "senha-do-revisor")
+    _promover(cadastro_dublê, conta)
+
+    resposta = cliente.post(
+        "/api/conta/login",
+        data={"email": "revisor-ac705@teste.invalido", "senha": "senha-do-revisor"},
+    )
+
+    assert resposta.status_code == 200
+    assert resposta.json()["e_revisor"] is True
+    assert cliente.get("/api/conta/eu").json()["e_revisor"] is True
+
+
+@pytest.mark.parametrize("senha", [None, "", "qualquer-senha"])
+def test_ac707_revisor_sem_senha_definida_recebe_exige_senha(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê, senha: str | None
+) -> None:
+    conta, _caso = cadastro_dublê("revisor-ac707@teste.invalido", "qualquer-senha")
+    cadastro_dublê.contas[conta.conta_id] = replace(conta, e_revisor=True, senha_hash=None)
+    dados = {"email": "revisor-ac707@teste.invalido"}
+    if senha is not None:
+        dados["senha"] = senha
+
+    resposta = cliente.post("/api/conta/login", data=dados)
+
+    assert resposta.status_code == 401
+    assert resposta.json()["exige_senha"] is True
+    assert cliente.get("/api/conta/eu").status_code == 401
+
+
+@pytest.mark.parametrize("senha", [None, "senha-do-revisor"])
+def test_ac710_revisor_bloqueado_recebe_o_401_generico_sem_exige_senha(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê, senha: str | None
+) -> None:
+    conta, _caso = cadastro_dublê("revisor-ac710@teste.invalido", "senha-do-revisor")
+    cadastro_dublê.contas[conta.conta_id] = replace(
+        conta, e_revisor=True, bloqueado_em=datetime.now(UTC)
+    )
+    dados = {"email": "revisor-ac710@teste.invalido"}
+    if senha is not None:
+        dados["senha"] = senha
+
+    resposta = cliente.post("/api/conta/login", data=dados)
+
+    assert resposta.status_code == 401
+    assert resposta.json() == _CORPO_LOGIN_GENERICO
+    assert cliente.get("/api/conta/eu").status_code == 401
+
+
+def test_ec710_email_vazio_recebe_o_401_generico(cliente: TestClient) -> None:
+    resposta = cliente.post("/api/conta/login", data={"email": ""})
+
+    assert resposta.status_code == 401
+    assert resposta.json() == _CORPO_LOGIN_GENERICO
+
+
+def test_ac704_ac708_ac709_ac710_campo_erro_e_identico_byte_a_byte(
+    cliente: TestClient, cadastro_dublê: _CadastroContaDublê
+) -> None:
+    """`D-06`: a mensagem genérica é uma só — com ou sem `exige_senha`."""
+    revisor, _ = cadastro_dublê("revisor-erro@teste.invalido", "senha-do-revisor")
+    _promover(cadastro_dublê, revisor)
+    aluno_bloqueado, _ = cadastro_dublê("aluno-bloqueado-erro@teste.invalido", "x")
+    cadastro_dublê.contas[aluno_bloqueado.conta_id] = replace(
+        aluno_bloqueado, bloqueado_em=datetime.now(UTC)
+    )
+    revisor_bloqueado, _ = cadastro_dublê("revisor-bloqueado-erro@teste.invalido", "x")
+    cadastro_dublê.contas[revisor_bloqueado.conta_id] = replace(
+        revisor_bloqueado, e_revisor=True, bloqueado_em=datetime.now(UTC)
+    )
+
+    erros = {
+        cliente.post("/api/conta/login", data={"email": email}).json()["erro"].encode()
+        for email in (
+            "revisor-erro@teste.invalido",
+            "nunca-existiu@teste.invalido",
+            "aluno-bloqueado-erro@teste.invalido",
+            "revisor-bloqueado-erro@teste.invalido",
+        )
+    }
+
+    assert erros == {"E-mail ou senha inválidos.".encode()}

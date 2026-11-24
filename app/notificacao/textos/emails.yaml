@@ -11,11 +11,16 @@
 # mesma regra (`AC-37`) — texto longo não pertence ao código da aplicação,
 # e uma trava estática audita isso.
 #
-# `{link}` é substituído em tempo de execução. Nenhuma outra interpolação
-# existe: qualquer chave a mais aqui seria silenciosamente ignorada.
+# `{link}` é substituído em tempo de execução. `{email}` também, mas só em
+# `primeiro_acesso` (o e-mail de login do destinatário). Nenhuma outra
+# interpolação existe: qualquer chave a mais aqui seria silenciosamente
+# ignorada.
 
 # ---------------------------------------------------------------------------
-# A compra foi aprovada e a conta existe, sem senha (T-179).
+# A compra foi aprovada e a conta existe (T-179). Orientações de acesso
+# (acesso-sem-senha, RF-709): a URL base e o e-mail de login — sem token, sem
+# link de criar senha e sem prazo; o aluno entra só com o e-mail. Redação em
+# rascunho, pendente de aprovação do produto (OQ-702).
 #
 # A redação evita duas coisas: prometer o que o PIQ ainda não fez (o plano
 # não existe até a coleta terminar) e soar como cobrança. Quem recebe acabou
@@ -28,12 +33,13 @@ primeiro_acesso:
 
     Sua compra foi confirmada e o seu acesso ao PIQ já está liberado.
 
-    Para começar, crie a sua senha neste link:
+    Para entrar, acesse:
 
     {link}
 
-    O link vale por 48 horas. Depois de criar a senha, você entra com o seu
-    e-mail e a senha, de qualquer aparelho.
+    e informe o seu e-mail: {email}
+
+    Não precisa de senha. Use sempre este mesmo e-mail.
 
     Até já,
     Equipe PIQ

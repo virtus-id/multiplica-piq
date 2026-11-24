@@ -146,9 +146,12 @@ def link_de_senha(token: str) -> str:
     return f"{_url_base()}/#definir-senha/{token}"
 
 
-def primeiro_acesso(token: str) -> Mensagem:
-    """A compra foi aprovada e a conta existe, sem senha — `T-179`."""
-    return _montar("primeiro_acesso", link=link_de_senha(token))
+def primeiro_acesso(email: str) -> Mensagem:
+    """A compra foi aprovada e a conta existe — `T-179`. Orientações de
+    acesso (`acesso-sem-senha`, `RF-709`): a URL base e o e-mail de login,
+    sem token, sem link de criar senha e sem prazo — o aluno entra só com o
+    e-mail (`RF-701`)."""
+    return _montar("primeiro_acesso", link=_url_base(), email=email)
 
 
 def recuperacao_de_senha(token: str) -> Mensagem:
