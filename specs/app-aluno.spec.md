@@ -624,6 +624,14 @@ com a redação canônica obrigatória.
 | `RF-562` | **Ícone ⓘ nos quatro campos numéricos da ficha de dívida.** Saldo (`B5.B03`), parcela (`B5.C02`), meses que faltam (`B5.C02B`) e taxa ou CET (`B5.D06`) ganham, ao lado do rótulo, um botão de ajuda que, acionado por mouse (passar por cima), teclado (foco) ou toque, mostra o que é o campo e onde encontrar o dado (DDC, contrato, extrato, fatura, boleto, carnê, app do banco ou Registrato, conforme o campo — textos-sugestão na seção Assumptions). O conteúdo é o mesmo nos dois lugares em que o campo aparece: a tela da pergunta e a calculadora da dívida (`B5.CALC01`). O botão tem rótulo acessível que nomeia o campo ("O que é <campo>?"), o estado aberto/fechado é exposto a leitor de tela, e o balão fecha com Esc ou ao tocar/clicar fora, sem bloquear o preenchimento do campo | Decisão do usuário (2026-11-17) · aula 8 e aula 10.1 do curso SSD (`docs/curso-ssd/`) · `RF-11` (resposta "não sei" de primeira classe, mecanismo irmão) | importante |
 | `RF-563` | **Sem o parêntese de ajuda no enunciado da taxa.** O enunciado de `B5.D06` perde o parêntese final ("No seu contrato, extrato ou aplicativo do banco, esse número pode aparecer escrito como CET ou como taxa de juros. Informe o que encontrar e diga se é ao mês ou ao ano."), que hoje vaza para o rótulo da calculadora da dívida. O conteúdo equivalente passa a viver só na explicação do ⓘ daquele campo (`RF-562`). **Atende** `RF-407` de `enxugamento-questionario` (um só valor de custo, com texto de ajuda) | Decisão do usuário (2026-11-17) · `enxugamento-questionario` `RF-407` · `B5.D06` | importante |
 
+> **Nota de substituição (2026-11-24).** O **alerta permanente** de "Inventário
+> incompleto" (`RF-86`, `AC-133`) **sai da interface**: com `RF-559`, uma conta nova
+> já nasce com `SEM_DIVIDAS` e o alerta aparecia desde as Boas-vindas, antes dos termos
+> e das fichas, sem sentido para quem acabou de entrar. O **bloqueio do cálculo
+> continua** (servidor, `RF-86`/`RF-559`) e o aluno chega às fichas pela próxima etapa
+> do Início (`abrir_fichas`) e pela recusa na tela "Estamos montando o seu plano".
+> `AC-133` e `AC-154` não valem mais na parte do alerta. Tarefa `T-705`.
+
 ## 3. User Stories
 
 ### `US-01` — Responder em várias sessões sem perder nada

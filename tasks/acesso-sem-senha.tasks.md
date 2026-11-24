@@ -414,6 +414,45 @@ Regressão completa e o que o plano §9 deixa fora de teste automatizado: 360 px
 
 **Status:** `[~] parcial (2026-11-24)` — gates sem falha nova em relação à `main` (servidor com `DATABASE_URL` num Postgres 17 local descartável: `integracao/` + rotas + mensagens 179 verdes, 2 falhas preexistentes; frontend: as mesmas 9 falhas vitest e 6 e2e da `main`); diff sem arquivos proibidos. Revisão `sdd-review` sem bloqueante; aplicados I1 (e-mail desabilitado durante o envio), I2 + R1 (`buscar_por_email` falha fechado com e-mail vazio ou ambíguo, testes `test_rf704_*`/`test_rf701_*`), M2 (docstring de `/conta`) e M3 (`AC-711` na rota). Falta: verificação manual a 360 px e com leitor de tela, e aprovação de texto da `OQ-702` pelo produto.
 
+### `T-704` — Etapa de senha não cai quando o e-mail só muda em maiúsculas/espaços
+
+- **Tipo:** `Fix`
+- **Dependências:** `T-700`
+- **Rastreia:** `RF-705`, `RF-704`, `AC-718`
+- **Arquivos:** `frontend/src/telas/TelaLogin.tsx`, `frontend/tests/unit/componentes/TelaLogin.test.tsx`
+
+**Descrição**
+
+Revisor relatou digitar o e-mail duas vezes. Causa provável: o gerenciador de senhas reescreve o e-mail ao preencher a senha (ex.: `Fulano@` × `fulano@`), `aoEditarEmail` tratava como edição e voltava à etapa de e-mail. Passa a comparar o e-mail normalizado (mesma regra do servidor).
+
+**Critérios de aceite**
+
+- [x] Na etapa de senha, trocar o e-mail por variação só de maiúsculas/espaços mantém o campo de senha
+- [x] Editar para outro e-mail ainda volta à etapa de e-mail (`AC-718` inalterado)
+
+**Verificação:** `npx vitest run tests/unit/componentes/TelaLogin.test.tsx`; `npm --prefix frontend run typecheck`
+
+**Status:** `[x] concluída (2026-11-24)` — falta confirmar no navegador do revisor (autopreenchimento real).
+
+### `T-705` — Remover o alerta permanente de inventário incompleto
+
+- **Tipo:** `Fix`
+- **Dependências:** nenhuma
+- **Rastreia:** `RF-86`, `RF-559`, `AC-133` (nota de substituição em `specs/app-aluno.spec.md`)
+- **Arquivos:** `frontend/src/componentes/Tela.tsx`, `App.tsx`, `TelaCalculando.tsx`; removidos `AlertaInventario.tsx`, `AlertaInventario.test.tsx`, `tests/e2e/inventario.spec.ts`
+
+**Descrição**
+
+Conta nova via "Cadastrar as fichas" desde o primeiro login, antes dos termos. O alerta sai; o bloqueio do cálculo (servidor) e a próxima etapa do Início permanecem.
+
+**Critérios de aceite**
+
+- [x] Nenhuma tela do aluno mostra "Inventário incompleto"
+- [x] `typecheck` limpo; vitest sem falha nova (as 9 da `main`)
+- [ ] e2e completo rodado (não rodei)
+
+**Status:** `[x] concluída (2026-11-24)`, falta rodar o e2e.
+
 ---
 
 ## Cobertura de requisitos

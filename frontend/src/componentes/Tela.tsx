@@ -40,7 +40,6 @@
 import { type ReactNode, useEffect, useRef } from 'react'
 
 import { aplicarFocoDeNavegacao } from '../navegacao'
-import AlertaInventario from './AlertaInventario'
 import Icone from './Icone'
 
 interface TelaProps {
@@ -230,10 +229,6 @@ export default function Tela({
           <h1 ref={cabecalho} className={mostrarTitulo ? undefined : 'sr-only'}>
             {titulo}
           </h1>
-
-          {/* `T-251` (RF-86, AC-133): o alerta de inventário incompleto em
-              toda tela do aluno — só renderiza com pendência do servidor. */}
-          {!daEquipe && <AlertaInventario />}
 
           {lateral ? (
             /*

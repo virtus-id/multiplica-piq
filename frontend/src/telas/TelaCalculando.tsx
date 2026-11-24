@@ -130,8 +130,8 @@ export default function TelaCalculando({
                   <li key={`${idPergunta ?? 'sem-id'}:${p.item_id ?? ''}`}>
                     {p.enunciado}{' '}
                     {/* `T-657`: `SEM_DIVIDAS` não tem mais pergunta a corrigir
-                        (`ID` nulo) — nada a abrir aqui; "Cadastrar as fichas"
-                        já está no alerta permanente (`AlertaInventario.tsx`). */}
+                        (`ID` nulo) — nada a abrir aqui; as fichas são o
+                        destino do Início (`proxima_etapa`). */}
                     {idPergunta && (
                       <button
                         type="button"
