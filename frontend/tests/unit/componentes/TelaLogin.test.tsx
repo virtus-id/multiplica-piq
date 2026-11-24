@@ -26,6 +26,7 @@ import {
   ERROS,
   FORMULARIO,
   PROVAS,
+  RECUPERACAO,
   RODAPE_SEGURANCA,
   SUBTITULO,
   TITULO,
@@ -36,13 +37,34 @@ function resposta(ok: boolean, corpo: object = {}): Response {
   return { ok, json: async () => corpo } as Response;
 }
 
+/** O `401` do revisor na etapa de e-mail (`RF-702`). */
+function exigeSenha(): Response {
+  return resposta(false, {
+    erro: "E-mail ou senha inválidos.",
+    exige_senha: true,
+  });
+}
+
+async function digitarEmailEEntrar(email: string): Promise<void> {
+  await userEvent.type(screen.getByLabelText(FORMULARIO.rotuloEmail), email);
+  await userEvent.click(
+    screen.getByRole("button", { name: FORMULARIO.entrar }),
+  );
+}
+
+/** Etapa de e-mail ⇒ etapa de senha. O `entrar` já precisa estar simulado. */
+async function irParaEtapaDeSenha(email: string): Promise<void> {
+  await digitarEmailEEntrar(email);
+  await screen.findByLabelText(FORMULARIO.rotuloSenha);
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("TelaLogin", () => {
   // -------------------------------------------------------------------
-  // O que a tela afirma antes de pedir e-mail e senha.
+  // O que a tela afirma antes de pedir o e-mail.
   // -------------------------------------------------------------------
 
   it("mostra a promessa do produto, não o tamanho do questionário", () => {
@@ -104,16 +126,16 @@ describe("TelaLogin", () => {
   // O login em si.
   // -------------------------------------------------------------------
 
-  it("envia e-mail e senha para a API", async () => {
+  it("a etapa de e-mail envia só o e-mail; a de senha envia os dois", async () => {
     const login = vi
       .spyOn(api, "entrar")
-      .mockResolvedValue(resposta(true, { e_revisor: false }));
+      .mockResolvedValueOnce(exigeSenha())
+      .mockResolvedValueOnce(resposta(true, { e_revisor: true }));
     render(<TelaLogin onEntrou={() => undefined} />);
 
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloEmail),
-      "aluno@exemplo.br",
-    );
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    expect(login).toHaveBeenNthCalledWith(1, "revisor@exemplo.br");
+
     await userEvent.type(
       screen.getByLabelText(FORMULARIO.rotuloSenha),
       "senha-secreta",
@@ -123,53 +145,57 @@ describe("TelaLogin", () => {
     );
 
     await waitFor(() =>
-      expect(login).toHaveBeenCalledWith("aluno@exemplo.br", "senha-secreta"),
+      expect(login).toHaveBeenNthCalledWith(
+        2,
+        "revisor@exemplo.br",
+        "senha-secreta",
+      ),
     );
   });
 
-  it("o Enter no campo de senha submete", async () => {
+  it("o Enter envia a etapa atual — no e-mail e na senha", async () => {
     // Esta tela não usa a casca `Tela`, onde o botão fica FORA do form e
     // precisa de `form={ID}`. Aqui o botão é filho do form — se alguém o
     // mover para fora, o teclado para de funcionar em silêncio, e o
     // teclado é o único caminho de quem não usa mouse.
-    const login = vi.spyOn(api, "entrar").mockResolvedValue(resposta(true));
+    const login = vi
+      .spyOn(api, "entrar")
+      .mockResolvedValueOnce(exigeSenha())
+      .mockResolvedValueOnce(resposta(true));
+    const recuperacao = vi.spyOn(api, "pedirRecuperacao");
     render(<TelaLogin onEntrou={() => undefined} />);
 
     await userEvent.type(
       screen.getByLabelText(FORMULARIO.rotuloEmail),
-      "aluno@exemplo.br",
+      "revisor@exemplo.br{Enter}",
     );
     await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloSenha),
+      await screen.findByLabelText(FORMULARIO.rotuloSenha),
       "senha-secreta{Enter}",
     );
 
-    await waitFor(() => expect(login).toHaveBeenCalledOnce());
+    await waitFor(() => expect(login).toHaveBeenCalledTimes(2));
+    expect(login).toHaveBeenLastCalledWith(
+      "revisor@exemplo.br",
+      "senha-secreta",
+    );
+    // "Esqueci minha senha" é `type="button"`: o Enter não o aciona.
+    expect(recuperacao).not.toHaveBeenCalled();
   });
 
   it("sobe a sessão com o papel para o App", async () => {
     // `e_revisor` é dica de interface (`RF-59`, `AC-80`): decide o que
     // oferecer, nunca o que autorizar.
     vi.spyOn(api, "entrar").mockResolvedValue(
-      resposta(true, { e_revisor: true }),
+      resposta(true, { e_revisor: false }),
     );
     const onEntrou = vi.fn();
     render(<TelaLogin onEntrou={onEntrou} />);
 
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloEmail),
-      "revisor@exemplo.br",
-    );
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloSenha),
-      "senha",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: FORMULARIO.entrar }),
-    );
+    await digitarEmailEEntrar("aluno@exemplo.br");
 
     await waitFor(() =>
-      expect(onEntrou).toHaveBeenCalledWith({ e_revisor: true }),
+      expect(onEntrou).toHaveBeenCalledWith({ e_revisor: false }),
     );
   });
 
@@ -185,17 +211,7 @@ describe("TelaLogin", () => {
     const onEntrou = vi.fn();
     render(<TelaLogin onEntrou={onEntrou} />);
 
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloEmail),
-      "aluno@exemplo.br",
-    );
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloSenha),
-      "senha",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: FORMULARIO.entrar }),
-    );
+    await digitarEmailEEntrar("aluno@exemplo.br");
 
     await waitFor(() => expect(onEntrou).toHaveBeenCalledWith(null));
   });
@@ -204,20 +220,12 @@ describe("TelaLogin", () => {
     // O servidor devolve 401 sem distinguir os dois casos — deliberado. A
     // mensagem da tela precisa respeitar isso, senão a interface desfaz a
     // proteção do servidor.
-    vi.spyOn(api, "entrar").mockResolvedValue(resposta(false));
+    vi.spyOn(api, "entrar").mockResolvedValue(
+      resposta(false, { erro: "E-mail ou senha inválidos." }),
+    );
     render(<TelaLogin onEntrou={() => undefined} />);
 
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloEmail),
-      "naoexiste@exemplo.br",
-    );
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloSenha),
-      "senha",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: FORMULARIO.entrar }),
-    );
+    await digitarEmailEEntrar("naoexiste@exemplo.br");
 
     const alerta = await screen.findByRole("alert");
     expect(alerta).toHaveTextContent(ERROS.credenciais);
@@ -230,17 +238,7 @@ describe("TelaLogin", () => {
     vi.spyOn(api, "entrar").mockRejectedValue(new Error("offline"));
     render(<TelaLogin onEntrou={() => undefined} />);
 
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloEmail),
-      "aluno@exemplo.br",
-    );
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloSenha),
-      "senha",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: FORMULARIO.entrar }),
-    );
+    await digitarEmailEEntrar("aluno@exemplo.br");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       ERROS.indisponivel,
@@ -258,17 +256,7 @@ describe("TelaLogin", () => {
     );
     render(<TelaLogin onEntrou={() => undefined} />);
 
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloEmail),
-      "aluno@exemplo.br",
-    );
-    await userEvent.type(
-      screen.getByLabelText(FORMULARIO.rotuloSenha),
-      "senha",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: FORMULARIO.entrar }),
-    );
+    await digitarEmailEEntrar("aluno@exemplo.br");
 
     const botao = await screen.findByRole("button", {
       name: FORMULARIO.entrando,
@@ -279,15 +267,233 @@ describe("TelaLogin", () => {
     await waitFor(() => expect(screen.getByRole("button")).toBeEnabled());
   });
 
-  it("os campos pedem ao gerenciador de senhas o preenchimento certo", () => {
+  it("os campos pedem ao gerenciador de senhas o preenchimento certo", async () => {
+    vi.spyOn(api, "entrar").mockResolvedValue(exigeSenha());
     render(<TelaLogin onEntrou={() => undefined} />);
 
     expect(screen.getByLabelText(FORMULARIO.rotuloEmail)).toHaveAttribute(
       "autocomplete",
       "username",
     );
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+
     const senha = screen.getByLabelText(FORMULARIO.rotuloSenha);
     expect(senha).toHaveAttribute("type", "password");
     expect(senha).toHaveAttribute("autocomplete", "current-password");
+  });
+  // -------------------------------------------------------------------
+  // As duas etapas — `RF-705`, `RF-706`, `RF-707` (T-701).
+  // -------------------------------------------------------------------
+
+  it("AC-714: a tela abre só com o e-mail — sem senha e sem 'Esqueci minha senha'", () => {
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    expect(screen.getByLabelText(FORMULARIO.rotuloEmail)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: FORMULARIO.entrar }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(FORMULARIO.rotuloSenha)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: FORMULARIO.esqueciSenha }),
+    ).toBeNull();
+  });
+
+  it("AC-716: 401 com exige_senha abre a etapa de senha com foco, sem erro", async () => {
+    vi.spyOn(api, "entrar").mockResolvedValue(exigeSenha());
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(FORMULARIO.rotuloSenha)).toHaveFocus(),
+    );
+    expect(
+      screen.getByRole("button", { name: FORMULARIO.esqueciSenha }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(FORMULARIO.rotuloEmail)).toHaveValue(
+      "revisor@exemplo.br",
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("AC-717: 401 sem exige_senha mostra a mensagem genérica e não pede senha", async () => {
+    vi.spyOn(api, "entrar").mockResolvedValue(
+      resposta(false, { erro: "E-mail ou senha inválidos." }),
+    );
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await digitarEmailEEntrar("naoexiste@exemplo.br");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      ERROS.credenciais,
+    );
+    expect(screen.queryByLabelText(FORMULARIO.rotuloSenha)).toBeNull();
+  });
+
+  it("AC-717: 401 com corpo ilegível é tratado como sem exige_senha", async () => {
+    // Lado seguro: na dúvida, não revelar que a conta é de revisor.
+    vi.spyOn(api, "entrar").mockResolvedValue({
+      ok: false,
+      json: async () => {
+        throw new Error("sem JSON");
+      },
+    } as unknown as Response);
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await digitarEmailEEntrar("revisor@exemplo.br");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      ERROS.credenciais,
+    );
+    expect(screen.queryByLabelText(FORMULARIO.rotuloSenha)).toBeNull();
+  });
+
+  it("AC-718: editar o e-mail na etapa de senha volta à etapa de e-mail", async () => {
+    vi.spyOn(api, "entrar").mockResolvedValue(exigeSenha());
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    await userEvent.type(
+      screen.getByLabelText(FORMULARIO.rotuloEmail),
+      "x",
+    );
+
+    expect(screen.queryByLabelText(FORMULARIO.rotuloSenha)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: FORMULARIO.esqueciSenha }),
+    ).toBeNull();
+  });
+
+  it("AC-719: senha recusada mostra o erro e mantém o campo de senha", async () => {
+    vi.spyOn(api, "entrar").mockResolvedValue(exigeSenha());
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    await userEvent.type(
+      screen.getByLabelText(FORMULARIO.rotuloSenha),
+      "errada",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: FORMULARIO.entrar }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      ERROS.credenciais,
+    );
+    expect(screen.getByLabelText(FORMULARIO.rotuloSenha)).toBeInTheDocument();
+  });
+
+  it("AC-719: senha aceita entra com o papel de revisor", async () => {
+    vi.spyOn(api, "entrar")
+      .mockResolvedValueOnce(exigeSenha())
+      .mockResolvedValueOnce(resposta(true, { e_revisor: true }));
+    const onEntrou = vi.fn();
+    render(<TelaLogin onEntrou={onEntrou} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    await userEvent.type(
+      screen.getByLabelText(FORMULARIO.rotuloSenha),
+      "certa",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: FORMULARIO.entrar }),
+    );
+
+    await waitFor(() =>
+      expect(onEntrou).toHaveBeenCalledWith({ e_revisor: true }),
+    );
+  });
+
+  it("AC-720: 'Esqueci minha senha' pede o link, confirma e não abre sessão", async () => {
+    const login = vi.spyOn(api, "entrar").mockResolvedValue(exigeSenha());
+    const recuperacao = vi
+      .spyOn(api, "pedirRecuperacao")
+      .mockResolvedValue(resposta(true, { pedido_registrado: true }));
+    const onEntrou = vi.fn();
+    render(<TelaLogin onEntrou={onEntrou} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    await userEvent.click(
+      screen.getByRole("button", { name: FORMULARIO.esqueciSenha }),
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      RECUPERACAO.enviada("revisor@exemplo.br"),
+    );
+    expect(recuperacao).toHaveBeenCalledWith("revisor@exemplo.br");
+    expect(onEntrou).not.toHaveBeenCalled();
+    // `type="button"`: o clique não submete o formulário.
+    expect(login).toHaveBeenCalledOnce();
+  });
+
+  it("EC-712: rede fora no login da etapa de senha mantém a etapa", async () => {
+    vi.spyOn(api, "entrar")
+      .mockResolvedValueOnce(exigeSenha())
+      .mockRejectedValueOnce(new Error("offline"));
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    await userEvent.type(
+      screen.getByLabelText(FORMULARIO.rotuloSenha),
+      "senha",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: FORMULARIO.entrar }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      ERROS.indisponivel,
+    );
+    expect(screen.getByLabelText(FORMULARIO.rotuloSenha)).toBeInTheDocument();
+  });
+
+  it("EC-712: recuperação sem rede ou recusada mostra indisponível e mantém a etapa", async () => {
+    vi.spyOn(api, "entrar").mockResolvedValue(exigeSenha());
+    vi.spyOn(api, "pedirRecuperacao")
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(resposta(false));
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    const esqueci = screen.getByRole("button", {
+      name: FORMULARIO.esqueciSenha,
+    });
+
+    await userEvent.click(esqueci);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      ERROS.indisponivel,
+    );
+
+    await userEvent.click(esqueci);
+    await waitFor(() => expect(esqueci).toBeEnabled());
+    expect(screen.getByRole("alert")).toHaveTextContent(ERROS.indisponivel);
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByLabelText(FORMULARIO.rotuloSenha)).toBeInTheDocument();
+  });
+
+  it("durante o envio, 'Entrar' e 'Esqueci minha senha' ficam desabilitados", async () => {
+    let liberar: (r: Response) => void = () => undefined;
+    vi.spyOn(api, "entrar").mockResolvedValue(exigeSenha());
+    vi.spyOn(api, "pedirRecuperacao").mockReturnValue(
+      new Promise<Response>((resolve) => {
+        liberar = resolve;
+      }),
+    );
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    const esqueci = screen.getByRole("button", {
+      name: FORMULARIO.esqueciSenha,
+    });
+    await userEvent.click(esqueci);
+
+    expect(
+      screen.getByRole("button", { name: FORMULARIO.entrando }),
+    ).toBeDisabled();
+    expect(esqueci).toBeDisabled();
+
+    liberar(resposta(true));
+    await waitFor(() => expect(esqueci).toBeEnabled());
   });
 });
