@@ -23,7 +23,6 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { ContextoDoAlerta } from './componentes/AlertaInventario'
 import Esqueleto from './componentes/Esqueleto'
 import Tela from './componentes/Tela'
 import { AndamentoDoPlano } from './componentes/AcompanhamentoDoPlano'
@@ -726,9 +725,5 @@ export default function App() {
   }
   })()
 
-  return (
-    <ContextoDoAlerta.Provider value={{ casoId, irPara, navegacao: rota }}>
-      {tela}
-    </ContextoDoAlerta.Provider>
-  )
+  return tela
 }

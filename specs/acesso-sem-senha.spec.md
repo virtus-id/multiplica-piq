@@ -177,7 +177,10 @@ seguida responde `401`.
    sem senha quanto com senha errada. A tela distingue os dois pelo que ela enviou: sem
    senha ⇒ abre a etapa de senha sem erro; com senha ⇒ mostra o erro.
 4. **Editar o e-mail na etapa de senha volta à etapa de e-mail** (`AC-718`), para que o
-   campo de senha nunca fique na tela ao lado de um e-mail que não foi checado.
+   campo de senha nunca fique na tela ao lado de um e-mail que não foi checado. "Editar"
+   = o e-mail passa a ser **outro** depois de normalizado (`RF-704`: maiúsculas e espaços
+   nas pontas não contam) — o autopreenchimento do navegador reescreve o e-mail e não pode
+   derrubar a etapa (`T-704`).
 5. **Um único texto `primeiro_acesso`.** `POST /api/provisionamento/conta` (n8n) usa a
    mesma mensagem, então também passa a enviar as orientações sem token, embora continue
    devolvendo o token no corpo (`AC-729`).

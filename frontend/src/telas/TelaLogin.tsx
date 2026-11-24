@@ -127,9 +127,13 @@ export default function TelaLogin({ onEntrou }: TelaLoginProps) {
   // `AC-718`: o campo de senha nunca fica ao lado de um e-mail que não foi
   // checado — editar o e-mail volta à primeira etapa.
   function aoEditarEmail(valor: string) {
+    // Mesma regra do servidor (`RF-704`): maiúsculas e espaços nas pontas não
+    // fazem outro e-mail. Sem isso, o autopreenchimento do navegador (que
+    // reescreve o e-mail ao preencher a senha) derrubava a etapa de senha.
+    const mudouDeVerdade = valor.trim().toLowerCase() !== email.trim().toLowerCase()
     setEmail(valor)
     setErro(null)
-    if (etapa === 'senha') {
+    if (etapa === 'senha' && mudouDeVerdade) {
       setEtapa('email')
       setSenha('')
       setRecuperacaoEnviada(false)

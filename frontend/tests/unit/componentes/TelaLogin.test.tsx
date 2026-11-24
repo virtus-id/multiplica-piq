@@ -17,7 +17,7 @@
  * que repetisse a frase quebraria a cada revisão de copy e ensinaria a
  * equipe a atualizar o teste sem ler o que mudou.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -363,6 +363,19 @@ describe("TelaLogin", () => {
     expect(
       screen.queryByRole("button", { name: FORMULARIO.esqueciSenha }),
     ).toBeNull();
+  });
+
+  it("AC-718/RF-704: e-mail que só muda em maiúsculas ou espaços mantém a etapa de senha", async () => {
+    vi.spyOn(api, "entrar").mockResolvedValue(exigeSenha());
+    render(<TelaLogin onEntrou={() => undefined} />);
+
+    await irParaEtapaDeSenha("revisor@exemplo.br");
+    // Uma única mudança, como o autopreenchimento faz — sem passar por vazio.
+    fireEvent.change(screen.getByLabelText(FORMULARIO.rotuloEmail), {
+      target: { value: " Revisor@Exemplo.br " },
+    });
+
+    expect(screen.getByLabelText(FORMULARIO.rotuloSenha)).toBeTruthy();
   });
 
   it("AC-719: senha recusada mostra o erro e mantém o campo de senha", async () => {
